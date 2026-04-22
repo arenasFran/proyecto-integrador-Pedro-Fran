@@ -18,10 +18,9 @@ export const registerSchema = Joi.object({
     string()
     .min(3)
     .required(),
-    lastName: Joi.string()
+    lastname: Joi.string()
     .min(3)
     .required(),
     phone: Joi.string()
-    .pattern(/^(\+598|0)?9[1-9]\d{7}$/)
     .required()
 })

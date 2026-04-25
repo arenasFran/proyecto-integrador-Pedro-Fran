@@ -4,58 +4,62 @@ import { saveUserService } from "../services/users.services";
 import User from "../models/user.model";
 import jwt from "jsonwebtoken";
 
-
 export const register = async (req: Request, res: Response) => {
-    try{
-        const {email, password, name, lastname, phone} = req.body;
-
-        const existingUser = await User.findOne({email});
-        if(existingUser){
-            return res.status(409).json({error: 'Email en uso.'})
-        }
-
-        const existingPhone = await User.findOne({ phone });
-        if (existingPhone) {
-            return res.status(409).json({ error: 'Teléfono en uso.' });
-        }
-
-        const hash = await bcrypt.hash(password, 10);
-
-        const data = {
-            email,
-            password: hash,
-            name,
-            lastname,
-            phone
-        }
-
-        await saveUserService(data)
-        res.status(201).json({message: 'Usuario registrado con éxito'})
+  try {
+    const { email, password, name, lastname, phone } = req.body;
+    
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(409).json({ error: 'Email en uso.' })
     }
-    catch(error){
-        res.status(500).json({error: 'Error al registrar al usuario'})
+    
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return res.status(409).json({ error: 'Teléfono en uso.' });
     }
-   
+    
+    const hash = await bcrypt.hash(password, 10);
+    const data = {
+      email,
+      password: hash,
+      name,
+      lastname,
+      phone
+    }
+    
+    await saveUserService(data)
+    res.status(201).json({ message: 'Usuario registrado con éxito' })
+  } catch (error) {
+    res.status(500).json({ error: 'Error al registrar al usuario' })
+  }
 }
 
-
-export const login = async (req: Request, res: Response) =>{
-    try{
-        const {email, password} = req.body;
-        const user = await User.findOne({email})
-        if(!user){
-            return res.status(401).json({error: 'Email y/o contraseña incorrectos.' })
-        }
-
-        const passValida = await bcrypt.compare(password, user.password);
-        if(!passValida){
-            return res.status(401).json({error: 'Email y/o contraseña incorrectos.'})
-        }
-
-        const token = jwt.sign({email: email, id: user._id, role: user.role}, process.env.JWT_SECRET as string,{expiresIn: '1h'})
-        res.status(200).json({message: 'Login exitoso', token})
+export const login = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+    
+    const user = await User.findOne({ email })
+    if (!user) {
+      return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }
-    catch(error){
-        res.status(500).json({error:'Error interno del servidor.'})
+
+    if (!user.password) {
+      return res.status(401).json({ error: 'Este usuario se registró con Google, usá ese método para ingresar.' })
     }
-}   
+
+    const passValida = await bcrypt.compare(password, user.password);
+    if (!passValida) {
+      return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
+    }
+
+    const token = jwt.sign(
+      { email, id: user._id, role: user.role },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '1h' }
+    )
+    
+    res.status(200).json({ message: 'Login exitoso', token })
+  } catch (error) {
+    res.status(500).json({ error: 'Error interno del servidor.' })
+  }
+}

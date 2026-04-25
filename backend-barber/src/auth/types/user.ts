@@ -1,8 +1,10 @@
 export interface IUserInput {
   email: string;
-  password: string;
+  password?: string;
   name: string;
   lastname: string;
-  phone: string;
+  phone?: string;
   role?: 'cliente' | 'empleado' | 'admin'
-} 
+  authProvider?: 'local' | 'google'
+  googleId?: string
+}

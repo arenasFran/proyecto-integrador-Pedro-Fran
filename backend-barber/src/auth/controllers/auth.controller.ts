@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import bycript from "bcrypt";
+import bcrypt from "bcrypt";
 import { saveUserService } from "../services/users.services";
 import User from "../models/user.model";
+import jwt from "jsonwebtoken";
 
 
 export const register = async (req: Request, res: Response) => {
@@ -18,7 +19,7 @@ export const register = async (req: Request, res: Response) => {
             return res.status(409).json({ error: 'Teléfono en uso.' });
         }
 
-        const hash = bycript.hashSync(password, 10);
+        const hash = bcrypt.hashSync(password, 10);
 
         const data = {
             email,
@@ -36,3 +37,25 @@ export const register = async (req: Request, res: Response) => {
     }
    
 }
+
+
+export const login = async (req: Request, res: Response) =>{
+    try{
+        const {email, password} = req.body;
+        const user = await User.findOne({email})
+        if(!user){
+            return res.status(401).json({error: 'Email y/o contraseña incorrectos.' })
+        }
+
+        const passValida = await bcrypt.compare(password, user.password);
+        if(!passValida){
+            return res.status(401).json({error: 'Email y/o contraseña incorrectos.'})
+        }
+
+        const token = jwt.sign({email: email, id: user._id}, process.env.JWT_SECRET as string,{expiresIn: '1h'})
+        res.status(200).json({message: 'Login exitoso', token})
+    }
+    catch(error){
+        res.status(500).json({error:'Error interno del servidor.'})
+    }
+}   

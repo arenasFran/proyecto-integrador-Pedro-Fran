@@ -66,7 +66,7 @@ export const validate = (schemas: ValidationSchemas) => {
       next();
       return;
     } catch (err) {
-      const message = err instanceof Joi.ValidationError ? err.details?.[0]?.message : err instanceof Error ? err.message : "Error de validación";
+      const message = err instanceof Joi.ValidationError ? err.details?.map(d => d.message) : err instanceof Error ? err.message : "Error de validación";
       res.status(400).json({ error: message });
       return;
     }

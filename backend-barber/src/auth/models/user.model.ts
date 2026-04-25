@@ -11,7 +11,7 @@ const userSchema = new Schema<IUser>({
   password: { type: String, required: false }, // ← opcional
   name: { type: String, required: true },
   lastname: { type: String, required: true },
-  phone: { type: String, required: false, unique: true }, // ← opcional
+  phone: { type: String, required: false, unique: true, sparse: true }, // ← opcional
   role: { 
     type: String, 
     enum: ['cliente', 'empleado', 'admin'],

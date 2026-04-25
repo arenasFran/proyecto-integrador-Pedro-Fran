@@ -2,34 +2,40 @@ import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { saveUserService } from "../services/users.services";
 import User from "../models/user.model";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
+
+const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
 export const register = async (req: Request, res: Response) => {
   try {
     const { email, password, name, lastname, phone } = req.body;
-    
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existingUser = await User.findOne({ email: normalizedEmail });
     if (existingUser) {
       return res.status(409).json({ error: 'Email en uso.' })
     }
-    
+
     const existingPhone = await User.findOne({ phone });
     if (existingPhone) {
       return res.status(409).json({ error: 'Teléfono en uso.' });
     }
-    
+
     const hash = await bcrypt.hash(password, 10);
     const data = {
-      email,
+      email: normalizedEmail,
       password: hash,
       name,
       lastname,
       phone
     }
-    
+
     await saveUserService(data)
     res.status(201).json({ message: 'Usuario registrado con éxito' })
-  } catch (error) {
+  } catch (error: any) {  // ← faltaba cerrar el try acá
+    if (error.code === 11000) {
+      return res.status(409).json({ error: 'Email o teléfono ya registrado.' })
+    }
     res.status(500).json({ error: 'Error al registrar al usuario' })
   }
 }
@@ -37,8 +43,9 @@ export const register = async (req: Request, res: Response) => {
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
-    
-    const user = await User.findOne({ email })
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await User.findOne({ email: normalizedEmail })
     if (!user) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }
@@ -53,11 +60,11 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { email, id: user._id, role: user.role },
+      { email: user.email, id: user._id, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: '1h' }
+      { expiresIn: jwtExpiresIn }
     )
-    
+
     res.status(200).json({ message: 'Login exitoso', token })
   } catch (error) {
     res.status(500).json({ error: 'Error interno del servidor.' })

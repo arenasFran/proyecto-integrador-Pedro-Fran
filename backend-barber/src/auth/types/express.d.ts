@@ -3,7 +3,7 @@ import "express-serve-static-core";
 declare module "express-serve-static-core" {
   interface Request {
     user?: {
-      username: string;
+      email: string;
       _id: string;
       role: 'cliente' | 'empleado' | 'admin'
     };

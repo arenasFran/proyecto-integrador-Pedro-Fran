@@ -21,7 +21,6 @@ export const registerSchema = Joi.object({
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
   phone: Joi.string().required(),
-  authProvider: Joi.string().valid('local', 'google').default('local')
 })
 
 export const loginSchema = Joi.object({
@@ -31,5 +30,12 @@ export const loginSchema = Joi.object({
   }),
   password: Joi.string().required().messages({
     'any.required': 'La contraseña es obligatoria'
+  })
+})
+
+export const googleLoginSchema = Joi.object({
+  token: Joi.string().required().messages({
+    'any.required': 'El token de Google es obligatorio',
+    'string.base': 'El token debe ser un string'
   })
 })

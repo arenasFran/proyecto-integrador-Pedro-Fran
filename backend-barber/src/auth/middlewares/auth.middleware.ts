@@ -12,7 +12,7 @@ type ValidationSchemas = {
 
 type AuthRequest = Request & {
   user?: {
-    username: string;
+    email: string;
     _id: string;
     role: Role
   };
@@ -91,7 +91,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     }
     const user = decoded as JwtPayload;
     authReq.user = { 
-      username: user.username, 
+      email: user.email,
       _id: user.id,
       role: user.role
     };

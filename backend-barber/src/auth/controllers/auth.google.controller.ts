@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.model";
-import jwt from "jsonwebtoken";
+import jwt, { SignOptions } from "jsonwebtoken";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
 export const googleLogin = async (req: Request, res: Response) => {
   try {
@@ -19,13 +20,18 @@ export const googleLogin = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Token de Google inválido' });
     }
 
-    const { email, given_name, family_name, sub, name } = payload;
+    const { email, email_verified, given_name, family_name, sub, name } = payload;
+    if (!email || !email_verified) {
+      return res.status(401).json({ error: 'Cuenta de Google no verificada' });
+    }
 
-    let user = await User.findOne({ email });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    let user = await User.findOne({ email: normalizedEmail });
 
     if (!user) {
       user = await User.create({
-        email,
+        email: normalizedEmail,
         name: given_name || name || 'Usuario',
         lastname: family_name || '-',
         authProvider: 'google',
@@ -37,7 +43,7 @@ export const googleLogin = async (req: Request, res: Response) => {
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: '1d' }
+      { expiresIn: jwtExpiresIn }
     );
 
     res.status(200).json({ message: 'Login exitoso', token: jwtToken });

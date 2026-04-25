@@ -3,7 +3,7 @@ const { Schema } = mongoose
 import { IUserInput } from '../types/user';
 
 export interface IUser extends Document, IUserInput {
-  role: 'cliente' | 'barbero' | 'empleado' | 'admin'
+  role: 'cliente' |'empleado' | 'admin'
 }
 
 const userSchema = new Schema<IUser>({
@@ -14,7 +14,7 @@ const userSchema = new Schema<IUser>({
   phone: { type: String, required: true, unique: true },
   role: { 
     type: String, 
-    enum: ['cliente', 'barbero', 'empleado', 'admin'],
+    enum: ['cliente','empleado', 'admin'],
     default: 'cliente'
   }
 })

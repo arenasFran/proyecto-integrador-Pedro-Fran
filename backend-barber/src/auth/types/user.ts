@@ -4,5 +4,5 @@ export interface IUserInput {
   name: string;
   lastname: string;
   phone: string;
-  role?: 'cliente' | 'barbero' | 'empleado' | 'admin'
-}
+  role?: 'cliente' | 'empleado' | 'admin'
+} 

@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import Joi, { ObjectSchema } from "joi";
 
-type Role = 'cliente' | 'barbero' | 'empleado' | 'admin'
+type Role = 'cliente'| 'empleado' | 'admin'
 
 type ValidationSchemas = {
   body?: ObjectSchema;

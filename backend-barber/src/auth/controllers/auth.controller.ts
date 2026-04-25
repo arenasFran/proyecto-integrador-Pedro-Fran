@@ -19,7 +19,7 @@ export const register = async (req: Request, res: Response) => {
             return res.status(409).json({ error: 'Teléfono en uso.' });
         }
 
-        const hash = bcrypt.hashSync(password, 10);
+        const hash = await bcrypt.hash(password, 10);
 
         const data = {
             email,
@@ -52,7 +52,7 @@ export const login = async (req: Request, res: Response) =>{
             return res.status(401).json({error: 'Email y/o contraseña incorrectos.'})
         }
 
-        const token = jwt.sign({email: email, id: user._id}, process.env.JWT_SECRET as string,{expiresIn: '1h'})
+        const token = jwt.sign({email: email, id: user._id, role: user.role}, process.env.JWT_SECRET as string,{expiresIn: '1h'})
         res.status(200).json({message: 'Login exitoso', token})
     }
     catch(error){

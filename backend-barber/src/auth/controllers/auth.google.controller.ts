@@ -21,6 +21,7 @@ export const googleLogin = async (req: Request, res: Response) => {
     }
 
     const { email, email_verified, given_name, family_name, sub, name } = payload;
+
     if (!email || !email_verified) {
       return res.status(401).json({ error: 'Cuenta de Google no verificada' });
     }
@@ -29,7 +30,11 @@ export const googleLogin = async (req: Request, res: Response) => {
 
     let user = await User.findOne({ email: normalizedEmail });
 
-    if (!user) {
+    if (user) {
+      if (user.authProvider === 'google' && user.googleId !== sub) {
+        return res.status(401).json({ error: 'Token de Google inválido' })
+      }
+    } else {
       user = await User.create({
         email: normalizedEmail,
         name: given_name || name || 'Usuario',
@@ -43,13 +48,12 @@ export const googleLogin = async (req: Request, res: Response) => {
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: jwtExpiresIn }
+      { expiresIn: jwtExpiresIn, algorithm: 'HS256' }
     );
 
     res.status(200).json({ message: 'Login exitoso', token: jwtToken });
 
   } catch (error) {
-    console.log(error)
     res.status(500).json({ error: 'Error al autenticar con Google' });
   }
 };

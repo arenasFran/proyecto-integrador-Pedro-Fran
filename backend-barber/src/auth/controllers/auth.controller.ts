@@ -32,7 +32,7 @@ export const register = async (req: Request, res: Response) => {
 
     await saveUserService(data)
     res.status(201).json({ message: 'Usuario registrado con éxito' })
-  } catch (error: any) {  // ← faltaba cerrar el try acá
+  } catch (error: any) { 
     if (error.code === 11000) {
       return res.status(409).json({ error: 'Email o teléfono ya registrado.' })
     }
@@ -62,7 +62,7 @@ export const login = async (req: Request, res: Response) => {
     const token = jwt.sign(
       { email: user.email, id: user._id, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: jwtExpiresIn }
+      { expiresIn: jwtExpiresIn, algorithm: 'HS256' }
     )
 
     res.status(200).json({ message: 'Login exitoso', token })

@@ -79,17 +79,26 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   if (!authHeader) {
     return res.status(401).json({ error: "No autorizado" });
   }
-  const token = authHeader.split(" ")[1];
+  const [scheme, token] = authHeader.split(" ");
+  if (scheme !== "Bearer") {
+    return res.status(401).json({ error: "No autorizado" });
+  }
   if (!token) {
     return res.status(401).json({ error: "No autorizado" });
   }
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error("JWT_SECRET no definido");
-  jwt.verify(token, secret, (err, decoded) => {
+  jwt.verify(token, secret,{algorithms:['HS256']},(err, decoded) => {
     if (err) {
       return res.status(403).json({ error: "Token inválido" });
     }
+    if (!decoded || typeof decoded === "string") {
+      return res.status(403).json({ error: "Token inválido" });
+    }
     const user = decoded as JwtPayload;
+    if (!user.email || !user.id || !user.role) {
+      return res.status(403).json({ error: "Token inválido" });
+    }
     authReq.user = { 
       email: user.email,
       _id: user.id,

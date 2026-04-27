@@ -1,7 +1,7 @@
 import bcrypt from 'bcrypt';
 import { Request, Response } from 'express';
 import mailer from '../../config/mailer';
-import { consumeResetToken, createResetToken, verifyResetToken } from '../services/passwordReset.services';
+import { createResetToken, verifyAndConsumeResetToken } from '../services/passwordReset.services';
 import { findByEmail, updatePassword } from '../services/users.services';
 
 export const requestReset = async (req: Request, res: Response) => {
@@ -32,12 +32,11 @@ export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token, password } = req.body;
 
-    const tokenDoc = await verifyResetToken(token);
+    const tokenDoc = await verifyAndConsumeResetToken(token);
     if (!tokenDoc) return res.status(400).json({ error: 'Token inválido o expirado' });
 
     const hash = await bcrypt.hash(password, 10);
     await updatePassword(tokenDoc.userId, hash);
-    await consumeResetToken(tokenDoc._id);
 
     return res.status(200).json({ message: 'Contraseña restablecida con éxito' });
   } catch (error) {

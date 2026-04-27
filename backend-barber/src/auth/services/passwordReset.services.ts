@@ -45,4 +45,20 @@ export const consumeResetToken = async (id: string | Types.ObjectId) => {
   await PasswordReset.findByIdAndUpdate(id, { used: true });
 };
 
-export default { createResetToken, verifyResetToken, consumeResetToken };
+/**
+ * Atomically marks the token as used and returns the document (before update).
+ * Returns null if the token is invalid, already used, or expired.
+ * Using findOneAndUpdate prevents the race condition where two concurrent
+ * requests both pass a separate verifyResetToken check and both reset the password.
+ */
+export const verifyAndConsumeResetToken = async (token: string) => {
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const doc = await PasswordReset.findOneAndUpdate(
+    { tokenHash, used: false, expiresAt: { $gt: new Date() } },
+    { $set: { used: true } },
+    { new: false },
+  );
+  return doc;
+};
+
+export default { createResetToken, verifyResetToken, consumeResetToken, verifyAndConsumeResetToken };

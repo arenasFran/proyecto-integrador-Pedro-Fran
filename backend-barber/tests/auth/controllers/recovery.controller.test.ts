@@ -12,12 +12,10 @@ jest.mock('../../../src/config/mailer', () => {
 jest.mock('../../../src/auth/services/passwordReset.services', () => ({
   __esModule: true,
   createResetToken: jest.fn(),
-  verifyResetToken: jest.fn(),
-  consumeResetToken: jest.fn(),
+  verifyAndConsumeResetToken: jest.fn(),
   default: {
     createResetToken: jest.fn(),
-    verifyResetToken: jest.fn(),
-    consumeResetToken: jest.fn(),
+    verifyAndConsumeResetToken: jest.fn(),
   },
 }));
 
@@ -42,7 +40,7 @@ jest.mock('bcrypt', () => ({
 import bcrypt from 'bcrypt';
 import mailer from '../../../src/config/mailer';
 import { requestReset, resetPassword } from '../../../src/auth/controllers/recovery.controller';
-import { consumeResetToken, createResetToken, verifyResetToken } from '../../../src/auth/services/passwordReset.services';
+import { createResetToken, verifyAndConsumeResetToken } from '../../../src/auth/services/passwordReset.services';
 import { findByEmail, updatePassword } from '../../../src/auth/services/users.services';
 
 describe('recovery.controller', () => {
@@ -97,36 +95,33 @@ describe('recovery.controller', () => {
 
   describe('resetPassword', () => {
     it('token inválido/expirado: responde 400 y no actualiza password', async () => {
-      (verifyResetToken as jest.Mock).mockResolvedValue(null);
+      (verifyAndConsumeResetToken as jest.Mock).mockResolvedValue(null);
 
       const req = createMockReq({ token: 'bad', password: '123456' });
       const res = createMockRes() as any;
 
       await resetPassword(req, res);
 
-      expect(verifyResetToken).toHaveBeenCalledWith('bad');
+      expect(verifyAndConsumeResetToken).toHaveBeenCalledWith('bad');
       expect(updatePassword).not.toHaveBeenCalled();
-      expect(consumeResetToken).not.toHaveBeenCalled();
 
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: 'Token inválido o expirado' });
     });
 
-    it('exitoso: hashea password, actualiza y consume token, responde 200', async () => {
-      (verifyResetToken as jest.Mock).mockResolvedValue({ _id: 'doc1', userId: 'u1' });
+    it('exitoso: consume token atómicamente, hashea password y actualiza, responde 200', async () => {
+      (verifyAndConsumeResetToken as jest.Mock).mockResolvedValue({ _id: 'doc1', userId: 'u1' });
       (bcrypt.hash as unknown as jest.Mock).mockResolvedValue('hash123');
       (updatePassword as jest.Mock).mockResolvedValue(undefined);
-      (consumeResetToken as jest.Mock).mockResolvedValue(undefined);
 
       const req = createMockReq({ token: 'good', password: '123456' });
       const res = createMockRes() as any;
 
       await resetPassword(req, res);
 
-      expect(verifyResetToken).toHaveBeenCalledWith('good');
+      expect(verifyAndConsumeResetToken).toHaveBeenCalledWith('good');
       expect(bcrypt.hash).toHaveBeenCalledWith('123456', 10);
       expect(updatePassword).toHaveBeenCalledWith('u1', 'hash123');
-      expect(consumeResetToken).toHaveBeenCalledWith('doc1');
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Contraseña restablecida con éxito' });

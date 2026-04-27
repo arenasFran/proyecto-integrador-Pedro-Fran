@@ -6,6 +6,7 @@ jest.mock('../../../src/auth/models/passwordReset.model', () => {
 
   (PasswordReset as any).findOne = jest.fn();
   (PasswordReset as any).findByIdAndUpdate = jest.fn();
+  (PasswordReset as any).findOneAndUpdate = jest.fn();
 
   return {
     __esModule: true,
@@ -14,7 +15,7 @@ jest.mock('../../../src/auth/models/passwordReset.model', () => {
 });
 
 import PasswordReset from '../../../src/auth/models/passwordReset.model';
-import { consumeResetToken, createResetToken, verifyResetToken } from '../../../src/auth/services/passwordReset.services';
+import { consumeResetToken, createResetToken, verifyAndConsumeResetToken, verifyResetToken } from '../../../src/auth/services/passwordReset.services';
 
 describe('passwordReset.services', () => {
   beforeEach(() => {
@@ -82,5 +83,36 @@ describe('passwordReset.services', () => {
     await consumeResetToken('id1');
 
     expect((PasswordReset as any).findByIdAndUpdate).toHaveBeenCalledWith('id1', { used: true });
+  });
+
+  it('verifyAndConsumeResetToken: atómicamente marca used=true y retorna el doc previo cuando el token es válido', async () => {
+    const update = jest.fn().mockReturnThis();
+    const digest = jest.fn().mockReturnValue('fixedhash');
+    jest.spyOn(crypto, 'createHash').mockReturnValue({ update, digest } as any);
+
+    const mockDoc = { _id: 'doc1', userId: 'u1', used: false };
+    (PasswordReset as any).findOneAndUpdate.mockResolvedValue(mockDoc);
+
+    const result = await verifyAndConsumeResetToken('rawtoken');
+
+    expect(result).toEqual(mockDoc);
+    expect((PasswordReset as any).findOneAndUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ tokenHash: 'fixedhash', used: false }),
+      { $set: { used: true } },
+      { new: false },
+    );
+  });
+
+  it('verifyAndConsumeResetToken: retorna null cuando el token no existe, está usado o expirado', async () => {
+    jest.spyOn(crypto, 'createHash').mockReturnValue({
+      update: jest.fn().mockReturnThis(),
+      digest: jest.fn().mockReturnValue('somehash'),
+    } as any);
+
+    (PasswordReset as any).findOneAndUpdate.mockResolvedValue(null);
+
+    const result = await verifyAndConsumeResetToken('invalid');
+
+    expect(result).toBeNull();
   });
 });

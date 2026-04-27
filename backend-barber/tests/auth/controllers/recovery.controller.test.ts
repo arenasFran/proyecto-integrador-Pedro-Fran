@@ -39,7 +39,7 @@ jest.mock('bcrypt', () => ({
   hashSync: jest.fn(),
 }));
 
-import bycript from 'bcrypt';
+import bcrypt from 'bcrypt';
 import mailer from '../../../src/config/mailer';
 import { requestReset, resetPassword } from '../../../src/auth/controllers/recovery.controller';
 import { consumeResetToken, createResetToken, verifyResetToken } from '../../../src/auth/services/passwordReset.services';
@@ -114,7 +114,7 @@ describe('recovery.controller', () => {
 
     it('exitoso: hashea password, actualiza y consume token, responde 200', async () => {
       (verifyResetToken as jest.Mock).mockResolvedValue({ _id: 'doc1', userId: 'u1' });
-      (bycript.hashSync as unknown as jest.Mock).mockReturnValue('hash123');
+      (bcrypt.hashSync as unknown as jest.Mock).mockReturnValue('hash123');
       (updatePassword as jest.Mock).mockResolvedValue(undefined);
       (consumeResetToken as jest.Mock).mockResolvedValue(undefined);
 
@@ -124,7 +124,7 @@ describe('recovery.controller', () => {
       await resetPassword(req, res);
 
       expect(verifyResetToken).toHaveBeenCalledWith('good');
-      expect(bycript.hashSync).toHaveBeenCalledWith('123456', 10);
+      expect(bcrypt.hashSync).toHaveBeenCalledWith('123456', 10);
       expect(updatePassword).toHaveBeenCalledWith('u1', 'hash123');
       expect(consumeResetToken).toHaveBeenCalledWith('doc1');
 

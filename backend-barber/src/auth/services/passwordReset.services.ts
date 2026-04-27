@@ -2,10 +2,25 @@ import crypto from 'crypto';
 import { Types } from 'mongoose';
 import PasswordReset from '../models/passwordReset.model';
 
-const DEFAULT_EXP_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN
-  ? Number(process.env.RESET_TOKEN_EXPIRATION_MIN)
-  : 60;
+const FALLBACK_EXP_MIN = 60;
 
+const parseResetTokenExpirationMin = (value?: string) => {
+  if (!value) {
+    return FALLBACK_EXP_MIN;
+  }
+
+  const parsedValue = Number(value);
+
+  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
+    return FALLBACK_EXP_MIN;
+  }
+
+  return parsedValue;
+};
+
+const DEFAULT_EXP_MIN = parseResetTokenExpirationMin(
+  process.env.RESET_TOKEN_EXPIRATION_MIN,
+);
 export const createResetToken = async (userId: Types.ObjectId | string) => {
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = crypto.createHash('sha256').update(token).digest('hex');

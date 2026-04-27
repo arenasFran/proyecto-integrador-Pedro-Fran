@@ -34,9 +34,9 @@ jest.mock('../../../src/auth/services/users.services', () => ({
 jest.mock('bcrypt', () => ({
   __esModule: true,
   default: {
-    hashSync: jest.fn(),
+    hash: jest.fn(),
   },
-  hashSync: jest.fn(),
+  hash: jest.fn(),
 }));
 
 import bcrypt from 'bcrypt';
@@ -114,7 +114,7 @@ describe('recovery.controller', () => {
 
     it('exitoso: hashea password, actualiza y consume token, responde 200', async () => {
       (verifyResetToken as jest.Mock).mockResolvedValue({ _id: 'doc1', userId: 'u1' });
-      (bcrypt.hashSync as unknown as jest.Mock).mockReturnValue('hash123');
+      (bcrypt.hash as unknown as jest.Mock).mockResolvedValue('hash123');
       (updatePassword as jest.Mock).mockResolvedValue(undefined);
       (consumeResetToken as jest.Mock).mockResolvedValue(undefined);
 
@@ -124,7 +124,7 @@ describe('recovery.controller', () => {
       await resetPassword(req, res);
 
       expect(verifyResetToken).toHaveBeenCalledWith('good');
-      expect(bcrypt.hashSync).toHaveBeenCalledWith('123456', 10);
+      expect(bcrypt.hash).toHaveBeenCalledWith('123456', 10);
       expect(updatePassword).toHaveBeenCalledWith('u1', 'hash123');
       expect(consumeResetToken).toHaveBeenCalledWith('doc1');
 

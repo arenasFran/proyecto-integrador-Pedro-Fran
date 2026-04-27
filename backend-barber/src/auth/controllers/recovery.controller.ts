@@ -17,7 +17,9 @@ export const requestReset = async (req: Request, res: Response) => {
       const subject = 'Restablece tu contraseña';
       const html = `<p>Para restablecer tu contraseña haz clic <a href="${url}">aquí</a>.</p>`;
       // send mail (don't await to reduce response time)
-      mailer.sendMail({ to: user.email, subject, html }).catch(() => {});
+      mailer.sendMail({ to: user.email, subject, html }).catch((error) => {
+      console.error('Error sending password reset email to %s', user.email, error);
+      });
     }
 
     return res.status(200).json({ message: 'Si el email existe, recibirás instrucciones para restablecer la contraseña.' });

@@ -33,7 +33,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     const tokenDoc = await verifyResetToken(token);
     if (!tokenDoc) return res.status(400).json({ error: 'Token inválido o expirado' });
 
-    const hash = bycript.hashSync(password, 10);
+    const hash = await bycript.hash(password, 10);
     await updatePassword(tokenDoc.userId, hash);
     await consumeResetToken(tokenDoc._id);
 

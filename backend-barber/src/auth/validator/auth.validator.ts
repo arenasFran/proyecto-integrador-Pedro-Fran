@@ -39,3 +39,13 @@ export const googleLoginSchema = Joi.object({
     'string.base': 'El token debe ser un string'
   })
 })
+
+export const twoFactorSendSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required()
+})
+
+export const twoFactorVerifySchema = Joi.object({
+  email: Joi.string().email().required(),
+  code: Joi.string().length(6).required()
+})

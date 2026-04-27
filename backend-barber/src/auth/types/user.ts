@@ -7,4 +7,6 @@ export interface IUserInput {
   role?: 'cliente' | 'empleado' | 'admin'
   authProvider?: 'local' | 'google'
   googleId?: string
+  twoFactorCode?: string
+  twoFactorExpires?: Date
 }

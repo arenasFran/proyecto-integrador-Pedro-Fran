@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
 import jwt, { SignOptions } from "jsonwebtoken";
-import { Barber, RegisteredClient } from "../models/user.model";
+import { findUserByEmail, validatePassword } from "../services/users.services";
 import mailer from "../../config/mailer";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
@@ -11,8 +11,7 @@ export const sendTwoFactorCode = async (req: Request, res: Response) => {
     const { email, password } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
-    const barber = await Barber.findOne({ email: normalizedEmail });
-    const user = barber || await RegisteredClient.findOne({ email: normalizedEmail });
+    const user = await findUserByEmail(normalizedEmail);
     if (!user) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }
@@ -21,8 +20,7 @@ export const sendTwoFactorCode = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Este usuario se registró con Google, usá ese método para ingresar.' })
     }
 
-    const bcrypt = await import('bcrypt');
-    const passValida = await bcrypt.compare(password, user.password);
+    const passValida = await validatePassword(password, user.password);
     if (!passValida) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }
@@ -55,8 +53,7 @@ export const verifyTwoFactorCode = async (req: Request, res: Response) => {
     const { email, code } = req.body;
 
     const normalizedEmail = email.toLowerCase().trim();
-    const barber = await Barber.findOne({ email: normalizedEmail });
-    const user = barber || await RegisteredClient.findOne({ email: normalizedEmail });
+    const user = await findUserByEmail(normalizedEmail);
     if (!user) {
       return res.status(401).json({ error: 'Usuario no encontrado.' })
     }

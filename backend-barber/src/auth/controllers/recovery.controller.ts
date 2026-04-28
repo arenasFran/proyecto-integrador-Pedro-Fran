@@ -2,12 +2,12 @@ import bcrypt from 'bcrypt';
 import { Request, Response } from 'express';
 import mailer from '../../config/mailer';
 import { createResetToken, verifyAndConsumeResetToken } from '../services/passwordReset.services';
-import { findByEmail, updatePassword } from '../services/users.services';
+import { findUserByEmail, updatePassword } from '../services/users.services';
 
 export const requestReset = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
-    const user = await findByEmail(email);
+    const user = await findUserByEmail(email);
 
     // Always respond success to avoid user enumeration
     if (user) {

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
-import { saveUserService } from "../services/users.services";
+import { saveUserService, findUserByEmail, validatePassword } from "../services/users.services";
 import { Barber, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
 
@@ -11,9 +11,8 @@ export const register = async (req: Request, res: Response) => {
     const { email, password, name, lastname, phone } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const existingBarber = await Barber.findOne({ email: normalizedEmail });
-    const existingClient = await RegisteredClient.findOne({ email: normalizedEmail });
-    if (existingBarber || existingClient) {
+    const existingUser = await findUserByEmail(normalizedEmail);
+    if (existingUser) {
       return res.status(409).json({ error: 'Email en uso.' })
     }
 
@@ -48,8 +47,7 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const barber = await Barber.findOne({ email: normalizedEmail })
-    const user = barber || await RegisteredClient.findOne({ email: normalizedEmail })
+    const user = await findUserByEmail(normalizedEmail);
     if (!user) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }
@@ -58,7 +56,7 @@ export const login = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Este usuario se registró con Google, usá ese método para ingresar.' })
     }
 
-    const passValida = await bcrypt.compare(password, user.password);
+    const passValida = await validatePassword(password, user.password);
     if (!passValida) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }

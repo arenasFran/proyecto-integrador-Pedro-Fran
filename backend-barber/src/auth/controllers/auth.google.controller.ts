@@ -1,54 +1,59 @@
 import { Request, Response } from "express";
-import { OAuth2Client } from "google-auth-library";
-import { Barber, RegisteredClient } from "../models/user.model";
+import { OAuth2Client, TokenPayload } from "google-auth-library";
+import { IRegisteredClient, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
+import { findUserByEmail } from "../services/users.services";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
+async function getGoogleUser(token: string): Promise<TokenPayload> {
+  const ticket = await client.verifyIdToken({
+    idToken: token,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
+  const payload = ticket.getPayload();
+  if (!payload) {
+    throw new Error('Token de Google inválido');
+  }
+  return payload;
+}
+
+async function handleGoogleUser(payload: TokenPayload) {
+  const { email, email_verified, given_name, family_name, sub, name } = payload;
+  if (!email || !email_verified) {
+    throw new Error('Cuenta de Google no verificada');
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const existingUser = await findUserByEmail(normalizedEmail);
+
+  if (existingUser) {
+    if (existingUser.kind === 'Admin' || existingUser.kind === 'Empleado') {
+      throw new Error('Este usuario no puede iniciar con Google.');
+    }
+    const registeredClient = existingUser as IRegisteredClient;
+    if (registeredClient.authProvider === 'google' && registeredClient.googleId !== sub) {
+      throw new Error('Token de Google inválido');
+    }
+    return existingUser;
+  }
+
+  return RegisteredClient.create({
+    email: normalizedEmail,
+    name: given_name || name || 'Usuario',
+    lastname: family_name || '-',
+    authProvider: 'google',
+    googleId: sub,
+  });
+}
+
+
 export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { token } = req.body;
-
-    const ticket = await client.verifyIdToken({
-      idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID
-    });
-
-    const payload = ticket.getPayload();
-    if (!payload) {
-      return res.status(401).json({ error: 'Token de Google inválido' });
-    }
-
-    const { email, email_verified, given_name, family_name, sub, name } = payload;
-
-    if (!email || !email_verified) {
-      return res.status(401).json({ error: 'Cuenta de Google no verificada' });
-    }
-
-    const normalizedEmail = email.toLowerCase().trim();
-
-    const barber = await Barber.findOne({ email: normalizedEmail });
-    if (barber) {
-      return res.status(401).json({ error: 'Este usuario no puede iniciar con Google.' });
-    }
-
-    let user = await RegisteredClient.findOne({ email: normalizedEmail });
-
-    if (user) {
-      if (user.authProvider === 'google' && user.googleId !== sub) {
-        return res.status(401).json({ error: 'Token de Google inválido' })
-      }
-    } else {
-
-      user = await RegisteredClient.create({
-        email: normalizedEmail,
-        name: given_name || name || 'Usuario',
-        lastname: family_name || '-',
-        authProvider: 'google',
-        googleId: sub,
-      });
-    }
+    const payload = await getGoogleUser(token);
+    const user = await handleGoogleUser(payload);
 
     const jwtToken = jwt.sign(
       { id: user._id, email: user.email, kind: user.kind },
@@ -58,7 +63,7 @@ export const googleLogin = async (req: Request, res: Response) => {
 
     res.status(200).json({ message: 'Login exitoso', token: jwtToken });
 
-  } catch (error) {
-    res.status(500).json({ error: 'Error al autenticar con Google' });
+  } catch (error: any) {
+    res.status(401).json({ error: error.message || 'Error al autenticar con Google' });
   }
 };

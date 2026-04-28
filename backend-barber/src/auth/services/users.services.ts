@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { IUserInput } from "../types/user";
 import { Barber, RegisteredClient } from "../models/user.model";
+import bcrypt from "bcrypt";
 
 export const saveUserService = async (newUser: IUserInput) => {
     const user = new RegisteredClient(newUser);
@@ -8,12 +9,16 @@ export const saveUserService = async (newUser: IUserInput) => {
     return;
 };
 
-export const findByEmail = async (email: string) => {
+export const findUserByEmail = async (email: string) => {
     const barber = await Barber.findOne({ email });
     if (barber) {
         return barber;
     }
     return RegisteredClient.findOne({ email });
+};
+
+export const validatePassword = async (password: string, hash: string) => {
+    return bcrypt.compare(password, hash);
 };
 
 export const updatePassword = async (userId: string | Types.ObjectId, passwordHash: string) => {

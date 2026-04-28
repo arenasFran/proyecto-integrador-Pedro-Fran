@@ -5,7 +5,7 @@ declare module "express-serve-static-core" {
     user?: {
       email: string;
       _id: string;
-      role: 'cliente' | 'empleado' | 'admin'
+      role: 'cliente' | 'empleado' | 'admin';
     };
     validated?: Record<string, unknown>;
   }

@@ -87,7 +87,10 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
   }
 
   const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET no definido");
+  if (!secret) {
+    console.error('JWT_SECRET is not defined');
+    return next(new Error('JWT_SECRET no definido'));
+  }
 
   jwt.verify(token, secret, (err, decoded) => {
     if (err) {

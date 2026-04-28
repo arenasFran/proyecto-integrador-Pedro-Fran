@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { AuthKind } from "../types/user";
 import Joi, { ObjectSchema } from "joi";
 
-type Role = 'cliente'| 'empleado' | 'admin'
+type Kind = AuthKind;
 
 type ValidationSchemas = {
   body?: ObjectSchema;
@@ -10,11 +11,11 @@ type ValidationSchemas = {
   query?: ObjectSchema;
 };
 
-type AuthRequest = Request & {
+type AuthRequest = Omit<Request, 'user'> & {
   user?: {
     email: string;
     _id: string;
-    role: Role
+    kind: Kind
   };
   validated?: Record<string, unknown>;
 };
@@ -99,25 +100,25 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
       return res.status(403).json({ error: "Token inválido" });
     }
     const user = decoded as JwtPayload;
-    if (!user.email || !user.id || !user.role) {
+    if (!user.email || !user.id || !user.kind) {
       return res.status(403).json({ error: "Token inválido" });
     }
     authReq.user = { 
       email: user.email,
       _id: user.id,
-      role: user.role
+      kind: user.kind
     };
     next();
   });
 };
 
-export const authorize = (...roles: Role[]) => {
+export const authorize = (...kinds: Kind[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authReq = req as AuthRequest;
     if (!authReq.user) {
       return res.status(401).json({ error: "No autorizado" });
     }
-    if (!roles.includes(authReq.user.role)) {
+    if (!kinds.includes(authReq.user.kind)) {
       return res.status(403).json({ error: "No tenés permisos para acceder a este recurso" });
     }
     next();

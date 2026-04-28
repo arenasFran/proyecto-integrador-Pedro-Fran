@@ -30,7 +30,6 @@ export const register = async (req: Request, res: Response) => {
       name,
       lastname,
       phone,
-      role: 'cliente' as const,
       authProvider: 'local' as const
     }
 
@@ -65,7 +64,7 @@ export const login = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { email: user.email, id: user._id, role: user.role },
+      { email: user.email, id: user._id, kind: user.kind },
       process.env.JWT_SECRET as string,
       { expiresIn: jwtExpiresIn, algorithm: 'HS256' }
     )

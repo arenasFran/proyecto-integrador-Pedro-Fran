@@ -2,8 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { Barber, RegisteredClient } from "../models/user.model";
-// TODO: importar sendMail cuando se mergee la rama de reset password
-// import { sendMail } from "../../config/mailer";
+import mailer from "../../config/mailer";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
@@ -36,14 +35,14 @@ export const sendTwoFactorCode = async (req: Request, res: Response) => {
     user.twoFactorExpires = expires;
     await user.save();
 
-    // TODO: reemplazar con sendMail cuando se mergee
-    console.log(`Código 2FA para ${email}: ${code}`);
-    // await sendMail({
-    //   to: user.email,
-    //   subject: 'Tu código de verificación',
-    //   html: `<h2>Tu código es: <strong>${code}</strong></h2><p>Expira en 5 minutos.</p>`
-    // })
-
+    mailer.sendMail({
+      from: process.env.SMTP_USER,
+      to: normalizedEmail,
+      subject: 'Tu código de verificación',
+      html: `<h2>Tu código es: <strong>${code}</strong></h2><p>Expira en 5 minutos.</p>`
+    }).catch((error: unknown) => {
+      console.error('Error enviando email 2FA a %s', normalizedEmail, error);
+    });
     res.status(200).json({ message: 'Código enviado al email' })
 
   } catch (error) {
@@ -84,7 +83,7 @@ export const verifyTwoFactorCode = async (req: Request, res: Response) => {
 
     
     const token = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, kind: user.kind },
       process.env.JWT_SECRET as string,
       { expiresIn: jwtExpiresIn, algorithm: 'HS256' }
     )

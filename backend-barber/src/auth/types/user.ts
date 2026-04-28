@@ -1,7 +1,7 @@
-export type BarberRole = 'empleado' | 'admin';
-export type ClientRole = 'cliente';
-export type UserRole = BarberRole | ClientRole;
 export type AuthProvider = 'local' | 'google';
+export type BarberKind = 'Admin' | 'Empleado';
+export type ClientKind = 'Registrado' | 'NoRegistrado';
+export type AuthKind = BarberKind | ClientKind;
 
 export interface IBarberBaseInput {
   email: string;
@@ -11,15 +11,15 @@ export interface IBarberBaseInput {
   phone: string;
   twoFactorCode?: string;
   twoFactorExpires?: Date;
-  role: BarberRole;
+  kind?: BarberKind;
 }
 
 export interface IEmployeeInput extends IBarberBaseInput {
-  role: 'empleado';
+  kind: 'Empleado';
 }
 
 export interface IAdminInput extends IBarberBaseInput {
-  role: 'admin';
+  kind: 'Admin';
 }
 
 export interface IClientBaseInput {
@@ -27,7 +27,7 @@ export interface IClientBaseInput {
   lastname: string;
   phone?: string;
   contactEmail?: string;
-  role?: ClientRole;
+  kind?: ClientKind;
 }
 
 export interface IRegisteredClientInput extends IClientBaseInput {
@@ -37,8 +37,11 @@ export interface IRegisteredClientInput extends IClientBaseInput {
   googleId?: string;
   twoFactorCode?: string;
   twoFactorExpires?: Date;
+  kind?: 'Registrado';
 }
 
-export interface IUnregisteredClientInput extends IClientBaseInput {}
+export interface IUnregisteredClientInput extends IClientBaseInput {
+  kind?: 'NoRegistrado';
+}
 
 export type IUserInput = IRegisteredClientInput;

@@ -7,7 +7,7 @@ import { Admin } from './auth/models/user.model'
 const seed = async () => {
   await mongoose.connect(process.env.MONGO_URI as string)
 
-  const existing = await Admin.findOne({ email: 'admin@barberia.com' })
+  const existing = await Admin.findOne({ email: 'luffyarenas@gmail.com' })
   if (existing) {
     console.log('Admin ya existe')
     process.exit(0)
@@ -20,7 +20,6 @@ const seed = async () => {
     name: 'Santiago',
     lastname: 'Abbona',
     phone: '099000000',
-    role: 'admin'
   })
 
   console.log('Admin creado con éxito')

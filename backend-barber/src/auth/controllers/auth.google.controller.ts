@@ -40,18 +40,18 @@ export const googleLogin = async (req: Request, res: Response) => {
         return res.status(401).json({ error: 'Token de Google inválido' })
       }
     } else {
+
       user = await RegisteredClient.create({
         email: normalizedEmail,
         name: given_name || name || 'Usuario',
         lastname: family_name || '-',
         authProvider: 'google',
         googleId: sub,
-        role: 'cliente'
       });
     }
 
     const jwtToken = jwt.sign(
-      { id: user._id, email: user.email, role: user.role },
+      { id: user._id, email: user.email, kind: user.kind },
       process.env.JWT_SECRET as string,
       { expiresIn: jwtExpiresIn, algorithm: 'HS256' }
     );

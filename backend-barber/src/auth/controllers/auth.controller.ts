@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { saveUserService } from "../services/users.services";
-import User from "../models/user.model";
+import { Barber, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
@@ -11,13 +11,15 @@ export const register = async (req: Request, res: Response) => {
     const { email, password, name, lastname, phone } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const existingUser = await User.findOne({ email: normalizedEmail });
-    if (existingUser) {
+    const existingBarber = await Barber.findOne({ email: normalizedEmail });
+    const existingClient = await RegisteredClient.findOne({ email: normalizedEmail });
+    if (existingBarber || existingClient) {
       return res.status(409).json({ error: 'Email en uso.' })
     }
 
-    const existingPhone = await User.findOne({ phone });
-    if (existingPhone) {
+    const existingPhoneBarber = await Barber.findOne({ phone });
+    const existingPhoneClient = await RegisteredClient.findOne({ phone });
+    if (existingPhoneBarber || existingPhoneClient) {
       return res.status(409).json({ error: 'Teléfono en uso.' });
     }
 
@@ -27,7 +29,9 @@ export const register = async (req: Request, res: Response) => {
       password: hash,
       name,
       lastname,
-      phone
+      phone,
+      role: 'cliente' as const,
+      authProvider: 'local' as const
     }
 
     await saveUserService(data)
@@ -45,7 +49,8 @@ export const login = async (req: Request, res: Response) => {
     const { email, password } = req.body;
     const normalizedEmail = email.toLowerCase().trim();
 
-    const user = await User.findOne({ email: normalizedEmail })
+    const barber = await Barber.findOne({ email: normalizedEmail })
+    const user = barber || await RegisteredClient.findOne({ email: normalizedEmail })
     if (!user) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }

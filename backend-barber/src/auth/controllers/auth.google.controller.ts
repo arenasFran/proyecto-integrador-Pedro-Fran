@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { OAuth2Client } from "google-auth-library";
-import User from "../models/user.model";
+import { Barber, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -28,14 +28,19 @@ export const googleLogin = async (req: Request, res: Response) => {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    let user = await User.findOne({ email: normalizedEmail });
+    const barber = await Barber.findOne({ email: normalizedEmail });
+    if (barber) {
+      return res.status(401).json({ error: 'Este usuario no puede iniciar con Google.' });
+    }
+
+    let user = await RegisteredClient.findOne({ email: normalizedEmail });
 
     if (user) {
       if (user.authProvider === 'google' && user.googleId !== sub) {
         return res.status(401).json({ error: 'Token de Google inválido' })
       }
     } else {
-      user = await User.create({
+      user = await RegisteredClient.create({
         email: normalizedEmail,
         name: given_name || name || 'Usuario',
         lastname: family_name || '-',

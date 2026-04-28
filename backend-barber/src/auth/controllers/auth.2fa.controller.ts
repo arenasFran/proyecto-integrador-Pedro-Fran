@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import crypto from "crypto";
 import jwt, { SignOptions } from "jsonwebtoken";
-import User from "../models/user.model";
+import { Barber, RegisteredClient } from "../models/user.model";
 // TODO: importar sendMail cuando se mergee la rama de reset password
 // import { sendMail } from "../../config/mailer";
 
@@ -11,7 +11,9 @@ export const sendTwoFactorCode = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const barber = await Barber.findOne({ email: normalizedEmail });
+    const user = barber || await RegisteredClient.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(401).json({ error: 'Email y/o contraseña incorrectos.' })
     }
@@ -53,7 +55,9 @@ export const verifyTwoFactorCode = async (req: Request, res: Response) => {
   try {
     const { email, code } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const barber = await Barber.findOne({ email: normalizedEmail });
+    const user = barber || await RegisteredClient.findOne({ email: normalizedEmail });
     if (!user) {
       return res.status(401).json({ error: 'Usuario no encontrado.' })
     }

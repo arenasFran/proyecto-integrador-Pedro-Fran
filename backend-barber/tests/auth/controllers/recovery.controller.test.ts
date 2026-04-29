@@ -21,10 +21,10 @@ jest.mock('../../../src/auth/services/passwordReset.services', () => ({
 
 jest.mock('../../../src/auth/services/users.services', () => ({
   __esModule: true,
-  findByEmail: jest.fn(),
+  findUserByEmail: jest.fn(),
   updatePassword: jest.fn(),
   default: {
-    findByEmail: jest.fn(),
+    findUserByEmail: jest.fn(),
     updatePassword: jest.fn(),
   },
 }));
@@ -41,7 +41,7 @@ import bcrypt from 'bcrypt';
 import mailer from '../../../src/config/mailer';
 import { requestReset, resetPassword } from '../../../src/auth/controllers/recovery.controller';
 import { createResetToken, verifyAndConsumeResetToken } from '../../../src/auth/services/passwordReset.services';
-import { findByEmail, updatePassword } from '../../../src/auth/services/users.services';
+import { findUserByEmail, updatePassword } from '../../../src/auth/services/users.services';
 
 describe('recovery.controller', () => {
   beforeEach(() => {
@@ -50,7 +50,7 @@ describe('recovery.controller', () => {
 
   describe('requestReset', () => {
     it('si el usuario existe: genera token y envía email, responde 200 genérico', async () => {
-      (findByEmail as jest.Mock).mockResolvedValue({ _id: 'u1', email: 'test@example.com' });
+      (findUserByEmail as jest.Mock).mockResolvedValue({ _id: 'u1', email: 'test@example.com' });
       (createResetToken as jest.Mock).mockResolvedValue('rawtoken');
       (mailer.sendMail as jest.Mock).mockResolvedValue(undefined);
 
@@ -59,7 +59,7 @@ describe('recovery.controller', () => {
 
       await requestReset(req, res);
 
-      expect(findByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(findUserByEmail).toHaveBeenCalledWith('test@example.com');
       expect(createResetToken).toHaveBeenCalledWith('u1');
       expect(mailer.sendMail).toHaveBeenCalledTimes(1);
 
@@ -75,14 +75,14 @@ describe('recovery.controller', () => {
     });
 
     it('si el usuario NO existe: responde 200 genérico y NO envía email', async () => {
-      (findByEmail as jest.Mock).mockResolvedValue(null);
+      (findUserByEmail as jest.Mock).mockResolvedValue(null);
 
       const req = createMockReq({ email: 'missing@example.com' });
       const res = createMockRes() as any;
 
       await requestReset(req, res);
 
-      expect(findByEmail).toHaveBeenCalledWith('missing@example.com');
+      expect(findUserByEmail).toHaveBeenCalledWith('missing@example.com');
       expect(createResetToken).not.toHaveBeenCalled();
       expect(mailer.sendMail).not.toHaveBeenCalled();
 

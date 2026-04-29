@@ -6,6 +6,10 @@ import mailer from "../../config/mailer";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
+function hashCode(code: string): string {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
 export const sendTwoFactorCode = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -28,8 +32,7 @@ export const sendTwoFactorCode = async (req: Request, res: Response) => {
     const code = crypto.randomInt(100000, 999999).toString();
     const expires = new Date(Date.now() + 5 * 60 * 1000);
 
-    
-    user.twoFactorCode = code;
+    user.twoFactorCode = hashCode(code);
     user.twoFactorExpires = expires;
     await user.save();
 
@@ -69,16 +72,14 @@ export const verifyTwoFactorCode = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'El código expiró.' })
     }
 
-    if (user.twoFactorCode !== code) {
+    if (user.twoFactorCode !== hashCode(code)) {
       return res.status(401).json({ error: 'Código incorrecto.' })
     }
 
-   
     user.twoFactorCode = undefined;
     user.twoFactorExpires = undefined;
     await user.save();
 
-    
     const token = jwt.sign(
       { id: user._id, email: user.email, kind: user.kind },
       process.env.JWT_SECRET as string,

@@ -23,6 +23,3 @@ app.get("/health", (_req, res) => {
 });
 
 export default app;
-
-
-//import barberoRoutes from "./barbero/routes/barbero.routes" //app.use("/barbero", barberoRoutes)

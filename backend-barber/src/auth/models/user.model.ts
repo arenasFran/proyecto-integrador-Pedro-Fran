@@ -189,5 +189,5 @@ export {
   Client,
   RegisteredClient,
   UnregisteredClient,
-  AuthProvider,
 };
+export type { AuthProvider };

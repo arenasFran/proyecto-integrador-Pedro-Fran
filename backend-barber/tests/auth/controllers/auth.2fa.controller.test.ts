@@ -17,6 +17,10 @@ jest.mock('../../../src/auth/services/users.services', () => ({
   validatePassword: jest.fn(),
 }));
 
+function hashCode(code: string): string {
+  return crypto.createHash('sha256').update(code).digest('hex');
+}
+
 describe('auth.2fa.controller', () => {
   beforeEach(() => {
     process.env.JWT_SECRET = 'test-secret';
@@ -64,7 +68,7 @@ describe('auth.2fa.controller', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Email y/o contraseña incorrectos.' });
     });
 
-    it('200 y guarda el código y envía email', async () => {
+    it('200 y guarda el código hasheado y envía email', async () => {
       const save = jest.fn().mockResolvedValue(undefined);
       const user: any = { password: 'hash', save };
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue(user);
@@ -73,18 +77,22 @@ describe('auth.2fa.controller', () => {
       jest.spyOn(crypto, 'randomInt').mockReturnValue(123456 as any);
       (mailer as any).sendMail.mockResolvedValue(undefined);
 
+      const fixedNow = new Date('2024-01-01T00:00:00Z');
+      jest.useFakeTimers();
+      jest.setSystemTime(fixedNow);
+
       const req = createMockReq({ email: 'Test@Example.com ', password: 'ok' });
       const res = createMockRes();
 
-      const before = Date.now();
       await sendTwoFactorCode(req, res);
-      const after = Date.now();
 
-      expect(user.twoFactorCode).toBe('123456');
+      jest.useRealTimers();
+
+      expect(user.twoFactorCode).toBe(hashCode('123456'));
       expect(user.twoFactorExpires).toBeInstanceOf(Date);
-      const expMs = (user.twoFactorExpires as Date).getTime();
-      expect(expMs).toBeGreaterThanOrEqual(before + 5 * 60 * 1000);
-      expect(expMs).toBeLessThanOrEqual(after + 5 * 60 * 1000 + 50);
+      expect((user.twoFactorExpires as Date).getTime()).toBe(
+        fixedNow.getTime() + 5 * 60 * 1000
+      );
       expect(save).toHaveBeenCalled();
 
       expect(mailer.sendMail).toHaveBeenCalledWith(
@@ -127,7 +135,7 @@ describe('auth.2fa.controller', () => {
     it('401 si el código expiró (y lo limpia)', async () => {
       const save = jest.fn().mockResolvedValue(undefined);
       const user: any = {
-        twoFactorCode: '123456',
+        twoFactorCode: hashCode('123456'),
         twoFactorExpires: new Date(Date.now() - 1000),
         save,
       };
@@ -147,7 +155,7 @@ describe('auth.2fa.controller', () => {
 
     it('401 si el código es incorrecto', async () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
-        twoFactorCode: '111111',
+        twoFactorCode: hashCode('111111'),
         twoFactorExpires: new Date(Date.now() + 60_000),
       });
 
@@ -166,7 +174,7 @@ describe('auth.2fa.controller', () => {
         _id: 'user-id',
         email: 'x@y.com',
         kind: 'Registrado',
-        twoFactorCode: '123456',
+        twoFactorCode: hashCode('123456'),
         twoFactorExpires: new Date(Date.now() + 60_000),
         save,
       };

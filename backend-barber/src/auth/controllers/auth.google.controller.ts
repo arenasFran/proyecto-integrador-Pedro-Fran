@@ -4,10 +4,10 @@ import { IRegisteredClient, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { findUserByEmail } from "../services/users.services";
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
 async function getGoogleUser(token: string): Promise<TokenPayload> {
+  const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
   const ticket = await client.verifyIdToken({
     idToken: token,
     audience: process.env.GOOGLE_CLIENT_ID,

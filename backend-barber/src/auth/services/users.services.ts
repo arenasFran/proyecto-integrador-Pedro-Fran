@@ -28,3 +28,8 @@ export const updatePassword = async (userId: string | Types.ObjectId, passwordHa
     }
     return RegisteredClient.findByIdAndUpdate(userId, { password: passwordHash });
 };
+
+// Backward-compatible alias from develop branch naming.
+export const findByEmail = findUserByEmail;
+
+export default { saveUserService, findUserByEmail, findByEmail, validatePassword, updatePassword };

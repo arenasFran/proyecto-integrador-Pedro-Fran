@@ -92,7 +92,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction) =>
     console.error('JWT_SECRET is not defined');
     return next(new Error('JWT_SECRET no definido'));
   }
-  jwt.verify(token, secret,{algorithms:['HS256']},(err, decoded) => {
+  jwt.verify(token, secret, { algorithms: ["HS256"] }, (err, decoded) => {
     if (err) {
       return res.status(403).json({ error: "Token inválido" });
     }

@@ -34,9 +34,11 @@ export const register = async (req: Request, res: Response) => {
 
     await saveUserService(data)
     res.status(201).json({ message: 'Usuario registrado con éxito' })
-  } catch (error: any) { 
+  } catch (error: any) {
     if (error.code === 11000) {
-      return res.status(409).json({ error: 'Email o teléfono ya registrado.' })
+      const field = Object.keys(error.keyValue ?? {})[0];
+      const message = field === "phone" ? "Teléfono en uso." : "Email en uso.";
+      return res.status(409).json({ error: message })
     }
     res.status(500).json({ error: 'Error al registrar al usuario' })
   }

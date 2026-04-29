@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 
-import { googleLogin } from "../auth.google.controller";
-import * as usersService from "../../services/users.services";
-import { RegisteredClient } from "../../models/user.model";
-import { mockReq, mockRes } from "../../../test-utils/express";
+import { googleLogin } from "../../../src/auth/controllers/auth.google.controller";
+import * as usersService from "../../../src/auth/services/users.services";
+import { RegisteredClient } from "../../../src/auth/models/user.model";
+import { createMockReq, createMockRes } from "../../test-utils/expressMocks";
 
 // Mock google-auth-library at module import time (controller constructs client immediately)
 jest.mock("google-auth-library", () => {
@@ -16,12 +16,12 @@ jest.mock("google-auth-library", () => {
   };
 });
 
-jest.mock("../../services/users.services", () => ({
+jest.mock("../../../src/auth/services/users.services", () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
 }));
 
-jest.mock("../../models/user.model", () => ({
+jest.mock("../../../src/auth/models/user.model", () => ({
   __esModule: true,
   RegisteredClient: { create: jest.fn() },
 }));
@@ -55,8 +55,8 @@ describe("auth.google.controller", () => {
 
     jest.spyOn(jwt, "sign").mockReturnValue("jwt-token" as any);
 
-    const req = mockReq({ token: "google-id-token" });
-    const res = mockRes();
+    const req = createMockReq({ token: "google-id-token" });
+    const res = createMockRes();
 
     await googleLogin(req, res);
 
@@ -95,8 +95,8 @@ describe("auth.google.controller", () => {
 
     jest.spyOn(jwt, "sign").mockReturnValue("jwt-token" as any);
 
-    const req = mockReq({ token: "google-id-token" });
-    const res = mockRes();
+    const req = createMockReq({ token: "google-id-token" });
+    const res = createMockRes();
 
     await googleLogin(req, res);
 
@@ -125,8 +125,8 @@ describe("auth.google.controller", () => {
       }),
     });
 
-    const req = mockReq({ token: "t" });
-    const res = mockRes();
+    const req = createMockReq({ token: "t" });
+    const res = createMockRes();
 
     await googleLogin(req, res);
 
@@ -151,8 +151,8 @@ describe("auth.google.controller", () => {
       }),
     });
 
-    const req = mockReq({ token: "t" });
-    const res = mockRes();
+    const req = createMockReq({ token: "t" });
+    const res = createMockRes();
 
     await googleLogin(req, res);
 
@@ -177,8 +177,8 @@ describe("auth.google.controller", () => {
       }),
     });
 
-    const req = mockReq({ token: "t" });
-    const res = mockRes();
+    const req = createMockReq({ token: "t" });
+    const res = createMockRes();
 
     await googleLogin(req, res);
 
@@ -205,8 +205,8 @@ describe("auth.google.controller", () => {
       }),
     });
 
-    const req = mockReq({ token: "t" });
-    const res = mockRes();
+    const req = createMockReq({ token: "t" });
+    const res = createMockRes();
 
     await googleLogin(req, res);
 

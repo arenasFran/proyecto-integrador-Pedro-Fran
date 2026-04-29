@@ -11,6 +11,7 @@ const router = express.Router({ mergeParams: true })
 
 // Register and Login routes
 router.post("/register", validate({ body: registerSchema }), register)
+router.post("/login", validate({ body: loginSchema }), login)
 router.post('/google', validate({ body: googleLoginSchema }), googleLogin)
 
 // Two-Factor Authentication routes

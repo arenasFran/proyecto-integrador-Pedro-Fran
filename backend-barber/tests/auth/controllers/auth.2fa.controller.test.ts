@@ -1,17 +1,17 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
-import { sendTwoFactorCode, verifyTwoFactorCode } from '../auth.2fa.controller';
-import mailer from '../../../config/mailer';
-import * as usersService from '../../services/users.services';
-import { mockReq, mockRes } from '../../../test-utils/express';
+import { sendTwoFactorCode, verifyTwoFactorCode } from '../../../src/auth/controllers/auth.2fa.controller';
+import mailer from '../../../src/config/mailer';
+import * as usersService from '../../../src/auth/services/users.services';
+import { createMockReq, createMockRes } from '../../test-utils/expressMocks';
 
-jest.mock('../../../config/mailer', () => ({
+jest.mock('../../../src/config/mailer', () => ({
   __esModule: true,
   default: { sendMail: jest.fn() },
 }));
 
-jest.mock('../../services/users.services', () => ({
+jest.mock('../../../src/auth/services/users.services', () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
   validatePassword: jest.fn(),
@@ -27,8 +27,8 @@ describe('auth.2fa.controller', () => {
     it('401 si el usuario no existe', async () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue(null);
 
-      const req = mockReq({ email: 'TEST@EXAMPLE.COM', password: 'x' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'TEST@EXAMPLE.COM', password: 'x' });
+      const res = createMockRes();
 
       await sendTwoFactorCode(req, res);
 
@@ -40,8 +40,8 @@ describe('auth.2fa.controller', () => {
     it('401 si el usuario no tiene password (registrado con Google)', async () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue({ password: undefined });
 
-      const req = mockReq({ email: 'a@a.com', password: 'x' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'a@a.com', password: 'x' });
+      const res = createMockRes();
 
       await sendTwoFactorCode(req, res);
 
@@ -55,8 +55,8 @@ describe('auth.2fa.controller', () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue({ password: 'hash' });
       (usersService.validatePassword as jest.Mock).mockResolvedValue(false);
 
-      const req = mockReq({ email: 'a@a.com', password: 'bad' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'a@a.com', password: 'bad' });
+      const res = createMockRes();
 
       await sendTwoFactorCode(req, res);
 
@@ -73,8 +73,8 @@ describe('auth.2fa.controller', () => {
       jest.spyOn(crypto, 'randomInt').mockReturnValue(123456 as any);
       (mailer as any).sendMail.mockResolvedValue(undefined);
 
-      const req = mockReq({ email: 'Test@Example.com ', password: 'ok' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'Test@Example.com ', password: 'ok' });
+      const res = createMockRes();
 
       const before = Date.now();
       await sendTwoFactorCode(req, res);
@@ -103,8 +103,8 @@ describe('auth.2fa.controller', () => {
     it('401 si no hay usuario', async () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue(null);
 
-      const req = mockReq({ email: 'x@y.com', code: '000000' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'x@y.com', code: '000000' });
+      const res = createMockRes();
 
       await verifyTwoFactorCode(req, res);
 
@@ -115,8 +115,8 @@ describe('auth.2fa.controller', () => {
     it('401 si no hay código activo', async () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue({});
 
-      const req = mockReq({ email: 'x@y.com', code: '000000' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'x@y.com', code: '000000' });
+      const res = createMockRes();
 
       await verifyTwoFactorCode(req, res);
 
@@ -133,8 +133,8 @@ describe('auth.2fa.controller', () => {
       };
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue(user);
 
-      const req = mockReq({ email: 'x@y.com', code: '123456' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'x@y.com', code: '123456' });
+      const res = createMockRes();
 
       await verifyTwoFactorCode(req, res);
 
@@ -151,8 +151,8 @@ describe('auth.2fa.controller', () => {
         twoFactorExpires: new Date(Date.now() + 60_000),
       });
 
-      const req = mockReq({ email: 'x@y.com', code: '222222' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'x@y.com', code: '222222' });
+      const res = createMockRes();
 
       await verifyTwoFactorCode(req, res);
 
@@ -174,8 +174,8 @@ describe('auth.2fa.controller', () => {
 
       const signSpy = jest.spyOn(jwt, 'sign').mockReturnValue('jwt-token' as any);
 
-      const req = mockReq({ email: 'X@Y.com', code: '123456' });
-      const res = mockRes();
+      const req = createMockReq({ email: 'X@Y.com', code: '123456' });
+      const res = createMockRes();
 
       await verifyTwoFactorCode(req, res);
 

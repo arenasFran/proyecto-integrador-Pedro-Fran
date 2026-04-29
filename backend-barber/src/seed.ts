@@ -12,7 +12,7 @@ const seed = async () => {
   const adminPhone = process.env.SEED_ADMIN_PHONE || '000000000';
 
   if (!adminEmail || !adminPassword) {
-    console.error('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD environment variables are required');
+    console.error('Missing required environment variable(s): SEED_ADMIN_EMAIL and/or SEED_ADMIN_PASSWORD');
     process.exit(1);
   }
 

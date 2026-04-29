@@ -17,7 +17,7 @@ jest.mock('../../../src/auth/services/users.services', () => ({
   validatePassword: jest.fn(),
 }));
 
-function hashCode(code: string): string {
+function hashTwoFactorCode(code: string): string {
   return crypto.createHash('sha256').update(code).digest('hex');
 }
 
@@ -88,7 +88,7 @@ describe('auth.2fa.controller', () => {
 
       jest.useRealTimers();
 
-      expect(user.twoFactorCode).toBe(hashCode('123456'));
+      expect(user.twoFactorCode).toBe(hashTwoFactorCode('123456'));
       expect(user.twoFactorExpires).toBeInstanceOf(Date);
       expect((user.twoFactorExpires as Date).getTime()).toBe(
         fixedNow.getTime() + 5 * 60 * 1000
@@ -135,7 +135,7 @@ describe('auth.2fa.controller', () => {
     it('401 si el código expiró (y lo limpia)', async () => {
       const save = jest.fn().mockResolvedValue(undefined);
       const user: any = {
-        twoFactorCode: hashCode('123456'),
+        twoFactorCode: hashTwoFactorCode('123456'),
         twoFactorExpires: new Date(Date.now() - 1000),
         save,
       };
@@ -155,7 +155,7 @@ describe('auth.2fa.controller', () => {
 
     it('401 si el código es incorrecto', async () => {
       (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
-        twoFactorCode: hashCode('111111'),
+        twoFactorCode: hashTwoFactorCode('111111'),
         twoFactorExpires: new Date(Date.now() + 60_000),
       });
 
@@ -174,7 +174,7 @@ describe('auth.2fa.controller', () => {
         _id: 'user-id',
         email: 'x@y.com',
         kind: 'Registrado',
-        twoFactorCode: hashCode('123456'),
+        twoFactorCode: hashTwoFactorCode('123456'),
         twoFactorExpires: new Date(Date.now() + 60_000),
         save,
       };

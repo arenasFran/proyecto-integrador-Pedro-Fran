@@ -1,4 +1,4 @@
-import { registerSchema } from '../../../src/auth/validator/auth.validator';
+import { registerSchema } from '../../../../src/modules/auth/validator/auth.validator';
 
 const validData = {
   email: 'user@example.com',

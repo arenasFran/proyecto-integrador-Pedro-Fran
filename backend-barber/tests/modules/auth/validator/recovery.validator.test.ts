@@ -1,4 +1,4 @@
-import { requestResetSchema, resetPasswordSchema } from '../../../src/auth/validator/recovery.validator';
+import { requestResetSchema, resetPasswordSchema } from '../../../../src/modules/auth/validator/recovery.validator';
 
 describe('recovery.validator', () => {
   it('resetPasswordSchema falla si repeatPassword no coincide', () => {

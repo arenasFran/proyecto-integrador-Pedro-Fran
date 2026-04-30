@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import crypto from "crypto";
 import jwt, { SignOptions } from "jsonwebtoken";
 import { findUserByEmail, validatePassword } from "../services/users.services";
-import mailer from "../../config/mailer";
+import mailer from "../../../config/mailer";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 

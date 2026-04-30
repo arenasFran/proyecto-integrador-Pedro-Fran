@@ -1,6 +1,6 @@
-import { createMockReq, createMockRes } from '../../test-utils/expressMocks';
+import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
-jest.mock('../../../src/config/mailer', () => {
+jest.mock('../../../../src/config/mailer', () => {
   const sendMail = jest.fn();
   return {
     __esModule: true,
@@ -9,7 +9,7 @@ jest.mock('../../../src/config/mailer', () => {
   };
 });
 
-jest.mock('../../../src/auth/services/passwordReset.services', () => ({
+jest.mock('../../../../src/modules/auth/services/passwordReset.services', () => ({
   __esModule: true,
   createResetToken: jest.fn(),
   verifyAndConsumeResetToken: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock('../../../src/auth/services/passwordReset.services', () => ({
   },
 }));
 
-jest.mock('../../../src/auth/services/users.services', () => ({
+jest.mock('../../../../src/modules/auth/services/users.services', () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
   updatePassword: jest.fn(),
@@ -38,10 +38,10 @@ jest.mock('bcrypt', () => ({
 }));
 
 import bcrypt from 'bcrypt';
-import mailer from '../../../src/config/mailer';
-import { requestReset, resetPassword } from '../../../src/auth/controllers/recovery.controller';
-import { createResetToken, verifyAndConsumeResetToken } from '../../../src/auth/services/passwordReset.services';
-import { findUserByEmail, updatePassword } from '../../../src/auth/services/users.services';
+import { requestReset, resetPassword } from '../../../../src/modules/auth/controllers/recovery.controller';
+import { createResetToken, verifyAndConsumeResetToken } from '../../../../src/modules/auth/services/passwordReset.services';
+import { findUserByEmail, updatePassword } from '../../../../src/modules/auth/services/users.services';
+import mailer from '../../../../src/config/mailer';
 
 describe('recovery.controller', () => {
   beforeEach(() => {

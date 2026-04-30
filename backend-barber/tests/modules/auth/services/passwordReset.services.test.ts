@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-jest.mock('../../../src/auth/models/passwordReset.model', () => {
+jest.mock('../../../../src/modules/auth/models/passwordReset.model', () => {
   const save = jest.fn().mockResolvedValue(undefined);
   const PasswordReset = jest.fn().mockImplementation((doc) => ({ ...doc, save }));
 
@@ -14,8 +14,8 @@ jest.mock('../../../src/auth/models/passwordReset.model', () => {
   };
 });
 
-import PasswordReset from '../../../src/auth/models/passwordReset.model';
-import { consumeResetToken, createResetToken, verifyAndConsumeResetToken, verifyResetToken } from '../../../src/auth/services/passwordReset.services';
+import PasswordReset from '../../../../src/modules/auth/models/passwordReset.model';
+import { consumeResetToken, createResetToken, verifyAndConsumeResetToken, verifyResetToken } from '../../../../src/modules/auth/services/passwordReset.services';
 
 describe('passwordReset.services', () => {
   beforeEach(() => {

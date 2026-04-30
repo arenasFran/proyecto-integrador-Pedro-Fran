@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 
-import { googleLogin } from "../../../src/auth/controllers/auth.google.controller";
-import * as usersService from "../../../src/auth/services/users.services";
-import { RegisteredClient } from "../../../src/auth/models/user.model";
-import { createMockReq, createMockRes } from "../../test-utils/expressMocks";
+import { googleLogin } from "../../../../src/modules/auth/controllers/auth.google.controller";
+import * as usersService from "../../../../src/modules/auth/services/users.services";
+import { RegisteredClient } from "../../../../src/modules/auth/models/user.model";
+import { createMockReq, createMockRes } from "../../../test-utils/expressMocks";
 
 // Mock google-auth-library at module import time (controller constructs client immediately)
 jest.mock("google-auth-library", () => {
@@ -16,12 +16,12 @@ jest.mock("google-auth-library", () => {
   };
 });
 
-jest.mock("../../../src/auth/services/users.services", () => ({
+jest.mock("../../../../src/modules/auth/services/users.services", () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
 }));
 
-jest.mock("../../../src/auth/models/user.model", () => ({
+jest.mock("../../../../src/modules/auth/models/user.model", () => ({
   __esModule: true,
   RegisteredClient: { create: jest.fn() },
 }));

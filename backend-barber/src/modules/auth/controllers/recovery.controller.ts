@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import { Request, Response } from "express";
-import mailer from "../../config/mailer";
+import mailer from "../../../config/mailer";
 import {
   createResetToken,
   verifyAndConsumeResetToken,

@@ -1,6 +1,6 @@
-import { createMockReq, createMockRes } from '../../test-utils/expressMocks';
+import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
-jest.mock('../../../src/auth/services/users.services', () => ({
+jest.mock('../../../../src/modules/auth/services/users.services', () => ({
   __esModule: true,
   saveUserService: jest.fn(),
   findUserByEmail: jest.fn(),
@@ -10,7 +10,7 @@ jest.mock('../../../src/auth/services/users.services', () => ({
   },
 }));
 
-jest.mock('../../../src/auth/models/user.model', () => ({
+jest.mock('../../../../src/modules/auth/models/user.model', () => ({
   __esModule: true,
   Barber: { findOne: jest.fn() },
   RegisteredClient: { findOne: jest.fn() },
@@ -25,9 +25,9 @@ jest.mock('bcrypt', () => ({
 }));
 
 import bcrypt from 'bcrypt';
-import { register } from '../../../src/auth/controllers/auth.controller';
-import { findUserByEmail, saveUserService } from '../../../src/auth/services/users.services';
-import { Barber, RegisteredClient } from '../../../src/auth/models/user.model';
+import { register } from '../../../../src/modules/auth/controllers/auth.controller';
+import { findUserByEmail, saveUserService } from '../../../../src/modules/auth/services/users.services';
+import { Barber, RegisteredClient } from '../../../../src/modules/auth/models/user.model';
 
 describe('auth.controller – register', () => {
   const validBody = {

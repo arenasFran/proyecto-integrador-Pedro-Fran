@@ -1,17 +1,17 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
-import { sendTwoFactorCode, verifyTwoFactorCode } from '../../../src/auth/controllers/auth.2fa.controller';
-import mailer from '../../../src/config/mailer';
-import * as usersService from '../../../src/auth/services/users.services';
-import { createMockReq, createMockRes } from '../../test-utils/expressMocks';
+import { sendTwoFactorCode, verifyTwoFactorCode } from '../../../../src/modules/auth/controllers/auth.2fa.controller';
+import mailer from '../../../../src/config/mailer';
+import * as usersService from '../../../../src/modules/auth/services/users.services';
+import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
-jest.mock('../../../src/config/mailer', () => ({
+jest.mock('../../../../src/config/mailer', () => ({
   __esModule: true,
   default: { sendMail: jest.fn() },
 }));
 
-jest.mock('../../../src/auth/services/users.services', () => ({
+jest.mock('../../../../src/modules/auth/services/users.services', () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
   validatePassword: jest.fn(),

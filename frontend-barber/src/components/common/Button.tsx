@@ -1,13 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import type { LucideIcon } from 'lucide-react';
+import type { IconType } from 'react-icons';
 
 interface ButtonProps {
   children?: React.ReactNode;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
-  icon?: LucideIcon;
+  icon?: IconType;
   iconPosition?: 'left' | 'right';
   className?: string;
   disabled?: boolean;

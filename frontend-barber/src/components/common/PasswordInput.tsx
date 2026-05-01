@@ -1,5 +1,5 @@
 import React, { forwardRef, useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
@@ -42,9 +42,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             tabIndex={-1}
           >
             {showPassword ? (
-              <EyeOff className="w-4 h-4" />
+              <FiEyeOff className="w-4 h-4" />
             ) : (
-              <Eye className="w-4 h-4" />
+              <FiEye className="w-4 h-4" />
             )}
           </button>
         </div>

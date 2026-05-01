@@ -1,8 +1,18 @@
 import express from "express";
+import cors from "cors";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./modules/auth/routes/auth.routes";
 
 const app = express();
+
+const corsOptions = {
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

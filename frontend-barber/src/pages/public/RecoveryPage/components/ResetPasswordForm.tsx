@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Check } from 'lucide-react';
+import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import { PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
 import type { ResetPasswordFormData } from '../../../../types/auth';
@@ -48,7 +48,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess 
           transition={{ type: 'spring' as const, stiffness: 300, damping: 20, delay: 0.2 }}
           className="w-16 h-16 rounded-full bg-[#22C55E]/20 flex items-center justify-center mb-4"
         >
-          <Check className="w-8 h-8 text-[#22C55E]" />
+          <FiCheck className="w-8 h-8 text-[#22C55E]" />
         </motion.div>
         <h3 className="text-[20px] font-bold text-white mb-2">¡Contraseña actualizada!</h3>
         <p className="text-[14px] text-[#8A8A8A] text-center max-w-xs">
@@ -110,7 +110,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess 
         <Button
           type="submit"
           loading={isLoading}
-          icon={ArrowRight}
+          icon={FiArrowRight}
           iconPosition="right"
           className="w-full"
         >

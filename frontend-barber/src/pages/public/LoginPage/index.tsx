@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Scissors } from 'lucide-react';
+import { MdContentCut } from 'react-icons/md';
 import { Input, Button } from '../../../components/common';
 
 const containerVariants = {
@@ -44,7 +44,7 @@ export const LoginPage: React.FC = () => {
       >
         <motion.div variants={itemVariants} className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#FF5C00]/10 rounded-2xl mb-4">
-            <Scissors className="w-8 h-8 text-[#FF5C00]" />
+            <MdContentCut className="w-8 h-8 text-[#FF5C00]" />
           </div>
           <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
             Iniciar sesión

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, ArrowRight } from 'lucide-react';
+import { FiCheck, FiArrowRight } from 'react-icons/fi';
 import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
 import type { RegisterFormData } from '../../../../types/auth';
@@ -51,7 +51,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
           transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.2 }}
           className="w-14 h-14 rounded-full bg-[#22C55E]/20 flex items-center justify-center mb-4"
         >
-          <Check className="w-7 h-7 text-[#22C55E]" />
+          <FiCheck className="w-7 h-7 text-[#22C55E]" />
         </motion.div>
         <h3 className="text-[18px] font-bold text-white mb-1">¡Registro exitoso!</h3>
         <p className="text-[12px] text-[#8A8A8A] text-center">
@@ -120,7 +120,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
       <Button
         type="submit"
         loading={isLoading}
-        icon={ArrowRight}
+        icon={FiArrowRight}
         iconPosition="right"
         className="w-full mt-1"
       >

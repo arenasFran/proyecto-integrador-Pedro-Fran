@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Scissors } from 'lucide-react';
+import { MdContentCut } from 'react-icons/md';
 import { RegisterForm } from './components/RegisterForm';
 
 const containerVariants = {
@@ -39,7 +39,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigateToLogin })
       >
         <motion.div variants={itemVariants} className="text-center mb-4">
           <div className="inline-flex items-center justify-center w-12 h-12 bg-[#FF5C00]/10 rounded-xl mb-3">
-            <Scissors className="w-6 h-6 text-[#FF5C00]" />
+            <MdContentCut className="w-6 h-6 text-[#FF5C00]" />
           </div>
           <h1 className="text-[24px] font-bold text-white tracking-tight mb-1">
             Crear cuenta

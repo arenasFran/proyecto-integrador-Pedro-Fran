@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { FiArrowLeft, FiLock } from 'react-icons/fi';
 import { RequestResetForm } from './components/RequestResetForm';
 import { ResetPasswordForm } from './components/ResetPasswordForm';
 import { StepIndicator } from './components/StepIndicator';
@@ -50,14 +50,14 @@ export const RecoveryPage: React.FC = () => {
             to="/login"
             className="inline-flex items-center gap-2 text-[#8A8A8A] hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <FiArrowLeft className="w-4 h-4" />
             <span className="text-[14px]">Volver al login</span>
           </Link>
         </motion.div>
 
         <motion.div variants={itemVariants} className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-[#FF5C00]/10 rounded-2xl mb-4">
-            <Lock className="w-8 h-8 text-[#FF5C00]" />
+            <FiLock className="w-8 h-8 text-[#FF5C00]" />
           </div>
           <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
             Recuperar contraseña

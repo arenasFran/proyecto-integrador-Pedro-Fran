@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import { PasswordInput, Button, PasswordStrength } from '../../../../components/common';
@@ -19,17 +19,22 @@ const initialValues: ResetPasswordFormData = {
 
 export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
   const dispatch = useAppDispatch();
-  const { isLoading, error, success } = useAppSelector((state) => state.auth);
+  const { isLoading, error, resetPasswordSuccess } = useAppSelector((state) => state.auth);
 
   const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(initialValues as unknown as Record<string, string>);
 
+  const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
-    if (success) {
-      setTimeout(() => {
-        onSuccess?.();
-      }, 2000);
-    }
-  }, [success, onSuccess]);
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    if (!resetPasswordSuccess) return;
+    const timeoutId = window.setTimeout(() => {
+      onSuccessRef.current?.();
+    }, 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, [resetPasswordSuccess]);
 
   useEffect(() => {
     return () => {
@@ -49,7 +54,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess 
     }));
   };
 
-  if (success) {
+  if (resetPasswordSuccess) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

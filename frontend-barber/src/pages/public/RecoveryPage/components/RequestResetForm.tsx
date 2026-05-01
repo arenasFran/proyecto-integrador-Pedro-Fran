@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import { Input, Button } from '../../../../components/common';
@@ -17,17 +17,22 @@ const initialValues: RequestResetFormData = {
 
 export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess }) => {
   const dispatch = useAppDispatch();
-  const { isLoading, error, success } = useAppSelector((state) => state.auth);
+  const { isLoading, error, requestResetSuccess } = useAppSelector((state) => state.auth);
 
   const { getFieldProps, validateAll, touched, errors, values: formValues } = useFormValidation(initialValues as unknown as Record<string, string>);
 
+  const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
-    if (success) {
-      setTimeout(() => {
-        onSuccess?.();
-      }, 2000);
-    }
-  }, [success, onSuccess]);
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    if (!requestResetSuccess) return;
+    const timeoutId = window.setTimeout(() => {
+      onSuccessRef.current?.();
+    }, 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, [requestResetSuccess]);
 
   useEffect(() => {
     return () => {
@@ -43,7 +48,7 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
     dispatch(requestResetThunk({ email: formValues.email }));
   };
 
-  if (success) {
+  if (requestResetSuccess) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

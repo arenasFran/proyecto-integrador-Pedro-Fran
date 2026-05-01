@@ -4,13 +4,23 @@ import { authService, type RegisterData, type RequestResetData, type ResetPasswo
 interface AuthState {
   isLoading: boolean;
   error: string | null;
-  success: string | null;
+  registerSuccess: string | null;
+  requestResetSuccess: string | null;
+  resetPasswordSuccess: string | null;
 }
 
 const initialState: AuthState = {
   isLoading: false,
   error: null,
-  success: null,
+  registerSuccess: null,
+  requestResetSuccess: null,
+  resetPasswordSuccess: null,
+};
+
+const clearAllSuccessFlags = (state: AuthState) => {
+  state.registerSuccess = null;
+  state.requestResetSuccess = null;
+  state.resetPasswordSuccess = null;
 };
 
 export const registerThunk = createAsyncThunk(
@@ -58,7 +68,7 @@ const authSlice = createSlice({
   reducers: {
     clearAuthState: (state) => {
       state.error = null;
-      state.success = null;
+      clearAllSuccessFlags(state);
     },
   },
   extraReducers: (builder) => {
@@ -66,11 +76,13 @@ const authSlice = createSlice({
       .addCase(registerThunk.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.success = null;
+        clearAllSuccessFlags(state);
       })
       .addCase(registerThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.success = action.payload;
+        state.registerSuccess = action.payload;
+        state.requestResetSuccess = null;
+        state.resetPasswordSuccess = null;
       })
       .addCase(registerThunk.rejected, (state, action) => {
         state.isLoading = false;
@@ -79,11 +91,13 @@ const authSlice = createSlice({
       .addCase(requestResetThunk.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.success = null;
+        clearAllSuccessFlags(state);
       })
       .addCase(requestResetThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.success = action.payload;
+        state.registerSuccess = null;
+        state.requestResetSuccess = action.payload;
+        state.resetPasswordSuccess = null;
       })
       .addCase(requestResetThunk.rejected, (state, action) => {
         state.isLoading = false;
@@ -92,11 +106,13 @@ const authSlice = createSlice({
       .addCase(resetPasswordThunk.pending, (state) => {
         state.isLoading = true;
         state.error = null;
-        state.success = null;
+        clearAllSuccessFlags(state);
       })
       .addCase(resetPasswordThunk.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.success = action.payload;
+        state.registerSuccess = null;
+        state.requestResetSuccess = null;
+        state.resetPasswordSuccess = action.payload;
       })
       .addCase(resetPasswordThunk.rejected, (state, action) => {
         state.isLoading = false;

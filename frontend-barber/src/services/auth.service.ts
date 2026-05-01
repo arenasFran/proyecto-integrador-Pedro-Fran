@@ -34,6 +34,7 @@ export const authService = {
     const response = await api.post<{ message: string }>('/auth/reset-password', {
       token: data.token,
       password: data.password,
+      repeatPassword: data.repeatPassword,
     });
     return response.data.message;
   },

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiCheck, FiArrowRight } from 'react-icons/fi';
 import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
@@ -22,17 +22,22 @@ const initialValues: RegisterFormData = {
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const dispatch = useAppDispatch();
-  const { isLoading, error, success } = useAppSelector((state) => state.auth);
+  const { isLoading, error, registerSuccess } = useAppSelector((state) => state.auth);
 
   const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues as unknown as Record<string, string>);
 
+  const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
-    if (success) {
-      setTimeout(() => {
-        onSuccess?.();
-      }, 2000);
-    }
-  }, [success, onSuccess]);
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    if (!registerSuccess) return;
+    const timeoutId = window.setTimeout(() => {
+      onSuccessRef.current?.();
+    }, 2000);
+    return () => window.clearTimeout(timeoutId);
+  }, [registerSuccess]);
 
   useEffect(() => {
     return () => {
@@ -55,7 +60,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     }));
   };
 
-  if (success) {
+  if (registerSuccess) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

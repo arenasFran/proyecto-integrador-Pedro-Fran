@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiCheck, FiArrowRight } from 'react-icons/fi';
 import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
+import { registerThunk, clearAuthState } from '../../../../store/slices/authSlice';
 import type { RegisterFormData } from '../../../../types/auth';
 
 interface RegisterFormProps {
@@ -19,26 +21,41 @@ const initialValues: RegisterFormData = {
 };
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const dispatch = useAppDispatch();
+  const { isLoading, error, success } = useAppSelector((state) => state.auth);
 
   const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues as unknown as Record<string, string>);
+
+  useEffect(() => {
+    if (success) {
+      setTimeout(() => {
+        onSuccess?.();
+      }, 2000);
+    }
+  }, [success, onSuccess]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearAuthState());
+    };
+  }, [dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isValid = validateAll();
     if (!isValid) return;
 
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setIsSuccess(true);
-    setTimeout(() => {
-      onSuccess?.();
-    }, 2000);
+    dispatch(registerThunk({
+      email: values.email,
+      password: values.password,
+      repeatPassword: values.repeatPassword,
+      name: values.name,
+      lastname: values.lastname,
+      phone: values.phone,
+    }));
   };
 
-  if (isSuccess) {
+  if (success) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -116,6 +133,10 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         required
         error={touched.repeatPassword ? errors.repeatPassword : undefined}
       />
+
+      {error && (
+        <p className="text-[12px] text-red-500 text-center">{error}</p>
+      )}
 
       <Button
         type="submit"

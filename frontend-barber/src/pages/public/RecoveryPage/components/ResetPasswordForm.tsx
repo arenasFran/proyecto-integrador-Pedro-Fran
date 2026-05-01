@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import { PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
+import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
+import { resetPasswordThunk, clearAuthState } from '../../../../store/slices/authSlice';
 import type { ResetPasswordFormData } from '../../../../types/auth';
 
 interface ResetPasswordFormProps {
@@ -16,26 +18,38 @@ const initialValues: ResetPasswordFormData = {
 };
 
 export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const dispatch = useAppDispatch();
+  const { isLoading, error, success } = useAppSelector((state) => state.auth);
 
   const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(initialValues as unknown as Record<string, string>);
+
+  useEffect(() => {
+    if (success) {
+      setTimeout(() => {
+        onSuccess?.();
+      }, 2000);
+    }
+  }, [success, onSuccess]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearAuthState());
+    };
+  }, [dispatch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isValid = validateAll();
     if (!isValid) return;
 
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-    setIsSuccess(true);
-    setTimeout(() => {
-      onSuccess?.();
-    }, 2000);
+    dispatch(resetPasswordThunk({
+      token: values.token,
+      password: values.password,
+      repeatPassword: values.repeatPassword,
+    }));
   };
 
-  if (isSuccess) {
+  if (success) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
@@ -107,6 +121,9 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess 
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
+        {error && (
+          <p className="text-[12px] text-red-500 text-center mb-3">{error}</p>
+        )}
         <Button
           type="submit"
           loading={isLoading}

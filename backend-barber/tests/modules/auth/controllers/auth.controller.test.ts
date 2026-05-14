@@ -1,33 +1,34 @@
+import { register } from '../../../../src/modules/auth/controllers/auth.controller';
+import {
+    findBarberByPhone,
+} from '../../../../src/modules/auth/services/barber.services';
+import {
+    createRegisteredClient,
+    findRegisteredClientByPhone,
+} from '../../../../src/modules/auth/services/client.services';
+import {
+    findUserByEmail,
+    hashPassword,
+} from '../../../../src/modules/auth/utils/auth.utils';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
-jest.mock('../../../../src/modules/auth/services/users.services', () => ({
+jest.mock('../../../../src/modules/auth/utils/auth.utils', () => ({
   __esModule: true,
-  saveUserService: jest.fn(),
   findUserByEmail: jest.fn(),
-  default: {
-    saveUserService: jest.fn(),
-    findUserByEmail: jest.fn(),
-  },
+  hashPassword: jest.fn(),
+  validatePassword: jest.fn(),
 }));
 
-jest.mock('../../../../src/modules/auth/models/user.model', () => ({
+jest.mock('../../../../src/modules/auth/services/barber.services', () => ({
   __esModule: true,
-  Barber: { findOne: jest.fn() },
-  RegisteredClient: { findOne: jest.fn() },
+  findBarberByPhone: jest.fn(),
 }));
 
-jest.mock('bcrypt', () => ({
+jest.mock('../../../../src/modules/auth/services/client.services', () => ({
   __esModule: true,
-  default: {
-    hash: jest.fn(),
-  },
-  hash: jest.fn(),
+  findRegisteredClientByPhone: jest.fn(),
+  createRegisteredClient: jest.fn(),
 }));
-
-import bcrypt from 'bcrypt';
-import { register } from '../../../../src/modules/auth/controllers/auth.controller';
-import { findUserByEmail, saveUserService } from '../../../../src/modules/auth/services/users.services';
-import { Barber, RegisteredClient } from '../../../../src/modules/auth/models/user.model';
 
 describe('auth.controller – register', () => {
   const validBody = {
@@ -39,19 +40,19 @@ describe('auth.controller – register', () => {
   };
 
   it('registro exitoso: hashea password, guarda usuario y responde 201', async () => {
-    (bcrypt.hash as unknown as jest.Mock).mockResolvedValue('hashedPassword');
+    (hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
     (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    ((Barber as any).findOne as jest.Mock).mockResolvedValue(null);
-    ((RegisteredClient as any).findOne as jest.Mock).mockResolvedValue(null);
-    (saveUserService as jest.Mock).mockResolvedValue(undefined);
+    (findBarberByPhone as jest.Mock).mockResolvedValue(null);
+    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
+    (createRegisteredClient as jest.Mock).mockResolvedValue(undefined);
 
     const req = createMockReq(validBody);
     const res = createMockRes() as any;
 
     await register(req, res);
 
-    expect(bcrypt.hash).toHaveBeenCalledWith('secret123', 10);
-    expect(saveUserService).toHaveBeenCalledWith({
+    expect(hashPassword).toHaveBeenCalledWith('secret123');
+    expect(createRegisteredClient).toHaveBeenCalledWith({
       email: 'test@example.com',
       password: 'hashedPassword',
       name: 'Test',
@@ -77,8 +78,8 @@ describe('auth.controller – register', () => {
 
   it('teléfono duplicado detectado en validación previa: responde 409', async () => {
     (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    ((Barber as any).findOne as jest.Mock).mockResolvedValue({ _id: 'b1' });
-    ((RegisteredClient as any).findOne as jest.Mock).mockResolvedValue(null);
+    (findBarberByPhone as jest.Mock).mockResolvedValue({ _id: 'b1' });
+    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
 
     const req = createMockReq(validBody);
     const res = createMockRes() as any;
@@ -90,11 +91,11 @@ describe('auth.controller – register', () => {
   });
 
   it('error 11000 al guardar por condición de carrera: responde 409 con campo correspondiente', async () => {
-    (bcrypt.hash as unknown as jest.Mock).mockResolvedValue('hashedPassword');
+    (hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
     (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    ((Barber as any).findOne as jest.Mock).mockResolvedValue(null);
-    ((RegisteredClient as any).findOne as jest.Mock).mockResolvedValue(null);
-    (saveUserService as jest.Mock).mockRejectedValue({ code: 11000, keyValue: { phone: '1234567890' } });
+    (findBarberByPhone as jest.Mock).mockResolvedValue(null);
+    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
+    (createRegisteredClient as jest.Mock).mockRejectedValue({ code: 11000, keyValue: { phone: '1234567890' } });
 
     const req = createMockReq(validBody);
     const res = createMockRes() as any;
@@ -106,11 +107,11 @@ describe('auth.controller – register', () => {
   });
 
   it('error genérico de DB: responde 500', async () => {
-    (bcrypt.hash as unknown as jest.Mock).mockResolvedValue('hashedPassword');
+    (hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
     (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    ((Barber as any).findOne as jest.Mock).mockResolvedValue(null);
-    ((RegisteredClient as any).findOne as jest.Mock).mockResolvedValue(null);
-    (saveUserService as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
+    (findBarberByPhone as jest.Mock).mockResolvedValue(null);
+    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
+    (createRegisteredClient as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
 
     const req = createMockReq(validBody);
     const res = createMockRes() as any;

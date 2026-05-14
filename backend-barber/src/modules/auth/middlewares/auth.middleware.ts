@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
-import jwt, { JwtPayload } from "jsonwebtoken";
-import { AuthKind } from "../types/user";
 import Joi, { ObjectSchema } from "joi";
+import jwt, { JwtPayload } from "jsonwebtoken";
+import { AuthKind } from "../../../common/types/user";
 
 type Kind = AuthKind;
 

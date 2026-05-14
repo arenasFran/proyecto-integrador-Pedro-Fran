@@ -1,11 +1,14 @@
-import bcrypt from "bcrypt";
 import { Request, Response } from "express";
 import mailer from "../../../config/mailer";
 import {
-  createResetToken,
-  verifyAndConsumeResetToken,
+    createResetToken,
+    verifyAndConsumeResetToken,
 } from "../services/passwordReset.services";
-import { findUserByEmail, updatePassword } from "../services/users.services";
+import {
+    findUserByEmail,
+    hashPassword,
+    updatePassword,
+} from "../utils/auth.utils";
 
 export const requestReset = async (req: Request, res: Response) => {
   try {
@@ -48,7 +51,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     if (!tokenDoc)
       return res.status(400).json({ error: "Token inválido o expirado" });
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await hashPassword(password);
     await updatePassword(tokenDoc.userId, hash);
 
     return res

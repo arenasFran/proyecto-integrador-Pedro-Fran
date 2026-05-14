@@ -1,8 +1,8 @@
-import dotenv from 'dotenv'
-dotenv.config()
-import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
-import { Admin } from '../../modules/auth/models/user.model'
+import dotenv from 'dotenv'
+import mongoose from 'mongoose'
+import { Admin } from '../models/barber.model'
+dotenv.config()
 
 const seed = async () => {
   const adminEmail = process.env.SEED_ADMIN_EMAIL;

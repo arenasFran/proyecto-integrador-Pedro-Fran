@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 
+import { RegisteredClient } from "../../../../src/common/models/client.model";
 import { googleLogin } from "../../../../src/modules/auth/controllers/auth.google.controller";
-import * as usersService from "../../../../src/modules/auth/services/users.services";
-import { RegisteredClient } from "../../../../src/modules/auth/models/user.model";
+import * as authUtils from "../../../../src/modules/auth/utils/auth.utils";
 import { createMockReq, createMockRes } from "../../../test-utils/expressMocks";
 
 // Mock google-auth-library at module import time (controller constructs client immediately)
@@ -16,12 +16,12 @@ jest.mock("google-auth-library", () => {
   };
 });
 
-jest.mock("../../../../src/modules/auth/services/users.services", () => ({
+jest.mock("../../../../src/modules/auth/utils/auth.utils", () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
 }));
 
-jest.mock("../../../../src/modules/auth/models/user.model", () => ({
+jest.mock("../../../../src/common/models/client.model", () => ({
   __esModule: true,
   RegisteredClient: { create: jest.fn() },
 }));
@@ -37,7 +37,7 @@ describe("auth.google.controller", () => {
     const verifyIdTokenMock = (globalThis as any)
       .__verifyIdTokenMock as jest.Mock;
 
-    (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
+    (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({
       _id: "id1",
       email: "user@example.com",
       kind: "Registrado",
@@ -60,7 +60,7 @@ describe("auth.google.controller", () => {
 
     await googleLogin(req, res);
 
-    expect(usersService.findUserByEmail).toHaveBeenCalledWith(
+    expect(authUtils.findUserByEmail).toHaveBeenCalledWith(
       "user@example.com",
     );
     expect(RegisteredClient.create).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe("auth.google.controller", () => {
     const verifyIdTokenMock = (globalThis as any)
       .__verifyIdTokenMock as jest.Mock;
 
-    (usersService.findUserByEmail as jest.Mock).mockResolvedValue(null);
+    (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(null);
 
     verifyIdTokenMock.mockResolvedValue({
       getPayload: () => ({
@@ -116,7 +116,7 @@ describe("auth.google.controller", () => {
     const verifyIdTokenMock = (globalThis as any)
       .__verifyIdTokenMock as jest.Mock;
 
-    (usersService.findUserByEmail as jest.Mock).mockResolvedValue(null);
+    (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(null);
     verifyIdTokenMock.mockResolvedValue({
       getPayload: () => ({
         email: "x@y.com",
@@ -140,7 +140,7 @@ describe("auth.google.controller", () => {
     const verifyIdTokenMock = (globalThis as any)
       .__verifyIdTokenMock as jest.Mock;
 
-    (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
+    (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({
       kind: "Admin",
     });
     verifyIdTokenMock.mockResolvedValue({
@@ -166,7 +166,7 @@ describe("auth.google.controller", () => {
     const verifyIdTokenMock = (globalThis as any)
       .__verifyIdTokenMock as jest.Mock;
 
-    (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
+    (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({
       kind: "Empleado",
     });
     verifyIdTokenMock.mockResolvedValue({
@@ -192,7 +192,7 @@ describe("auth.google.controller", () => {
     const verifyIdTokenMock = (globalThis as any)
       .__verifyIdTokenMock as jest.Mock;
 
-    (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
+    (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({
       kind: "Registrado",
       authProvider: "google",
       googleId: "sub-expected",

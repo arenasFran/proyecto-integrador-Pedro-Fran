@@ -1,8 +1,11 @@
 import { Request, Response } from "express";
 import { OAuth2Client, TokenPayload } from "google-auth-library";
-import { IRegisteredClient, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
-import { findUserByEmail } from "../services/users.services";
+import {
+    IRegisteredClient,
+    RegisteredClient,
+} from "../../../common/models/client.model";
+import { findUserByEmail } from "../utils/auth.utils";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 

@@ -1,9 +1,9 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
-import { sendTwoFactorCode, verifyTwoFactorCode } from '../../../../src/modules/auth/controllers/auth.2fa.controller';
 import mailer from '../../../../src/config/mailer';
-import * as usersService from '../../../../src/modules/auth/services/users.services';
+import { sendTwoFactorCode, verifyTwoFactorCode } from '../../../../src/modules/auth/controllers/auth.2fa.controller';
+import * as authUtils from '../../../../src/modules/auth/utils/auth.utils';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
 jest.mock('../../../../src/config/mailer', () => ({
@@ -11,7 +11,7 @@ jest.mock('../../../../src/config/mailer', () => ({
   default: { sendMail: jest.fn() },
 }));
 
-jest.mock('../../../../src/modules/auth/services/users.services', () => ({
+jest.mock('../../../../src/modules/auth/utils/auth.utils', () => ({
   __esModule: true,
   findUserByEmail: jest.fn(),
   validatePassword: jest.fn(),
@@ -29,20 +29,20 @@ describe('auth.2fa.controller', () => {
 
   describe('sendTwoFactorCode', () => {
     it('401 si el usuario no existe', async () => {
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue(null);
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(null);
 
       const req = createMockReq({ email: 'TEST@EXAMPLE.COM', password: 'x' });
       const res = createMockRes();
 
       await sendTwoFactorCode(req, res);
 
-      expect(usersService.findUserByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(authUtils.findUserByEmail).toHaveBeenCalledWith('test@example.com');
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Email y/o contraseña incorrectos.' });
     });
 
     it('401 si el usuario no tiene password (registrado con Google)', async () => {
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue({ password: undefined });
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({ password: undefined });
 
       const req = createMockReq({ email: 'a@a.com', password: 'x' });
       const res = createMockRes();
@@ -56,8 +56,8 @@ describe('auth.2fa.controller', () => {
     });
 
     it('401 si password inválida', async () => {
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue({ password: 'hash' });
-      (usersService.validatePassword as jest.Mock).mockResolvedValue(false);
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({ password: 'hash' });
+      (authUtils.validatePassword as jest.Mock).mockResolvedValue(false);
 
       const req = createMockReq({ email: 'a@a.com', password: 'bad' });
       const res = createMockRes();
@@ -71,8 +71,8 @@ describe('auth.2fa.controller', () => {
     it('200 y guarda el código hasheado y envía email', async () => {
       const save = jest.fn().mockResolvedValue(undefined);
       const user: any = { password: 'hash', save };
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue(user);
-      (usersService.validatePassword as jest.Mock).mockResolvedValue(true);
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(user);
+      (authUtils.validatePassword as jest.Mock).mockResolvedValue(true);
 
       jest.spyOn(crypto, 'randomInt').mockReturnValue(123456 as any);
       (mailer as any).sendMail.mockResolvedValue(undefined);
@@ -109,7 +109,7 @@ describe('auth.2fa.controller', () => {
 
   describe('verifyTwoFactorCode', () => {
     it('401 si no hay usuario', async () => {
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue(null);
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(null);
 
       const req = createMockReq({ email: 'x@y.com', code: '000000' });
       const res = createMockRes();
@@ -121,7 +121,7 @@ describe('auth.2fa.controller', () => {
     });
 
     it('401 si no hay código activo', async () => {
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue({});
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({});
 
       const req = createMockReq({ email: 'x@y.com', code: '000000' });
       const res = createMockRes();
@@ -139,7 +139,7 @@ describe('auth.2fa.controller', () => {
         twoFactorExpires: new Date(Date.now() - 1000),
         save,
       };
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue(user);
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(user);
 
       const req = createMockReq({ email: 'x@y.com', code: '123456' });
       const res = createMockRes();
@@ -154,7 +154,7 @@ describe('auth.2fa.controller', () => {
     });
 
     it('401 si el código es incorrecto', async () => {
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue({
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue({
         twoFactorCode: hashTwoFactorCode('111111'),
         twoFactorExpires: new Date(Date.now() + 60_000),
       });
@@ -178,7 +178,7 @@ describe('auth.2fa.controller', () => {
         twoFactorExpires: new Date(Date.now() + 60_000),
         save,
       };
-      (usersService.findUserByEmail as jest.Mock).mockResolvedValue(user);
+      (authUtils.findUserByEmail as jest.Mock).mockResolvedValue(user);
 
       const signSpy = jest.spyOn(jwt, 'sign').mockReturnValue('jwt-token' as any);
 

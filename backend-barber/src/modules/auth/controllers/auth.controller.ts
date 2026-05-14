@@ -1,8 +1,17 @@
 import { Request, Response } from "express";
-import bcrypt from "bcrypt";
-import { saveUserService, findUserByEmail, validatePassword } from "../services/users.services";
-import { Barber, RegisteredClient } from "../models/user.model";
 import jwt, { SignOptions } from "jsonwebtoken";
+import {
+  findBarberByPhone,
+} from "../services/barber.services";
+import {
+  createRegisteredClient,
+  findRegisteredClientByPhone,
+} from "../services/client.services";
+import {
+  findUserByEmail,
+  hashPassword,
+  validatePassword,
+} from "../utils/auth.utils";
 
 const jwtExpiresIn = (process.env.JWT_EXPIRES_IN || "1h") as SignOptions["expiresIn"];
 
@@ -16,13 +25,13 @@ export const register = async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'Email en uso.' })
     }
 
-    const existingPhoneBarber = await Barber.findOne({ phone });
-    const existingPhoneClient = await RegisteredClient.findOne({ phone });
+    const existingPhoneBarber = await findBarberByPhone(phone);
+    const existingPhoneClient = await findRegisteredClientByPhone(phone);
     if (existingPhoneBarber || existingPhoneClient) {
       return res.status(409).json({ error: 'Teléfono en uso.' });
     }
 
-    const hash = await bcrypt.hash(password, 10);
+    const hash = await hashPassword(password);
     const data = {
       email: normalizedEmail,
       password: hash,
@@ -32,7 +41,7 @@ export const register = async (req: Request, res: Response) => {
       authProvider: 'local' as const
     }
 
-    await saveUserService(data)
+    await createRegisteredClient(data)
     res.status(201).json({ message: 'Usuario registrado con éxito' })
   } catch (error: any) {
     if (error.code === 11000) {

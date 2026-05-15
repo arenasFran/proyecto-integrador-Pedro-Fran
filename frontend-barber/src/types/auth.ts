@@ -7,6 +7,19 @@ export interface RegisterFormData {
   phone: string;
 }
 
+export interface LoginFormData {
+  email: string;
+  password: string;
+}
+
+export interface GoogleLoginFormData {
+  token: string;
+}
+
+export interface TwoFactorCodeFormData {
+  token: string;
+}
+
 export interface RequestResetFormData {
   email: string;
 }

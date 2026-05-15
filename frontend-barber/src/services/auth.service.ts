@@ -9,6 +9,20 @@ export interface RegisterData {
   phone: string;
 }
 
+export interface LoginData {
+  email: string;
+  password: string;
+}
+
+export interface GoogleLoginData {
+  token: string;
+}
+
+export interface TwoFactorVerifyData {
+  email: string;
+  code: string;
+}
+
 export interface RequestResetData {
   email: string;
 }
@@ -19,10 +33,34 @@ export interface ResetPasswordData {
   repeatPassword: string;
 }
 
+export interface LoginResponse {
+  message: string;
+  token: string;
+}
+
+export interface TwoFactorSendResponse {
+  message: string;
+}
+
 export const authService = {
   register: async (data: RegisterData): Promise<string> => {
     const response = await api.post<{ message: string }>('/auth/register', data);
     return response.data.message;
+  },
+
+  sendTwoFactorCode: async (data: LoginData): Promise<TwoFactorSendResponse> => {
+    const response = await api.post<TwoFactorSendResponse>('/auth/2fa/send', data);
+    return response.data;
+  },
+
+  googleLogin: async (data: GoogleLoginData): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/google', data);
+    return response.data;
+  },
+
+  verifyTwoFactorCode: async (data: TwoFactorVerifyData): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/2fa/verify', data);
+    return response.data;
   },
 
   requestReset: async (data: RequestResetData): Promise<string> => {

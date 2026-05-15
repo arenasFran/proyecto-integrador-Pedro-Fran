@@ -1,9 +1,21 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { authService, type RegisterData, type RequestResetData, type ResetPasswordData } from '../../services/auth.service';
+import {
+  authService,
+  type GoogleLoginData,
+  type LoginData,
+  type RegisterData,
+  type RequestResetData,
+  type ResetPasswordData,
+  type TwoFactorVerifyData,
+} from '../../services/auth.service';
 
 interface AuthState {
   isLoading: boolean;
   error: string | null;
+  twoFactorSendSuccess: string | null;
+  twoFactorPendingEmail: string | null;
+  loginSuccess: string | null;
+  loginToken: string | null;
   registerSuccess: string | null;
   requestResetSuccess: string | null;
   resetPasswordSuccess: string | null;
@@ -12,16 +24,63 @@ interface AuthState {
 const initialState: AuthState = {
   isLoading: false,
   error: null,
+  twoFactorSendSuccess: null,
+  twoFactorPendingEmail: null,
+  loginSuccess: null,
+  loginToken: null,
   registerSuccess: null,
   requestResetSuccess: null,
   resetPasswordSuccess: null,
 };
 
 const clearAllSuccessFlags = (state: AuthState) => {
+  state.twoFactorSendSuccess = null;
+  state.twoFactorPendingEmail = null;
+  state.loginSuccess = null;
   state.registerSuccess = null;
   state.requestResetSuccess = null;
   state.resetPasswordSuccess = null;
 };
+
+export const sendTwoFactorCodeThunk = createAsyncThunk(
+  'auth/sendTwoFactorCode',
+  async (data: LoginData, { rejectWithValue }) => {
+    try {
+      const response = await authService.sendTwoFactorCode(data);
+      return {
+        message: response.message,
+        email: data.email.trim().toLowerCase(),
+      };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al enviar el código';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const googleLoginThunk = createAsyncThunk(
+  'auth/googleLogin',
+  async (data: GoogleLoginData, { rejectWithValue }) => {
+    try {
+      return await authService.googleLogin(data);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al iniciar sesión con Google';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const verifyTwoFactorCodeThunk = createAsyncThunk(
+  'auth/verifyTwoFactorCode',
+  async (data: TwoFactorVerifyData, { rejectWithValue }) => {
+    try {
+      return await authService.verifyTwoFactorCode(data);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al verificar el código';
+      return rejectWithValue(message);
+    }
+  }
+);
 
 export const registerThunk = createAsyncThunk(
   'auth/register',
@@ -73,6 +132,50 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(googleLoginThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+        state.twoFactorSendSuccess = null;
+        state.twoFactorPendingEmail = null;
+      })
+      .addCase(googleLoginThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.loginSuccess = action.payload.message;
+        state.loginToken = action.payload.token;
+      })
+      .addCase(googleLoginThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(sendTwoFactorCodeThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+        state.loginSuccess = null;
+      })
+      .addCase(sendTwoFactorCodeThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.twoFactorSendSuccess = action.payload.message;
+        state.twoFactorPendingEmail = action.payload.email;
+      })
+      .addCase(sendTwoFactorCodeThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(verifyTwoFactorCodeThunk.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifyTwoFactorCodeThunk.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.loginSuccess = action.payload.message;
+        state.loginToken = action.payload.token;
+        state.twoFactorSendSuccess = null;
+        state.twoFactorPendingEmail = null;
+      })
+      .addCase(verifyTwoFactorCodeThunk.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
       .addCase(registerThunk.pending, (state) => {
         state.isLoading = true;
         state.error = null;

@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
-import { Input, Button } from '../../../components/common';
+import { Button, Input, PasswordInput } from '../../../components/common';
+import { useFormValidation } from '../../../hooks/useFormValidation';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import {
+  clearAuthState,
+  googleLoginThunk,
+  sendTwoFactorCodeThunk,
+  verifyTwoFactorCodeThunk,
+} from '../../../store/slices/authSlice';
+import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -25,13 +34,142 @@ const itemVariants = {
 };
 
 export const LoginPage: React.FC = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useAppDispatch();
+  const { isLoading, error, loginSuccess, loginToken, twoFactorSendSuccess, twoFactorPendingEmail } =
+    useAppSelector((state) => state.auth);
+  const googleButtonRef = useRef<HTMLDivElement | null>(null);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  const googleInitializedRef = useRef(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const credentialsInitialValues: LoginFormData = {
+    email: '',
+    password: '',
+  };
+
+  const codeInitialValues: TwoFactorCodeFormData = {
+    token: '',
+  };
+
+  const {
+    values: credentialsValues,
+    errors: credentialsErrors,
+    touched: credentialsTouched,
+    validateAll: validateCredentials,
+    getFieldProps: getCredentialsFieldProps,
+  } = useFormValidation(credentialsInitialValues as unknown as Record<string, string>);
+
+  const {
+    values: codeValues,
+    errors: codeErrors,
+    touched: codeTouched,
+    validateAll: validateCode,
+    getFieldProps: getCodeFieldProps,
+    resetForm: resetCodeForm,
+  } = useFormValidation(codeInitialValues as unknown as Record<string, string>);
+
+  const isCodeStep = Boolean(twoFactorPendingEmail);
+
+  useEffect(() => {
+    if (!isCodeStep) {
+      resetCodeForm();
+    }
+  }, [isCodeStep, resetCodeForm]);
+
+  useEffect(() => {
+    return () => {
+      dispatch(clearAuthState());
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!loginToken) return;
+    localStorage.setItem('authToken', loginToken);
+  }, [loginToken]);
+
+  useEffect(() => {
+    if (isCodeStep || !googleClientId || googleInitializedRef.current) return;
+
+    const initializeGoogleButton = () => {
+      if (!googleButtonRef.current || !window.google) return;
+
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: (response) => {
+          if (!response.credential) return;
+          dispatch(googleLoginThunk({ token: response.credential }));
+        },
+      });
+      googleInitializedRef.current = true;
+      googleButtonRef.current.innerHTML = '';
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'outline',
+        size: 'large',
+        text: 'continue_with',
+        width: googleButtonRef.current.clientWidth || 320,
+        shape: 'rectangular',
+        logo_alignment: 'left',
+        locale: 'es',
+      });
+    };
+
+    if (window.google) {
+      initializeGoogleButton();
+      return;
+    }
+
+    const scriptId = 'google-identity-services';
+    const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+
+    if (existingScript) {
+      existingScript.addEventListener('load', initializeGoogleButton, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeGoogleButton;
+    document.body.appendChild(script);
+  }, [dispatch, googleClientId, isCodeStep]);
+
+  const handleCredentialsSubmit = () => {
+    const isValid = validateCredentials();
+    if (!isValid) return;
+
+    dispatch(
+      sendTwoFactorCodeThunk({
+        email: credentialsValues.email,
+        password: credentialsValues.password,
+      })
+    );
+  };
+
+  const handleCodeSubmit = () => {
+    if (!twoFactorPendingEmail) return;
+    const isValid = validateCode();
+    if (!isValid) return;
+
+    dispatch(
+      verifyTwoFactorCodeThunk({
+        email: twoFactorPendingEmail,
+        code: codeValues.token,
+      })
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
+    if (isCodeStep) {
+      handleCodeSubmit();
+      return;
+    }
+    handleCredentialsSubmit();
+  };
+
+  const handleBackToCredentials = () => {
+    dispatch(clearAuthState());
   };
 
   return (
@@ -50,7 +188,7 @@ export const LoginPage: React.FC = () => {
             Iniciar sesión
           </h1>
           <p className="text-[14px] text-[#8A8A8A]">
-            Bienvenido de nuevo
+            {isCodeStep ? 'Ingresa el código de verificación' : 'Bienvenido de nuevo'}
           </p>
         </motion.div>
 
@@ -59,38 +197,108 @@ export const LoginPage: React.FC = () => {
           className="bg-[#121212] border border-[#282828] rounded-[24px] p-6"
         >
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Input
-                label="Correo electrónico"
-                type="email"
-                placeholder="Ingresa tu correo"
-              />
-            </motion.div>
+            {!isCodeStep ? (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Input
+                    label="Correo electrónico"
+                    type="email"
+                    placeholder="Ingresa tu correo"
+                    {...getCredentialsFieldProps('email')}
+                    required
+                    error={credentialsTouched.email ? credentialsErrors.email : undefined}
+                  />
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <Input
-                label="Contraseña"
-                type="password"
-                placeholder="Ingresa tu contraseña"
-              />
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <PasswordInput
+                    label="Contraseña"
+                    placeholder="Ingresa tu contraseña"
+                    {...getCredentialsFieldProps('password')}
+                    required
+                    error={credentialsTouched.password ? credentialsErrors.password : undefined}
+                  />
+                </motion.div>
+              </>
+            ) : (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-[12px] text-[#8A8A8A] text-center"
+                >
+                  Código enviado a <span className="text-white">{twoFactorPendingEmail}</span>
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Input
+                    label="Código de verificación"
+                    type="text"
+                    placeholder="Ingresa el código de 6 dígitos"
+                    {...getCodeFieldProps('token')}
+                    required
+                    error={codeTouched.token ? codeErrors.token : undefined}
+                  />
+                </motion.div>
+              </>
+            )}
+
+            {error && (
+              <p className="text-[12px] text-red-500 text-center">{error}</p>
+            )}
+            {twoFactorSendSuccess && (
+              <p className="text-[12px] text-[#22C55E] text-center">{twoFactorSendSuccess}</p>
+            )}
+            {loginSuccess && (
+              <p className="text-[12px] text-[#22C55E] text-center">{loginSuccess}</p>
+            )}
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
+              className="flex flex-col gap-2"
             >
               <Button type="submit" loading={isLoading} className="w-full">
-                Iniciar sesión
+                {isCodeStep ? 'Verificar código' : 'Enviar código de verificación'}
               </Button>
+              {isCodeStep && (
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={handleBackToCredentials}
+                >
+                  Volver
+                </Button>
+              )}
             </motion.div>
+
+            {!isCodeStep && (
+              <div className="flex flex-col gap-3 pt-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-px flex-1 bg-[#282828]" />
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-[#8A8A8A]">
+                    o
+                  </span>
+                  <div className="h-px flex-1 bg-[#282828]" />
+                </div>
+                <div ref={googleButtonRef} className="flex justify-center" />
+                {!googleClientId && (
+                  <p className="text-[11px] text-[#8A8A8A] text-center">
+                    Configurá VITE_GOOGLE_CLIENT_ID para usar Google Sign-In.
+                  </p>
+                )}
+              </div>
+            )}
           </form>
         </motion.div>
 

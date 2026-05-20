@@ -2,7 +2,7 @@ import cors from "cors";
 import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
-import authRoutes from "./modules/auth/routes/auth.routes";
+import { buildAuthRouter } from "./wiring/auth";
 
 const app = express();
 
@@ -22,7 +22,7 @@ const authLimiter = rateLimit({
 
 app.use(express.json());
 app.use(helmet());
-app.use("/auth", authLimiter, authRoutes);
+app.use("/auth", authLimiter, buildAuthRouter());
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });

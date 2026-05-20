@@ -1,0 +1,84 @@
+export type UserRole = 'Admin' | 'Empleado' | 'Registrado';
+export type AuthProvider = 'local' | 'google';
+
+export type TwoFactorState = {
+  codeHash?: string;
+  expiresAt?: Date;
+};
+
+export type UserProps = {
+  id: string;
+  email: string;
+  name: string;
+  lastname: string;
+  phone?: string;
+  kind: UserRole;
+  authProvider: AuthProvider;
+  passwordHash?: string;
+  googleId?: string;
+  twoFactor?: TwoFactorState;
+};
+
+export class User {
+  private props: UserProps;
+
+  private constructor(props: UserProps) {
+    this.props = { ...props };
+  }
+
+  static create(props: UserProps): User {
+    return new User(props);
+  }
+
+  get id(): string {
+    return this.props.id;
+  }
+
+  get email(): string {
+    return this.props.email;
+  }
+
+  get name(): string {
+    return this.props.name;
+  }
+
+  get lastname(): string {
+    return this.props.lastname;
+  }
+
+  get phone(): string | undefined {
+    return this.props.phone;
+  }
+
+  get kind(): UserRole {
+    return this.props.kind;
+  }
+
+  get authProvider(): AuthProvider {
+    return this.props.authProvider;
+  }
+
+  get passwordHash(): string | undefined {
+    return this.props.passwordHash;
+  }
+
+  get googleId(): string | undefined {
+    return this.props.googleId;
+  }
+
+  get twoFactor(): TwoFactorState | undefined {
+    return this.props.twoFactor;
+  }
+
+  withPasswordHash(passwordHash?: string): User {
+    return new User({ ...this.props, passwordHash });
+  }
+
+  withTwoFactor(twoFactor?: TwoFactorState): User {
+    return new User({ ...this.props, twoFactor });
+  }
+
+  toPrimitives(): UserProps {
+    return { ...this.props };
+  }
+}

@@ -2,7 +2,7 @@ import { MongoUserRepository } from '../../../../src/infrastructure/repositories
 import { Admin, Barber } from '../../../../src/infrastructure/repositories/mongodb/models/barber.model';
 import { RegisteredClient } from '../../../../src/infrastructure/repositories/mongodb/models/client.model';
 
-const isMongoReady = (global as any).__MONGO_READY__ === true;
+const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
 
 describeIfMongo('MongoUserRepository', () => {

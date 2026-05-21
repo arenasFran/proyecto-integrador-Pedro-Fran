@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { MongoPasswordResetRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoPasswordResetRepository';
 import PasswordReset from '../../../../src/infrastructure/repositories/mongodb/models/passwordReset.model';
 
-const isMongoReady = (global as any).__MONGO_READY__ === true;
+const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
 
 describeIfMongo('MongoPasswordResetRepository', () => {

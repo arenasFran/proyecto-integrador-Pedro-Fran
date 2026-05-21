@@ -5,7 +5,9 @@ export class JwtTokenService implements ITokenService {
   private readonly expiresIn: SignOptions['expiresIn'];
 
   constructor(expiresIn?: SignOptions['expiresIn']) {
-    this.expiresIn = expiresIn || (process.env.JWT_EXPIRES_IN || '1h');
+    const envExpiresIn = process.env.JWT_EXPIRES_IN;
+    this.expiresIn =
+      expiresIn ?? (envExpiresIn ? (envExpiresIn as SignOptions['expiresIn']) : '1h');
   }
 
   sign(payload: TokenPayload): string {

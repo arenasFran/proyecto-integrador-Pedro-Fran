@@ -29,6 +29,7 @@ beforeAll(async () => {
     console.warn('Mongo no disponible, se omiten tests de integracion.', error);
   }
 
+  (global as any).__MONGO_READY__ = mongoReady;
 });
 
 beforeEach(() => {

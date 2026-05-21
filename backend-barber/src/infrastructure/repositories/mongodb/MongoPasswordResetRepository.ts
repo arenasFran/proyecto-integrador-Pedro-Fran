@@ -13,7 +13,7 @@ export class MongoPasswordResetRepository implements IPasswordResetRepository {
     const doc = await PasswordReset.findOneAndUpdate(
       { tokenHash, used: false, expiresAt: { $gt: new Date() } },
       { $set: { used: true } },
-      { new: false }
+      { returnDocument: 'before' }
     );
 
     if (!doc) {

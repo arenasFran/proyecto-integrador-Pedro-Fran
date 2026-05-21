@@ -19,7 +19,7 @@ import app from '../../../src/app';
 import { RegisteredClient } from '../../../src/infrastructure/repositories/mongodb/models/client.model';
 import PasswordReset from '../../../src/infrastructure/repositories/mongodb/models/passwordReset.model';
 
-const isMongoReady = (global as any).__MONGO_READY__ === true;
+const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
 
 describeIfMongo('Auth routes', () => {

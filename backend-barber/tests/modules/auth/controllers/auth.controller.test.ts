@@ -1,124 +1,61 @@
-import { register } from '../../../../src/modules/auth/controllers/auth.controller';
-import {
-    findBarberByPhone,
-} from '../../../../src/modules/auth/services/barber.services';
-import {
-    createRegisteredClient,
-    findRegisteredClientByPhone,
-} from '../../../../src/modules/auth/services/client.services';
-import {
-    findUserByEmail,
-    hashPassword,
-} from '../../../../src/modules/auth/utils/auth.utils';
+import { AuthController } from '../../../../src/interface-adapters/controllers/auth/AuthController';
+import { RegisterUserUseCase } from '../../../../src/application/use-cases/auth/RegisterUserUseCase';
+import { LoginUserUseCase } from '../../../../src/application/use-cases/auth/LoginUserUseCase';
+import { AppError } from '../../../../src/application/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
-jest.mock('../../../../src/modules/auth/utils/auth.utils', () => ({
-  __esModule: true,
-  findUserByEmail: jest.fn(),
-  hashPassword: jest.fn(),
-  validatePassword: jest.fn(),
-}));
+describe('AuthController', () => {
+  let registerUser: jest.Mocked<RegisterUserUseCase>;
+  let loginUser: jest.Mocked<LoginUserUseCase>;
+  let controller: AuthController;
 
-jest.mock('../../../../src/modules/auth/services/barber.services', () => ({
-  __esModule: true,
-  findBarberByPhone: jest.fn(),
-}));
+  beforeEach(() => {
+    registerUser = { execute: jest.fn() } as unknown as jest.Mocked<RegisterUserUseCase>;
+    loginUser = { execute: jest.fn() } as unknown as jest.Mocked<LoginUserUseCase>;
+    controller = new AuthController(registerUser, loginUser);
+  });
 
-jest.mock('../../../../src/modules/auth/services/client.services', () => ({
-  __esModule: true,
-  findRegisteredClientByPhone: jest.fn(),
-  createRegisteredClient: jest.fn(),
-}));
+  it('debe registrar usuario y responder 201', async () => {
+    registerUser.execute.mockResolvedValue({ message: 'ok' });
+    const req = createMockReq({ email: 'test@example.com' });
+    const res = createMockRes();
 
-describe('auth.controller – register', () => {
-  const validBody = {
-    email: 'test@example.com',
-    password: 'secret123',
-    name: 'Test',
-    lastname: 'User',
-    phone: '1234567890',
-  };
+    await controller.register(req, res);
 
-  it('registro exitoso: hashea password, guarda usuario y responde 201', async () => {
-    (hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
-    (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    (findBarberByPhone as jest.Mock).mockResolvedValue(null);
-    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
-    (createRegisteredClient as jest.Mock).mockResolvedValue(undefined);
-
-    const req = createMockReq(validBody);
-    const res = createMockRes() as any;
-
-    await register(req, res);
-
-    expect(hashPassword).toHaveBeenCalledWith('secret123');
-    expect(createRegisteredClient).toHaveBeenCalledWith({
-      email: 'test@example.com',
-      password: 'hashedPassword',
-      name: 'Test',
-      lastname: 'User',
-      phone: '1234567890',
-      authProvider: 'local',
-    });
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ message: 'Usuario registrado con éxito' });
+    expect(res.json).toHaveBeenCalledWith({ message: 'ok' });
   });
 
-  it('email duplicado detectado en validación previa: responde 409', async () => {
-    (findUserByEmail as jest.Mock).mockResolvedValue({ _id: 'u1' });
+  it('debe manejar error en registro', async () => {
+    registerUser.execute.mockRejectedValue(new AppError('fail', 409));
+    const req = createMockReq({ email: 'test@example.com' });
+    const res = createMockRes();
 
-    const req = createMockReq(validBody);
-    const res = createMockRes() as any;
-
-    await register(req, res);
+    await controller.register(req, res);
 
     expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Email en uso.' });
+    expect(res.json).toHaveBeenCalledWith({ error: 'fail' });
   });
 
-  it('teléfono duplicado detectado en validación previa: responde 409', async () => {
-    (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    (findBarberByPhone as jest.Mock).mockResolvedValue({ _id: 'b1' });
-    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
+  it('debe loguear usuario y responder 200', async () => {
+    loginUser.execute.mockResolvedValue({ message: 'ok', token: 'token' });
+    const req = createMockReq({ email: 'test@example.com', password: '123456' });
+    const res = createMockRes();
 
-    const req = createMockReq(validBody);
-    const res = createMockRes() as any;
+    await controller.login(req, res);
 
-    await register(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Teléfono en uso.' });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ message: 'ok', token: 'token' });
   });
 
-  it('error 11000 al guardar por condición de carrera: responde 409 con campo correspondiente', async () => {
-    (hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
-    (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    (findBarberByPhone as jest.Mock).mockResolvedValue(null);
-    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
-    (createRegisteredClient as jest.Mock).mockRejectedValue({ code: 11000, keyValue: { phone: '1234567890' } });
+  it('debe manejar error en login', async () => {
+    loginUser.execute.mockRejectedValue(new Error('boom'));
+    const req = createMockReq({ email: 'test@example.com', password: '123456' });
+    const res = createMockRes();
 
-    const req = createMockReq(validBody);
-    const res = createMockRes() as any;
-
-    await register(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(409);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Teléfono en uso.' });
-  });
-
-  it('error genérico de DB: responde 500', async () => {
-    (hashPassword as jest.Mock).mockResolvedValue('hashedPassword');
-    (findUserByEmail as jest.Mock).mockResolvedValue(null);
-    (findBarberByPhone as jest.Mock).mockResolvedValue(null);
-    (findRegisteredClientByPhone as jest.Mock).mockResolvedValue(null);
-    (createRegisteredClient as jest.Mock).mockRejectedValue(new Error('DB connection lost'));
-
-    const req = createMockReq(validBody);
-    const res = createMockRes() as any;
-
-    await register(req, res);
+    await controller.login(req, res);
 
     expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Error al registrar al usuario' });
+    expect(res.json).toHaveBeenCalledWith({ error: 'Error interno del servidor.' });
   });
 });

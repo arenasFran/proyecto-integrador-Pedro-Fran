@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useId, useState } from 'react';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -9,13 +9,18 @@ interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement>
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ label, error, helperText, className = '', ...props }, ref) => {
+    const inputId = props.id ?? useId();
     const [showPassword, setShowPassword] = useState(false);
 
     return (
       <div className="flex flex-col gap-1">
-        <label className="text-[13px] font-medium text-white">
+        <label className="text-[13px] font-medium text-white" htmlFor={inputId}>
           {label}
-          {props.required && <span className="text-[#FF5C00] ml-1">*</span>}
+          {props.required && (
+            <span className="text-[#FF5C00] ml-1" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
         <div className="relative">
           <input
@@ -34,6 +39,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
               ${className}
             `}
             {...props}
+            id={inputId}
           />
           <button
             type="button"

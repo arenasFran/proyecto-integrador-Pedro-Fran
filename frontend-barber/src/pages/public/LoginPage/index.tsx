@@ -33,6 +33,15 @@ const itemVariants = {
   },
 };
 
+const credentialsInitialValues: LoginFormData = {
+  email: '',
+  password: '',
+};
+
+const codeInitialValues: TwoFactorCodeFormData = {
+  token: '',
+};
+
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { isLoading, error, loginSuccess, loginToken, twoFactorSendSuccess, twoFactorPendingEmail } =
@@ -40,15 +49,6 @@ export const LoginPage: React.FC = () => {
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const googleInitializedRef = useRef(false);
-
-  const credentialsInitialValues: LoginFormData = {
-    email: '',
-    password: '',
-  };
-
-  const codeInitialValues: TwoFactorCodeFormData = {
-    token: '',
-  };
 
   const {
     values: credentialsValues,

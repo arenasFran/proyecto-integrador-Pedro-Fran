@@ -1,17 +1,17 @@
 info:
-  name: Test login
+  name: Test login verify
   type: http
-  seq: 2
+  seq: 1
 
 http:
   method: POST
-  url: "{{baseUrl}}/auth/2fa/send"
+  url: "{{baseUrl}}/auth/2fa/verify"
   body:
     type: json
     data: |-
       {
-        "email": "luffyarenas@gmail.com",
-        "password": "123456"
+        "email": "test3@gmail.com",
+        "code" : "832900"
       }
   auth: inherit
 

@@ -1,16 +1,17 @@
 info:
-  name: Test login con 2fa parte 2
+  name: Test login
   type: http
+  seq: 2
 
 http:
   method: POST
-  url: http://localhost:3000/auth/2fa/verify
+  url: "{{baseUrl}}/auth/2fa/send"
   body:
     type: json
     data: |-
       {
-        "email": "test@gmail.com",
-        "code": "791389"
+        "email": "test3@gmail.com",
+        "password": "123456"
       }
   auth: inherit
 
@@ -19,4 +20,3 @@ settings:
   timeout: 0
   followRedirects: true
   maxRedirects: 5
-​

@@ -1,17 +1,13 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import { ServiceController } from '../controllers/service/ServiceController';
-import { createAuthenticate } from '../middlewares/auth.middleware';
-import { ITokenService } from '../../application/ports/ITokenService';
 
 export const createServiceRouter = (deps: {
   serviceController: ServiceController;
-  tokenService: ITokenService;
+  authenticate: RequestHandler;
 }) => {
   const router = express.Router();
 
-  const auth = createAuthenticate(deps.tokenService);
-
-  router.get('/', auth, deps.serviceController.getAll);
+  router.get('/', deps.authenticate, deps.serviceController.getAll);
 
   return router;
 };

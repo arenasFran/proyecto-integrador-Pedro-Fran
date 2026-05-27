@@ -1,9 +1,10 @@
+import { AppError } from '../../../../src/application/errors/AppError';
 import { GetAllServicesUseCase } from '../../../../src/application/use-cases/service/GetAllServicesUseCase';
+import { Service, ServicePrimitives } from '../../../../src/domain/entities/Service';
 import { IServiceRepository } from '../../../../src/domain/repositories/IServiceRepository';
-import { Service, ServiceProps } from '../../../../src/domain/entities/Service';
 
 describe('GetAllServicesUseCase', () => {
-  const makeService = (overrides?: Partial<ServiceProps>) => {
+  const makeService = (overrides?: Partial<ServicePrimitives>) => {
     const service = Service.create({
       id: 'svc-1',
       name: 'Corte de pelo',
@@ -38,5 +39,11 @@ describe('GetAllServicesUseCase', () => {
 
     expect(serviceRepository.findAll).toHaveBeenCalled();
     expect(result).toEqual(services.map((service) => service.toPrimitives()));
+  });
+
+  it('debe lanzar AppError si no hay servicios', async () => {
+    serviceRepository.findAll.mockResolvedValue([]);
+
+    await expect(useCase.execute()).rejects.toBeInstanceOf(AppError);
   });
 });

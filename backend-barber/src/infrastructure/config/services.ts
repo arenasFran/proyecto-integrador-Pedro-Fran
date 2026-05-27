@@ -1,4 +1,13 @@
-export const SERVICES = [
+export type ServiceData = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  durationMinutes: number;
+  imageUrl: string;
+};
+
+export const SERVICES: ServiceData[] = [
   {
     id: 'svc-1',
     name: 'Corte de pelo',

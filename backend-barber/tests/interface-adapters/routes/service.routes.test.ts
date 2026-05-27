@@ -6,24 +6,10 @@ jest.mock('../../../src/infrastructure/config/mailer', () => ({
 
 import request from 'supertest';
 import app from '../../../src/app';
-import { JwtTokenService } from '../../../src/infrastructure/services/JwtTokenService';
 
 describe('Service routes', () => {
-  const makeAuthHeader = () => {
-    const tokenService = new JwtTokenService();
-    const token = tokenService.sign({
-      id: 'user-1',
-      email: 'test@example.com',
-      kind: 'Registrado',
-    });
-
-    return `Bearer ${token}`;
-  };
-
-  it('debe devolver los servicios con auth', async () => {
-    const response = await request(app)
-      .get('/api/services')
-      .set('Authorization', makeAuthHeader());
+  it('debe devolver los servicios sin auth', async () => {
+    const response = await request(app).get('/api/services');
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.body.services)).toBe(true);
@@ -36,12 +22,5 @@ describe('Service routes', () => {
       durationMinutes: expect.any(Number),
       imageUrl: expect.any(String),
     });
-  });
-
-  it('debe responder 401 si falta el header Authorization', async () => {
-    const response = await request(app).get('/api/services');
-
-    expect(response.status).toBe(401);
-    expect(response.body).toEqual({ error: 'No autorizado' });
   });
 });

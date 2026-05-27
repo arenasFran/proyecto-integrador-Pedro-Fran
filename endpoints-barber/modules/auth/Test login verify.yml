@@ -1,0 +1,22 @@
+info:
+  name: Test login verify
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/2fa/verify"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "test3@gmail.com",
+        "code" : "832900"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

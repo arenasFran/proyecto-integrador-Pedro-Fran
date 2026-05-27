@@ -1,0 +1,22 @@
+info:
+  name: Test login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/2fa/send"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "test3@gmail.com",
+        "password": "123456"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

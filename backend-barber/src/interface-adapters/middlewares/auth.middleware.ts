@@ -48,3 +48,22 @@ export const authorize = (...kinds: AuthKind[]) => {
     next();
   };
 };
+
+export const authorizeSelfOrKinds = (paramKey: string, ...kinds: AuthKind[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authReq = req as AuthRequest;
+    if (!authReq.user) {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
+
+    if (kinds.includes(authReq.user.kind)) {
+      return next();
+    }
+
+    if (authReq.user._id === req.params[paramKey]) {
+      return next();
+    }
+
+    return res.status(403).json({ error: 'No tenés permisos para acceder a este recurso' });
+  };
+};

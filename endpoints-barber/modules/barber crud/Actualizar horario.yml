@@ -1,0 +1,58 @@
+info:
+  name: Actualizar horario
+  type: http
+  seq: 1
+
+http:
+  method: PUT
+  url: "{{baseUrl}}/api/barbers/6a178d2d04577c9fc57766c3/schedule"
+  headers:
+    - name: Authorization
+      value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTc4YjdkMWE1YTA5NGUyYWM4NzAwYyIsImVtYWlsIjoiYWRtaW5AYmFyYmVyaWEuY29tIiwia2luZCI6IkFkbWluIiwiaWF0IjoxNzc5OTc2MDMxLCJleHAiOjE3Nzk5Nzk2MzF9.6-T_E6Z7AKOYV3OP5_ccl8dPXwmQBvQ5fDxnVtQE5Lc
+  body:
+    type: json
+    data: |-
+      {
+        "monday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        },
+        "tuesday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        },
+        "wednesday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        },
+        "thursday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        },
+        "friday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        },
+        "saturday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        },
+        "sunday": {
+          "startTime": "10:00",
+          "endTime": "17:00",
+          "breaks": []
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

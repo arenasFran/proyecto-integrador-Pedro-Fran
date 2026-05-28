@@ -1,0 +1,19 @@
+info:
+  name: Slots disponibles por id barbero
+  type: http
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/barbers/6a178d2d04577c9fc57766c3/slots?date=2026-05-28"
+  params:
+    - name: date
+      value: 2026-05-28
+      type: query
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+​

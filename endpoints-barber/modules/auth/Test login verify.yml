@@ -1,7 +1,7 @@
 info:
-  name: Test login verify
+  name: "Test login verify "
   type: http
-  seq: 1
+  seq: 5
 
 http:
   method: POST
@@ -10,8 +10,8 @@ http:
     type: json
     data: |-
       {
-        "email": "test3@gmail.com",
-        "code" : "832900"
+        "email": "admin@barberia.com",
+        "code" : "462442"
       }
   auth: inherit
 

@@ -1,4 +1,5 @@
 import { AuthProvider, BarberKind, ClientKind } from '../../domain/types/auth';
+import { BarberSchedule } from '../../domain/entities/Barber';
 
 export interface IBarberBaseInput {
   email: string;
@@ -13,6 +14,12 @@ export interface IBarberBaseInput {
 
 export interface IEmployeeInput extends IBarberBaseInput {
   kind: 'Empleado';
+  specialties?: string[];
+  age?: number;
+  photoUrl?: string | null;
+  isActive?: boolean;
+  slotDuration?: number;
+  schedule: BarberSchedule;
 }
 
 export interface IAdminInput extends IBarberBaseInput {

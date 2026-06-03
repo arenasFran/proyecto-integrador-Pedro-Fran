@@ -7,4 +7,10 @@ export class StaticServiceRepository implements IServiceRepository {
   async findAll(): Promise<Service[]> {
     return SERVICES.map(ServiceMapper.fromStaticData);
   }
+
+  async findById(id: string): Promise<Service | null> {
+    const data = SERVICES.find((s) => s.id === id);
+    if (!data) return null;
+    return ServiceMapper.fromStaticData(data);
+  }
 }

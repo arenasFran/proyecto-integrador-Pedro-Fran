@@ -7,6 +7,7 @@ import authReducer from '../store/slices/authSlice';
 import barbersReducer from '../store/slices/barbersSlice';
 import type { RootState } from '../store';
 
+
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
   preloadedState?: PreloadedState<RootState>;
   initialEntries?: string[];
@@ -37,4 +38,4 @@ export function renderWithProviders(
     store,
     ...render(ui, { wrapper: Wrapper, ...renderOptions }),
   };
-}
+} 

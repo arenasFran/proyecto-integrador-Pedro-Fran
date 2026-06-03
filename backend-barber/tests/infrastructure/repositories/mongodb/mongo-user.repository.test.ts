@@ -13,12 +13,23 @@ describeIfMongo('MongoUserRepository', () => {
   });
 
   it('debe encontrar un barber por email', async () => {
+    const createEmptyDay = () => ({ startTime: null, endTime: null, breaks: [] });
     const admin = await Admin.create({
       email: 'admin@example.com',
       password: 'hash',
       name: 'Admin',
       lastname: 'User',
       phone: '111111',
+      slotDuration: 30,
+      schedule: {
+        monday: createEmptyDay(),
+        tuesday: createEmptyDay(),
+        wednesday: createEmptyDay(),
+        thursday: createEmptyDay(),
+        friday: createEmptyDay(),
+        saturday: createEmptyDay(),
+        sunday: createEmptyDay(),
+      },
     });
 
     const user = await repository.findByEmail('admin@example.com');

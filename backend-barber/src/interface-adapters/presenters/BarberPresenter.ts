@@ -2,7 +2,7 @@ import { Response } from 'express';
 import { AppError } from '../../application/errors/AppError';
 
 export class BarberPresenter {
-  static success(res: Response, payload: Record<string, unknown>, status = 200) {
+  static success<T>(res: Response, payload: T, status = 200) {
     return res.status(status).json(payload);
   }
 

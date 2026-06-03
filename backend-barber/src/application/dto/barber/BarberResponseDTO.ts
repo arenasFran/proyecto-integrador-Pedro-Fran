@@ -1,29 +1,43 @@
-import { Barber, BarberSchedule } from '../../../domain/entities/Barber';
-import { BarberKind } from '../../../domain/types/auth';
+import { BarberDTOSchedule, BarberDTOKind } from './barber-dto.types';
 
 export type BarberResponseDTO = {
-  _id: string;
+  id: string;
   name: string;
   lastname: string;
   email: string;
   phone: string;
-  kind: BarberKind;
+  kind: BarberDTOKind;
   specialties: string[];
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
   slotDuration: number;
-  schedule: BarberSchedule;
+  schedule: BarberDTOSchedule;
 };
 
-export const toBarberResponse = (barber: Barber): BarberResponseDTO => {
+type BarberEntityLike = {
+  id: string;
+  name: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  kind: string;
+  specialties: string[];
+  age?: number;
+  photoUrl?: string | null;
+  isActive: boolean;
+  slotDuration: number;
+  schedule: BarberDTOSchedule;
+};
+
+export const toBarberResponse = (barber: BarberEntityLike): BarberResponseDTO => {
   return {
-    _id: barber.id,
+    id: barber.id,
     name: barber.name,
     lastname: barber.lastname,
     email: barber.email,
     phone: barber.phone,
-    kind: barber.kind,
+    kind: barber.kind as BarberDTOKind,
     specialties: barber.specialties,
     age: barber.age,
     photoUrl: barber.photoUrl ?? null,

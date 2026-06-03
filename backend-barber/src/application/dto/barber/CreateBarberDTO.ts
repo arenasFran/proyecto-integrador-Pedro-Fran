@@ -1,4 +1,4 @@
-import { BarberSchedule } from '../../../domain/entities/Barber';
+import { BarberDTOSchedule } from './barber-dto.types';
 
 export type CreateBarberDTO = {
   email: string;
@@ -10,5 +10,5 @@ export type CreateBarberDTO = {
   age?: number;
   photoUrl?: string | null;
   slotDuration?: number;
-  schedule: BarberSchedule;
+  schedule: BarberDTOSchedule;
 };

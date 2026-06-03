@@ -1,3 +1,4 @@
+import { SlotService } from '../domain/services/SlotService';
 import { CreateEmployeeBarberUseCase } from '../application/use-cases/barber/CreateEmployeeBarberUseCase';
 import { DeleteBarberUseCase } from '../application/use-cases/barber/DeleteBarberUseCase';
 import { GetAllEmployeesUseCase } from '../application/use-cases/barber/GetAllEmployeesUseCase';
@@ -35,7 +36,8 @@ export const buildBarberRouter = () => {
   const deleteBarber = new DeleteBarberUseCase(barberRepository);
   const getBarberSchedule = new GetBarberScheduleUseCase(barberRepository);
   const updateBarberSchedule = new UpdateBarberScheduleUseCase(barberRepository);
-  const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository);
+  const slotService = new SlotService();
+  const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService);
 
   const barberController = new BarberController(
     createBarber,

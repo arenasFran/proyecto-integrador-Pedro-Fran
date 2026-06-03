@@ -1,6 +1,6 @@
 import React, { type PropsWithChildren } from 'react';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, type PreloadedState } from '@reduxjs/toolkit';
 import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import authReducer from '../store/slices/authSlice';
@@ -8,14 +8,14 @@ import barbersReducer from '../store/slices/barbersSlice';
 import type { RootState } from '../store';
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
-  preloadedState?: Partial<RootState>;
+  preloadedState?: PreloadedState<RootState>;
   initialEntries?: string[];
 }
 
-function createTestStore(preloadedState?: Partial<RootState>) {
+function createTestStore(preloadedState?: PreloadedState<RootState>) {
   return configureStore({
     reducer: { auth: authReducer, barbers: barbersReducer } as never,
-    preloadedState: preloadedState as never,
+    preloadedState,
   });
 }
 

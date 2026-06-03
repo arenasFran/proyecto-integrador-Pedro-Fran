@@ -74,6 +74,7 @@ describe('UpdateBarberUseCase', () => {
       createEmployee: jest.fn(),
       updateEmployee: jest.fn(),
       deactivateEmployee: jest.fn(),
+      deleteEmployee: jest.fn(),
       updateSchedule: jest.fn(),
     };
 

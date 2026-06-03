@@ -50,7 +50,7 @@ export const createBarberRouter = (deps: {
     '/:id',
     authorize('Admin'),
     validate({ params: barberIdParamSchema }),
-    deps.barberController.deactivate
+    deps.barberController.delete
   );
 
   router.get(

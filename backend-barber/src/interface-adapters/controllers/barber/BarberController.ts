@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { CreateEmployeeBarberUseCase } from '../../../application/use-cases/barber/CreateEmployeeBarberUseCase';
-import { DeactivateBarberUseCase } from '../../../application/use-cases/barber/DeactivateBarberUseCase';
+import { DeleteBarberUseCase } from '../../../application/use-cases/barber/DeleteBarberUseCase';
 import { GetAllEmployeesUseCase } from '../../../application/use-cases/barber/GetAllEmployeesUseCase';
 import { GetAvailableSlotsUseCase } from '../../../application/use-cases/barber/GetAvailableSlotsUseCase';
 import { GetBarberByIdUseCase } from '../../../application/use-cases/barber/GetBarberByIdUseCase';
@@ -15,7 +15,7 @@ export class BarberController {
     private readonly getAllBarbers: GetAllEmployeesUseCase,
     private readonly getBarberById: GetBarberByIdUseCase,
     private readonly updateBarber: UpdateBarberUseCase,
-    private readonly deactivateBarber: DeactivateBarberUseCase,
+    private readonly deleteBarber: DeleteBarberUseCase,
     private readonly getBarberSchedule: GetBarberScheduleUseCase,
     private readonly updateBarberSchedule: UpdateBarberScheduleUseCase,
     private readonly getAvailableSlots: GetAvailableSlotsUseCase
@@ -59,13 +59,13 @@ export class BarberController {
     }
   };
 
-  deactivate = async (req: Request, res: Response) => {
+  delete = async (req: Request, res: Response) => {
     try {
       const id = String(req.params.id);
-      const result = await this.deactivateBarber.execute(id);
+      const result = await this.deleteBarber.execute(id);
       return BarberPresenter.success(res, result, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al desactivar barbero');
+      return BarberPresenter.handleError(res, error, 'Error al eliminar barbero');
     }
   };
 

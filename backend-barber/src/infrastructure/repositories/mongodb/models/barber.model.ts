@@ -1,5 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
-import { IBarberBaseInput, IEmployeeInput } from '../../../types/user-input';
+import { IAdminInput, IBarberBaseInput, IEmployeeInput } from '../../../types/user-input';
 
 export interface IBarberBase extends Document, IBarberBaseInput {
   kind?: 'Admin' | 'Empleado';
@@ -9,7 +9,7 @@ export interface IEmployee extends IBarberBase, IEmployeeInput {
   kind: 'Empleado';
 }
 
-export interface IAdmin extends IBarberBase {
+export interface IAdmin extends IBarberBase, IAdminInput {
   kind: 'Admin';
 }
 
@@ -118,7 +118,34 @@ const Employee = Barber.discriminator<IEmployee>(
 
 const Admin = Barber.discriminator<IAdmin>(
   'Admin',
-  new Schema({}, { _id: false })
+  new Schema(
+    {
+      specialties: {
+        type: [String],
+        default: [],
+      },
+      age: {
+        type: Number,
+      },
+      photoUrl: {
+        type: String,
+        default: null,
+      },
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
+      slotDuration: {
+        type: Number,
+        default: 30,
+      },
+      schedule: {
+        type: scheduleSchema,
+        required: true,
+      },
+    },
+    { _id: false }
+  )
 );
 
 export { Admin, Barber, Employee };

@@ -19,5 +19,6 @@ export interface IBarberRepository {
   createEmployee(barber: Barber): Promise<Barber>;
   updateEmployee(id: string, update: BarberUpdate): Promise<Barber | null>;
   deactivateEmployee(id: string): Promise<void>;
+  deleteEmployee(id: string): Promise<void>;
   updateSchedule(id: string, schedule: BarberSchedule): Promise<Barber | null>;
 }

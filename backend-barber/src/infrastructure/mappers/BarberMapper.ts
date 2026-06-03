@@ -1,5 +1,5 @@
 import { Barber, BarberSchedule } from '../../domain/entities/Barber';
-import { IEmployee } from '../repositories/mongodb/models/barber.model';
+import { IAdmin, IEmployee } from '../repositories/mongodb/models/barber.model';
 
 const createEmptyDay = () => ({
   startTime: null,
@@ -18,7 +18,7 @@ const createDefaultSchedule = (): BarberSchedule => ({
 });
 
 export class BarberMapper {
-  static fromEmployee(doc: IEmployee): Barber {
+  static fromDocument(doc: IEmployee | IAdmin): Barber {
     const schedule = doc.schedule || createDefaultSchedule();
     const slotDuration = doc.slotDuration ?? 30;
 
@@ -37,6 +37,11 @@ export class BarberMapper {
       schedule,
       passwordHash: doc.password,
     });
+  }
+
+  /** @deprecated Usá fromDocument en su lugar */
+  static fromEmployee(doc: IEmployee): Barber {
+    return BarberMapper.fromDocument(doc);
   }
 
   static toEmployeeData(barber: Barber): Record<string, unknown> {

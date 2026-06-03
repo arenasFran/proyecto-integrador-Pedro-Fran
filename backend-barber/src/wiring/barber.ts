@@ -1,5 +1,5 @@
 import { CreateEmployeeBarberUseCase } from '../application/use-cases/barber/CreateEmployeeBarberUseCase';
-import { DeactivateBarberUseCase } from '../application/use-cases/barber/DeactivateBarberUseCase';
+import { DeleteBarberUseCase } from '../application/use-cases/barber/DeleteBarberUseCase';
 import { GetAllEmployeesUseCase } from '../application/use-cases/barber/GetAllEmployeesUseCase';
 import { GetAvailableSlotsUseCase } from '../application/use-cases/barber/GetAvailableSlotsUseCase';
 import { GetBarberByIdUseCase } from '../application/use-cases/barber/GetBarberByIdUseCase';
@@ -32,7 +32,7 @@ export const buildBarberRouter = () => {
     barberRepository,
     passwordHasher
   );
-  const deactivateBarber = new DeactivateBarberUseCase(barberRepository);
+  const deleteBarber = new DeleteBarberUseCase(barberRepository);
   const getBarberSchedule = new GetBarberScheduleUseCase(barberRepository);
   const updateBarberSchedule = new UpdateBarberScheduleUseCase(barberRepository);
   const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository);
@@ -42,7 +42,7 @@ export const buildBarberRouter = () => {
     getAllBarbers,
     getBarberById,
     updateBarber,
-    deactivateBarber,
+    deleteBarber,
     getBarberSchedule,
     updateBarberSchedule,
     getAvailableSlots

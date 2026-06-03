@@ -24,6 +24,12 @@ export interface IEmployeeInput extends IBarberBaseInput {
 
 export interface IAdminInput extends IBarberBaseInput {
   kind: 'Admin';
+  specialties?: string[];
+  age?: number;
+  photoUrl?: string | null;
+  isActive?: boolean;
+  slotDuration?: number;
+  schedule: BarberSchedule;
 }
 
 export interface IClientBaseInput {

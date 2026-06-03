@@ -6,6 +6,7 @@ import { GetBarberByIdUseCase } from '../application/use-cases/barber/GetBarberB
 import { GetBarberScheduleUseCase } from '../application/use-cases/barber/GetBarberScheduleUseCase';
 import { UpdateBarberScheduleUseCase } from '../application/use-cases/barber/UpdateBarberScheduleUseCase';
 import { UpdateBarberUseCase } from '../application/use-cases/barber/UpdateBarberUseCase';
+import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
@@ -17,6 +18,7 @@ import { buildTokenService } from './auth';
 export const buildBarberRouter = () => {
   const barberRepository = new MongoBarberRepository();
   const userRepository = new MongoUserRepository();
+  const appointmentRepository = new MongoAppointmentRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = buildTokenService();
 
@@ -35,7 +37,7 @@ export const buildBarberRouter = () => {
   const deleteBarber = new DeleteBarberUseCase(barberRepository);
   const getBarberSchedule = new GetBarberScheduleUseCase(barberRepository);
   const updateBarberSchedule = new UpdateBarberScheduleUseCase(barberRepository);
-  const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository);
+  const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, appointmentRepository);
 
   const barberController = new BarberController(
     createBarber,

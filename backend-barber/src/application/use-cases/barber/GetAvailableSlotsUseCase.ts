@@ -1,4 +1,5 @@
 import { BarberSchedule, BarberScheduleDay } from '../../../domain/entities/Barber';
+import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
 import { IBarberRepository } from '../../../domain/repositories/IBarberRepository';
 import { AppError } from '../../errors/AppError';
 
@@ -12,7 +13,10 @@ type SlotsResult = {
 };
 
 export class GetAvailableSlotsUseCase {
-  constructor(private readonly barberRepository: IBarberRepository) {}
+  constructor(
+    private readonly barberRepository: IBarberRepository,
+    private readonly appointmentRepository: IAppointmentRepository
+  ) {}
 
   async execute(barberId: string, date: string): Promise<SlotsResult> {
     if (!DATE_PATTERN.test(date)) {
@@ -30,7 +34,25 @@ export class GetAvailableSlotsUseCase {
     const slotMinutes = getSlotDuration(barber.slotDuration);
     const slots = buildSlotsForDay(daySchedule, date, slotMinutes);
 
-    return { date, slots };
+    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
+      barberId,
+      date
+    );
+
+    const busySlots = new Set<string>();
+    for (const appointment of existingAppointments) {
+      if (appointment.status === 'Cancelado') continue;
+      const start = toMinutes(appointment.startTime);
+      const end = toMinutes(appointment.endTime);
+      if (start === null || end === null) continue;
+      for (let m = start; m < end; m += slotMinutes) {
+        busySlots.add(toTimeString(m));
+      }
+    }
+
+    const available = slots.filter((slot) => !busySlots.has(slot));
+
+    return { date, slots: available };
   }
 }
 

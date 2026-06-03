@@ -21,7 +21,7 @@ vi.mock('../../utils/token', () => ({
 import { getTokenUser } from '../../utils/token';
 
 const adminUser: Professional = {
-  _id: 'admin1',
+  id: 'admin1',
   name: 'Santiago',
   lastname: 'Abbona',
   email: 'santiago@barberia.com',

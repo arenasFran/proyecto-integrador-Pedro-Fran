@@ -20,7 +20,7 @@ vi.mock('../../services/professional.service', () => ({
 }));
 
 const mockBarber: Professional = {
-  _id: 'b1',
+  id: 'b1',
   name: 'Juan',
   lastname: 'Pérez',
   email: 'juan@barberia.com',

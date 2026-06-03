@@ -18,7 +18,7 @@ vi.mock('../../../utils/token', () => ({
 import { professionalService } from '../../../services/professional.service';
 
 const adminUser = {
-  _id: 'admin1',
+  id: 'admin1',
   name: 'Santiago',
   lastname: 'Abbona',
   email: 'santiago@barberia.com',

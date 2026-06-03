@@ -9,7 +9,8 @@ interface PasswordInputProps extends React.InputHTMLAttributes<HTMLInputElement>
 
 export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
   ({ label, error, helperText, className = '', ...props }, ref) => {
-    const inputId = props.id ?? useId();
+    const generatedId = useId();
+    const inputId = props.id ?? generatedId;
     const [showPassword, setShowPassword] = useState(false);
 
     return (

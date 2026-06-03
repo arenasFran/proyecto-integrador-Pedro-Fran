@@ -29,6 +29,7 @@ const initialState = {
   registerSuccess: null,
   requestResetSuccess: null,
   resetPasswordSuccess: null,
+  user: null,
 };
 
 describe('authSlice', () => {

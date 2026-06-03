@@ -8,6 +8,9 @@ import {
   type ResetPasswordData,
   type TwoFactorVerifyData,
 } from '../../services/auth.service';
+import { professionalService } from '../../services/professional.service';
+import { getTokenUser } from '../../utils/token';
+import type { Professional } from '../../types/professional';
 
 interface AuthState {
   isLoading: boolean;
@@ -19,6 +22,7 @@ interface AuthState {
   registerSuccess: string | null;
   requestResetSuccess: string | null;
   resetPasswordSuccess: string | null;
+  user: Professional | null;
 }
 
 const initialState: AuthState = {
@@ -31,6 +35,7 @@ const initialState: AuthState = {
   registerSuccess: null,
   requestResetSuccess: null,
   resetPasswordSuccess: null,
+  user: null,
 };
 
 const clearAllSuccessFlags = (state: AuthState) => {
@@ -121,6 +126,21 @@ export const resetPasswordThunk = createAsyncThunk(
   }
 );
 
+export const fetchUserProfile = createAsyncThunk(
+  'auth/fetchUserProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const userData = getTokenUser(token);
+      if (!userData?.id) throw new Error('No hay sesión activa');
+      return await professionalService.getById(userData.id);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al cargar perfil';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -128,6 +148,15 @@ const authSlice = createSlice({
     clearAuthState: (state) => {
       state.error = null;
       clearAllSuccessFlags(state);
+    },
+    logout: (state) => {
+      state.user = null;
+      state.loginToken = null;
+      state.loginSuccess = null;
+      localStorage.removeItem('authToken');
+    },
+    setUser: (state, action) => {
+      state.user = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -220,9 +249,18 @@ const authSlice = createSlice({
       .addCase(resetPasswordThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      .addCase(fetchUserProfile.pending, (state) => {
+        state.error = null;
+      })
+      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
+      .addCase(fetchUserProfile.rejected, (state) => {
+        // Don't set error — this is a background fetch
       });
   },
 });
 
-export const { clearAuthState } = authSlice.actions;
+export const { clearAuthState, logout, setUser } = authSlice.actions;
 export default authSlice.reducer;

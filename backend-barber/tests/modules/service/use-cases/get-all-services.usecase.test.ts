@@ -23,6 +23,7 @@ describe('GetAllServicesUseCase', () => {
   beforeEach(() => {
     serviceRepository = {
       findAll: jest.fn(),
+      findById: jest.fn(),
     };
 
     useCase = new GetAllServicesUseCase(serviceRepository);

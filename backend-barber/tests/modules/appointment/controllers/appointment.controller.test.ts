@@ -1,6 +1,7 @@
 import { AppointmentController } from '../../../../src/interface-adapters/controllers/appointment/AppointmentController';
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { GetAppointmentsUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsUseCase';
+import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
@@ -9,6 +10,7 @@ import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 describe('AppointmentController', () => {
   let createAppointment: jest.Mocked<CreateAppointmentUseCase>;
   let getAppointments: jest.Mocked<GetAppointmentsUseCase>;
+  let getAppointmentById: jest.Mocked<GetAppointmentByIdUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
   let controller: AppointmentController;
@@ -16,11 +18,13 @@ describe('AppointmentController', () => {
   beforeEach(() => {
     createAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CreateAppointmentUseCase>;
     getAppointments = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentsUseCase>;
+    getAppointmentById = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentByIdUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
     controller = new AppointmentController(
       createAppointment,
       getAppointments,
+      getAppointmentById,
       cancelAppointment,
       updateAppointmentStatus
     );
@@ -28,7 +32,7 @@ describe('AppointmentController', () => {
 
   describe('create', () => {
     it('debe crear turno y responder 201', async () => {
-      createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} });
+      createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
       const req = createMockReq({
         barberId: 'barber-1',
         serviceId: 'svc-1',
@@ -57,7 +61,7 @@ describe('AppointmentController', () => {
     });
 
     it('debe asignar clientId si el usuario esta autenticado', async () => {
-      createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} });
+      createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
       const req = createMockReq({
         barberId: 'barber-1',
         serviceId: 'svc-1',
@@ -119,6 +123,39 @@ describe('AppointmentController', () => {
       await controller.getAll(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('getById', () => {
+    it('debe obtener turno por id y responder 200', async () => {
+      getAppointmentById.execute.mockResolvedValue({
+        appointment: { id: 'apt-1' } as any,
+      });
+      const req = createMockReq();
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.getById(req, res);
+
+      expect(getAppointmentById.execute).toHaveBeenCalledWith(
+        'apt-1', 'client-1', 'Registrado'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe manejar error de permiso', async () => {
+      getAppointmentById.execute.mockRejectedValue(
+        new AppError('No tenés permiso para ver este turno.', 403)
+      );
+      const req = createMockReq();
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.getById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
     });
   });
 

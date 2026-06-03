@@ -1,11 +1,11 @@
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
-import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
+import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
 
 describe('UpdateAppointmentStatusUseCase', () => {
-  const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
-    const base: AppointmentProps = {
+  const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
+    const base: AppointmentPrimitives = {
       id: 'apt-1',
       barberId: 'barber-1',
       clientName: 'Juan',

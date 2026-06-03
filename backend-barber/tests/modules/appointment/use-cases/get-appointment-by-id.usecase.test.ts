@@ -1,9 +1,9 @@
-import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
+import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
 
-describe('CancelAppointmentUseCase', () => {
+describe('GetAppointmentByIdUseCase', () => {
   const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
     const base: AppointmentPrimitives = {
       id: 'apt-1',
@@ -27,7 +27,7 @@ describe('CancelAppointmentUseCase', () => {
   };
 
   let appointmentRepository: jest.Mocked<IAppointmentRepository>;
-  let useCase: CancelAppointmentUseCase;
+  let useCase: GetAppointmentByIdUseCase;
 
   beforeEach(() => {
     appointmentRepository = {
@@ -38,27 +38,11 @@ describe('CancelAppointmentUseCase', () => {
       updateStatus: jest.fn(),
     };
 
-    useCase = new CancelAppointmentUseCase(appointmentRepository);
+    useCase = new GetAppointmentByIdUseCase(appointmentRepository);
   });
 
   it('debe fallar si el turno no existe', async () => {
     appointmentRepository.findById.mockResolvedValue(null);
-
-    await expect(
-      useCase.execute('apt-1', 'client-1', 'Registrado')
-    ).rejects.toBeInstanceOf(AppError);
-  });
-
-  it('debe fallar si el turno ya esta cancelado', async () => {
-    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
-
-    await expect(
-      useCase.execute('apt-1', 'client-1', 'Registrado')
-    ).rejects.toBeInstanceOf(AppError);
-  });
-
-  it('debe fallar si el turno ya esta completado', async () => {
-    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Completado' }));
 
     await expect(
       useCase.execute('apt-1', 'client-1', 'Registrado')
@@ -75,31 +59,28 @@ describe('CancelAppointmentUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe cancelar el turno si es el dueno', async () => {
+  it('debe devolver el turno si es el dueno', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment());
-    appointmentRepository.updateStatus.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
 
     const result = await useCase.execute('apt-1', 'client-1', 'Registrado');
 
-    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
-      status: 'Cancelado',
-      cancelReason: undefined,
-      cancelledAt: expect.any(Date),
-    });
-    expect(result.message).toMatch(/Turno cancelado/);
+    expect(result.appointment.id).toBe('apt-1');
+    expect(result.appointment.clientName).toBe('Juan');
   });
 
-  it('debe cancelar el turno si es admin', async () => {
+  it('debe devolver el turno si es admin', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment());
-    appointmentRepository.updateStatus.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
 
-    const result = await useCase.execute('apt-1', 'admin-1', 'Admin', 'Cliente no vino');
+    const result = await useCase.execute('apt-1', 'admin-1', 'Admin');
 
-    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
-      status: 'Cancelado',
-      cancelReason: 'Cliente no vino',
-      cancelledAt: expect.any(Date),
-    });
-    expect(result.message).toMatch(/Turno cancelado/);
+    expect(result.appointment.id).toBe('apt-1');
+  });
+
+  it('debe devolver el turno si es empleado', async () => {
+    appointmentRepository.findById.mockResolvedValue(makeAppointment());
+
+    const result = await useCase.execute('apt-1', 'empleado-1', 'Empleado');
+
+    expect(result.appointment.id).toBe('apt-1');
   });
 });

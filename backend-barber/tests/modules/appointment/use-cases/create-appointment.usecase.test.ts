@@ -2,12 +2,14 @@ import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
+import { IServiceRepository } from '../../../../src/domain/repositories/IServiceRepository';
 import {
   Barber,
   BarberProps,
   BarberSchedule,
 } from '../../../../src/domain/entities/Barber';
-import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
+import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
+import { Service } from '../../../../src/domain/entities/Service';
 
 describe('CreateAppointmentUseCase', () => {
   const createScheduleDay = () => ({
@@ -43,8 +45,8 @@ describe('CreateAppointmentUseCase', () => {
     return Barber.create({ ...base, ...overrides });
   };
 
-  const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
-    const base: AppointmentProps = {
+  const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
+    const base: AppointmentPrimitives = {
       id: 'apt-1',
       barberId: 'barber-1',
       clientName: 'Juan',
@@ -64,8 +66,19 @@ describe('CreateAppointmentUseCase', () => {
     return Appointment.create({ ...base, ...overrides });
   };
 
+  const makeService = () =>
+    Service.create({
+      id: 'svc-1',
+      name: 'Corte de pelo',
+      description: 'Incluye barba/cejas/lavado/bebida a elección',
+      price: 490,
+      durationMinutes: 50,
+      imageUrl: 'https://placehold.co/400x300?text=Corte+de+pelo',
+    });
+
   let appointmentRepository: jest.Mocked<IAppointmentRepository>;
   let barberRepository: jest.Mocked<IBarberRepository>;
+  let serviceRepository: jest.Mocked<IServiceRepository>;
   let useCase: CreateAppointmentUseCase;
 
   beforeEach(() => {
@@ -87,7 +100,16 @@ describe('CreateAppointmentUseCase', () => {
       updateSchedule: jest.fn(),
     };
 
-    useCase = new CreateAppointmentUseCase(appointmentRepository, barberRepository);
+    serviceRepository = {
+      findAll: jest.fn(),
+      findById: jest.fn(),
+    };
+
+    useCase = new CreateAppointmentUseCase(
+      appointmentRepository,
+      barberRepository,
+      serviceRepository
+    );
   });
 
   it('debe fallar si el barbero no existe', async () => {
@@ -122,6 +144,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe fallar si el servicio no existe', async () => {
     barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(null);
 
     await expect(
       useCase.execute({
@@ -137,6 +160,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe fallar si el horario ya esta ocupado', async () => {
     barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ startTime: '10:00', endTime: '10:50' }),
     ]);
@@ -155,6 +179,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe crear un turno exitosamente', async () => {
     barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -175,6 +200,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe ignorar turnos cancelados al verificar solapamiento', async () => {
     barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ status: 'Cancelado', startTime: '10:00', endTime: '10:50' }),
     ]);

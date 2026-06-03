@@ -1,6 +1,6 @@
 import { GetAvailableSlotsUseCase } from '../../../../src/application/use-cases/barber/GetAvailableSlotsUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
+import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
@@ -94,8 +94,8 @@ describe('GetAvailableSlotsUseCase', () => {
   });
 
   it('debe excluir slots ocupados por turnos existentes', async () => {
-    const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
-      const base: AppointmentProps = {
+    const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
+      const base: AppointmentPrimitives = {
         id: 'apt-1',
         barberId: 'barber-1',
         clientName: 'Juan',

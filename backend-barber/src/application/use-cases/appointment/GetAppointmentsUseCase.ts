@@ -1,5 +1,5 @@
-import { Appointment } from '../../../domain/entities/Appointment';
 import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
+import { AppointmentResponseDTO } from '../../dto/appointment/AppointmentResponseDTO';
 
 export type GetAppointmentsDTO = {
   barberId?: string;
@@ -14,7 +14,7 @@ export class GetAppointmentsUseCase {
     private readonly appointmentRepository: IAppointmentRepository
   ) {}
 
-  async execute(dto: GetAppointmentsDTO): Promise<{ appointments: Appointment[] }> {
+  async execute(dto: GetAppointmentsDTO): Promise<{ appointments: AppointmentResponseDTO[] }> {
     const appointments = await this.appointmentRepository.findMany({
       barberId: dto.barberId,
       clientId: dto.clientId,
@@ -23,6 +23,31 @@ export class GetAppointmentsUseCase {
       dateTo: dto.dateTo,
     });
 
-    return { appointments };
+    return {
+      appointments: appointments.map((a) => {
+        const p = a.toPrimitives();
+        return {
+          id: p.id,
+          barberId: p.barberId,
+          clientId: p.clientId,
+          clientName: p.clientName,
+          clientLastname: p.clientLastname,
+          clientPhone: p.clientPhone,
+          clientEmail: p.clientEmail,
+          serviceId: p.serviceId,
+          serviceName: p.serviceName,
+          servicePrice: p.servicePrice,
+          serviceDuration: p.serviceDuration,
+          date: p.date,
+          startTime: p.startTime,
+          endTime: p.endTime,
+          status: p.status,
+          cancelReason: p.cancelReason,
+          cancelledAt: p.cancelledAt,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+        };
+      }),
+    };
   }
 }

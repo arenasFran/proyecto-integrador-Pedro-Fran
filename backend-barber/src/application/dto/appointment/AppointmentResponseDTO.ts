@@ -1,0 +1,21 @@
+export type AppointmentResponseDTO = {
+  id: string;
+  barberId: string;
+  clientId?: string;
+  clientName: string;
+  clientLastname: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  serviceId: string;
+  serviceName: string;
+  servicePrice: number;
+  serviceDuration: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: string;
+  cancelReason?: string;
+  cancelledAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};

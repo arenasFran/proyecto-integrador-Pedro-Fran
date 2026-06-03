@@ -82,7 +82,8 @@ export const updateBarberSchedule = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      return await professionalService.updateSchedule(id, schedule);
+      const updatedSchedule = await professionalService.updateSchedule(id, schedule);
+      return { id, schedule: updatedSchedule };
     } catch (error: unknown) {
       const message =
         error instanceof Error
@@ -110,6 +111,24 @@ const barbersSlice = createSlice({
       .addCase(fetchBarbers.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
+      })
+      .addCase(createBarber.fulfilled, (state, action) => {
+        state.list.push(action.payload);
+      })
+      .addCase(updateBarber.fulfilled, (state, action) => {
+        const index = state.list.findIndex((p) => p.id === action.payload._id);
+        if (index !== -1) {
+          state.list[index] = action.payload;
+        }
+      })
+      .addCase(removeBarber.fulfilled, (state, action) => {
+        state.list = state.list.filter((p) => p.id !== action.payload.id);
+      })
+      .addCase(updateBarberSchedule.fulfilled, (state, action) => {
+        const index = state.list.findIndex((p) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.list[index].schedule = action.payload.schedule;
+        }
       });
   },
 });

@@ -1,4 +1,4 @@
-import { Appointment, AppointmentProps } from '../entities/Appointment';
+import { Appointment, AppointmentPrimitives } from '../entities/Appointment';
 import { AppointmentStatus } from '../types/appointment';
 
 export type AppointmentFilters = {
@@ -10,7 +10,7 @@ export type AppointmentFilters = {
   dateTo?: string;
 };
 
-export type CreateAppointmentData = Omit<AppointmentProps, 'id' | 'createdAt' | 'updatedAt'>;
+export type CreateAppointmentData = Omit<AppointmentPrimitives, 'id' | 'createdAt' | 'updatedAt'>;
 
 export type UpdateStatusData = {
   status: AppointmentStatus;

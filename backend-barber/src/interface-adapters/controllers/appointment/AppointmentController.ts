@@ -1,15 +1,17 @@
 import { Request, Response } from 'express';
 import { CreateAppointmentUseCase } from '../../../application/use-cases/appointment/CreateAppointmentUseCase';
 import { GetAppointmentsUseCase } from '../../../application/use-cases/appointment/GetAppointmentsUseCase';
+import { GetAppointmentByIdUseCase } from '../../../application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
-import { AuthPresenter } from '../../presenters/AuthPresenter';
+import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
 import { AuthRequest } from '../../middlewares/auth.middleware';
 
 export class AppointmentController {
   constructor(
     private readonly createAppointment: CreateAppointmentUseCase,
     private readonly getAppointments: GetAppointmentsUseCase,
+    private readonly getAppointmentById: GetAppointmentByIdUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase
   ) {}
@@ -25,16 +27,16 @@ export class AppointmentController {
       }
 
       const result = await this.createAppointment.execute(body);
-      return AuthPresenter.success(res, result, 201);
+      return AppointmentPresenter.success(res, result, 201);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al crear el turno');
+      return AppointmentPresenter.handleError(res, error, 'Error al crear el turno');
     }
   };
 
   getAll = async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthRequest;
-      const query: Record<string, string | undefined> = {};
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string } = {};
 
       if (authReq.user?.kind === 'Admin' || authReq.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
@@ -48,66 +50,52 @@ export class AppointmentController {
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
 
       const result = await this.getAppointments.execute(query);
-      return AuthPresenter.success(res, result, 200);
+      return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al obtener turnos');
+      return AppointmentPresenter.handleError(res, error, 'Error al obtener turnos');
     }
   };
 
   getById = async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthRequest;
-      const appointments = await this.getAppointments.execute({});
-
-      const appointment = appointments.appointments.find(
-        (a) => a.id === req.params.id
+      const id = req.params.id as string;
+      const result = await this.getAppointmentById.execute(
+        id,
+        authReq.user!._id,
+        authReq.user!.kind
       );
-
-      if (!appointment) {
-        return AuthPresenter.success(res, { error: 'Turno no encontrado' }, 404);
-      }
-
-      const isOwner = appointment.clientId === authReq.user?._id;
-      const isAdminOrBarber =
-        authReq.user?.kind === 'Admin' || authReq.user?.kind === 'Empleado';
-
-      if (!isOwner && !isAdminOrBarber) {
-        return AuthPresenter.success(
-          res,
-          { error: 'No tenés permiso para ver este turno' },
-          403
-        );
-      }
-
-      return AuthPresenter.success(res, { appointment: appointment.toPrimitives() }, 200);
+      return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al obtener el turno');
+      return AppointmentPresenter.handleError(res, error, 'Error al obtener el turno');
     }
   };
 
   cancel = async (req: Request, res: Response) => {
     try {
       const authReq = req as AuthRequest;
+      const id = req.params.id as string;
       const reason = req.body.reason;
 
       const result = await this.cancelAppointment.execute(
-        String(req.params.id),
+        id,
         authReq.user!._id,
         authReq.user!.kind,
         reason
       );
-      return AuthPresenter.success(res, result, 200);
+      return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al cancelar el turno');
+      return AppointmentPresenter.handleError(res, error, 'Error al cancelar el turno');
     }
   };
 
   updateStatus = async (req: Request, res: Response) => {
     try {
-      const result = await this.updateAppointmentStatus.execute(String(req.params.id), req.body);
-      return AuthPresenter.success(res, result, 200);
+      const id = req.params.id as string;
+      const result = await this.updateAppointmentStatus.execute(id, req.body);
+      return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al actualizar el estado del turno');
+      return AppointmentPresenter.handleError(res, error, 'Error al actualizar el estado del turno');
     }
   };
 }

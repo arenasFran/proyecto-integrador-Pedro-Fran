@@ -13,9 +13,12 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
   initialEntries?: string[];
 }
 
-function createTestStore(preloadedState?: PreloadedState<RootState>) {
+function createTestStore(preloadedState?: PreloadedState<{
+  auth: ReturnType<typeof authReducer>;
+  barbers: ReturnType<typeof barbersReducer>;
+}>) {
   return configureStore({
-    reducer: { auth: authReducer, barbers: barbersReducer } as never,
+    reducer: { auth: authReducer, barbers: barbersReducer },
     preloadedState,
   });
 }

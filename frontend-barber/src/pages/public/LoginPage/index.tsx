@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
 import { Button, Input, PasswordInput } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
@@ -12,6 +12,7 @@ import {
   verifyTwoFactorCodeThunk,
 } from '../../../store/slices/authSlice';
 import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
+import { getTokenKind } from '../../../utils/token';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,6 +45,7 @@ const codeInitialValues: TwoFactorCodeFormData = {
 
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { isLoading, error, loginSuccess, loginToken, twoFactorSendSuccess, twoFactorPendingEmail } =
     useAppSelector((state) => state.auth);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
@@ -84,7 +86,13 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     if (!loginToken) return;
     localStorage.setItem('authToken', loginToken);
-  }, [loginToken]);
+    const role = getTokenKind(loginToken);
+    if (role === 'Admin') {
+      navigate('/admin/profesionales');
+      return;
+    }
+    navigate('/');
+  }, [loginToken, navigate]);
 
   useEffect(() => {
     if (isCodeStep || !googleClientId || googleInitializedRef.current) return;

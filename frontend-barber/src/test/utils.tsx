@@ -1,32 +1,38 @@
 import React, { type PropsWithChildren } from 'react';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, type PreloadedState } from '@reduxjs/toolkit';
 import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import authReducer from '../store/slices/authSlice';
+import barbersReducer from '../store/slices/barbersSlice';
 import type { RootState } from '../store';
 
+
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
-  preloadedState?: Partial<RootState>;
+  preloadedState?: PreloadedState<RootState>;
+  initialEntries?: string[];
 }
 
-function createTestStore(preloadedState?: Partial<RootState>) {
+function createTestStore(preloadedState?: PreloadedState<{
+  auth: ReturnType<typeof authReducer>;
+  barbers: ReturnType<typeof barbersReducer>;
+}>) {
   return configureStore({
-    reducer: { auth: authReducer },
-    preloadedState: preloadedState as RootState | undefined,
+    reducer: { auth: authReducer, barbers: barbersReducer },
+    preloadedState,
   });
 }
 
 export function renderWithProviders(
   ui: React.ReactElement,
-  { preloadedState, ...renderOptions }: ExtendedRenderOptions = {}
+  { preloadedState, initialEntries, ...renderOptions }: ExtendedRenderOptions = {}
 ) {
   const store = createTestStore(preloadedState);
 
   function Wrapper({ children }: PropsWithChildren) {
     return (
       <Provider store={store}>
-        <MemoryRouter>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
       </Provider>
     );
   }
@@ -35,4 +41,4 @@ export function renderWithProviders(
     store,
     ...render(ui, { wrapper: Wrapper, ...renderOptions }),
   };
-}
+} 

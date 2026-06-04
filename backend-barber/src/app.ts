@@ -3,6 +3,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { buildAuthRouter } from "./wiring/auth";
+import { buildBarberRouter } from "./wiring/barber";
 import { buildServiceRouter } from "./wiring/service";
 
 const app = express();
@@ -24,6 +25,7 @@ const authLimiter = rateLimit({
 app.use(express.json());
 app.use(helmet());
 app.use("/auth", authLimiter, buildAuthRouter());
+app.use("/api/barbers", buildBarberRouter());
 app.use("/api/services", buildServiceRouter());
 
 app.get("/health", (_req, res) => {

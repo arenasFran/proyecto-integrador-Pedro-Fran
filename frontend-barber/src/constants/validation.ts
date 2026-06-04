@@ -16,7 +16,7 @@ export const VALIDATION_RULES = {
     message: 'El apellido debe tener al menos 3 caracteres',
   },
   phone: {
-    pattern: /^[\d\s\-\+\(\)]{7,20}$/,
+    pattern: /^[\d\s\-+()]{7,20}$/,
     message: 'Ingresa un número de teléfono válido',
   },
   token: {

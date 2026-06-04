@@ -1,0 +1,67 @@
+export type DayKey =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday';
+
+export type ScheduleBreak = {
+  startTime: string;
+  endTime: string;
+};
+
+export type ScheduleDay = {
+  startTime: string | null;
+  endTime: string | null;
+  breaks: ScheduleBreak[];
+};
+
+export type BarberSchedule = Record<DayKey, ScheduleDay>;
+
+export type Professional = {
+  id: string;
+  name: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  kind: 'Admin' | 'Empleado';
+  specialties: string[];
+  age?: number;
+  photoUrl?: string | null;
+  isActive: boolean;
+  slotDuration: number;
+  schedule: BarberSchedule;
+};
+
+export type ProfessionalPayload = {
+  email: string;
+  password?: string;
+  name: string;
+  lastname: string;
+  phone: string;
+  specialties: string[];
+  age?: number;
+  photoUrl?: string | null;
+  slotDuration?: number;
+  schedule: BarberSchedule;
+};
+
+export type ProfessionalUpdatePayload = {
+  email?: string;
+  password?: string;
+  name?: string;
+  lastname?: string;
+  phone?: string;
+  specialties?: string[];
+  age?: number | null;
+  photoUrl?: string | null;
+  isActive?: boolean;
+  slotDuration?: number;
+};
+
+export type SlotsResponse = {
+  date: string;
+  slots: string[];
+};

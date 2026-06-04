@@ -1,0 +1,14 @@
+import { BarberDTOSchedule } from './barber-dto.types';
+
+export type CreateBarberDTO = {
+  email: string;
+  password: string;
+  name: string;
+  lastname: string;
+  phone: string;
+  specialties: string[];
+  age?: number;
+  photoUrl?: string | null;
+  slotDuration?: number;
+  schedule: BarberDTOSchedule;
+};

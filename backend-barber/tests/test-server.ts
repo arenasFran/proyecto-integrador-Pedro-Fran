@@ -2,10 +2,13 @@ import 'dotenv/config';
 
 import cors from 'cors';
 import express from 'express';
+import bcrypt from 'bcrypt';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
+import { Admin } from '../src/infrastructure/repositories/mongodb/models/barber.model';
 import { buildAuthRouter } from '../src/wiring/auth';
+import { buildBarberRouter } from '../src/wiring/barber';
 
 const PORT = Number(process.env.TEST_PORT || 3000);
 
@@ -25,6 +28,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(helmet());
 app.use('/auth', buildAuthRouter());
+app.use('/api/barbers', buildBarberRouter());
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -41,11 +45,48 @@ const start = async () => {
   process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
   process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
   process.env.TEST_2FA_CODE = process.env.TEST_2FA_CODE || '123456';
+  process.env.TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
+  process.env.TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Admin123!';
+  process.env.TEST_ADMIN_NAME = process.env.TEST_ADMIN_NAME || 'Admin';
+  process.env.TEST_ADMIN_LASTNAME = process.env.TEST_ADMIN_LASTNAME || 'Barber';
+  process.env.TEST_ADMIN_PHONE = process.env.TEST_ADMIN_PHONE || '099000000';
 
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  process.env.MONGO_URI = uri;
-  await mongoose.connect(uri);
+  const externalUri = process.env.MONGO_URI;
+
+ if (externalUri) {
+    await mongoose.connect(externalUri, { dbName: 'backend-barber-test' });
+  } else {
+    mongoServer = await MongoMemoryServer.create();
+    const uri = mongoServer.getUri();
+    process.env.MONGO_URI = uri;
+    await mongoose.connect(uri);
+  }
+
+  const passwordHash = await bcrypt.hash(process.env.TEST_ADMIN_PASSWORD, 10);
+  await Admin.deleteMany({
+    $or: [
+      { email: process.env.TEST_ADMIN_EMAIL },
+      { phone: process.env.TEST_ADMIN_PHONE },
+    ],
+  });
+  const createEmptyDay = () => ({ startTime: null, endTime: null, breaks: [] });
+  await Admin.create({
+    email: process.env.TEST_ADMIN_EMAIL,
+    password: passwordHash,
+    name: process.env.TEST_ADMIN_NAME,
+    lastname: process.env.TEST_ADMIN_LASTNAME,
+    phone: process.env.TEST_ADMIN_PHONE,
+    slotDuration: 30,
+    schedule: {
+      monday: createEmptyDay(),
+      tuesday: createEmptyDay(),
+      wednesday: createEmptyDay(),
+      thursday: createEmptyDay(),
+      friday: createEmptyDay(),
+      saturday: createEmptyDay(),
+      sunday: createEmptyDay(),
+    },
+  });
 
   server = appListen(PORT);
 };

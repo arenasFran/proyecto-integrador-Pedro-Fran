@@ -116,7 +116,7 @@ const barbersSlice = createSlice({
         state.list.push(action.payload);
       })
       .addCase(updateBarber.fulfilled, (state, action) => {
-        const index = state.list.findIndex((p) => p.id === action.payload._id);
+        const index = state.list.findIndex((p) => p.id === action.payload.id);
         if (index !== -1) {
           state.list[index] = action.payload;
         }

@@ -2,6 +2,7 @@ import { GetAvailableSlotsUseCase } from '../../../../src/application/use-cases/
 import { AppError } from '../../../../src/application/errors/AppError';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
+import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { SlotService, SlotsResult } from '../../../../src/domain/services/SlotService';
 
 describe('GetAvailableSlotsUseCase', () => {
@@ -40,8 +41,29 @@ describe('GetAvailableSlotsUseCase', () => {
     return Barber.create({ ...base, ...overrides });
   };
 
+  const makeAppointment = (overrides?: { startTime?: string; endTime?: string; status?: string }) => ({
+    id: 'apt-1',
+    barberId: 'barber-1',
+    clientName: 'Juan',
+    clientLastname: 'Perez',
+    serviceId: 'svc-1',
+    serviceName: 'Corte',
+    servicePrice: 490,
+    serviceDuration: 50,
+    date: '2099-01-01',
+    startTime: overrides?.startTime ?? '09:00',
+    endTime: overrides?.endTime ?? '09:50',
+    status: overrides?.status ?? 'Pendiente',
+    cancelReason: undefined,
+    cancelledAt: undefined,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+
   let barberRepository: jest.Mocked<IBarberRepository>;
-  let slotService: jest.Mocked<SlotService>;
+  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let slotService: SlotService;
+  let useCase: GetAvailableSlotsUseCase;
 
   beforeEach(() => {
     barberRepository = {
@@ -54,56 +76,64 @@ describe('GetAvailableSlotsUseCase', () => {
       updateSchedule: jest.fn(),
     };
 
-    slotService = {
-      isValidDate: jest.fn(),
-      execute: jest.fn(),
-    } as unknown as jest.Mocked<SlotService>;
+    appointmentRepository = {
+      findById: jest.fn(),
+      findMany: jest.fn(),
+      findByBarberAndDate: jest.fn(),
+      create: jest.fn(),
+      updateStatus: jest.fn(),
+    };
+
+    slotService = new SlotService();
+    useCase = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository);
   });
 
   it('debe fallar con fecha invalida', async () => {
-    slotService.isValidDate.mockReturnValue(false);
-
-    const useCase = new GetAvailableSlotsUseCase(barberRepository, slotService);
-
     await expect(useCase.execute('barber-1', '2024/01/01')).rejects.toBeInstanceOf(AppError);
-    expect(slotService.isValidDate).toHaveBeenCalledWith('2024/01/01');
   });
 
-  it('debe devolver slots segun el horario y los breaks', async () => {
+  it('debe fallar si el barbero no existe', async () => {
+    barberRepository.findEmployeeById.mockResolvedValue(null);
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+
+    await expect(useCase.execute('barber-1', '2099-01-01')).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe devolver slots segun el horario y los breaks sin turnos existentes', async () => {
     const schedule = createSchedule({
       breaks: [{ startTime: '10:00', endTime: '10:30' }],
     });
-    const expectedResult: SlotsResult = {
-      date: '2099-01-01',
-      slots: ['09:00', '09:30', '10:30'],
-    };
 
-    slotService.isValidDate.mockReturnValue(true);
     barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ schedule }));
-    slotService.execute.mockReturnValue(expectedResult);
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
 
-    const useCase = new GetAvailableSlotsUseCase(barberRepository, slotService);
-    const result = await useCase.execute('barber-1', '2099-01-01');
+    const result = await useCase.execute('barber-1', '2099-01-05');
 
-    expect(result).toEqual(expectedResult);
-    expect(slotService.execute).toHaveBeenCalledWith('2099-01-01', schedule, 30);
+    expect(result.slots).toEqual(['09:00', '09:30', '10:30']);
   });
 
-  it('debe respetar la duracion del slot del barbero', async () => {
-    const schedule = createSchedule();
-    const expectedResult: SlotsResult = {
-      date: '2099-01-01',
-      slots: ['09:00', '10:00'],
-    };
+  it('debe excluir slots ocupados por turnos existentes', async () => {
+    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([
+      makeAppointment({ startTime: '09:00', endTime: '09:50' }) as any,
+    ]);
 
-    slotService.isValidDate.mockReturnValue(true);
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ slotDuration: 60 }));
-    slotService.execute.mockReturnValue(expectedResult);
+    const result = await useCase.execute('barber-1', '2099-01-05');
 
-    const useCase = new GetAvailableSlotsUseCase(barberRepository, slotService);
-    const result = await useCase.execute('barber-1', '2099-01-01');
+    expect(result.slots).not.toContain('09:00');
+    expect(result.slots).not.toContain('09:30');
+    expect(result.slots).toContain('10:00');
+  });
 
-    expect(result).toEqual(expectedResult);
-    expect(slotService.execute).toHaveBeenCalledWith('2099-01-01', schedule, 60);
+  it('debe ignorar turnos cancelados al calcular disponibilidad', async () => {
+    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([
+      makeAppointment({ startTime: '09:00', endTime: '09:50', status: 'Cancelado' }) as any,
+    ]);
+
+    const result = await useCase.execute('barber-1', '2099-01-05');
+
+    expect(result.slots).toContain('09:00');
+    expect(result.slots).toContain('09:30');
   });
 });

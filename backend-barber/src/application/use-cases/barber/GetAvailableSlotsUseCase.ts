@@ -1,13 +1,15 @@
+import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
 import { IBarberRepository } from '../../../domain/repositories/IBarberRepository';
 import { AppError } from '../../errors/AppError';
-import { SlotService, SlotsResult } from '../../../domain/services/SlotService';
+import { OccupiedSlot, SlotService, SlotsResult } from '../../../domain/services/SlotService';
 
 export { SlotsResult };
 
 export class GetAvailableSlotsUseCase {
   constructor(
     private readonly barberRepository: IBarberRepository,
-    private readonly slotService: SlotService
+    private readonly slotService: SlotService,
+    private readonly appointmentRepository: IAppointmentRepository
   ) {}
 
   async execute(barberId: string, date: string): Promise<SlotsResult> {
@@ -20,6 +22,13 @@ export class GetAvailableSlotsUseCase {
       throw new AppError('Barbero no encontrado.', 404);
     }
 
-    return this.slotService.execute(date, barber.schedule, barber.slotDuration);
+    const appointments = await this.appointmentRepository.findByBarberAndDate(barberId, date);
+    const occupiedSlots: OccupiedSlot[] = appointments.map((apt) => ({
+      startTime: apt.startTime,
+      endTime: apt.endTime,
+      status: apt.status,
+    }));
+
+    return this.slotService.execute(date, barber.schedule, barber.slotDuration, occupiedSlots);
   }
 }

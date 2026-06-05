@@ -18,7 +18,7 @@ const mockedApi = api as unknown as {
   delete: ReturnType<typeof vi.fn>;
 };
 
-const mockBarber = {
+const mockBarberRaw = {
   _id: 'b1',
   name: 'Juan',
   lastname: 'Pérez',
@@ -41,23 +41,28 @@ const mockBarber = {
   },
 };
 
+
 describe('professionalService', () => {
-  it('list calls GET /api/barbers and returns barbers array', async () => {
-    mockedApi.get.mockResolvedValueOnce({ data: { barbers: [mockBarber] } });
+  it('list calls GET /api/barbers and returns barbers array with id mapped', async () => {
+    mockedApi.get.mockResolvedValueOnce({ data: { barbers: [mockBarberRaw] } });
 
     const result = await professionalService.list();
 
     expect(mockedApi.get).toHaveBeenCalledWith('/api/barbers');
-    expect(result).toEqual([mockBarber]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('b1');
+    expect(result[0]).not.toHaveProperty('_id');
+    expect(result[0].name).toBe('Juan');
   });
 
-  it('getById calls GET /api/barbers/:id and returns professional', async () => {
-    mockedApi.get.mockResolvedValueOnce({ data: mockBarber });
+  it('getById calls GET /api/barbers/:id and returns professional with id mapped', async () => {
+    mockedApi.get.mockResolvedValueOnce({ data: mockBarberRaw });
 
     const result = await professionalService.getById('b1');
 
     expect(mockedApi.get).toHaveBeenCalledWith('/api/barbers/b1');
-    expect(result).toEqual(mockBarber);
+    expect(result.id).toBe('b1');
+    expect(result).not.toHaveProperty('_id');
   });
 
   it('create calls POST /api/barbers with payload and returns professional', async () => {
@@ -68,24 +73,28 @@ describe('professionalService', () => {
       lastname: 'Barber',
       phone: '099999999',
       specialties: ['barba'],
-      schedule: mockBarber.schedule,
+      schedule: mockBarberRaw.schedule,
     };
-    mockedApi.post.mockResolvedValueOnce({ data: { ...mockBarber, ...payload } });
+    mockedApi.post.mockResolvedValueOnce({ data: { ...mockBarberRaw, ...payload } });
 
     const result = await professionalService.create(payload);
 
     expect(mockedApi.post).toHaveBeenCalledWith('/api/barbers', payload);
     expect(result).toMatchObject({ name: 'Nuevo', lastname: 'Barber' });
+    expect(result.id).toBe('b1');
+    expect(result).not.toHaveProperty('_id');
   });
 
   it('update calls PUT /api/barbers/:id with payload and returns professional', async () => {
     const payload = { name: 'Actualizado' };
-    mockedApi.put.mockResolvedValueOnce({ data: { ...mockBarber, name: 'Actualizado' } });
+    mockedApi.put.mockResolvedValueOnce({ data: { ...mockBarberRaw, name: 'Actualizado' } });
 
     const result = await professionalService.update('b1', payload);
 
     expect(mockedApi.put).toHaveBeenCalledWith('/api/barbers/b1', payload);
     expect(result.name).toBe('Actualizado');
+    expect(result.id).toBe('b1');
+    expect(result).not.toHaveProperty('_id');
   });
 
   it('remove calls DELETE /api/barbers/:id and returns message', async () => {

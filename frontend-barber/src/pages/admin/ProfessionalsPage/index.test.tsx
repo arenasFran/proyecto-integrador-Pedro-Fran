@@ -24,7 +24,7 @@ import { getTokenUser } from '../../../utils/token';
 
 const mockEmployees = [
   {
-    _id: 'emp1',
+    id: 'emp1',
     name: 'Carlos',
     lastname: 'López',
     email: 'carlos@barberia.com',
@@ -46,7 +46,7 @@ const mockEmployees = [
     },
   },
   {
-    _id: 'emp2',
+    id: 'emp2',
     name: 'María',
     lastname: 'García',
     email: 'maria@barberia.com',
@@ -79,7 +79,7 @@ describe('ProfessionalsPage', () => {
     vi.mocked(getTokenUser).mockReturnValue({ id: 'admin1', email: 'admin@test.com', kind: 'Admin' });
     vi.mocked(professionalService.list).mockResolvedValue([
       {
-        _id: 'admin1',
+        id: 'admin1',
         name: 'Admin',
         lastname: 'Test',
         email: 'admin@test.com',

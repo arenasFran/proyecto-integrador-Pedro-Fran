@@ -39,11 +39,6 @@ export class BarberMapper {
     });
   }
 
-  /** @deprecated Usá fromDocument en su lugar */
-  static fromEmployee(doc: IEmployee): Barber {
-    return BarberMapper.fromDocument(doc);
-  }
-
   static toEmployeeData(barber: Barber): Record<string, unknown> {
     return {
       email: barber.email,

@@ -21,7 +21,7 @@ export type ScheduleDay = {
 export type BarberSchedule = Record<DayKey, ScheduleDay>;
 
 export type Professional = {
-  _id: string;
+  id: string;
   name: string;
   lastname: string;
   email: string;

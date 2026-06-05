@@ -1,4 +1,7 @@
 import { BarberKind } from '../types/auth';
+import { DurationMinutes } from '../value-objects/DurationMinutes';
+import { Email } from '../value-objects/Email';
+import { Phone } from '../value-objects/Phone';
 
 export type BarberScheduleBreak = {
   startTime: string;
@@ -37,15 +40,36 @@ export type BarberProps = {
   passwordHash?: string;
 };
 
-export class Barber {
-  private props: BarberProps;
+type BarberInternalProps = {
+  id: string;
+  email: Email;
+  name: string;
+  lastname: string;
+  phone: Phone;
+  kind: BarberKind;
+  specialties: string[];
+  age?: number;
+  photoUrl?: string | null;
+  isActive: boolean;
+  slotDuration: DurationMinutes;
+  schedule: BarberSchedule;
+  passwordHash?: string;
+};
 
-  private constructor(props: BarberProps) {
+export class Barber {
+  private props: BarberInternalProps;
+
+  private constructor(props: BarberInternalProps) {
     this.props = { ...props };
   }
 
   static create(props: BarberProps): Barber {
-    return new Barber(props);
+    return new Barber({
+      ...props,
+      email: Email.create(props.email),
+      phone: Phone.create(props.phone),
+      slotDuration: DurationMinutes.create(props.slotDuration),
+    });
   }
 
   get id(): string {
@@ -53,7 +77,7 @@ export class Barber {
   }
 
   get email(): string {
-    return this.props.email;
+    return this.props.email.getValue();
   }
 
   get name(): string {
@@ -65,7 +89,7 @@ export class Barber {
   }
 
   get phone(): string {
-    return this.props.phone;
+    return this.props.phone.getValue();
   }
 
   get kind(): BarberKind {
@@ -89,7 +113,7 @@ export class Barber {
   }
 
   get slotDuration(): number {
-    return this.props.slotDuration;
+    return this.props.slotDuration.getValue();
   }
 
   get schedule(): BarberSchedule {
@@ -101,6 +125,20 @@ export class Barber {
   }
 
   toPrimitives(): BarberProps {
-    return { ...this.props };
+    return {
+      id: this.props.id,
+      email: this.props.email.getValue(),
+      name: this.props.name,
+      lastname: this.props.lastname,
+      phone: this.props.phone.getValue(),
+      kind: this.props.kind,
+      specialties: [...this.props.specialties],
+      age: this.props.age,
+      photoUrl: this.props.photoUrl ?? null,
+      isActive: this.props.isActive,
+      slotDuration: this.props.slotDuration.getValue(),
+      schedule: { ...this.props.schedule },
+      passwordHash: this.props.passwordHash,
+    };
   }
 }

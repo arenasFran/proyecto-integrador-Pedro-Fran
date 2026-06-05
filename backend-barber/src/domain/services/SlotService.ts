@@ -4,19 +4,52 @@ const TIME_ZONE = 'America/Montevideo';
 const DEFAULT_SLOT_MINUTES = 30;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+export type OccupiedSlot = {
+  startTime: string;
+  endTime: string;
+  status: string;
+};
+
 export type SlotsResult = {
   date: string;
   slots: string[];
 };
 
 export class SlotService {
-  execute(date: string, schedule: BarberSchedule, slotDuration: number): SlotsResult {
+  execute(
+    date: string,
+    schedule: BarberSchedule,
+    slotDuration: number,
+    occupiedSlots?: OccupiedSlot[]
+  ): SlotsResult {
     const dayKey = this.getScheduleDayKey(date);
     const daySchedule = schedule[dayKey];
     const slotMinutes = this.getSlotDuration(slotDuration);
     const slots = this.buildSlotsForDay(daySchedule, date, slotMinutes);
+    const filtered = this.filterOccupiedSlots(slots, slotMinutes, occupiedSlots);
 
-    return { date, slots };
+    return { date, slots: filtered };
+  }
+
+  private filterOccupiedSlots(
+    slots: string[],
+    slotMinutes: number,
+    occupiedSlots?: OccupiedSlot[]
+  ): string[] {
+    if (!occupiedSlots || occupiedSlots.length === 0) return slots;
+
+    const busySlots = new Set<string>();
+    for (const appointment of occupiedSlots) {
+      if (appointment.status === 'Cancelado') continue;
+      const start = this.toMinutes(appointment.startTime);
+      const end = this.toMinutes(appointment.endTime);
+      if (start === null || end === null) continue;
+      for (let m = start; m < end; m += slotMinutes) {
+        busySlots.add(this.toTimeString(m));
+      }
+    }
+
+    return slots.filter((slot) => !busySlots.has(slot));
   }
 
   isValidDate(date: string): boolean {

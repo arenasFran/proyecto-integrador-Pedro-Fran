@@ -104,5 +104,52 @@ describe('SlotService', () => {
 
       expect(result.date).toBe('2099-06-15');
     });
+
+    it('debe excluir slots ocupados por turnos no cancelados', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const occupiedSlots = [
+        { startTime: '09:30', endTime: '10:00', status: 'Pendiente' },
+        { startTime: '10:00', endTime: '10:30', status: 'Confirmado' },
+      ];
+      const result = service.execute('2099-01-05', schedule, 30, occupiedSlots);
+
+      expect(result.slots).toEqual(['09:00', '10:30']);
+    });
+
+    it('debe ignorar turnos cancelados al filtrar slots ocupados', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const occupiedSlots = [
+        { startTime: '09:30', endTime: '10:00', status: 'Cancelado' },
+      ];
+      const result = service.execute('2099-01-05', schedule, 30, occupiedSlots);
+
+      expect(result.slots).toContain('09:30');
+    });
+
+    it('debe filtrar slots por duracion del servicio existente', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const occupiedSlots = [
+        { startTime: '09:00', endTime: '09:50', status: 'Pendiente' },
+      ];
+      const result = service.execute('2099-01-05', schedule, 30, occupiedSlots);
+
+      expect(result.slots).not.toContain('09:00');
+      expect(result.slots).not.toContain('09:30');
+      expect(result.slots).toContain('10:00');
+    });
+
+    it('debe devolver slots sin cambios si no se pasan occupiedSlots', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const result = service.execute('2099-01-05', schedule, 30);
+
+      expect(result.slots).toEqual(['09:00', '09:30', '10:00', '10:30']);
+    });
+
+    it('debe devolver slots sin cambios si occupiedSlots esta vacio', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const result = service.execute('2099-01-05', schedule, 30, []);
+
+      expect(result.slots).toEqual(['09:00', '09:30', '10:00', '10:30']);
+    });
   });
 });

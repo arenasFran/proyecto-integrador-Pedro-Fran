@@ -1,4 +1,5 @@
 import api from './api';
+import type { BarberPublic } from '../types/booking';
 import type {
   BarberSchedule,
   Professional,
@@ -12,6 +13,10 @@ type ProfessionalsResponse = {
   barbers: ProfessionalRaw[];
 };
 
+type PublicBarbersResponse = {
+  barbers: (Omit<BarberPublic, 'id'> & { id?: string; _id?: string })[];
+};
+
 type ScheduleResponse = {
   schedule: BarberSchedule;
 };
@@ -21,7 +26,24 @@ const mapProfessional = (raw: ProfessionalRaw): Professional => {
   return { id: _id, ...rest };
 };
 
+const mapBarberPublic = (raw: PublicBarbersResponse['barbers'][number]): BarberPublic => {
+  return {
+    id: raw.id ?? raw._id ?? '',
+    name: raw.name,
+    lastname: raw.lastname,
+    specialties: raw.specialties,
+    photoUrl: raw.photoUrl,
+    isActive: raw.isActive,
+    slotDuration: raw.slotDuration,
+  };
+};
+
 export const professionalService = {
+  getPublic: async (): Promise<BarberPublic[]> => {
+    const response = await api.get<PublicBarbersResponse>('/api/barbers/public');
+    return response.data.barbers.map(mapBarberPublic);
+  },
+
   list: async (): Promise<Professional[]> => {
     const response = await api.get<ProfessionalsResponse>('/api/barbers');
     return response.data.barbers.map(mapProfessional);

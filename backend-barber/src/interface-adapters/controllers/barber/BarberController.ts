@@ -21,6 +21,26 @@ export class BarberController {
     private readonly getAvailableSlots: GetAvailableSlotsUseCase
   ) {}
 
+  getAllPublic = async (_req: Request, res: Response) => {
+    try {
+      const barbers = await this.getAllBarbers.execute();
+      const publicBarbers = barbers
+        .filter((b) => b.isActive)
+        .map((b) => ({
+          id: b.id,
+          name: b.name,
+          lastname: b.lastname,
+          specialties: b.specialties,
+          photoUrl: b.photoUrl,
+          isActive: b.isActive,
+          slotDuration: b.slotDuration,
+        }));
+      return BarberPresenter.success(res, { barbers: publicBarbers }, 200);
+    } catch (error) {
+      return BarberPresenter.handleError(res, error, 'Error al obtener barberos');
+    }
+  };
+
   create = async (req: Request, res: Response) => {
     try {
       const result = await this.createBarber.execute(req.body);

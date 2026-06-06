@@ -16,6 +16,8 @@ export const createBarberRouter = (deps: {
 }) => {
   const router = express.Router({ mergeParams: true });
 
+  router.get('/public', deps.barberController.getAllPublic);
+
   router.use(deps.authenticate);
 
   router.get('/', deps.barberController.getAll);

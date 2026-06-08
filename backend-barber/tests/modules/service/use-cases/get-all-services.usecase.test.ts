@@ -10,7 +10,6 @@ describe('GetAllServicesUseCase', () => {
       name: 'Corte de pelo',
       description: 'Incluye barba/cejas/lavado/bebida a eleccion',
       price: 490,
-      durationMinutes: 50,
       imageUrl: 'https://example.com/corte.jpg',
     });
 
@@ -23,6 +22,7 @@ describe('GetAllServicesUseCase', () => {
   beforeEach(() => {
     serviceRepository = {
       findAll: jest.fn(),
+      findById: jest.fn(),
     };
 
     useCase = new GetAllServicesUseCase(serviceRepository);

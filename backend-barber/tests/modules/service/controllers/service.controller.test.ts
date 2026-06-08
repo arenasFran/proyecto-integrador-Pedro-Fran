@@ -18,7 +18,6 @@ describe('ServiceController', () => {
         name: 'Corte de pelo',
         description: 'Incluye barba/cejas/lavado/bebida a eleccion',
         price: 490,
-        durationMinutes: 50,
         imageUrl: 'https://example.com/corte.jpg',
       },
     ]);
@@ -36,7 +35,6 @@ describe('ServiceController', () => {
           name: 'Corte de pelo',
           description: 'Incluye barba/cejas/lavado/bebida a eleccion',
           price: 490,
-          durationMinutes: 50,
           imageUrl: 'https://example.com/corte.jpg',
         },
       ],

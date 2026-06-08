@@ -10,6 +10,7 @@ import AdminProfilePage from './pages/admin/AdminProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
 import LoginPage from './pages/public/LoginPage';
+import BookingPage from './pages/client/BookingPage';
 import { getTokenKind, isTokenValid } from './utils/token';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ function App() {
       <AppInitializer>
         <Router>
           <Routes>
+            <Route path="/" element={<BookingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />
@@ -46,7 +48,6 @@ function App() {
               <Route path="perfil" element={<AdminProfilePage />} />
               <Route index element={<Navigate to="profesionales" replace />} />
             </Route>
-            <Route path="/" element={<RegisterPageWrapper />} />
           </Routes>
         </Router>
       </AppInitializer>
@@ -67,7 +68,7 @@ function RequireAdminRoute({ children }: { children: React.ReactNode }) {
 
 function RegisterPageWrapper() {
   const navigate = useNavigate();
-  
+
   const handleNavigateToLogin = () => {
     navigate('/login');
   };

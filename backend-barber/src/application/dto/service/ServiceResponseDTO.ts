@@ -3,6 +3,5 @@ export type ServiceResponseDTO = {
   name: string;
   description: string;
   price: number;
-  durationMinutes: number;
   imageUrl: string;
 };

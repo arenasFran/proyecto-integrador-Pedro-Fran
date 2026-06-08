@@ -16,7 +16,6 @@ export class GetAllServicesUseCase {
       name: service.name,
       description: service.description,
       price: service.price,
-      durationMinutes: service.durationMinutes,
       imageUrl: service.imageUrl,
     }));
   }

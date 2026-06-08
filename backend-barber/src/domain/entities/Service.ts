@@ -1,4 +1,3 @@
-import { DurationMinutes } from '../value-objects/DurationMinutes';
 import { Price } from '../value-objects/Price';
 
 export type ServiceCreateProps = {
@@ -6,7 +5,6 @@ export type ServiceCreateProps = {
   name: string;
   description: string;
   price: number;
-  durationMinutes: number;
   imageUrl: string;
 };
 
@@ -15,7 +13,6 @@ export type ServicePrimitives = {
   name: string;
   description: string;
   price: number;
-  durationMinutes: number;
   imageUrl: string;
 };
 
@@ -24,7 +21,6 @@ type ServiceProps = {
   name: string;
   description: string;
   price: Price;
-  durationMinutes: DurationMinutes;
   imageUrl: string;
 };
 
@@ -39,7 +35,6 @@ export class Service {
     return new Service({
       ...props,
       price: Price.create(props.price),
-      durationMinutes: DurationMinutes.create(props.durationMinutes),
     });
   }
 
@@ -59,10 +54,6 @@ export class Service {
     return this.props.price.getValue();
   }
 
-  get durationMinutes(): number {
-    return this.props.durationMinutes.getValue();
-  }
-
   get imageUrl(): string {
     return this.props.imageUrl;
   }
@@ -73,7 +64,6 @@ export class Service {
       name: this.name,
       description: this.description,
       price: this.price,
-      durationMinutes: this.durationMinutes,
       imageUrl: this.imageUrl,
     };
   }

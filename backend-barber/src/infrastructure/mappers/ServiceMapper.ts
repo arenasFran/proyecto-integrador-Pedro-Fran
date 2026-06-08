@@ -8,7 +8,6 @@ export class ServiceMapper {
       name: data.name,
       description: data.description,
       price: data.price,
-      durationMinutes: data.durationMinutes,
       imageUrl: data.imageUrl,
     });
   }

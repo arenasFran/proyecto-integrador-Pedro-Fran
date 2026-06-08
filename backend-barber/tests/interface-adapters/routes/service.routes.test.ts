@@ -19,7 +19,6 @@ describe('Service routes', () => {
       name: expect.any(String),
       description: expect.any(String),
       price: expect.any(Number),
-      durationMinutes: expect.any(Number),
       imageUrl: expect.any(String),
     });
   });

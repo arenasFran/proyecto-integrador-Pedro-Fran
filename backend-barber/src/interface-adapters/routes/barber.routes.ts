@@ -16,14 +16,17 @@ export const createBarberRouter = (deps: {
 }) => {
   const router = express.Router({ mergeParams: true });
 
-  router.use(deps.authenticate);
+  router.get('/public', deps.barberController.getAllPublic);
 
-  router.get('/', deps.barberController.getAll);
   router.get(
     '/:id/slots',
     validate({ params: barberIdParamSchema, query: slotsQuerySchema }),
     deps.barberController.getSlots
   );
+
+  router.use(deps.authenticate);
+
+  router.get('/', deps.barberController.getAll);
 
   router.post(
     '/',

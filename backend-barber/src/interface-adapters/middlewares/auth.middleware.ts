@@ -67,3 +67,25 @@ export const authorizeSelfOrKinds = (paramKey: string, ...kinds: AuthKind[]) => 
     return res.status(403).json({ error: 'No tenés permisos para acceder a este recurso' });
   };
 };
+
+export const createOptionalAuth = (tokenService: ITokenService) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    const authReq = req as AuthRequest;
+    const header = authReq.headers.authorization;
+    if (!header || !header.startsWith('Bearer ')) {
+      return next();
+    }
+    const token = header.split(' ')[1];
+    try {
+      const decoded = tokenService.verify(token);
+      authReq.user = {
+        email: decoded.email,
+        _id: decoded.id,
+        kind: decoded.kind as AuthKind,
+      };
+    } catch {
+      // token inválido -> sigue sin usuario
+    }
+    next();
+  };
+};

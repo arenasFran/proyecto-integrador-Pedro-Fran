@@ -18,14 +18,15 @@ export const createBarberRouter = (deps: {
 
   router.get('/public', deps.barberController.getAllPublic);
 
-  router.use(deps.authenticate);
-
-  router.get('/', deps.barberController.getAll);
   router.get(
     '/:id/slots',
     validate({ params: barberIdParamSchema, query: slotsQuerySchema }),
     deps.barberController.getSlots
   );
+
+  router.use(deps.authenticate);
+
+  router.get('/', deps.barberController.getAll);
 
   router.post(
     '/',

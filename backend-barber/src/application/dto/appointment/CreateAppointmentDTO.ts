@@ -8,4 +8,5 @@ export type CreateAppointmentDTO = {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  tempLockId?: string;
 };

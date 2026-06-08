@@ -31,6 +31,16 @@ export const cancelAppointmentSchema = Joi.object({
   reason: Joi.string().trim().max(500).allow('', null),
 });
 
+export const rescheduleAppointmentSchema = Joi.object({
+  date: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .required(),
+  startTime: Joi.string()
+    .pattern(/^\d{2}:\d{2}$/)
+    .required(),
+  barberId: Joi.string().required(),
+});
+
 export const updateAppointmentStatusSchema = Joi.object({
   status: Joi.string()
     .valid('Pendiente', 'Confirmado', 'Cancelado', 'Completado')

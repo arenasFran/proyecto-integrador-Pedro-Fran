@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
 import { Admin, Employee } from '../repositories/mongodb/models/barber.model';
+import AppointmentModel from '../repositories/mongodb/models/appointment.model';
 
 const createEmptyDay = () => ({ startTime: null, endTime: null, breaks: [] });
 
@@ -132,11 +133,156 @@ export const seedBarbers = async () => {
   }
 };
 
+function formatDate(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getNextWeekday(from: Date, targetDay: number): Date {
+  const result = new Date(from);
+  const daysUntil = (targetDay + 7 - from.getDay() - 1) % 7 + 1;
+  result.setDate(from.getDate() + daysUntil);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function getPreviousWeekday(from: Date, targetDay: number): Date {
+  const result = new Date(from);
+  const daysSince = (from.getDay() + 7 - targetDay) % 7;
+  result.setDate(from.getDate() - (daysSince || 7));
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+const SEED_SERVICES = [
+  { id: 'svc-1', name: 'Corte de pelo', price: 490, duration: 50 },
+  { id: 'svc-2', name: 'Corte a máquina', price: 350, duration: 30 },
+  { id: 'svc-3', name: 'Barba', price: 250, duration: 25 },
+  { id: 'svc-4', name: 'Promo x2', price: 450, duration: 70 },
+];
+
+async function seedAppointments(): Promise<void> {
+  const barbers = await Employee.find({ kind: 'Empleado' });
+  if (barbers.length === 0) {
+    console.log('No hay barberos — saltando seed de turnos');
+    return;
+  }
+
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  const seeds: Array<{
+    targetDay: number;
+    status: string;
+    getDate: () => Date;
+    serviceIndex: number;
+    cancelReason?: string;
+  }> = [
+    {
+      targetDay: 1,
+      status: 'Confirmado',
+      getDate: () => getNextWeekday(now, 1),
+      serviceIndex: 0,
+    },
+    {
+      targetDay: 2,
+      status: 'Pendiente',
+      getDate: () => getNextWeekday(now, 2),
+      serviceIndex: 1,
+    },
+    {
+      targetDay: 3,
+      status: 'Completado',
+      getDate: () => {
+        const prev = getPreviousWeekday(now, 3);
+        if (now.getDay() > 3) prev.setDate(prev.getDate() - 7);
+        return prev;
+      },
+      serviceIndex: 2,
+    },
+    {
+      targetDay: 4,
+      status: 'Cancelado',
+      getDate: () => getNextWeekday(now, 4),
+      serviceIndex: 3,
+      cancelReason: 'Ya no podía asistir',
+    },
+  ];
+
+  for (const barber of barbers) {
+    const existingCount = await AppointmentModel.countDocuments({ barberId: barber._id });
+    if (existingCount > 0) {
+      console.log(`Barbero ${barber.name} ${barber.lastname} ya tiene turnos — omitido`);
+      continue;
+    }
+
+    for (const seed of seeds) {
+      const dayName = dayNames[seed.targetDay];
+      const scheduleDay = (barber.schedule as Record<string, any>)[dayName];
+      if (!scheduleDay || !scheduleDay.startTime || !scheduleDay.endTime) continue;
+
+      const date = seed.getDate();
+      const dateStr = formatDate(date);
+
+      const startTime = scheduleDay.startTime;
+      const [startH, startM] = startTime.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+
+      const svc = SEED_SERVICES[seed.serviceIndex];
+      const endMinutes = startMinutes + svc.duration;
+      const [closeH, closeM] = scheduleDay.endTime.split(':').map(Number);
+      const closeMinutes = closeH * 60 + closeM;
+      if (endMinutes > closeMinutes) continue;
+
+      let inBreak = false;
+      for (const br of scheduleDay.breaks || []) {
+        const [brSH, brSM] = br.startTime.split(':').map(Number);
+        const [brEH, brEM] = br.endTime.split(':').map(Number);
+        const brStart = brSH * 60 + brSM;
+        const brEnd = brEH * 60 + brEM;
+        if (startMinutes < brEnd && endMinutes > brStart) {
+          inBreak = true;
+          break;
+        }
+      }
+      if (inBreak) continue;
+
+      const endHour = Math.floor(endMinutes / 60);
+      const endMin = endMinutes % 60;
+      const endTime = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+
+      await AppointmentModel.create({
+        barberId: barber._id,
+        clientName: 'Cliente',
+        clientLastname: 'Prueba',
+        clientPhone: '+59899123456',
+        clientEmail: 'cliente@prueba.com',
+        serviceId: svc.id,
+        serviceName: svc.name,
+        servicePrice: svc.price,
+        serviceDuration: svc.duration,
+        date: dateStr,
+        startTime,
+        endTime,
+        status: seed.status,
+        cancelReason: seed.cancelReason,
+        cancelledAt: seed.status === 'Cancelado' ? new Date() : undefined,
+      });
+
+      console.log(`  Turno ${seed.status} creado para ${barber.name} el ${dateStr} a las ${startTime}`);
+    }
+  }
+}
+
 if (require.main === module) {
   (async () => {
     await mongoose.connect(process.env.MONGO_URI as string);
     await seedAdmin();
     await seedBarbers();
+    await seedAppointments();
     process.exit(0);
   })().catch((err) => {
     console.error(err);

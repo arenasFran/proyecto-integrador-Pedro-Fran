@@ -1,23 +1,26 @@
 import express from 'express';
 import { AppointmentController } from '../controllers/appointment/AppointmentController';
-import { authorize, createAuthenticate } from '../middlewares/auth.middleware';
+import { authorize, createAuthenticate, createOptionalAuth } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import {
   appointmentIdParamSchema,
   appointmentQuerySchema,
   cancelAppointmentSchema,
   createAppointmentSchema,
+  rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
 } from '../validators/appointment.validator';
 
 export const createAppointmentRouter = (deps: {
   appointmentController: AppointmentController;
   authenticate: express.RequestHandler;
+  optionalAuth: express.RequestHandler;
 }) => {
   const router = express.Router({ mergeParams: true });
 
   router.post(
     '/',
+    deps.optionalAuth,
     validate({ body: createAppointmentSchema }),
     deps.appointmentController.create
   );
@@ -49,6 +52,13 @@ export const createAppointmentRouter = (deps: {
     authorize('Admin', 'Empleado'),
     validate({ params: appointmentIdParamSchema, body: updateAppointmentStatusSchema }),
     deps.appointmentController.updateStatus
+  );
+
+  router.patch(
+    '/:id/reschedule',
+    deps.authenticate,
+    validate({ params: appointmentIdParamSchema, body: rescheduleAppointmentSchema }),
+    deps.appointmentController.reschedule
   );
 
   return router;

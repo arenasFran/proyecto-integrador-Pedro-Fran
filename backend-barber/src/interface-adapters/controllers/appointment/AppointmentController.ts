@@ -4,6 +4,7 @@ import { GetAppointmentsUseCase } from '../../../application/use-cases/appointme
 import { GetAppointmentByIdUseCase } from '../../../application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
+import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
 import { AuthRequest } from '../../middlewares/auth.middleware';
 
@@ -13,7 +14,8 @@ export class AppointmentController {
     private readonly getAppointments: GetAppointmentsUseCase,
     private readonly getAppointmentById: GetAppointmentByIdUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
-    private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase
+    private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
+    private readonly rescheduleAppointment: RescheduleAppointmentUseCase
   ) {}
 
   create = async (req: Request, res: Response) => {
@@ -21,9 +23,16 @@ export class AppointmentController {
       const authReq = req as AuthRequest;
       const body = { ...req.body };
 
+      // RN11 — Asignación de clientId según rol
       if (authReq.user) {
-        body.clientId = authReq.user._id;
-        body.clientName = body.clientName || authReq.user.email;
+        if (authReq.user.kind === 'Admin' || authReq.user.kind === 'Empleado') {
+          // Respetar clientId enviado, o dejarlo undefined para que aplique RN10
+          body.clientName = body.clientName || authReq.user.email;
+        } else {
+          // Cliente registrado: auto-asignación
+          body.clientId = authReq.user._id;
+          body.clientName = body.clientName || authReq.user.email;
+        }
       }
 
       const result = await this.createAppointment.execute(body);
@@ -96,6 +105,22 @@ export class AppointmentController {
       return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
       return AppointmentPresenter.handleError(res, error, 'Error al actualizar el estado del turno');
+    }
+  };
+
+  reschedule = async (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthRequest;
+      const id = req.params.id as string;
+      const result = await this.rescheduleAppointment.execute(
+        id,
+        req.body,
+        authReq.user!._id,
+        authReq.user!.kind
+      );
+      return AppointmentPresenter.success(res, result, 200);
+    } catch (error) {
+      return AppointmentPresenter.handleError(res, error, 'Error al reagendar el turno');
     }
   };
 }

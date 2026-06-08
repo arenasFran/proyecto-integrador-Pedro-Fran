@@ -46,7 +46,7 @@ export const StickyBookingFooter: React.FC<StickyBookingFooterProps> = ({
   };
 
   const totalPrice = service?.price ?? 0;
-  const totalDuration = service?.durationMinutes ?? 0;
+  const totalDuration = barber?.slotDuration ?? 0;
 
   return (
     <>

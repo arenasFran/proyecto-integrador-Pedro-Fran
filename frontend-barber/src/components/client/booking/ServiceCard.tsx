@@ -74,10 +74,6 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, isSelected, o
           <h3 className="text-[15px] font-semibold text-white">{service.name}</h3>
           <p className="mt-1 text-[12px] leading-relaxed text-[#8A8A8A]">{shortDescription}</p>
           <div className="mt-3 flex items-center gap-3">
-            <div className="flex items-center gap-1 text-[12px] text-[#8A8A8A]">
-              <FiClock className="w-3.5 h-3.5" />
-              {service.durationMinutes} min
-            </div>
             <span className="text-[16px] font-bold text-[#FF5C00]">${service.price}</span>
           </div>
         </div>

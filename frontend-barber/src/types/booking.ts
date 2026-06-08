@@ -13,7 +13,6 @@ export type Service = {
   name: string;
   description: string;
   price: number;
-  durationMinutes: number;
   imageUrl: string;
 };
 

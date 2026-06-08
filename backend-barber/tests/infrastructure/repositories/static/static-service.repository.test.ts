@@ -21,7 +21,6 @@ describe('StaticServiceRepository', () => {
       expect(service.name).toBeTruthy();
       expect(service.description).toBeTruthy();
       expect(service.price).toBeGreaterThan(0);
-      expect(service.durationMinutes).toBeGreaterThan(0);
       expect(service.imageUrl).toBeTruthy();
     });
   });

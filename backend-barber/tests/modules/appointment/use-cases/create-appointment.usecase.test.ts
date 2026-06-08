@@ -3,6 +3,9 @@ import { AppError } from '../../../../src/application/errors/AppError';
 import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { IServiceRepository } from '../../../../src/domain/repositories/IServiceRepository';
+import { IClientRepository } from '../../../../src/domain/repositories/IClientRepository';
+import { ITempLockRepository } from '../../../../src/domain/repositories/ITempLockRepository';
+import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import {
   Barber,
   BarberProps,
@@ -10,6 +13,7 @@ import {
 } from '../../../../src/domain/entities/Barber';
 import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
 import { Service } from '../../../../src/domain/entities/Service';
+import { Client } from '../../../../src/domain/entities/Client';
 
 describe('CreateAppointmentUseCase', () => {
   const createScheduleDay = () => ({
@@ -55,10 +59,10 @@ describe('CreateAppointmentUseCase', () => {
       serviceId: 'svc-1',
       serviceName: 'Corte de pelo',
       servicePrice: 490,
-      serviceDuration: 50,
+      serviceDuration: 60,
       date: '2099-01-01',
       startTime: '10:00',
-      endTime: '10:50',
+      endTime: '11:00',
       status: 'Pendiente',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -66,19 +70,33 @@ describe('CreateAppointmentUseCase', () => {
     return Appointment.create({ ...base, ...overrides });
   };
 
+  const makeBarberWithSlot = (slotDuration: number) =>
+    makeBarber({ slotDuration });
+
   const makeService = () =>
     Service.create({
       id: 'svc-1',
       name: 'Corte de pelo',
       description: 'Incluye barba/cejas/lavado/bebida a elección',
       price: 490,
-      durationMinutes: 50,
       imageUrl: 'https://placehold.co/400x300?text=Corte+de+pelo',
+    });
+
+  const makeClient = () =>
+    Client.create({
+      id: 'client-1',
+      name: 'Juan',
+      lastname: 'Perez',
+      phone: '+59899123456',
+      kind: 'NoRegistrado',
     });
 
   let appointmentRepository: jest.Mocked<IAppointmentRepository>;
   let barberRepository: jest.Mocked<IBarberRepository>;
   let serviceRepository: jest.Mocked<IServiceRepository>;
+  let clientRepository: jest.Mocked<IClientRepository>;
+  let tempLockRepository: jest.Mocked<ITempLockRepository>;
+  let emailService: jest.Mocked<IEmailService>;
   let useCase: CreateAppointmentUseCase;
 
   beforeEach(() => {
@@ -86,7 +104,10 @@ describe('CreateAppointmentUseCase', () => {
       findById: jest.fn(),
       findMany: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findByClientAndDate: jest.fn(),
+      findByContactAndDate: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateStatus: jest.fn(),
     };
 
@@ -105,10 +126,30 @@ describe('CreateAppointmentUseCase', () => {
       findById: jest.fn(),
     };
 
+    clientRepository = {
+      findByEmail: jest.fn(),
+      findByPhone: jest.fn(),
+      createUnregistered: jest.fn(),
+    };
+
+    tempLockRepository = {
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+      deleteOne: jest.fn(),
+      findByBarberAndDate: jest.fn(),
+    };
+
+    emailService = {
+      sendMail: jest.fn().mockResolvedValue(undefined),
+    };
+
     useCase = new CreateAppointmentUseCase(
       appointmentRepository,
       barberRepository,
-      serviceRepository
+      serviceRepository,
+      clientRepository,
+      emailService,
+      tempLockRepository
     );
   });
 
@@ -181,6 +222,8 @@ describe('CreateAppointmentUseCase', () => {
     barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
     const result = await useCase.execute({
@@ -191,6 +234,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       clientPhone: '123456789',
+      clientEmail: 'juan@test.com',
     });
 
     expect(appointmentRepository.create).toHaveBeenCalled();
@@ -198,12 +242,13 @@ describe('CreateAppointmentUseCase', () => {
     expect(result.appointment).toBeDefined();
   });
 
-  it('debe ignorar turnos cancelados al verificar solapamiento', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+  it('debe crear turno correctamente con cualquier slot del barbero', async () => {
+    const barber45 = makeBarber({ slotDuration: 45 });
+    barberRepository.findEmployeeById.mockResolvedValue(barber45);
     serviceRepository.findById.mockResolvedValue(makeService());
-    appointmentRepository.findByBarberAndDate.mockResolvedValue([
-      makeAppointment({ status: 'Cancelado', startTime: '10:00', endTime: '10:50' }),
-    ]);
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
     const result = await useCase.execute({
@@ -213,6 +258,78 @@ describe('CreateAppointmentUseCase', () => {
       startTime: '10:00',
       clientName: 'Juan',
       clientLastname: 'Perez',
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalled();
+    expect(result.message).toMatch(/Turno creado/);
+  });
+
+  it('debe fallar si la fecha esta en el pasado', async () => {
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2020-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe fallar si el turno esta fuera del horario laboral', async () => {
+    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '20:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe fallar si el turno se superpone con un break', async () => {
+    const schedule = createSchedule();
+    schedule.monday.breaks = [{ startTime: '12:00', endTime: '14:00' }];
+    const barberWithBreak = makeBarber({ schedule });
+    barberRepository.findEmployeeById.mockResolvedValue(barberWithBreak);
+    serviceRepository.findById.mockResolvedValue(makeService());
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-05',
+        startTime: '13:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe ignorar turnos cancelados al verificar solapamiento', async () => {
+    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([
+      makeAppointment({ status: 'Cancelado', startTime: '10:00', endTime: '10:50' }),
+    ]);
+    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    const result = await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: 'svc-1',
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      clientEmail: 'juan@test.com',
     });
 
     expect(appointmentRepository.create).toHaveBeenCalled();

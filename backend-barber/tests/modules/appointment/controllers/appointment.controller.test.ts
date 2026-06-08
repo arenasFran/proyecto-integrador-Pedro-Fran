@@ -4,6 +4,7 @@ import { GetAppointmentsUseCase } from '../../../../src/application/use-cases/ap
 import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
+import { RescheduleAppointmentUseCase } from '../../../../src/application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
@@ -13,6 +14,7 @@ describe('AppointmentController', () => {
   let getAppointmentById: jest.Mocked<GetAppointmentByIdUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
+  let rescheduleAppointment: jest.Mocked<RescheduleAppointmentUseCase>;
   let controller: AppointmentController;
 
   beforeEach(() => {
@@ -21,12 +23,14 @@ describe('AppointmentController', () => {
     getAppointmentById = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentByIdUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
+    rescheduleAppointment = { execute: jest.fn() } as unknown as jest.Mocked<RescheduleAppointmentUseCase>;
     controller = new AppointmentController(
       createAppointment,
       getAppointments,
       getAppointmentById,
       cancelAppointment,
-      updateAppointmentStatus
+      updateAppointmentStatus,
+      rescheduleAppointment
     );
   });
 
@@ -212,6 +216,49 @@ describe('AppointmentController', () => {
       await controller.updateStatus(req, res);
 
       expect(res.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('reschedule', () => {
+    it('debe reagendar turno y responder 200', async () => {
+      rescheduleAppointment.execute.mockResolvedValue({
+        message: 'Turno reagendado exitosamente',
+        appointment: { id: 'apt-1' } as any,
+      });
+      const req = createMockReq({
+        date: '2099-01-02',
+        startTime: '11:00',
+        barberId: 'barber-2',
+      });
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.reschedule(req, res);
+
+      expect(rescheduleAppointment.execute).toHaveBeenCalledWith(
+        'apt-1',
+        { date: '2099-01-02', startTime: '11:00', barberId: 'barber-2' },
+        'client-1',
+        'Registrado'
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe manejar error al reagendar', async () => {
+      rescheduleAppointment.execute.mockRejectedValue(new AppError('Error', 400));
+      const req = createMockReq({
+        date: '2099-01-02',
+        startTime: '11:00',
+        barberId: 'barber-2',
+      });
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.reschedule(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 });

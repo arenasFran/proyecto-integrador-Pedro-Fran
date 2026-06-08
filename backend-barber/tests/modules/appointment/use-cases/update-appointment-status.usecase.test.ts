@@ -32,7 +32,10 @@ describe('UpdateAppointmentStatusUseCase', () => {
       findById: jest.fn(),
       findMany: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findByClientAndDate: jest.fn(),
+      findByContactAndDate: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateStatus: jest.fn(),
     };
 
@@ -80,8 +83,8 @@ describe('UpdateAppointmentStatusUseCase', () => {
     expect(result.message).toMatch(/Cancelado/);
   });
 
-  it('debe completar el turno', async () => {
-    appointmentRepository.findById.mockResolvedValue(makeAppointment());
+  it('debe completar el turno solo desde Confirmado', async () => {
+    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Confirmado' }));
     appointmentRepository.updateStatus.mockResolvedValue(
       makeAppointment({ status: 'Completado' })
     );
@@ -92,5 +95,21 @@ describe('UpdateAppointmentStatusUseCase', () => {
       status: 'Completado',
     });
     expect(result.message).toMatch(/Completado/);
+  });
+
+  it('debe fallar si la transicion es invalida (Pendiente -> Completado)', async () => {
+    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Pendiente' }));
+
+    await expect(
+      useCase.execute('apt-1', { status: 'Completado' })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe fallar si se intenta cambiar desde Cancelado', async () => {
+    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
+
+    await expect(
+      useCase.execute('apt-1', { status: 'Pendiente' })
+    ).rejects.toBeInstanceOf(AppError);
   });
 });

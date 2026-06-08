@@ -3,6 +3,7 @@ import { AppError } from '../../../../src/application/errors/AppError';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
+import { ITempLockRepository } from '../../../../src/domain/repositories/ITempLockRepository';
 import { SlotService, SlotsResult } from '../../../../src/domain/services/SlotService';
 
 describe('GetAvailableSlotsUseCase', () => {
@@ -62,6 +63,7 @@ describe('GetAvailableSlotsUseCase', () => {
 
   let barberRepository: jest.Mocked<IBarberRepository>;
   let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let tempLockRepository: jest.Mocked<ITempLockRepository>;
   let slotService: SlotService;
   let useCase: GetAvailableSlotsUseCase;
 
@@ -80,12 +82,22 @@ describe('GetAvailableSlotsUseCase', () => {
       findById: jest.fn(),
       findMany: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findByClientAndDate: jest.fn(),
+      findByContactAndDate: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateStatus: jest.fn(),
     };
 
+    tempLockRepository = {
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+      deleteOne: jest.fn(),
+      findByBarberAndDate: jest.fn().mockResolvedValue([]),
+    };
+
     slotService = new SlotService();
-    useCase = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository);
+    useCase = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository);
   });
 
   it('debe fallar con fecha invalida', async () => {

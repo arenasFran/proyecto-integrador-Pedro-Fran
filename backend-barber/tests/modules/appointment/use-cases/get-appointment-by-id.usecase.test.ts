@@ -34,7 +34,10 @@ describe('GetAppointmentByIdUseCase', () => {
       findById: jest.fn(),
       findMany: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findByClientAndDate: jest.fn(),
+      findByContactAndDate: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateStatus: jest.fn(),
     };
 

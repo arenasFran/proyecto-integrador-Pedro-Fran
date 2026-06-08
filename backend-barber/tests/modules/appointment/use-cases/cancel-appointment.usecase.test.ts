@@ -1,6 +1,7 @@
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
+import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
 
 describe('CancelAppointmentUseCase', () => {
@@ -15,10 +16,10 @@ describe('CancelAppointmentUseCase', () => {
       serviceId: 'svc-1',
       serviceName: 'Corte de pelo',
       servicePrice: 490,
-      serviceDuration: 50,
+      serviceDuration: 60,
       date: '2099-01-01',
       startTime: '10:00',
-      endTime: '10:50',
+      endTime: '11:00',
       status: 'Pendiente',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -27,6 +28,7 @@ describe('CancelAppointmentUseCase', () => {
   };
 
   let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let emailService: jest.Mocked<IEmailService>;
   let useCase: CancelAppointmentUseCase;
 
   beforeEach(() => {
@@ -34,11 +36,18 @@ describe('CancelAppointmentUseCase', () => {
       findById: jest.fn(),
       findMany: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findByClientAndDate: jest.fn(),
+      findByContactAndDate: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
       updateStatus: jest.fn(),
     };
 
-    useCase = new CancelAppointmentUseCase(appointmentRepository);
+    emailService = {
+      sendMail: jest.fn().mockResolvedValue(undefined),
+    };
+
+    useCase = new CancelAppointmentUseCase(appointmentRepository, emailService);
   });
 
   it('debe fallar si el turno no existe', async () => {

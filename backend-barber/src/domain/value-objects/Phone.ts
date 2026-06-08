@@ -2,11 +2,21 @@ export class Phone {
   private constructor(private readonly value: string) {}
 
   static create(raw: string): Phone {
-    const normalized = raw.trim();
-    if (!normalized) {
+    const normalized = Phone.normalize(raw);
+    if (!/^\+?\d{7,15}$/.test(normalized)) {
       throw new Error('Telefono invalido');
     }
     return new Phone(normalized);
+  }
+
+  static normalize(raw: string): string {
+    let cleaned = raw.trim().replace(/[\s\-()]/g, '');
+    if (cleaned.startsWith('00')) {
+      cleaned = '+' + cleaned.slice(2);
+    } else if (cleaned.startsWith('0') && !cleaned.startsWith('+')) {
+      cleaned = '+598' + cleaned.slice(1);
+    }
+    return cleaned;
   }
 
   getValue(): string {

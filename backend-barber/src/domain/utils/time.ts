@@ -1,4 +1,9 @@
+import { BarberSchedule, BarberScheduleDay, BarberScheduleBreak } from '../entities/Barber';
+
+const TIME_ZONE = 'America/Montevideo';
+
 export const toMinutes = (time: string): number | null => {
+  if (!time) return null;
   const match = /^(\d{2}):(\d{2})$/.exec(time);
   if (!match) return null;
   const hours = Number(match[1]);
@@ -27,4 +32,73 @@ export const doesOverlap = (
     return true;
   }
   return aStart < bEnd && bStart < aEnd;
+};
+
+export const getDayKey = (date: string): keyof BarberSchedule => {
+  const weekday = new Intl.DateTimeFormat('en-US', {
+    weekday: 'long',
+    timeZone: TIME_ZONE,
+  })
+    .format(new Date(`${date}T12:00:00Z`))
+    .toLowerCase();
+
+  const map: Record<string, keyof BarberSchedule> = {
+    monday: 'monday',
+    tuesday: 'tuesday',
+    wednesday: 'wednesday',
+    thursday: 'thursday',
+    friday: 'friday',
+    saturday: 'saturday',
+    sunday: 'sunday',
+  };
+
+  const key = map[weekday];
+  if (!key) {
+    throw new Error('Fecha invalida.');
+  }
+  return key;
+};
+
+export const isWithinSchedule = (
+  startMinutes: number,
+  endMinutes: number,
+  daySchedule: BarberScheduleDay
+): boolean => {
+  if (!daySchedule.startTime || !daySchedule.endTime) return false;
+  const dayStart = toMinutes(daySchedule.startTime);
+  const dayEnd = toMinutes(daySchedule.endTime);
+  if (dayStart === null || dayEnd === null) return false;
+  return startMinutes >= dayStart && endMinutes <= dayEnd;
+};
+
+export const isInBreakRange = (
+  startMinutes: number,
+  endMinutes: number,
+  breaks: BarberScheduleBreak[]
+): boolean => {
+  return breaks.some((b) => {
+    const bStart = toMinutes(b.startTime);
+    const bEnd = toMinutes(b.endTime);
+    if (bStart === null || bEnd === null) return false;
+    return startMinutes < bEnd && bStart < endMinutes;
+  });
+};
+
+export const getNowInTimezone = (): { date: string; minutes: number } => {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+
+  const getPart = (type: string) => parts.find((p) => p.type === type)?.value || '';
+  const date = `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
+  const minutes = Number(getPart('hour')) * 60 + Number(getPart('minute'));
+
+  return { date, minutes };
 };

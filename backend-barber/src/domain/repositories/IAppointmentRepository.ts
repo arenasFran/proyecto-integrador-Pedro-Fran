@@ -18,10 +18,20 @@ export type UpdateStatusData = {
   cancelledAt?: Date;
 };
 
+export type UpdateAppointmentData = {
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  barberId?: string;
+};
+
 export interface IAppointmentRepository {
   findById(id: string): Promise<Appointment | null>;
   findMany(filters: AppointmentFilters): Promise<Appointment[]>;
   findByBarberAndDate(barberId: string, date: string): Promise<Appointment[]>;
+  findByClientAndDate(clientId: string, date: string): Promise<Appointment[]>;
+  findByContactAndDate(date: string, clientEmail?: string, clientPhone?: string): Promise<Appointment[]>;
   create(data: CreateAppointmentData): Promise<Appointment>;
+  update(id: string, data: UpdateAppointmentData): Promise<Appointment | null>;
   updateStatus(id: string, data: UpdateStatusData): Promise<Appointment | null>;
 }

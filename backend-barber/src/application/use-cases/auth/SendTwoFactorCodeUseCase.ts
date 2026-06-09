@@ -38,6 +38,21 @@ export class SendTwoFactorCodeUseCase {
       throw new AppError('Email y/o contraseña incorrectos.', 401);
     }
 
+    if (user.twoFactorLockedUntil && this.dateTimeProvider.now() < user.twoFactorLockedUntil) {
+      const remainingMin = Math.ceil(
+        (user.twoFactorLockedUntil.getTime() - this.dateTimeProvider.now().getTime()) / 60000
+      );
+      throw new AppError(
+        `Demasiados intentos fallidos de verificación. Intentalo de nuevo en ${remainingMin} minutos.`,
+        429
+      );
+    }
+
+    await this.userRepository.updateUserSecurity(user.id, {
+      twoFactorFailedAttempts: 0,
+      twoFactorLockedUntil: null,
+    });
+
     const code = this.randomGenerator.generateNumericCode(6);
     const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 5 * 60 * 1000);
     const codeHash = this.hashService.sha256(code);

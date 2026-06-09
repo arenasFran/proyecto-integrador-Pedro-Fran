@@ -4,6 +4,10 @@ import { IAdminInput, IBarberBaseInput, IEmployeeInput } from '../../../types/us
 export interface IBarberBase extends Document, IBarberBaseInput {
   kind?: 'Admin' | 'Empleado';
   lastLoginAt?: Date;
+  twoFactorFailedAttempts?: number;
+  twoFactorLockedUntil?: Date;
+  resetFailedAttempts?: number;
+  resetLockedUntil?: Date;
 }
 
 export interface IEmployee extends IBarberBase, IEmployeeInput {
@@ -45,6 +49,22 @@ const barberSchema = new Schema<IBarberBase>(
     },
     twoFactorExpires: {
       type: Date,
+    },
+    twoFactorFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    twoFactorLockedUntil: {
+      type: Date,
+      default: null,
+    },
+    resetFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    resetLockedUntil: {
+      type: Date,
+      default: null,
     },
   },
   {

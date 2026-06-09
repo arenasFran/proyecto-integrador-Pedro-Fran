@@ -7,4 +7,11 @@ export class HashService implements IHashService {
     const secret = getConfig().refreshHashSecret;
     return crypto.createHmac('sha256', secret).update(input).digest('hex');
   }
+
+  constantTimeEqual(a: string, b: string): boolean {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+  }
 }

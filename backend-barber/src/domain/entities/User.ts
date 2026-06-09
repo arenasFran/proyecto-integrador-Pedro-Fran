@@ -18,6 +18,10 @@ export type UserProps = {
   googleId?: string;
   twoFactor?: TwoFactorState;
   lastLoginAt?: Date;
+  twoFactorFailedAttempts?: number;
+  twoFactorLockedUntil?: Date;
+  resetFailedAttempts?: number;
+  resetLockedUntil?: Date;
 };
 
 export class User {
@@ -75,12 +79,44 @@ export class User {
     return this.props.lastLoginAt;
   }
 
+  get twoFactorFailedAttempts(): number | undefined {
+    return this.props.twoFactorFailedAttempts;
+  }
+
+  get twoFactorLockedUntil(): Date | undefined {
+    return this.props.twoFactorLockedUntil;
+  }
+
+  get resetFailedAttempts(): number | undefined {
+    return this.props.resetFailedAttempts;
+  }
+
+  get resetLockedUntil(): Date | undefined {
+    return this.props.resetLockedUntil;
+  }
+
   withPasswordHash(passwordHash?: string): User {
     return new User({ ...this.props, passwordHash });
   }
 
   withTwoFactor(twoFactor?: TwoFactorState): User {
     return new User({ ...this.props, twoFactor });
+  }
+
+  withTwoFactorFailedAttempts(failedAttempts: number, lockedUntil?: Date): User {
+    return new User({ ...this.props, twoFactorFailedAttempts: failedAttempts, twoFactorLockedUntil: lockedUntil });
+  }
+
+  withTwoFactorLockoutReset(): User {
+    return new User({ ...this.props, twoFactorFailedAttempts: 0, twoFactorLockedUntil: undefined });
+  }
+
+  withResetFailedAttempts(failedAttempts: number, lockedUntil?: Date): User {
+    return new User({ ...this.props, resetFailedAttempts: failedAttempts, resetLockedUntil: lockedUntil });
+  }
+
+  withResetLockoutReset(): User {
+    return new User({ ...this.props, resetFailedAttempts: 0, resetLockedUntil: undefined });
   }
 
   withLastLoginAt(date: Date): User {

@@ -24,6 +24,10 @@ export class UserMapper {
         expiresAt: doc.twoFactorExpires,
       },
       lastLoginAt: doc.lastLoginAt,
+      twoFactorFailedAttempts: doc.twoFactorFailedAttempts,
+      twoFactorLockedUntil: doc.twoFactorLockedUntil,
+      resetFailedAttempts: doc.resetFailedAttempts,
+      resetLockedUntil: doc.resetLockedUntil,
     });
   }
 
@@ -43,6 +47,10 @@ export class UserMapper {
         expiresAt: doc.twoFactorExpires,
       },
       lastLoginAt: doc.lastLoginAt,
+      twoFactorFailedAttempts: doc.twoFactorFailedAttempts,
+      twoFactorLockedUntil: doc.twoFactorLockedUntil,
+      resetFailedAttempts: doc.resetFailedAttempts,
+      resetLockedUntil: doc.resetLockedUntil,
     });
   }
 
@@ -57,6 +65,10 @@ export class UserMapper {
       googleId: user.googleId,
       twoFactorCode: user.twoFactor?.codeHash,
       twoFactorExpires: user.twoFactor?.expiresAt,
+      twoFactorFailedAttempts: user.twoFactorFailedAttempts ?? undefined,
+      twoFactorLockedUntil: user.twoFactorLockedUntil ?? undefined,
+      resetFailedAttempts: user.resetFailedAttempts ?? undefined,
+      resetLockedUntil: user.resetLockedUntil ?? undefined,
     };
   }
 }

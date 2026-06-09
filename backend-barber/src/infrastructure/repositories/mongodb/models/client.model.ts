@@ -12,6 +12,10 @@ export interface IClientBase extends Document, IClientBaseInput {
 export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
   kind: 'Registrado';
   lastLoginAt?: Date;
+  twoFactorFailedAttempts?: number;
+  twoFactorLockedUntil?: Date;
+  resetFailedAttempts?: number;
+  resetLockedUntil?: Date;
 }
 
 export interface IUnregisteredClient extends IClientBase, IUnregisteredClientInput {
@@ -83,6 +87,22 @@ const registeredClientSchema = new Schema<IRegisteredClient>(
     },
     twoFactorExpires: {
       type: Date,
+    },
+    twoFactorFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    twoFactorLockedUntil: {
+      type: Date,
+      default: null,
+    },
+    resetFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    resetLockedUntil: {
+      type: Date,
+      default: null,
     },
   },
   {

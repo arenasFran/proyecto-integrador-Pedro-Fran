@@ -1,5 +1,5 @@
 import { User } from '../../../domain/entities/User';
-import { IUserRepository, TwoFactorUpdate } from '../../../domain/repositories/IUserRepository';
+import { IUserRepository, TwoFactorUpdate, UserSecurityUpdate } from '../../../domain/repositories/IUserRepository';
 import { UserMapper } from '../../mappers/UserMapper';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
@@ -66,5 +66,17 @@ export class MongoUserRepository implements IUserRepository {
       return;
     }
     await RegisteredClient.findByIdAndUpdate(userId, { lastLoginAt: now });
+  }
+
+  async updateUserSecurity(userId: string, update: UserSecurityUpdate): Promise<void> {
+    const data: Record<string, unknown> = {};
+    if (update.twoFactorFailedAttempts !== undefined) data.twoFactorFailedAttempts = update.twoFactorFailedAttempts;
+    if (update.twoFactorLockedUntil !== undefined) data.twoFactorLockedUntil = update.twoFactorLockedUntil;
+    if (update.resetFailedAttempts !== undefined) data.resetFailedAttempts = update.resetFailedAttempts;
+    if (update.resetLockedUntil !== undefined) data.resetLockedUntil = update.resetLockedUntil;
+
+    const barber = await Barber.findByIdAndUpdate(userId, data);
+    if (barber) return;
+    await RegisteredClient.findByIdAndUpdate(userId, data);
   }
 }

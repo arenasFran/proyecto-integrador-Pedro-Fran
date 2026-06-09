@@ -43,7 +43,7 @@ const validationSchema: Record<string, (value: string, allValues?: Record<string
   },
 };
 
-export function useFormValidation(initialValues: Record<string, string>) {
+export function useFormValidation<T extends Record<string, string>>(initialValues: T) {
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});

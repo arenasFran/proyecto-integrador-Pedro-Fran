@@ -19,7 +19,7 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
   const dispatch = useAppDispatch();
   const { isLoading, error, requestResetSuccess } = useAppSelector((state) => state.auth);
 
-  const { getFieldProps, validateAll, touched, errors, values: formValues } = useFormValidation(initialValues as unknown as Record<string, string>);
+  const { getFieldProps, validateAll, touched, errors, values: formValues } = useFormValidation(initialValues );
 
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {

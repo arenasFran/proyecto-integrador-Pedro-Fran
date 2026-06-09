@@ -24,7 +24,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess,
   const { isLoading, error, resetPasswordSuccess } = useAppSelector((state) => state.auth);
 
   const formInit = { ...initialValues, email };
-  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit as unknown as Record<string, string>);
+  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit );
 
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {

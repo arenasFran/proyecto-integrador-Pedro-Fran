@@ -24,7 +24,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
   const dispatch = useAppDispatch();
   const { isLoading, error, registerSuccess } = useAppSelector((state) => state.auth);
 
-  const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues as unknown as Record<string, string>);
+  const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues );
 
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {

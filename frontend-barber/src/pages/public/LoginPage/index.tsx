@@ -73,7 +73,7 @@ export const LoginPage: React.FC = () => {
     touched: credentialsTouched,
     validateAll: validateCredentials,
     getFieldProps: getCredentialsFieldProps,
-  } = useFormValidation(credentialsInitialValues as unknown as Record<string, string>);
+  } = useFormValidation(credentialsInitialValues );
 
   const {
     values: codeValues,
@@ -82,7 +82,7 @@ export const LoginPage: React.FC = () => {
     validateAll: validateCode,
     getFieldProps: getCodeFieldProps,
     resetForm: resetCodeForm,
-  } = useFormValidation(codeInitialValues as unknown as Record<string, string>);
+  } = useFormValidation(codeInitialValues );
 
   const {
     values: profileValues,

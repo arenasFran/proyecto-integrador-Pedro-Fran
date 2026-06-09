@@ -1,3 +1,4 @@
+import Joi from 'joi';
 import express from 'express';
 import { AuthController } from '../controllers/auth/AuthController';
 import { AuthGoogleController } from '../controllers/auth/AuthGoogleController';
@@ -5,8 +6,10 @@ import { PasswordRecoveryController } from '../controllers/auth/PasswordRecovery
 import { TwoFactorController } from '../controllers/auth/TwoFactorController';
 import { validate } from '../middlewares/validation.middleware';
 import {
+    completeGoogleProfileSchema,
     googleLoginSchema,
     loginSchema,
+    refreshTokenSchema,
     registerSchema,
     twoFactorSendSchema,
     twoFactorVerifySchema,
@@ -27,6 +30,17 @@ export const createAuthRouter = (deps: {
   router.post('/register', validate({ body: registerSchema }), deps.authController.register);
   router.post('/login', validate({ body: loginSchema }), deps.authController.login);
   router.post('/google', validate({ body: googleLoginSchema }), deps.authGoogleController.googleLogin);
+  router.post(
+    '/google/complete-profile',
+    validate({ body: completeGoogleProfileSchema }),
+    deps.authGoogleController.completeProfile
+  );
+
+  router.post(
+    '/refresh',
+    validate({ body: refreshTokenSchema }),
+    deps.authController.refresh
+  );
 
   router.post(
     '/2fa/send',

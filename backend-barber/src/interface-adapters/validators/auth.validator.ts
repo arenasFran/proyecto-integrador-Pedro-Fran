@@ -2,22 +2,14 @@ import Joi from 'joi';
 
 export const registerSchema = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.when('authProvider', {
-    is: 'google',
-    then: Joi.optional(),
-    otherwise: Joi.string().min(6).required(),
-  }),
-  repeatPassword: Joi.when('authProvider', {
-    is: 'google',
-    then: Joi.optional(),
-    otherwise: Joi.any()
-      .valid(Joi.ref('password'))
-      .required()
-      .messages({
-        'any.only': 'Las contraseñas deben coincidir',
-        'any.required': 'La confirmación de contraseña es obligatoria',
-      }),
-  }),
+  password: Joi.string().min(6).required(),
+  repeatPassword: Joi.any()
+    .valid(Joi.ref('password'))
+    .required()
+    .messages({
+      'any.only': 'Las contraseñas deben coincidir',
+      'any.required': 'La confirmación de contraseña es obligatoria',
+    }),
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
   phone: Joi.string().required(),
@@ -48,4 +40,21 @@ export const twoFactorSendSchema = Joi.object({
 export const twoFactorVerifySchema = Joi.object({
   email: Joi.string().email().required(),
   code: Joi.string().length(6).required(),
+});
+
+export const completeGoogleProfileSchema = Joi.object({
+  partialToken: Joi.string().required().messages({
+    'any.required': 'El token parcial es obligatorio',
+  }),
+  name: Joi.string().min(1).required().messages({
+    'any.required': 'El nombre es obligatorio',
+    'string.min': 'El nombre no puede estar vacío',
+  }),
+  lastname: Joi.string().allow('').optional(),
+});
+
+export const refreshTokenSchema = Joi.object({
+  refreshToken: Joi.string().required().messages({
+    'any.required': 'refreshToken es obligatorio',
+  }),
 });

@@ -107,6 +107,11 @@ const Employee = Barber.discriminator<IEmployee>(
         type: Number,
         default: 30,
       },
+      maxAdvanceDays: {
+        type: Number,
+        default: 30,
+        min: 1,
+      },
       schedule: {
         type: scheduleSchema,
         required: true,
@@ -138,6 +143,11 @@ const Admin = Barber.discriminator<IAdmin>(
       slotDuration: {
         type: Number,
         default: 30,
+      },
+      maxAdvanceDays: {
+        type: Number,
+        default: 30,
+        min: 1,
       },
       schedule: {
         type: scheduleSchema,

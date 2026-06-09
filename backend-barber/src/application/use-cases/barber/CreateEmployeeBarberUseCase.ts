@@ -45,6 +45,7 @@ export class CreateEmployeeBarberUseCase {
       photoUrl: dto.photoUrl ?? null,
       isActive: true,
       slotDuration: dto.slotDuration ?? 30,
+      maxAdvanceDays: dto.maxAdvanceDays ?? 30,
       schedule: dto.schedule,
       passwordHash,
     });

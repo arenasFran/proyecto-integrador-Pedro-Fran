@@ -10,5 +10,6 @@ export type CreateBarberDTO = {
   age?: number;
   photoUrl?: string | null;
   slotDuration?: number;
+  maxAdvanceDays?: number;
   schedule: BarberDTOSchedule;
 };

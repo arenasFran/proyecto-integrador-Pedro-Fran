@@ -19,6 +19,7 @@ export interface IEmployeeInput extends IBarberBaseInput {
   photoUrl?: string | null;
   isActive?: boolean;
   slotDuration?: number;
+  maxAdvanceDays?: number;
   schedule: BarberSchedule;
 }
 
@@ -29,6 +30,7 @@ export interface IAdminInput extends IBarberBaseInput {
   photoUrl?: string | null;
   isActive?: boolean;
   slotDuration?: number;
+  maxAdvanceDays?: number;
   schedule: BarberSchedule;
 }
 

@@ -35,6 +35,7 @@ export class BarberMapper {
       isActive: doc.isActive ?? true,
       slotDuration,
       schedule,
+      maxAdvanceDays: doc.maxAdvanceDays ?? 30,
       passwordHash: doc.password,
     });
   }
@@ -52,6 +53,7 @@ export class BarberMapper {
       photoUrl: barber.photoUrl ?? null,
       isActive: barber.isActive,
       slotDuration: barber.slotDuration,
+      maxAdvanceDays: barber.maxAdvanceDays,
       schedule: barber.schedule,
     };
   }

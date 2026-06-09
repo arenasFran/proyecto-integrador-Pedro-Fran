@@ -59,13 +59,25 @@ export class RescheduleAppointmentUseCase {
       throw new AppError('El barbero no está activo.', 400);
     }
 
+    // Task 7 — Límite máximo de anticipación por barbero
+    const nowInTz = getNowInTimezone();
+    const [y, m, d] = dto.date.split('-').map(Number);
+    const [ny, nm, nd] = nowInTz.date.split('-').map(Number);
+    const aptEpoch = Date.UTC(y, m - 1, d);
+    const nowEpoch = Date.UTC(ny, nm - 1, nd);
+    const diffDays = (aptEpoch - nowEpoch) / (1000 * 60 * 60 * 24);
+    if (diffDays > barber.maxAdvanceDays) {
+      throw new AppError(
+        `No se puede reservar con más de ${barber.maxAdvanceDays} días de anticipación.`, 400
+      );
+    }
+
     const service = await this.serviceRepository.findById(appointment.serviceId);
     if (!service) {
       throw new AppError('Servicio no encontrado.', 404);
     }
 
     // RN01 — Revalidar fecha
-    const nowInTz = getNowInTimezone();
     if (dto.date < nowInTz.date) {
       throw new AppError('No se puede agendar en el pasado.', 400);
     }

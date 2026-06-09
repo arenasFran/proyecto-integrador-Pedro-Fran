@@ -9,4 +9,5 @@ export type UpdateBarberDTO = {
   photoUrl?: string | null;
   isActive?: boolean;
   slotDuration?: number;
+  maxAdvanceDays?: number;
 };

@@ -53,6 +53,7 @@ export const createBarberSchema = Joi.object({
   age: Joi.number().integer().min(0).optional(),
   photoUrl: Joi.string().uri().allow(null).optional(),
   slotDuration: Joi.number().integer().min(1).default(30),
+  maxAdvanceDays: Joi.number().integer().min(1).default(30),
   schedule: scheduleSchema.required(),
 });
 
@@ -67,6 +68,7 @@ export const updateBarberSchema = Joi.object({
   photoUrl: Joi.string().uri().allow(null).optional(),
   isActive: Joi.boolean().optional(),
   slotDuration: Joi.number().integer().min(1).optional(),
+  maxAdvanceDays: Joi.number().integer().min(1).optional(),
 }).min(1);
 
 export const barberIdParamSchema = Joi.object({

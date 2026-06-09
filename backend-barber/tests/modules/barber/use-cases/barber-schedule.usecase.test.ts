@@ -32,10 +32,11 @@ describe('Barber schedule use cases', () => {
       specialties: [],
       isActive: true,
       slotDuration: 30,
+      maxAdvanceDays: 30,
       schedule: createSchedule(),
       passwordHash: 'hash',
     };
-
+ 
     return Barber.create({ ...base, ...overrides });
   };
 

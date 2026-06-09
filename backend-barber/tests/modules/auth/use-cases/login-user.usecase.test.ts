@@ -2,10 +2,15 @@ import { LoginUserUseCase } from '../../../../src/application/use-cases/auth/Log
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
-import { ITokenService } from '../../../../src/application/ports/ITokenService';
+import { IEmailService } from '../../../../src/application/ports/IEmailService';
+import { IRandomGenerator } from '../../../../src/application/ports/IRandomGenerator';
+import { IHashService } from '../../../../src/application/ports/IHashService';
+import { IDateTimeProvider } from '../../../../src/application/ports/IDateTimeProvider';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 
 describe('LoginUserUseCase', () => {
+  const now = new Date('2024-01-01T10:00:00.000Z');
+
   const makeUser = (overrides?: Partial<UserProps>) => {
     const user = User.create({
       id: 'user-1',
@@ -23,7 +28,10 @@ describe('LoginUserUseCase', () => {
 
   let userRepository: jest.Mocked<IUserRepository>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
-  let tokenService: jest.Mocked<ITokenService>;
+  let emailService: jest.Mocked<IEmailService>;
+  let randomGenerator: jest.Mocked<IRandomGenerator>;
+  let hashService: jest.Mocked<IHashService>;
+  let dateTimeProvider: jest.Mocked<IDateTimeProvider>;
   let useCase: LoginUserUseCase;
 
   beforeEach(() => {
@@ -33,6 +41,7 @@ describe('LoginUserUseCase', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
     };
 
     passwordHasher = {
@@ -40,12 +49,31 @@ describe('LoginUserUseCase', () => {
       compare: jest.fn(),
     };
 
-    tokenService = {
-      sign: jest.fn(),
-      verify: jest.fn(),
+    emailService = {
+      sendMail: jest.fn().mockResolvedValue(undefined),
     };
 
-    useCase = new LoginUserUseCase(userRepository, passwordHasher, tokenService);
+    randomGenerator = {
+      generateNumericCode: jest.fn(),
+      generateHexToken: jest.fn(),
+    };
+
+    hashService = {
+      sha256: jest.fn(),
+    };
+
+    dateTimeProvider = {
+      now: jest.fn(),
+    };
+
+    useCase = new LoginUserUseCase(
+      userRepository,
+      passwordHasher,
+      emailService,
+      randomGenerator,
+      hashService,
+      dateTimeProvider
+    );
   });
 
   it('debe fallar si el usuario no existe', async () => {
@@ -73,17 +101,20 @@ describe('LoginUserUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe devolver token en login exitoso', async () => {
+  it('debe enviar código 2FA y responder requiresTwoFactor en login exitoso', async () => {
     userRepository.findByEmail.mockResolvedValue(makeUser());
     passwordHasher.compare.mockResolvedValue(true);
-    tokenService.sign.mockReturnValue('token');
+    randomGenerator.generateNumericCode.mockReturnValue('123456');
+    hashService.sha256.mockReturnValue('code-hash');
+    dateTimeProvider.now.mockReturnValue(now);
 
     const result = await useCase.execute({
       email: 'test@example.com',
       password: '123456',
     });
 
-    expect(tokenService.sign).toHaveBeenCalled();
-    expect(result).toEqual({ message: 'Login exitoso', token: 'token' });
+    expect(emailService.sendMail).toHaveBeenCalled();
+    expect(userRepository.updateTwoFactor).toHaveBeenCalled();
+    expect(result).toEqual({ requiresTwoFactor: true });
   });
 });

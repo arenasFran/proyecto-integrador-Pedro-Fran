@@ -66,6 +66,7 @@ describe('UpdateBarberUseCase', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
     };
 
     barberRepository = {

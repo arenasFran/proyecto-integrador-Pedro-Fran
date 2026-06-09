@@ -1,6 +1,7 @@
 import { SendTwoFactorCodeUseCase } from '../../../../src/application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../../../../src/application/use-cases/auth/VerifyTwoFactorUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
+import { IRefreshTokenRepository } from '../../../../src/domain/repositories/IRefreshTokenRepository';
 import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
@@ -39,6 +40,7 @@ describe('TwoFactor use cases', () => {
   let hashService: jest.Mocked<IHashService>;
   let dateTimeProvider: jest.Mocked<IDateTimeProvider>;
   let tokenService: jest.Mocked<ITokenService>;
+  let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
 
   beforeEach(() => {
     userRepository = {
@@ -47,6 +49,7 @@ describe('TwoFactor use cases', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
     };
 
     passwordHasher = {
@@ -74,6 +77,17 @@ describe('TwoFactor use cases', () => {
     tokenService = {
       sign: jest.fn(),
       verify: jest.fn(),
+      signAccessToken: jest.fn(),
+      signRefreshToken: jest.fn(),
+      verifyAccessToken: jest.fn(),
+      verifyRefreshToken: jest.fn(),
+    };
+
+    refreshTokenRepository = {
+      create: jest.fn(),
+      findByTokenHash: jest.fn(),
+      revoke: jest.fn(),
+      revokeAllByUserId: jest.fn(),
     };
   });
 
@@ -161,7 +175,8 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider
+        dateTimeProvider,
+        refreshTokenRepository
       );
 
       await expect(
@@ -177,7 +192,8 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider
+        dateTimeProvider,
+        refreshTokenRepository
       );
 
       await expect(
@@ -199,7 +215,8 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider
+        dateTimeProvider,
+        refreshTokenRepository
       );
 
       await expect(
@@ -216,7 +233,8 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider
+        dateTimeProvider,
+        refreshTokenRepository
       );
 
       await expect(
@@ -228,18 +246,22 @@ describe('TwoFactor use cases', () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
       dateTimeProvider.now.mockReturnValue(now);
       hashService.sha256.mockReturnValue('hash-2fa');
-      tokenService.sign.mockReturnValue('token');
+      tokenService.signAccessToken.mockReturnValue('token');
+      tokenService.signRefreshToken.mockReturnValue('refresh-token');
       const useCase = new VerifyTwoFactorUseCase(
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider
+        dateTimeProvider,
+        refreshTokenRepository
       );
 
       const result = await useCase.execute({ email: 'test@example.com', code: '123456' });
 
       expect(userRepository.updateTwoFactor).toHaveBeenCalled();
-      expect(result).toEqual({ message: 'Login exitoso', token: 'token' });
+      expect(userRepository.updateLastLogin).toHaveBeenCalled();
+      expect(refreshTokenRepository.create).toHaveBeenCalled();
+      expect(result).toEqual({ message: 'Login exitoso', token: 'token', refreshToken: 'refresh-token' });
     });
   });
 });

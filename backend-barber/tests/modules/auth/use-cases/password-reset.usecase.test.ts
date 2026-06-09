@@ -42,6 +42,7 @@ describe('Password reset use cases', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
     };
 
     passwordResetRepository = {

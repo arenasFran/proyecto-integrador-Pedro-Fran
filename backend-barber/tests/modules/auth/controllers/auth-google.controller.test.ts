@@ -1,10 +1,12 @@
 import { AuthGoogleController } from '../../../../src/interface-adapters/controllers/auth/AuthGoogleController';
 import { AuthenticateWithGoogleUseCase } from '../../../../src/application/use-cases/auth/AuthenticateWithGoogleUseCase';
+import { CompleteGoogleProfileUseCase } from '../../../../src/application/use-cases/auth/CompleteGoogleProfileUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
 describe('AuthGoogleController', () => {
   let authenticateWithGoogle: jest.Mocked<AuthenticateWithGoogleUseCase>;
+  let completeGoogleProfileUseCase: jest.Mocked<CompleteGoogleProfileUseCase>;
   let controller: AuthGoogleController;
 
   beforeEach(() => {
@@ -12,18 +14,22 @@ describe('AuthGoogleController', () => {
       execute: jest.fn(),
     } as unknown as jest.Mocked<AuthenticateWithGoogleUseCase>;
 
-    controller = new AuthGoogleController(authenticateWithGoogle);
+    completeGoogleProfileUseCase = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<CompleteGoogleProfileUseCase>;
+
+    controller = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfileUseCase);
   });
 
   it('debe autenticar con Google', async () => {
-    authenticateWithGoogle.execute.mockResolvedValue({ message: 'ok', token: 'token' });
+    authenticateWithGoogle.execute.mockResolvedValue({ message: 'ok', token: 'token', refreshToken: 'refresh-token' });
     const req = createMockReq({ token: 'google-token' });
     const res = createMockRes();
 
     await controller.googleLogin(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ message: 'ok', token: 'token' });
+    expect(res.json).toHaveBeenCalledWith({ message: 'ok', token: 'token', refreshToken: 'refresh-token' });
   });
 
   it('debe manejar error al autenticar con Google', async () => {

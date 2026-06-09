@@ -31,6 +31,7 @@ describe('RegisterUserUseCase', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
     };
 
     passwordHasher = {
@@ -41,6 +42,19 @@ describe('RegisterUserUseCase', () => {
     useCase = new RegisterUserUseCase(userRepository, passwordHasher);
   });
 
+  it('debe fallar si las contrasenas no coinciden', async () => {
+    await expect(
+      useCase.execute({
+        email: 'test@example.com',
+        password: '123456',
+        repeatPassword: '654321',
+        name: 'Juan',
+        lastname: 'Perez',
+        phone: '123456789',
+      })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
   it('debe fallar si el email ya esta en uso', async () => {
     userRepository.findByEmail.mockResolvedValue(makeUser());
 
@@ -48,6 +62,7 @@ describe('RegisterUserUseCase', () => {
       useCase.execute({
         email: 'test@example.com',
         password: '123456',
+        repeatPassword: '123456',
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
@@ -63,6 +78,7 @@ describe('RegisterUserUseCase', () => {
       useCase.execute({
         email: 'nuevo@example.com',
         password: '123456',
+        repeatPassword: '123456',
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
@@ -79,6 +95,7 @@ describe('RegisterUserUseCase', () => {
     const result = await useCase.execute({
       email: 'nuevo@example.com',
       password: '123456',
+      repeatPassword: '123456',
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',

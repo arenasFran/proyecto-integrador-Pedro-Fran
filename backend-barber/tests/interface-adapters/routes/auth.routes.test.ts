@@ -41,7 +41,7 @@ describeIfMongo('Auth routes', () => {
     expect(response.body.message).toBeTruthy();
   });
 
-  it('debe loguear un usuario', async () => {
+  it('debe requerir 2FA en login local', async () => {
     const hash = await bcrypt.hash('123456', 10);
     await RegisteredClient.create({
       email: 'login@example.com',
@@ -58,7 +58,7 @@ describeIfMongo('Auth routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body.token).toBeTruthy();
+    expect(response.body.requiresTwoFactor).toBe(true);
   });
 
   it('debe enviar codigo 2FA', async () => {

@@ -12,7 +12,7 @@ export const createAppointmentSchema = Joi.object({
   clientName: Joi.string().trim().min(1).max(100).required(),
   clientLastname: Joi.string().trim().min(1).max(100).required(),
   clientPhone: Joi.string().trim().max(20).allow('', null),
-  clientEmail: Joi.string().email().trim().allow('', null),
+  clientEmail: Joi.string().email().trim().required(),
 });
 
 export const appointmentQuerySchema = Joi.object({
@@ -43,7 +43,7 @@ export const rescheduleAppointmentSchema = Joi.object({
 
 export const updateAppointmentStatusSchema = Joi.object({
   status: Joi.string()
-    .valid('Pendiente', 'Confirmado', 'Cancelado', 'Completado')
+    .valid('Pendiente', 'Confirmado', 'Cancelado', 'Completado', 'NoShow')
     .required(),
   cancelReason: Joi.string().trim().max(500).when('status', {
     is: 'Cancelado',

@@ -73,7 +73,6 @@ const refreshLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use("/auth/login", loginLimiter);
 app.use("/auth/register", registerLimiter);
 app.use("/auth/refresh", refreshLimiter);
 app.use("/auth/request-reset", resetLimiter);

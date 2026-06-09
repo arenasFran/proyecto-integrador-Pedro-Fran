@@ -8,7 +8,6 @@ import { validate } from '../middlewares/validation.middleware';
 import {
     completeGoogleProfileSchema,
     googleLoginSchema,
-    loginSchema,
     refreshTokenSchema,
     registerSchema,
     twoFactorSendSchema,
@@ -28,7 +27,6 @@ export const createAuthRouter = (deps: {
   const router = express.Router({ mergeParams: true });
 
   router.post('/register', validate({ body: registerSchema }), deps.authController.register);
-  router.post('/login', validate({ body: loginSchema }), deps.authController.login);
   router.post('/google', validate({ body: googleLoginSchema }), deps.authGoogleController.googleLogin);
   router.post(
     '/google/complete-profile',

@@ -1,6 +1,5 @@
 import { AuthenticateWithGoogleUseCase } from '../application/use-cases/auth/AuthenticateWithGoogleUseCase';
 import { CompleteGoogleProfileUseCase } from '../application/use-cases/auth/CompleteGoogleProfileUseCase';
-import { LoginUserUseCase } from '../application/use-cases/auth/LoginUserUseCase';
 import { RefreshTokenUseCase } from '../application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../application/use-cases/auth/RegisterUserUseCase';
 import { SendTwoFactorCodeUseCase } from '../application/use-cases/auth/SendTwoFactorCodeUseCase';
@@ -38,20 +37,12 @@ export const buildAuthRouter = () => {
     audience: config.jwtAudience,
   });
   const emailService = new NodemailerEmailService();
-  const googleAuthService = new GoogleAuthService();
+  const googleAuthService = new GoogleAuthService(config.googleClientId!);
   const randomGenerator = new RandomGenerator();
   const hashService = new HashService();
   const dateTimeProvider = new DateTimeProvider();
 
   const registerUser = new RegisterUserUseCase(userRepository, passwordHasher);
-  const loginUser = new LoginUserUseCase(
-    userRepository,
-    passwordHasher,
-    emailService,
-    randomGenerator,
-    hashService,
-    dateTimeProvider
-  );
   const authenticateWithGoogle = new AuthenticateWithGoogleUseCase(
     userRepository,
     googleAuthService,
@@ -106,7 +97,7 @@ export const buildAuthRouter = () => {
     hashService
   );
 
-  const authController = new AuthController(registerUser, loginUser, refreshTokenUseCase);
+  const authController = new AuthController(registerUser, refreshTokenUseCase);
   const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(

@@ -19,6 +19,7 @@ export type Config = {
     from: string;
   };
   googleClientId: string | undefined;
+  refreshHashSecret: string;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -84,6 +85,7 @@ export function loadConfig(): Config {
       from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com',
     },
     googleClientId: process.env.GOOGLE_CLIENT_ID || undefined,
+    refreshHashSecret: optionalEnv('REFRESH_HASH_SECRET', ''),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 10), windowMs: 15 * 60 * 1000 },

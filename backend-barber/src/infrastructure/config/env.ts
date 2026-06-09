@@ -30,7 +30,7 @@ export type Config = {
   };
 };
 
-const requiredVars = ['JWT_SECRET', 'MONGO_URI'] as const;
+const requiredVars = ['JWT_SECRET', 'MONGO_URI', 'REFRESH_HASH_SECRET'] as const;
 const requiredIfEmail = ['SMTP_HOST', 'SMTP_PORT'] as const;
 
 function requireEnv(name: string): string {
@@ -87,7 +87,7 @@ export function loadConfig(): Config {
       from: process.env.EMAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com',
     },
     googleClientId: process.env.GOOGLE_CLIENT_ID || undefined,
-    refreshHashSecret: optionalEnv('REFRESH_HASH_SECRET', ''),
+    refreshHashSecret: requireEnv('REFRESH_HASH_SECRET'),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 10), windowMs: 15 * 60 * 1000 },

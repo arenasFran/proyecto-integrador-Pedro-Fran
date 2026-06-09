@@ -68,8 +68,9 @@ export class SendTwoFactorCodeUseCase {
     }
 
     if (!sent) {
+      console.error('Fallo al enviar email después de 3 intentos:', lastError);
       throw new AppError(
-        'Error al enviar el código. Intente nuevamente.',
+        'No se pudo enviar el código de verificación. Servicio de correo no disponible, intentá de nuevo.',
         500
       );
     }

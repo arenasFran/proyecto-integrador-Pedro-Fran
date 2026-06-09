@@ -57,8 +57,9 @@ export class RequestPasswordResetUseCase {
       }
 
       if (!sent) {
+        console.error('Fallo al enviar email después de 3 intentos:', lastError);
         throw new AppError(
-          'Error al enviar el email. Intente nuevamente.',
+          'No se pudo enviar el correo. Servicio de correo no disponible, intentá de nuevo.',
           500
         );
       }

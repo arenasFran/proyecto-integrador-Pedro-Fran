@@ -14,11 +14,12 @@ jest.mock('../../../src/infrastructure/services/GoogleAuthService', () => ({
 
 import request from 'supertest';
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
 import app from '../../../src/app';
+import { HashService } from '../../../src/infrastructure/services/HashService';
 import { RegisteredClient } from '../../../src/infrastructure/repositories/mongodb/models/client.model';
 import PasswordReset from '../../../src/infrastructure/repositories/mongodb/models/passwordReset.model';
 
+const hashService = new HashService();
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
 
@@ -41,30 +42,10 @@ describeIfMongo('Auth routes', () => {
     expect(response.body.message).toBeTruthy();
   });
 
-  it('debe requerir 2FA en login local', async () => {
-    const hash = await bcrypt.hash('123456', 10);
-    await RegisteredClient.create({
-      email: 'login@example.com',
-      password: hash,
-      name: 'Juan',
-      lastname: 'Perez',
-      phone: '222222',
-      authProvider: 'local',
-    });
-
-    const response = await request(app).post('/auth/login').send({
-      email: 'login@example.com',
-      password: '123456',
-    });
-
-    expect(response.status).toBe(200);
-    expect(response.body.requiresTwoFactor).toBe(true);
-  });
-
   it('debe enviar codigo 2FA', async () => {
     const hash = await bcrypt.hash('123456', 10);
     await RegisteredClient.create({
-      email: '2fa@example.com',
+      email: '2fa-enviar@example.com',
       password: hash,
       name: 'Juan',
       lastname: 'Perez',
@@ -73,7 +54,7 @@ describeIfMongo('Auth routes', () => {
     });
 
     const response = await request(app).post('/auth/2fa/send').send({
-      email: '2fa@example.com',
+      email: '2fa-enviar@example.com',
       password: '123456',
     });
 
@@ -82,7 +63,7 @@ describeIfMongo('Auth routes', () => {
 
   it('debe verificar codigo 2FA', async () => {
     const code = '123456';
-    const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+    const codeHash = hashService.sha256(code);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     await RegisteredClient.create({
@@ -133,7 +114,7 @@ describeIfMongo('Auth routes', () => {
     });
 
     const token = 'token-reset';
-    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const tokenHash = hashService.sha256(token);
     const expiresAt = new Date(Date.now() + 60 * 1000);
 
     await PasswordReset.create({

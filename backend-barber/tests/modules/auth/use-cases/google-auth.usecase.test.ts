@@ -57,6 +57,8 @@ describe('AuthenticateWithGoogleUseCase', () => {
       signRefreshToken: jest.fn(),
       verifyAccessToken: jest.fn(),
       verifyRefreshToken: jest.fn(),
+      signPartialToken: jest.fn(),
+      verifyPartialToken: jest.fn(),
     };
 
     refreshTokenRepository = {

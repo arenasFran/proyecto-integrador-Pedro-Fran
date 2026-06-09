@@ -81,6 +81,8 @@ describe('TwoFactor use cases', () => {
       signRefreshToken: jest.fn(),
       verifyAccessToken: jest.fn(),
       verifyRefreshToken: jest.fn(),
+      signPartialToken: jest.fn(),
+      verifyPartialToken: jest.fn(),
     };
 
     refreshTokenRepository = {

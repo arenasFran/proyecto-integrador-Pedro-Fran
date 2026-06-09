@@ -1,16 +1,22 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
 import { getConfig } from './env';
 
-const config = getConfig();
+let transporter: Transporter | null = null;
 
-const transporter = nodemailer.createTransport({
-  host: config.smtp.host,
-  port: config.smtp.port,
-  secure: config.smtp.secure,
-  auth: config.smtp.user
-    ? { user: config.smtp.user, pass: config.smtp.pass || '' }
-    : undefined,
-});
+function getTransporter(): Transporter {
+  if (!transporter) {
+    const config = getConfig();
+    transporter = nodemailer.createTransport({
+      host: config.smtp.host,
+      port: config.smtp.port,
+      secure: config.smtp.secure,
+      auth: config.smtp.user
+        ? { user: config.smtp.user, pass: config.smtp.pass || '' }
+        : undefined,
+    });
+  }
+  return transporter;
+}
 
 export const sendMail = async ({
   from,
@@ -25,7 +31,8 @@ export const sendMail = async ({
   html?: string;
   text?: string;
 }) => {
-  return transporter.sendMail({ from: from || config.smtp.from, to, subject, html, text });
+  const config = getConfig();
+  return getTransporter().sendMail({ from: from || config.smtp.from, to, subject, html, text });
 };
 
 export default { sendMail };

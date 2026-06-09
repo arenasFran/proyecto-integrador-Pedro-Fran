@@ -124,7 +124,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
 
       <PasswordInput
         label="Contraseña"
-        placeholder="Mínimo 6 caracteres"
+        placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
         {...getFieldProps('password')}
         required
         error={touched.password ? errors.password : undefined}

@@ -2,7 +2,16 @@ import Joi from 'joi';
 
 export const registerSchema = Joi.object({
   email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
+  password: Joi.string()
+    .min(8)
+    .pattern(/[A-Z]/, 'mayúscula')
+    .pattern(/[a-z]/, 'minúscula')
+    .pattern(/[0-9]/, 'número')
+    .required()
+    .messages({
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.pattern.name': 'La contraseña debe contener al menos una {#name}',
+    }),
   repeatPassword: Joi.any()
     .valid(Joi.ref('password'))
     .required()
@@ -13,16 +22,6 @@ export const registerSchema = Joi.object({
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
   phone: Joi.string().required(),
-});
-
-export const loginSchema = Joi.object({
-  email: Joi.string().email().required().messages({
-    'string.email': 'El email no tiene un formato válido',
-    'any.required': 'El email es obligatorio',
-  }),
-  password: Joi.string().required().messages({
-    'any.required': 'La contraseña es obligatoria',
-  }),
 });
 
 export const googleLoginSchema = Joi.object({

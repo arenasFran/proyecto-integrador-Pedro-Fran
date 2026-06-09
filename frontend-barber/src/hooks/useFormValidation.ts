@@ -11,6 +11,9 @@ const validationSchema: Record<string, (value: string, allValues?: Record<string
   password: (value) => {
     if (!value) return ERROR_MESSAGES.required;
     if (value.length < VALIDATION_RULES.password.minLength) return ERROR_MESSAGES.password;
+    if (!VALIDATION_RULES.password.uppercase.test(value)) return VALIDATION_RULES.password.uppercaseMessage;
+    if (!VALIDATION_RULES.password.lowercase.test(value)) return VALIDATION_RULES.password.lowercaseMessage;
+    if (!VALIDATION_RULES.password.digit.test(value)) return VALIDATION_RULES.password.digitMessage;
     return undefined;
   },
   repeatPassword: (value, allValues) => {

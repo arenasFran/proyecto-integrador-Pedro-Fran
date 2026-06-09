@@ -21,6 +21,7 @@ describe('CancelAppointmentUseCase', () => {
       startTime: '10:00',
       endTime: '11:00',
       status: 'Pendiente',
+      statusHistory: [{ status: 'Pendiente', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -47,7 +48,7 @@ describe('CancelAppointmentUseCase', () => {
       sendMail: jest.fn().mockResolvedValue(undefined),
     };
 
-    useCase = new CancelAppointmentUseCase(appointmentRepository, emailService);
+    useCase = new CancelAppointmentUseCase(appointmentRepository, emailService, 0);
   });
 
   it('debe fallar si el turno no existe', async () => {
@@ -58,12 +59,11 @@ describe('CancelAppointmentUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe fallar si el turno ya esta cancelado', async () => {
+  it('debe retornar exito si el turno ya esta cancelado (idempotente)', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
 
-    await expect(
-      useCase.execute('apt-1', 'client-1', 'Registrado')
-    ).rejects.toBeInstanceOf(AppError);
+    const result = await useCase.execute('apt-1', 'client-1', 'Registrado');
+    expect(result.message).toMatch(/ya se encontraba cancelado/);
   });
 
   it('debe fallar si el turno ya esta completado', async () => {
@@ -84,6 +84,36 @@ describe('CancelAppointmentUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
+  it('debe rechazar cancelacion con menos de 2h de anticipacion (fecha pasada)', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ date: '2020-01-01', startTime: '10:00' })
+    );
+
+    const strictUseCase = new CancelAppointmentUseCase(
+      appointmentRepository, emailService, 2
+    );
+
+    await expect(
+      strictUseCase.execute('apt-1', 'client-1', 'Registrado')
+    ).rejects.toThrow(/anticipación/);
+  });
+
+  it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ status: 'Confirmado' })
+    );
+    appointmentRepository.updateStatus.mockResolvedValue(
+      makeAppointment({ status: 'Cancelado' })
+    );
+
+    const strictUseCase = new CancelAppointmentUseCase(
+      appointmentRepository, emailService, 2
+    );
+
+    const result = await strictUseCase.execute('apt-1', 'client-1', 'Registrado');
+    expect(result.message).toMatch(/Turno cancelado/);
+  });
+
   it('debe cancelar el turno si es el dueno', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment());
     appointmentRepository.updateStatus.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
@@ -94,6 +124,8 @@ describe('CancelAppointmentUseCase', () => {
       status: 'Cancelado',
       cancelReason: undefined,
       cancelledAt: expect.any(Date),
+      cancelledBy: 'cliente',
+      statusHistoryEntry: { status: 'Cancelado', timestamp: expect.any(Date), actor: 'cliente' },
     });
     expect(result.message).toMatch(/Turno cancelado/);
   });
@@ -108,6 +140,8 @@ describe('CancelAppointmentUseCase', () => {
       status: 'Cancelado',
       cancelReason: 'Cliente no vino',
       cancelledAt: expect.any(Date),
+      cancelledBy: 'admin',
+      statusHistoryEntry: { status: 'Cancelado', timestamp: expect.any(Date), actor: 'admin' },
     });
     expect(result.message).toMatch(/Turno cancelado/);
   });

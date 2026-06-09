@@ -20,6 +20,7 @@ describe('GetAppointmentByIdUseCase', () => {
       startTime: '10:00',
       endTime: '10:50',
       status: 'Pendiente',
+      statusHistory: [{ status: 'Pendiente', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

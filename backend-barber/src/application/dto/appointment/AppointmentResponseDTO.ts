@@ -16,6 +16,7 @@ export type AppointmentResponseDTO = {
   status: string;
   cancelReason?: string;
   cancelledAt?: Date | null;
+  statusHistory: Array<{ status: string; timestamp: Date; actor: string }>;
   createdAt: Date;
   updatedAt: Date;
 };

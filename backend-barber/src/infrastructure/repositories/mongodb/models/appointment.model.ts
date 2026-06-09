@@ -1,5 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IStatusHistoryEntry {
+  status: string;
+  timestamp: Date;
+  actor: string;
+}
+
 export interface IAppointmentDocument extends Document {
   barberId: mongoose.Types.ObjectId;
   clientId?: mongoose.Types.ObjectId;
@@ -17,9 +23,20 @@ export interface IAppointmentDocument extends Document {
   status: string;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  statusHistory: IStatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const statusHistoryEntrySchema = new Schema<IStatusHistoryEntry>(
+  {
+    status: { type: String, required: true },
+    timestamp: { type: Date, required: true },
+    actor: { type: String, required: true },
+  },
+  { _id: false }
+);
 
 const appointmentSchema = new Schema<IAppointmentDocument>(
   {
@@ -81,7 +98,7 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     },
     status: {
       type: String,
-      enum: ['Pendiente', 'Confirmado', 'Cancelado', 'Completado'],
+      enum: ['Pendiente', 'Confirmado', 'Cancelado', 'Completado', 'NoShow'],
       default: 'Pendiente',
     },
     cancelReason: {
@@ -91,6 +108,14 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     cancelledAt: {
       type: Date,
       required: false,
+    },
+    cancelledBy: {
+      type: String,
+      required: false,
+    },
+    statusHistory: {
+      type: [statusHistoryEntrySchema],
+      default: [],
     },
   },
   {

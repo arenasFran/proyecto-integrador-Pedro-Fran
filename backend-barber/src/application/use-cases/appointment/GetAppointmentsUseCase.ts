@@ -44,6 +44,7 @@ export class GetAppointmentsUseCase {
           status: p.status,
           cancelReason: p.cancelReason,
           cancelledAt: p.cancelledAt,
+          statusHistory: p.statusHistory,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
         };

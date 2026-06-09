@@ -18,6 +18,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
       startTime: '10:00',
       endTime: '10:50',
       status: 'Pendiente',
+      statusHistory: [{ status: 'Pendiente', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -39,14 +40,14 @@ describe('UpdateAppointmentStatusUseCase', () => {
       updateStatus: jest.fn(),
     };
 
-    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository);
+    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 0);
   });
 
   it('debe fallar si el turno no existe', async () => {
     appointmentRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute('apt-1', { status: 'Confirmado' })
+      useCase.execute('apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin')
     ).rejects.toBeInstanceOf(AppError);
   });
 
@@ -56,10 +57,11 @@ describe('UpdateAppointmentStatusUseCase', () => {
       makeAppointment({ status: 'Confirmado' })
     );
 
-    const result = await useCase.execute('apt-1', { status: 'Confirmado' });
+    const result = await useCase.execute('apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin');
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'Confirmado',
+      statusHistoryEntry: { status: 'Confirmado', timestamp: expect.any(Date), actor: 'admin' },
     });
     expect(result.message).toMatch(/Confirmado/);
   });
@@ -73,12 +75,14 @@ describe('UpdateAppointmentStatusUseCase', () => {
     const result = await useCase.execute('apt-1', {
       status: 'Cancelado',
       cancelReason: 'No asistio',
-    });
+    }, 'admin-1', 'Admin');
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'Cancelado',
       cancelReason: 'No asistio',
       cancelledAt: expect.any(Date),
+      cancelledBy: 'admin',
+      statusHistoryEntry: { status: 'Cancelado', timestamp: expect.any(Date), actor: 'admin' },
     });
     expect(result.message).toMatch(/Cancelado/);
   });
@@ -89,10 +93,11 @@ describe('UpdateAppointmentStatusUseCase', () => {
       makeAppointment({ status: 'Completado' })
     );
 
-    const result = await useCase.execute('apt-1', { status: 'Completado' });
+    const result = await useCase.execute('apt-1', { status: 'Completado' }, 'empleado-1', 'Empleado');
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'Completado',
+      statusHistoryEntry: { status: 'Completado', timestamp: expect.any(Date), actor: 'empleado' },
     });
     expect(result.message).toMatch(/Completado/);
   });
@@ -101,7 +106,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Pendiente' }));
 
     await expect(
-      useCase.execute('apt-1', { status: 'Completado' })
+      useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin')
     ).rejects.toBeInstanceOf(AppError);
   });
 
@@ -109,7 +114,76 @@ describe('UpdateAppointmentStatusUseCase', () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
 
     await expect(
-      useCase.execute('apt-1', { status: 'Pendiente' })
+      useCase.execute('apt-1', { status: 'Pendiente' }, 'admin-1', 'Admin')
     ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe retornar exito si Cancelado -> Cancelado (idempotente)', async () => {
+    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
+
+    const result = await useCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin');
+    expect(result.message).toMatch(/ya se encontraba cancelado/);
+  });
+
+  it('debe marcar NoShow desde Confirmado si el turno ya paso', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ status: 'Confirmado', date: '2020-01-01', startTime: '10:00' })
+    );
+    appointmentRepository.updateStatus.mockResolvedValue(
+      makeAppointment({ status: 'NoShow' })
+    );
+
+    const result = await useCase.execute('apt-1', { status: 'NoShow' }, 'empleado-1', 'Empleado');
+
+    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
+      status: 'NoShow',
+      statusHistoryEntry: { status: 'NoShow', timestamp: expect.any(Date), actor: 'empleado' },
+    });
+    expect(result.message).toMatch(/NoShow/);
+  });
+
+  it('debe fallar NoShow si el turno aun no paso', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ status: 'Confirmado', date: '2099-01-01', startTime: '10:00' })
+    );
+
+    await expect(
+      useCase.execute('apt-1', { status: 'NoShow' }, 'empleado-1', 'Empleado')
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe fallar NoShow desde Pendiente (transicion invalida)', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ status: 'Pendiente' })
+    );
+
+    await expect(
+      useCase.execute('apt-1', { status: 'NoShow' }, 'empleado-1', 'Empleado')
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe rechazar cancelacion con menos de 2h de anticipacion (fecha pasada)', async () => {
+    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 2);
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ status: 'Pendiente', date: '2020-01-01', startTime: '10:00' })
+    );
+
+    await expect(
+      strictUseCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin')
+    ).rejects.toThrow(/anticipación/);
+  });
+
+  it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {
+    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 2);
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ status: 'Pendiente', date: '2099-01-01', startTime: '10:00' })
+    );
+    appointmentRepository.updateStatus.mockResolvedValue(
+      makeAppointment({ status: 'Cancelado' })
+    );
+
+    const result = await strictUseCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin');
+
+    expect(result.message).toMatch(/Cancelado/);
   });
 });

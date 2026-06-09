@@ -1,4 +1,4 @@
-import { AppointmentStatus } from '../types/appointment';
+import { AppointmentStatus, StatusHistoryEntry } from '../types/appointment';
 import { Email } from '../value-objects/Email';
 import { Phone } from '../value-objects/Phone';
 import { Price } from '../value-objects/Price';
@@ -22,6 +22,8 @@ export type AppointmentCreateProps = {
   status: AppointmentStatus;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -44,6 +46,8 @@ export type AppointmentPrimitives = {
   status: AppointmentStatus;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -66,6 +70,8 @@ type AppointmentData = {
   status: AppointmentStatus;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -96,6 +102,8 @@ export class Appointment {
       status: props.status,
       cancelReason: props.cancelReason,
       cancelledAt: props.cancelledAt,
+      cancelledBy: props.cancelledBy,
+      statusHistory: props.statusHistory,
       createdAt: props.createdAt,
       updatedAt: props.updatedAt,
     });
@@ -169,6 +177,14 @@ export class Appointment {
     return this.props.cancelledAt;
   }
 
+  get cancelledBy(): string | undefined {
+    return this.props.cancelledBy;
+  }
+
+  get statusHistory(): StatusHistoryEntry[] {
+    return this.props.statusHistory;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -177,20 +193,34 @@ export class Appointment {
     return this.props.updatedAt;
   }
 
-  cancel(reason?: string): void {
+  addStatusHistoryEntry(status: AppointmentStatus, actor: string): void {
+    this.props.statusHistory.push({ status, timestamp: new Date(), actor });
+  }
+
+  cancel(reason?: string, cancelledBy?: string): void {
     this.props.status = 'Cancelado';
     this.props.cancelReason = reason;
     this.props.cancelledAt = new Date();
+    this.props.cancelledBy = cancelledBy;
+    this.addStatusHistoryEntry('Cancelado', cancelledBy || 'system');
     this.props.updatedAt = new Date();
   }
 
-  confirm(): void {
+  confirm(actor?: string): void {
     this.props.status = 'Confirmado';
+    this.addStatusHistoryEntry('Confirmado', actor || 'system');
     this.props.updatedAt = new Date();
   }
 
-  complete(): void {
+  complete(actor?: string): void {
     this.props.status = 'Completado';
+    this.addStatusHistoryEntry('Completado', actor || 'system');
+    this.props.updatedAt = new Date();
+  }
+
+  markNoShow(actor?: string): void {
+    this.props.status = 'NoShow';
+    this.addStatusHistoryEntry('NoShow', actor || 'system');
     this.props.updatedAt = new Date();
   }
 
@@ -213,6 +243,8 @@ export class Appointment {
       status: this.props.status,
       cancelReason: this.props.cancelReason,
       cancelledAt: this.props.cancelledAt,
+      cancelledBy: this.props.cancelledBy,
+      statusHistory: this.props.statusHistory,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
     };

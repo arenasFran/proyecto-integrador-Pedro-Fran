@@ -21,6 +21,12 @@ export class AppointmentMapper {
       status: doc.status as Appointment['status'],
       cancelReason: doc.cancelReason,
       cancelledAt: doc.cancelledAt,
+      cancelledBy: doc.cancelledBy,
+      statusHistory: (doc.statusHistory || []).map((entry) => ({
+        status: entry.status,
+        timestamp: entry.timestamp,
+        actor: entry.actor,
+      })) as any,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });
@@ -46,6 +52,8 @@ export class AppointmentMapper {
       status: appointment.status,
       cancelReason: appointment.cancelReason,
       cancelledAt: appointment.cancelledAt,
+      cancelledBy: appointment.cancelledBy,
+      statusHistory: appointment.statusHistory,
       createdAt: appointment.createdAt,
       updatedAt: appointment.updatedAt,
     };

@@ -39,6 +39,7 @@ export class GetAppointmentByIdUseCase {
         status: primitives.status,
         cancelReason: primitives.cancelReason,
         cancelledAt: primitives.cancelledAt,
+        statusHistory: primitives.statusHistory,
         createdAt: primitives.createdAt,
         updatedAt: primitives.updatedAt,
       },

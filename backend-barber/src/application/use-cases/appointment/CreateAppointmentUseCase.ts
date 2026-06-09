@@ -50,6 +50,18 @@ export class CreateAppointmentUseCase {
       throw new AppError('El barbero no está activo.', 400);
     }
 
+    // Task 7 — Límite máximo de anticipación por barbero
+    const [y, m, d] = dto.date.split('-').map(Number);
+    const [ny, nm, nd] = nowInTz.date.split('-').map(Number);
+    const aptEpoch = Date.UTC(y, m - 1, d);
+    const nowEpoch = Date.UTC(ny, nm - 1, nd);
+    const diffDays = (aptEpoch - nowEpoch) / (1000 * 60 * 60 * 24);
+    if (diffDays > barber.maxAdvanceDays) {
+      throw new AppError(
+        `No se puede reservar con más de ${barber.maxAdvanceDays} días de anticipación.`, 400
+      );
+    }
+
     const service = await this.serviceRepository.findById(dto.serviceId);
     if (!service) {
       throw new AppError('Servicio no encontrado.', 404);
@@ -113,6 +125,7 @@ export class CreateAppointmentUseCase {
       startTime: dto.startTime,
       endTime,
       status: 'Pendiente',
+      statusHistory: [{ status: 'Pendiente', timestamp: now, actor: 'system' }],
       createdAt: now,
       updatedAt: now,
     });

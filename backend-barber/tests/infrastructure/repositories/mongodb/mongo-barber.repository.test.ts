@@ -32,6 +32,7 @@ const makeBarber = () =>
     specialties: ['corte'],
     isActive: true,
     slotDuration: 30,
+    maxAdvanceDays: 30,
     schedule: createSchedule(),
     passwordHash: 'hashed_password',
   });

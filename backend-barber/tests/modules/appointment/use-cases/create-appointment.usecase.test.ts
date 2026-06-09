@@ -43,6 +43,7 @@ describe('CreateAppointmentUseCase', () => {
       specialties: [],
       isActive: true,
       slotDuration: 30,
+      maxAdvanceDays: 99999,
       schedule: createSchedule(),
       passwordHash: 'hash',
     };
@@ -64,6 +65,7 @@ describe('CreateAppointmentUseCase', () => {
       startTime: '10:00',
       endTime: '11:00',
       status: 'Pendiente',
+      statusHistory: [{ status: 'Pendiente', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -333,6 +335,45 @@ describe('CreateAppointmentUseCase', () => {
     });
 
     expect(appointmentRepository.create).toHaveBeenCalled();
+    expect(result.message).toMatch(/Turno creado/);
+  });
+
+  it('debe rechazar si la fecha excede el maxAdvanceDays del barbero', async () => {
+    const barber = makeBarber({ maxAdvanceDays: 1 });
+    barberRepository.findEmployeeById.mockResolvedValue(barber);
+    serviceRepository.findById.mockResolvedValue(makeService());
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      })
+    ).rejects.toThrow(/anticipación/);
+  });
+
+  it('debe aceptar si la fecha esta dentro del maxAdvanceDays del barbero', async () => {
+    const barber = makeBarber({ maxAdvanceDays: 99999 });
+    barberRepository.findEmployeeById.mockResolvedValue(barber);
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    const result = await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: 'svc-1',
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      clientEmail: 'juan@test.com',
+    });
+
     expect(result.message).toMatch(/Turno creado/);
   });
 });

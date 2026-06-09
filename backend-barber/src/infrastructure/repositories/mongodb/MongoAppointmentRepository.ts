@@ -33,6 +33,12 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     if (filters.status) {
       query.status = filters.status;
     }
+    if (filters.clientEmail || filters.clientPhone) {
+      const orConditions: Record<string, unknown>[] = [];
+      if (filters.clientEmail) orConditions.push({ clientEmail: filters.clientEmail });
+      if (filters.clientPhone) orConditions.push({ clientPhone: filters.clientPhone });
+      query.$or = orConditions;
+    }
     if (filters.dateFrom || filters.dateTo) {
       query.date = {};
       if (filters.dateFrom) (query.date as Record<string, unknown>).$gte = filters.dateFrom;
@@ -134,10 +140,18 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     if (data.cancelledAt !== undefined) {
       updateData.cancelledAt = data.cancelledAt;
     }
+    if (data.cancelledBy !== undefined) {
+      updateData.cancelledBy = data.cancelledBy;
+    }
+
+    const update: Record<string, unknown> = { $set: updateData };
+    if (data.statusHistoryEntry) {
+      update.$push = { statusHistory: data.statusHistoryEntry };
+    }
 
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
-      { $set: updateData },
+      update,
       { returnDocument: 'after', new: true }
     ).lean();
 

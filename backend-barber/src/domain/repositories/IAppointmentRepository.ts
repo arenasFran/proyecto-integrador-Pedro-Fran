@@ -1,9 +1,11 @@
 import { Appointment, AppointmentPrimitives } from '../entities/Appointment';
-import { AppointmentStatus } from '../types/appointment';
+import { AppointmentStatus, StatusHistoryEntry } from '../types/appointment';
 
 export type AppointmentFilters = {
   barberId?: string;
   clientId?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   date?: string;
   status?: AppointmentStatus;
   dateFrom?: string;
@@ -16,6 +18,8 @@ export type UpdateStatusData = {
   status: AppointmentStatus;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  statusHistoryEntry?: StatusHistoryEntry;
 };
 
 export type UpdateAppointmentData = {

@@ -2,7 +2,7 @@ import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTo
 import { AppError } from '../../errors/AppError';
 import { IHashService } from '../../ports/IHashService';
 import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
-import { ITokenService, TokenPair, TokenPayload } from '../../ports/ITokenService';
+import { ITokenService, TokenPayload } from '../../ports/ITokenService';
 
 export class RefreshTokenUseCase {
   constructor(
@@ -12,7 +12,7 @@ export class RefreshTokenUseCase {
     private readonly dateTimeProvider: IDateTimeProvider
   ) {}
 
-  async execute(refreshToken: string): Promise<TokenPair> {
+  async execute(refreshToken: string): Promise<{ message: string; token: string; refreshToken: string }> {
     let payload: TokenPayload;
     try {
       payload = this.tokenService.verifyRefreshToken(refreshToken);
@@ -48,6 +48,6 @@ export class RefreshTokenUseCase {
       new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000)
     );
 
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    return { message: 'Token renovado', token: newAccessToken, refreshToken: newRefreshToken };
   }
 }

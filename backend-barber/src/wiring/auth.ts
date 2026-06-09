@@ -94,7 +94,8 @@ export const buildAuthRouter = () => {
     userRepository,
     passwordResetRepository,
     passwordHasher,
-    hashService
+    hashService,
+    dateTimeProvider
   );
 
   const authController = new AuthController(registerUser, refreshTokenUseCase);

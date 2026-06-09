@@ -31,6 +31,7 @@ export interface ResetPasswordData {
   token: string;
   password: string;
   repeatPassword: string;
+  email: string;
 }
 
 export interface LoginResponse {
@@ -109,6 +110,7 @@ export const authService = {
       token: data.token,
       password: data.password,
       repeatPassword: data.repeatPassword,
+      email: data.email,
     });
     return response.data.message;
   },

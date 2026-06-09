@@ -9,19 +9,22 @@ import type { ResetPasswordFormData } from '../../../../types/auth';
 
 interface ResetPasswordFormProps {
   onSuccess?: () => void;
+  email: string;
 }
 
 const initialValues: ResetPasswordFormData = {
   token: '',
   password: '',
   repeatPassword: '',
+  email: '',
 };
 
-export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess }) => {
+export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess, email }) => {
   const dispatch = useAppDispatch();
   const { isLoading, error, resetPasswordSuccess } = useAppSelector((state) => state.auth);
 
-  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(initialValues as unknown as Record<string, string>);
+  const formInit = { ...initialValues, email };
+  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit as unknown as Record<string, string>);
 
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
@@ -51,6 +54,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess 
       token: values.token,
       password: values.password,
       repeatPassword: values.repeatPassword,
+      email: values.email,
     }));
   };
 

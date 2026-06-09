@@ -8,7 +8,7 @@ import { requestResetThunk, clearAuthState } from '../../../../store/slices/auth
 import type { RequestResetFormData } from '../../../../types/auth';
 
 interface RequestResetFormProps {
-  onSuccess?: () => void;
+  onSuccess?: (email: string) => void;
 }
 
 const initialValues: RequestResetFormData = {
@@ -28,8 +28,9 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
 
   useEffect(() => {
     if (!requestResetSuccess) return;
+    const email = formValues.email;
     const timeoutId = window.setTimeout(() => {
-      onSuccessRef.current?.();
+      onSuccessRef.current?.(email);
     }, 2000);
     return () => window.clearTimeout(timeoutId);
   }, [requestResetSuccess]);

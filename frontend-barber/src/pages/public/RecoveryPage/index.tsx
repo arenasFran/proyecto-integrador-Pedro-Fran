@@ -28,8 +28,10 @@ const itemVariants = {
 
 export const RecoveryPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [resetEmail, setResetEmail] = useState('');
 
-  const handleRequestSuccess = () => {
+  const handleRequestSuccess = (email: string) => {
+    setResetEmail(email);
     setCurrentStep(2);
   };
 
@@ -86,7 +88,7 @@ export const RecoveryPage: React.FC = () => {
           {currentStep === 1 ? (
             <RequestResetForm onSuccess={handleRequestSuccess} />
           ) : (
-            <ResetPasswordForm onSuccess={handleResetSuccess} />
+            <ResetPasswordForm email={resetEmail} onSuccess={handleResetSuccess} />
           )}
         </motion.div>
 

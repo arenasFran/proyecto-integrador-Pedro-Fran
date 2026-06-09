@@ -23,7 +23,7 @@ export class UserMapper {
         codeHash: doc.twoFactorCode,
         expiresAt: doc.twoFactorExpires,
       },
-      lastLoginAt: (doc as unknown as { lastLoginAt?: Date }).lastLoginAt,
+      lastLoginAt: doc.lastLoginAt,
     });
   }
 
@@ -42,7 +42,7 @@ export class UserMapper {
         codeHash: doc.twoFactorCode,
         expiresAt: doc.twoFactorExpires,
       },
-      lastLoginAt: (doc as unknown as { lastLoginAt?: Date }).lastLoginAt,
+      lastLoginAt: doc.lastLoginAt,
     });
   }
 

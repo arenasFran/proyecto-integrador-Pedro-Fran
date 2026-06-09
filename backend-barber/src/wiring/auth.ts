@@ -14,6 +14,7 @@ import { DateTimeProvider } from '../infrastructure/services/DateTimeProvider';
 import { GoogleAuthService } from '../infrastructure/services/GoogleAuthService';
 import { HashService } from '../infrastructure/services/HashService';
 import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
+import { IEmailService } from '../application/ports/IEmailService';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { RandomGenerator } from '../infrastructure/services/RandomGenerator';
 import { AuthController } from '../interface-adapters/controllers/auth/AuthController';
@@ -23,7 +24,7 @@ import { TwoFactorController } from '../interface-adapters/controllers/auth/TwoF
 import { createAuthRouter } from '../interface-adapters/routes/auth.routes';
 import { getConfig } from '../infrastructure/config/env';
 
-export const buildAuthRouter = () => {
+export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
   const config = getConfig();
   const userRepository = new MongoUserRepository();
   const passwordResetRepository = new MongoPasswordResetRepository();
@@ -36,7 +37,7 @@ export const buildAuthRouter = () => {
     issuer: config.jwtIssuer,
     audience: config.jwtAudience,
   });
-  const emailService = new NodemailerEmailService();
+  const emailService = options?.emailService ?? new NodemailerEmailService();
   const googleAuthService = new GoogleAuthService(config.googleClientId!);
   const randomGenerator = new RandomGenerator();
   const hashService = new HashService();

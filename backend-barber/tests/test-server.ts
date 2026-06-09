@@ -15,6 +15,7 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Admin } from '../src/infrastructure/repositories/mongodb/models/barber.model';
+import { FakeEmailService } from '../src/infrastructure/services/FakeEmailService';
 import { buildAuthRouter } from '../src/wiring/auth';
 import { buildBarberRouter } from '../src/wiring/barber';
 
@@ -35,11 +36,23 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(helmet());
-app.use('/auth', buildAuthRouter());
+app.use('/auth', buildAuthRouter({ emailService: new FakeEmailService() }));
 app.use('/api/barbers', buildBarberRouter());
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+app.get('/__test/two-factor-code', (req, res) => {
+  const email = req.query.email as string;
+  if (!email) {
+    return res.status(400).json({ error: 'Email query param required' });
+  }
+  const code = FakeEmailService.getCode(email);
+  if (!code) {
+    return res.status(404).json({ error: 'Code not found for email', email });
+  }
+  res.json({ code });
 });
 
 function appListen(port: number) {

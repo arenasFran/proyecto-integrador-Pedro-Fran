@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 
 export type Config = {
   port: number;
+  corsOrigin: string;
   jwtSecret: string;
   jwtExpiresIn: string;
   jwtRefreshExpiresIn: string;
@@ -68,6 +69,7 @@ export function loadConfig(): Config {
 
   return {
     port: parseIntEnv('PORT', 3000),
+    corsOrigin: optionalEnv('CORS_ORIGIN', 'http://localhost:5173'),
     jwtSecret,
     jwtExpiresIn: optionalEnv('JWT_EXPIRES_IN', '15m'),
     jwtRefreshExpiresIn: optionalEnv('JWT_REFRESH_EXPIRES_IN', '7d'),

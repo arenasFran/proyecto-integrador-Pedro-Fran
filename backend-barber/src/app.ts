@@ -10,20 +10,19 @@ import { buildTempLockRouter } from "./wiring/tempLock";
 import { getConfig } from "./infrastructure/config/env";
 
 const app = express();
-
-const corsOptions = {
-  origin: "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
+const config = getConfig();
 
 app.use(express.json());
 app.use(helmet());
 
-const config = getConfig();
+app.use(
+  cors({
+    origin: config.corsOrigin.split(",").map((o) => o.trim()),
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
 const loginLimiter = rateLimit({
   windowMs: config.rateLimit.login.windowMs,
@@ -89,6 +88,11 @@ app.use("/api/appointments/temp-lock", buildTempLockRouter());
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
+});
+
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Error no manejado:", err instanceof Error ? err.message : err);
+  res.status(500).json({ error: "Error interno del servidor" });
 });
 
 export default app;

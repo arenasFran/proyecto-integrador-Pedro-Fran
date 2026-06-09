@@ -5,6 +5,7 @@ import { GetAppointmentByIdUseCase } from '../../../application/use-cases/appoin
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
+import { GetAppointmentsAnonymousUseCase } from '../../../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
 import { AuthRequest } from '../../middlewares/auth.middleware';
 
@@ -15,7 +16,8 @@ export class AppointmentController {
     private readonly getAppointmentById: GetAppointmentByIdUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
-    private readonly rescheduleAppointment: RescheduleAppointmentUseCase
+    private readonly rescheduleAppointment: RescheduleAppointmentUseCase,
+    private readonly getAppointmentsAnonymous: GetAppointmentsAnonymousUseCase
   ) {}
 
   create = async (req: Request, res: Response) => {
@@ -100,11 +102,30 @@ export class AppointmentController {
 
   updateStatus = async (req: Request, res: Response) => {
     try {
+      const authReq = req as AuthRequest;
       const id = req.params.id as string;
-      const result = await this.updateAppointmentStatus.execute(id, req.body);
+      const result = await this.updateAppointmentStatus.execute(
+        id,
+        req.body,
+        authReq.user!._id,
+        authReq.user!.kind
+      );
       return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
       return AppointmentPresenter.handleError(res, error, 'Error al actualizar el estado del turno');
+    }
+  };
+
+  getAnonymous = async (req: Request, res: Response) => {
+    try {
+      const result = await this.getAppointmentsAnonymous.execute({
+        clientEmail: req.query.email as string | undefined,
+        clientPhone: req.query.phone as string | undefined,
+        date: req.query.date as string | undefined,
+      });
+      return AppointmentPresenter.success(res, result, 200);
+    } catch (error) {
+      return AppointmentPresenter.handleError(res, error, 'Error al obtener turnos');
     }
   };
 

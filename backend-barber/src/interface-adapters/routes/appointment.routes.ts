@@ -1,8 +1,10 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { AppointmentController } from '../controllers/appointment/AppointmentController';
 import { authorize, createAuthenticate, createOptionalAuth } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import {
+  anonymousQuerySchema,
   appointmentIdParamSchema,
   appointmentQuerySchema,
   cancelAppointmentSchema,
@@ -10,6 +12,12 @@ import {
   rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
 } from '../validators/appointment.validator';
+
+const anonymousLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Demasiados intentos. Esperá 15 minutos.' },
+});
 
 export const createAppointmentRouter = (deps: {
   appointmentController: AppointmentController;
@@ -23,6 +31,13 @@ export const createAppointmentRouter = (deps: {
     deps.optionalAuth,
     validate({ body: createAppointmentSchema }),
     deps.appointmentController.create
+  );
+
+  router.get(
+    '/anonymous',
+    anonymousLimiter,
+    validate({ query: anonymousQuerySchema }),
+    deps.appointmentController.getAnonymous
   );
 
   router.get(

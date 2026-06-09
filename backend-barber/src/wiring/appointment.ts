@@ -1,6 +1,7 @@
 import { CreateAppointmentUseCase } from '../application/use-cases/appointment/CreateAppointmentUseCase';
 import { GetAppointmentsUseCase } from '../application/use-cases/appointment/GetAppointmentsUseCase';
 import { GetAppointmentByIdUseCase } from '../application/use-cases/appointment/GetAppointmentByIdUseCase';
+import { GetAppointmentsAnonymousUseCase } from '../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../application/use-cases/appointment/RescheduleAppointmentUseCase';
@@ -34,8 +35,15 @@ export const buildAppointmentRouter = () => {
   );
   const getAppointments = new GetAppointmentsUseCase(appointmentRepository);
   const getAppointmentById = new GetAppointmentByIdUseCase(appointmentRepository);
-  const cancelAppointment = new CancelAppointmentUseCase(appointmentRepository, emailService);
-  const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(appointmentRepository);
+  const getAppointmentsAnonymous = new GetAppointmentsAnonymousUseCase(appointmentRepository);
+  const cancelMinHoursBefore = Number(process.env.CANCEL_MIN_HOURS_BEFORE) || 2;
+
+  const cancelAppointment = new CancelAppointmentUseCase(
+    appointmentRepository, emailService, cancelMinHoursBefore
+  );
+  const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
+    appointmentRepository, cancelMinHoursBefore
+  );
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,
     barberRepository,
@@ -49,7 +57,8 @@ export const buildAppointmentRouter = () => {
     getAppointmentById,
     cancelAppointment,
     updateAppointmentStatus,
-    rescheduleAppointment
+    rescheduleAppointment,
+    getAppointmentsAnonymous
   );
 
   const authenticate = createAuthenticate(tokenService);

@@ -2,11 +2,9 @@ import crypto from 'crypto';
 import { IRandomGenerator } from '../../application/ports/IRandomGenerator';
 
 export class RandomGenerator implements IRandomGenerator {
+  constructor(private readonly testCodeOverride?: string) {}
+
   generateNumericCode(length: number): string {
-    const testCode = process.env.TEST_2FA_CODE;
-    if (testCode) {
-      return testCode;
-    }
     const min = 10 ** (length - 1);
     const max = 10 ** length - 1;
     return crypto.randomInt(min, max).toString();

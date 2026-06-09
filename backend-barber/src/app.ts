@@ -13,7 +13,11 @@ const app = express();
 const config = getConfig();
 
 app.use(express.json());
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: false,
+  })
+);
 
 app.use(
   cors({

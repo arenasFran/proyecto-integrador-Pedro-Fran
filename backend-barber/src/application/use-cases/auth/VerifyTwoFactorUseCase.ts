@@ -1,3 +1,4 @@
+import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { TwoFactorVerifyDTO } from '../../dto/auth/TwoFactorVerifyDTO';
@@ -11,10 +12,11 @@ export class VerifyTwoFactorUseCase {
     private readonly userRepository: IUserRepository,
     private readonly tokenService: ITokenService,
     private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider
+    private readonly dateTimeProvider: IDateTimeProvider,
+    private readonly refreshTokenRepository: IRefreshTokenRepository
   ) {}
 
-  async execute(dto: TwoFactorVerifyDTO): Promise<{ message: string; token: string }> {
+  async execute(dto: TwoFactorVerifyDTO): Promise<{ message: string; token: string; refreshToken: string }> {
     const email = Email.create(dto.email).getValue();
     const user = await this.userRepository.findByEmail(email);
 
@@ -43,12 +45,15 @@ export class VerifyTwoFactorUseCase {
       expiresAt: undefined,
     });
 
-    const token = this.tokenService.sign({
-      id: user.id,
-      email: user.email,
-      kind: user.kind,
-    });
+    const tokenPayload = { id: user.id, email: user.email, kind: user.kind };
+    const token = this.tokenService.signAccessToken(tokenPayload);
+    const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
 
-    return { message: 'Login exitoso', token };
+    const tokenHash = this.hashService.sha256(refreshToken);
+    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+    await this.refreshTokenRepository.create(tokenHash, user.id, expiresAt);
+    await this.userRepository.updateLastLogin(user.id);
+
+    return { message: 'Login exitoso', token, refreshToken };
   }
 }

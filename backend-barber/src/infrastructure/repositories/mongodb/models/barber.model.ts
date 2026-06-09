@@ -3,6 +3,7 @@ import { IAdminInput, IBarberBaseInput, IEmployeeInput } from '../../../types/us
 
 export interface IBarberBase extends Document, IBarberBaseInput {
   kind?: 'Admin' | 'Empleado';
+  lastLoginAt?: Date;
 }
 
 export interface IEmployee extends IBarberBase, IEmployeeInput {

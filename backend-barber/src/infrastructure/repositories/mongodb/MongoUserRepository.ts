@@ -58,4 +58,13 @@ export class MongoUserRepository implements IUserRepository {
     }
     await RegisteredClient.findByIdAndUpdate(userId, data);
   }
+
+  async updateLastLogin(userId: string): Promise<void> {
+    const now = new Date();
+    const barber = await Barber.findByIdAndUpdate(userId, { lastLoginAt: now });
+    if (barber) {
+      return;
+    }
+    await RegisteredClient.findByIdAndUpdate(userId, { lastLoginAt: now });
+  }
 }

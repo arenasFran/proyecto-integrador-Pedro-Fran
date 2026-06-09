@@ -11,4 +11,5 @@ export interface IUserRepository {
   createRegisteredClient(user: User): Promise<User>;
   updatePassword(userId: string, passwordHash: string): Promise<void>;
   updateTwoFactor(userId: string, update: TwoFactorUpdate): Promise<void>;
+  updateLastLogin(userId: string): Promise<void>;
 }

@@ -11,6 +11,7 @@ export interface IClientBase extends Document, IClientBaseInput {
 
 export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
   kind: 'Registrado';
+  lastLoginAt?: Date;
 }
 
 export interface IUnregisteredClient extends IClientBase, IUnregisteredClientInput {

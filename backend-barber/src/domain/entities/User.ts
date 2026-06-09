@@ -17,6 +17,7 @@ export type UserProps = {
   passwordHash?: string;
   googleId?: string;
   twoFactor?: TwoFactorState;
+  lastLoginAt?: Date;
 };
 
 export class User {
@@ -70,12 +71,20 @@ export class User {
     return this.props.twoFactor;
   }
 
+  get lastLoginAt(): Date | undefined {
+    return this.props.lastLoginAt;
+  }
+
   withPasswordHash(passwordHash?: string): User {
     return new User({ ...this.props, passwordHash });
   }
 
   withTwoFactor(twoFactor?: TwoFactorState): User {
     return new User({ ...this.props, twoFactor });
+  }
+
+  withLastLoginAt(date: Date): User {
+    return new User({ ...this.props, lastLoginAt: date });
   }
 
   toPrimitives(): UserProps {

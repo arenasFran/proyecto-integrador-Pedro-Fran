@@ -50,6 +50,7 @@ describe('TwoFactor use cases', () => {
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
       updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     passwordHasher = {
@@ -68,6 +69,7 @@ describe('TwoFactor use cases', () => {
 
     hashService = {
       sha256: jest.fn(),
+      constantTimeEqual: jest.fn(),
     };
 
     dateTimeProvider = {
@@ -231,6 +233,7 @@ describe('TwoFactor use cases', () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
       dateTimeProvider.now.mockReturnValue(now);
       hashService.sha256.mockReturnValue('hash-diferente');
+      hashService.constantTimeEqual.mockReturnValue(false);
       const useCase = new VerifyTwoFactorUseCase(
         userRepository,
         tokenService,
@@ -248,6 +251,7 @@ describe('TwoFactor use cases', () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
       dateTimeProvider.now.mockReturnValue(now);
       hashService.sha256.mockReturnValue('hash-2fa');
+      hashService.constantTimeEqual.mockReturnValue(true);
       tokenService.signAccessToken.mockReturnValue('token');
       tokenService.signRefreshToken.mockReturnValue('refresh-token');
       const useCase = new VerifyTwoFactorUseCase(

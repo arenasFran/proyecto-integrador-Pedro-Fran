@@ -67,6 +67,7 @@ describe('UpdateBarberUseCase', () => {
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
       updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     barberRepository = {

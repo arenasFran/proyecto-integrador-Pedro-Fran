@@ -44,6 +44,7 @@ describe('AuthenticateWithGoogleUseCase', () => {
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
       updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     googleAuthService = {
@@ -70,6 +71,7 @@ describe('AuthenticateWithGoogleUseCase', () => {
 
     hashService = {
       sha256: jest.fn(),
+      constantTimeEqual: jest.fn(),
     };
 
     dateTimeProvider = {

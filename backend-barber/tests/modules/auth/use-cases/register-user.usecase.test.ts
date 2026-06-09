@@ -32,6 +32,7 @@ describe('RegisterUserUseCase', () => {
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
       updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     passwordHasher = {
@@ -46,8 +47,8 @@ describe('RegisterUserUseCase', () => {
     await expect(
       useCase.execute({
         email: 'test@example.com',
-        password: '123456',
-        repeatPassword: '654321',
+        password: 'Abcd1234',
+        repeatPassword: '1234Abcd',
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
@@ -61,8 +62,8 @@ describe('RegisterUserUseCase', () => {
     await expect(
       useCase.execute({
         email: 'test@example.com',
-        password: '123456',
-        repeatPassword: '123456',
+        password: 'Abcd1234',
+        repeatPassword: 'Abcd1234',
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
@@ -76,13 +77,13 @@ describe('RegisterUserUseCase', () => {
 
     await expect(
       useCase.execute({
-        email: 'nuevo@example.com',
-        password: '123456',
-        repeatPassword: '123456',
-        name: 'Juan',
-        lastname: 'Perez',
-        phone: '123456789',
-      })
+      email: 'nuevo@example.com',
+      password: 'Abcd1234',
+      repeatPassword: 'Abcd1234',
+      name: 'Juan',
+      lastname: 'Perez',
+      phone: '123456789',
+    })
     ).rejects.toBeInstanceOf(AppError);
   });
 
@@ -94,14 +95,14 @@ describe('RegisterUserUseCase', () => {
 
     const result = await useCase.execute({
       email: 'nuevo@example.com',
-      password: '123456',
-      repeatPassword: '123456',
+      password: 'Abcd1234',
+      repeatPassword: 'Abcd1234',
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
     });
 
-    expect(passwordHasher.hash).toHaveBeenCalledWith('123456');
+    expect(passwordHasher.hash).toHaveBeenCalledWith('Abcd1234');
     expect(userRepository.createRegisteredClient).toHaveBeenCalled();
     expect(result.message).toMatch(/Usuario registrado/);
   });

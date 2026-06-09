@@ -31,8 +31,8 @@ describeIfMongo('Auth routes', () => {
   it('debe registrar un usuario', async () => {
     const response = await request(app).post('/auth/register').send({
       email: 'register@example.com',
-      password: '123456',
-      repeatPassword: '123456',
+      password: 'Abcd1234',
+      repeatPassword: 'Abcd1234',
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
@@ -126,8 +126,9 @@ describeIfMongo('Auth routes', () => {
 
     const response = await request(app).post('/auth/reset-password').send({
       token,
-      password: '654321',
-      repeatPassword: '654321',
+      password: 'Abcd1234',
+      repeatPassword: 'Abcd1234',
+      email: 'reset2@example.com',
     });
 
     expect(response.status).toBe(200);

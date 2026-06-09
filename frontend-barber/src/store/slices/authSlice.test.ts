@@ -30,6 +30,9 @@ const initialState = {
   requestResetSuccess: null,
   resetPasswordSuccess: null,
   user: null,
+  refreshToken: null,
+  requiresProfileCompletion: null,
+  profileCompletionError: null,
 };
 
 describe('authSlice', () => {

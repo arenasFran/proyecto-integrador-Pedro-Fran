@@ -17,18 +17,13 @@ export class CompleteGoogleProfileUseCase {
   ) {}
 
   async execute(dto: CompleteGoogleProfileDTO): Promise<{ message: string; token: string; refreshToken: string }> {
-    let partialPayload: { email: string };
+    let email: string;
     try {
-      partialPayload = this.tokenService.verifyAccessToken(dto.partialToken) as unknown as { email: string };
+      const result = this.tokenService.verifyPartialToken(dto.partialToken);
+      email = result.email.trim().toLowerCase();
     } catch {
       throw new AppError('Token parcial inválido o expirado', 401);
     }
-
-    if (!partialPayload.email) {
-      throw new AppError('Token parcial inválido', 401);
-    }
-
-    const email = partialPayload.email.trim().toLowerCase();
     const existingUser = await this.userRepository.findByEmail(email);
     if (existingUser) {
       throw new AppError('El usuario ya existe', 409);

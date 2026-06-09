@@ -98,4 +98,22 @@ export class JwtTokenService implements ITokenService {
     }
     return { id, email, kind };
   }
+
+  signPartialToken(email: string): string {
+    return jwt.sign(
+      { email, type: 'partial' },
+      this.config.secret,
+      { expiresIn: '5m', algorithm: 'HS256' }
+    );
+  }
+
+  verifyPartialToken(token: string): { email: string } {
+    const decoded = jwt.verify(token, this.config.secret, {
+      algorithms: ['HS256'],
+    }) as { email?: string; type?: string };
+    if (!decoded || typeof decoded === 'string' || !decoded.email || decoded.type !== 'partial') {
+      throw new Error('Token parcial inválido');
+    }
+    return { email: decoded.email };
+  }
 }

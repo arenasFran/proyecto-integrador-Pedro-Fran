@@ -75,8 +75,7 @@ export class AuthenticateWithGoogleUseCase {
     const lastname = payload.familyName;
 
     if (!name) {
-      const partialPayload = { id: '', email: normalizedEmail, kind: 'Registrado' as const };
-      const partialToken = this.tokenService.signAccessToken(partialPayload);
+      const partialToken = this.tokenService.signPartialToken(normalizedEmail);
 
       return { requiresProfileCompletion: true, partialToken };
     }

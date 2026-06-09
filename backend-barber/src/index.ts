@@ -1,17 +1,21 @@
 import 'dotenv/config';
+import { validateEnv, getConfig } from './infrastructure/config/env';
 
-import app from "./app";
-import { connectDB } from "./infrastructure/config/db";
-import { seedAdmin, seedBarbers } from "./infrastructure/scripts/seed";
+validateEnv();
+const config = getConfig();
 
-const PORT = process.env.PORT || 3000;
+import { connectDB } from './infrastructure/config/db';
+import { seedAdmin, seedBarbers } from './infrastructure/scripts/seed';
 
 const startServer = async () => {
   await connectDB();
   await seedAdmin();
   await seedBarbers();
-  app.listen(PORT, () => {
-    console.log(`Servidor corriendo en puerto ${PORT}`);
+
+  const { default: app } = await import('./app');
+
+  app.listen(config.port, () => {
+    console.log(`Servidor corriendo en puerto ${config.port}`);
   });
 };
 

@@ -9,11 +9,11 @@ import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/Mo
 import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { StaticServiceRepository } from '../infrastructure/repositories/static/StaticServiceRepository';
-import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
 import { AppointmentController } from '../interface-adapters/controllers/appointment/AppointmentController';
 import { createAppointmentRouter } from '../interface-adapters/routes/appointment.routes';
+import { buildTokenService } from './auth';
 
 export const buildAppointmentRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
@@ -21,7 +21,7 @@ export const buildAppointmentRouter = () => {
   const serviceRepository = new StaticServiceRepository();
   const clientRepository = new MongoClientRepository();
   const tempLockRepository = new MongoTempLockRepository();
-  const tokenService = new JwtTokenService();
+  const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
   const createAppointment = new CreateAppointmentUseCase(

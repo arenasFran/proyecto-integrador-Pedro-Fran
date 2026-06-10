@@ -89,12 +89,14 @@ describe('authService', () => {
       token: '123456',
       password: '123456',
       repeatPassword: '123456',
+      email: 'test@example.com',
     });
 
     expect(mockedApi.post).toHaveBeenCalledWith('/auth/reset-password', {
       token: '123456',
       password: '123456',
       repeatPassword: '123456',
+      email: 'test@example.com',
     });
     expect(result).toBe('ok');
   });

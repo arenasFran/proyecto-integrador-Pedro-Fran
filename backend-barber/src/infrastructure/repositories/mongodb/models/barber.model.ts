@@ -1,8 +1,14 @@
 import mongoose, { Document, Schema } from 'mongoose';
 import { IAdminInput, IBarberBaseInput, IEmployeeInput } from '../../../types/user-input';
+import type { BarberSchedule } from '../../../../domain/entities/Barber';
 
 export interface IBarberBase extends Document, IBarberBaseInput {
   kind?: 'Admin' | 'Empleado';
+  lastLoginAt?: Date;
+  twoFactorFailedAttempts?: number;
+  twoFactorLockedUntil?: Date;
+  resetFailedAttempts?: number;
+  resetLockedUntil?: Date;
 }
 
 export interface IEmployee extends IBarberBase, IEmployeeInput {
@@ -10,6 +16,30 @@ export interface IEmployee extends IBarberBase, IEmployeeInput {
 }
 
 export interface IAdmin extends IBarberBase, IAdminInput {
+  kind: 'Admin';
+}
+
+export interface IBarberRaw {
+  _id: mongoose.Types.ObjectId;
+  email: string;
+  password: string;
+  name: string;
+  lastname: string;
+  phone: string;
+  kind?: string;
+  specialties?: string[];
+  age?: number;
+  photoUrl?: string | null;
+  isActive?: boolean;
+  slotDuration?: number;
+  schedule?: BarberSchedule;
+}
+
+export interface IEmployeeRaw extends IBarberRaw {
+  kind: 'Empleado';
+}
+
+export interface IAdminRaw extends IBarberRaw {
   kind: 'Admin';
 }
 
@@ -44,6 +74,22 @@ const barberSchema = new Schema<IBarberBase>(
     },
     twoFactorExpires: {
       type: Date,
+    },
+    twoFactorFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    twoFactorLockedUntil: {
+      type: Date,
+      default: null,
+    },
+    resetFailedAttempts: {
+      type: Number,
+      default: 0,
+    },
+    resetLockedUntil: {
+      type: Date,
+      default: null,
     },
   },
   {

@@ -31,15 +31,42 @@ export interface ResetPasswordData {
   token: string;
   password: string;
   repeatPassword: string;
+  email: string;
 }
 
 export interface LoginResponse {
   message: string;
   token: string;
+  refreshToken: string;
 }
 
 export interface TwoFactorSendResponse {
   message: string;
+}
+
+export interface GoogleLoginSuccessResponse {
+  message: string;
+  token: string;
+  refreshToken: string;
+}
+
+export interface GoogleRequiresProfileResponse {
+  requiresProfileCompletion: true;
+  partialToken: string;
+}
+
+export type GoogleLoginResponse = GoogleLoginSuccessResponse | GoogleRequiresProfileResponse;
+
+export interface CompleteGoogleProfileData {
+  partialToken: string;
+  name: string;
+  lastname?: string;
+}
+
+export interface RefreshTokenResponse {
+  message: string;
+  token: string;
+  refreshToken: string;
 }
 
 export const authService = {
@@ -53,13 +80,23 @@ export const authService = {
     return response.data;
   },
 
-  googleLogin: async (data: GoogleLoginData): Promise<LoginResponse> => {
-    const response = await api.post<LoginResponse>('/auth/google', data);
+  googleLogin: async (data: GoogleLoginData): Promise<GoogleLoginResponse> => {
+    const response = await api.post<GoogleLoginResponse>('/auth/google', data);
     return response.data;
   },
 
   verifyTwoFactorCode: async (data: TwoFactorVerifyData): Promise<LoginResponse> => {
     const response = await api.post<LoginResponse>('/auth/2fa/verify', data);
+    return response.data;
+  },
+
+  completeGoogleProfile: async (data: CompleteGoogleProfileData): Promise<LoginResponse> => {
+    const response = await api.post<LoginResponse>('/auth/google/complete-profile', data);
+    return response.data;
+  },
+
+  refreshToken: async (refreshToken: string): Promise<RefreshTokenResponse> => {
+    const response = await api.post<RefreshTokenResponse>('/auth/refresh', { refreshToken });
     return response.data;
   },
 
@@ -73,6 +110,7 @@ export const authService = {
       token: data.token,
       password: data.password,
       repeatPassword: data.repeatPassword,
+      email: data.email,
     });
     return response.data.message;
   },

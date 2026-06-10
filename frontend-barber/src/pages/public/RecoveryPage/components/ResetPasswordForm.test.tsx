@@ -18,7 +18,7 @@ vi.mock('../../../../services/auth.service', () => ({
 
 describe('ResetPasswordForm', () => {
   it('renders token and password fields', () => {
-    renderWithProviders(<ResetPasswordForm />);
+    renderWithProviders(<ResetPasswordForm email="test@example.com" />);
     expect(screen.getByLabelText(/token de recuperación/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nueva contraseña/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
@@ -26,7 +26,7 @@ describe('ResetPasswordForm', () => {
 
   it('shows validation error on submit when invalid', async () => {
     const user = userEvent.setup();
-    const { store } = renderWithProviders(<ResetPasswordForm />);
+    const { store } = renderWithProviders(<ResetPasswordForm email="test@example.com" />);
     const dispatchSpy = vi.spyOn(store, 'dispatch');
 
     await user.click(screen.getByRole('button', { name: /restablecer contraseña/i }));
@@ -36,7 +36,7 @@ describe('ResetPasswordForm', () => {
   });
 
   it('shows success state when resetPasswordSuccess is set', () => {
-    renderWithProviders(<ResetPasswordForm />, {
+    renderWithProviders(<ResetPasswordForm email="test@example.com" />, {
       preloadedState: {
         auth: {
           isLoading: false,

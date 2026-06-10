@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
 import { AuthenticateWithGoogleUseCase } from '../../../application/use-cases/auth/AuthenticateWithGoogleUseCase';
+import { CompleteGoogleProfileUseCase } from '../../../application/use-cases/auth/CompleteGoogleProfileUseCase';
 import { AuthPresenter } from '../../presenters/AuthPresenter';
 
 export class AuthGoogleController {
-  constructor(private readonly authenticateWithGoogle: AuthenticateWithGoogleUseCase) {}
+  constructor(
+    private readonly authenticateWithGoogle: AuthenticateWithGoogleUseCase,
+    private readonly completeGoogleProfileUseCase: CompleteGoogleProfileUseCase
+  ) {}
 
   googleLogin = async (req: Request, res: Response) => {
     try {
@@ -11,6 +15,15 @@ export class AuthGoogleController {
       return AuthPresenter.success(res, result, 200);
     } catch (error) {
       return AuthPresenter.handleError(res, error, 'Error al autenticar con Google');
+    }
+  };
+
+  completeProfile = async (req: Request, res: Response) => {
+    try {
+      const result = await this.completeGoogleProfileUseCase.execute(req.body);
+      return AuthPresenter.success(res, result, 200);
+    } catch (error) {
+      return AuthPresenter.handleError(res, error, 'Error al completar el perfil');
     }
   };
 }

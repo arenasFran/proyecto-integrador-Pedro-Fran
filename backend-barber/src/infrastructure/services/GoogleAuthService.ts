@@ -3,15 +3,17 @@ import { GoogleUser, IGoogleAuthService } from '../../application/ports/IGoogleA
 
 export class GoogleAuthService implements IGoogleAuthService {
   private readonly client: OAuth2Client;
+  private readonly clientId: string;
 
-  constructor(clientId?: string) {
-    this.client = new OAuth2Client(clientId || process.env.GOOGLE_CLIENT_ID);
+  constructor(clientId: string) {
+    this.clientId = clientId;
+    this.client = new OAuth2Client(clientId);
   }
 
   async verifyIdToken(token: string): Promise<GoogleUser> {
     const ticket = await this.client.verifyIdToken({
       idToken: token,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience: this.clientId,
     });
 
     const payload = ticket.getPayload();

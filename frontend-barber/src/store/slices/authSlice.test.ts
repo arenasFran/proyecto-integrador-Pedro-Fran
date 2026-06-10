@@ -30,6 +30,9 @@ const initialState = {
   requestResetSuccess: null,
   resetPasswordSuccess: null,
   user: null,
+  refreshToken: null,
+  requiresProfileCompletion: null,
+  profileCompletionError: null,
 };
 
 describe('authSlice', () => {
@@ -200,20 +203,20 @@ describe('authSlice', () => {
   });
 
   it('handles resetPasswordThunk.pending', () => {
-    const state = reducer(initialState, resetPasswordThunk.pending('', { token: '123456', password: '123456', repeatPassword: '123456' }));
+    const state = reducer(initialState, resetPasswordThunk.pending('', { token: '123456', password: '123456', repeatPassword: '123456', email: 'test@example.com' }));
     expect(state.isLoading).toBe(true);
     expect(state.error).toBeNull();
     expect(state.registerSuccess).toBeNull();
   });
 
   it('handles resetPasswordThunk.fulfilled', () => {
-    const state = reducer(initialState, resetPasswordThunk.fulfilled('ok', '', { token: '123456', password: '123456', repeatPassword: '123456' }));
+    const state = reducer(initialState, resetPasswordThunk.fulfilled('ok', '', { token: '123456', password: '123456', repeatPassword: '123456', email: 'test@example.com' }));
     expect(state.isLoading).toBe(false);
     expect(state.resetPasswordSuccess).toBe('ok');
   });
 
   it('handles resetPasswordThunk.rejected', () => {
-    const state = reducer(initialState, resetPasswordThunk.rejected(new Error('fail'), '', { token: '123456', password: '123456', repeatPassword: '123456' }, 'Error'));
+    const state = reducer(initialState, resetPasswordThunk.rejected(new Error('fail'), '', { token: '123456', password: '123456', repeatPassword: '123456', email: 'test@example.com' }, 'Error'));
     expect(state.isLoading).toBe(false);
     expect(state.error).toBe('Error');
   });

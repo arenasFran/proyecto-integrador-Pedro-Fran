@@ -27,3 +27,16 @@ export const verifyTwoFactorCode = async (email: string, code: string) => {
   await context.dispose();
   return response;
 };
+
+export const getTwoFactorCode = async (email: string): Promise<string> => {
+  const context = await request.newContext({ baseURL: apiBaseUrl });
+  const response = await context.get('/__test/two-factor-code', {
+    params: { email },
+  });
+  const data = await response.json() as { code: string };
+  await context.dispose();
+  if (!response.ok()) {
+    throw new Error(`No se pudo obtener el código 2FA para ${email}`);
+  }
+  return data.code;
+};

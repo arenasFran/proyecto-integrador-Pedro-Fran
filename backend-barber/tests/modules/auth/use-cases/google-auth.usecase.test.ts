@@ -1,11 +1,17 @@
 import { AuthenticateWithGoogleUseCase } from '../../../../src/application/use-cases/auth/AuthenticateWithGoogleUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
+import { IRefreshTokenRepository } from '../../../../src/domain/repositories/IRefreshTokenRepository';
 import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { IGoogleAuthService } from '../../../../src/application/ports/IGoogleAuthService';
+import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { ITokenService } from '../../../../src/application/ports/ITokenService';
+import { IHashService } from '../../../../src/application/ports/IHashService';
+import { IDateTimeProvider } from '../../../../src/application/ports/IDateTimeProvider';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 
 describe('AuthenticateWithGoogleUseCase', () => {
+  const now = new Date('2024-01-01T10:00:00.000Z');
+
   const makeUser = (overrides?: Partial<UserProps>) => {
     const user = User.create({
       id: 'user-1',
@@ -24,6 +30,10 @@ describe('AuthenticateWithGoogleUseCase', () => {
   let userRepository: jest.Mocked<IUserRepository>;
   let googleAuthService: jest.Mocked<IGoogleAuthService>;
   let tokenService: jest.Mocked<ITokenService>;
+  let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
+  let hashService: jest.Mocked<IHashService>;
+  let dateTimeProvider: jest.Mocked<IDateTimeProvider>;
+  let passwordHasher: jest.Mocked<IPasswordHasher>;
   let useCase: AuthenticateWithGoogleUseCase;
 
   beforeEach(() => {
@@ -33,6 +43,8 @@ describe('AuthenticateWithGoogleUseCase', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     googleAuthService = {
@@ -42,12 +54,43 @@ describe('AuthenticateWithGoogleUseCase', () => {
     tokenService = {
       sign: jest.fn(),
       verify: jest.fn(),
+      signAccessToken: jest.fn(),
+      signRefreshToken: jest.fn(),
+      verifyAccessToken: jest.fn(),
+      verifyRefreshToken: jest.fn(),
+      signPartialToken: jest.fn(),
+      verifyPartialToken: jest.fn(),
+    };
+
+    refreshTokenRepository = {
+      create: jest.fn(),
+      findByTokenHash: jest.fn(),
+      revoke: jest.fn(),
+      revokeAllByUserId: jest.fn(),
+    };
+
+    hashService = {
+      sha256: jest.fn(),
+      constantTimeEqual: jest.fn(),
+    };
+
+    dateTimeProvider = {
+      now: jest.fn(),
+    };
+
+    passwordHasher = {
+      hash: jest.fn(),
+      compare: jest.fn(),
     };
 
     useCase = new AuthenticateWithGoogleUseCase(
       userRepository,
       googleAuthService,
-      tokenService
+      tokenService,
+      refreshTokenRepository,
+      hashService,
+      dateTimeProvider,
+      passwordHasher
     );
   });
 
@@ -98,7 +141,23 @@ describe('AuthenticateWithGoogleUseCase', () => {
     await expect(useCase.execute({ token: 'ok' })).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe retornar token si el usuario ya existe', async () => {
+  it('debe fallar si la cuenta es local sin Google vinculado', async () => {
+    googleAuthService.verifyIdToken.mockResolvedValue({
+      email: 'test@example.com',
+      emailVerified: true,
+      givenName: 'Juan',
+      familyName: 'Perez',
+      name: 'Juan Perez',
+      sub: 'google-1',
+    });
+    userRepository.findByEmail.mockResolvedValue(
+      makeUser({ authProvider: 'local', googleId: undefined })
+    );
+
+    await expect(useCase.execute({ token: 'ok' })).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe retornar token si el usuario ya existe con Google', async () => {
     googleAuthService.verifyIdToken.mockResolvedValue({
       email: 'test@example.com',
       emailVerified: true,
@@ -108,12 +167,20 @@ describe('AuthenticateWithGoogleUseCase', () => {
       sub: 'google-1',
     });
     userRepository.findByEmail.mockResolvedValue(makeUser());
-    tokenService.sign.mockReturnValue('token');
+    tokenService.signAccessToken.mockReturnValue('token');
+    tokenService.signRefreshToken.mockReturnValue('refresh-token');
+    hashService.sha256.mockReturnValue('hash');
+    dateTimeProvider.now.mockReturnValue(now);
 
     const result = await useCase.execute({ token: 'ok' });
 
     expect(userRepository.createRegisteredClient).not.toHaveBeenCalled();
-    expect(result.token).toBe('token');
+    expect(userRepository.updateLastLogin).toHaveBeenCalled();
+    expect(result).toEqual({
+      message: 'Login exitoso',
+      token: 'token',
+      refreshToken: 'refresh-token',
+    });
   });
 
   it('debe crear usuario si no existe', async () => {
@@ -127,11 +194,16 @@ describe('AuthenticateWithGoogleUseCase', () => {
     });
     userRepository.findByEmail.mockResolvedValue(null);
     userRepository.createRegisteredClient.mockResolvedValue(makeUser());
-    tokenService.sign.mockReturnValue('token');
+    tokenService.signAccessToken.mockReturnValue('token');
+    tokenService.signRefreshToken.mockReturnValue('refresh-token');
+    hashService.sha256.mockReturnValue('hash');
+    dateTimeProvider.now.mockReturnValue(now);
 
-    const result = await useCase.execute({ token: 'ok' });
+    const result = await useCase.execute({ token: 'ok' }) as { message: string; token: string; refreshToken: string };
 
     expect(userRepository.createRegisteredClient).toHaveBeenCalled();
+    expect(userRepository.updateLastLogin).toHaveBeenCalled();
     expect(result.token).toBe('token');
+    expect(result.refreshToken).toBe('refresh-token');
   });
 });

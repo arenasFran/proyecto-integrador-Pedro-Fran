@@ -7,6 +7,8 @@ import { useFormValidation } from '../../../hooks/useFormValidation';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   clearAuthState,
+  clearProfileCompletion,
+  completeGoogleProfileThunk,
   googleLoginThunk,
   sendTwoFactorCodeThunk,
   verifyTwoFactorCodeThunk,
@@ -43,11 +45,24 @@ const codeInitialValues: TwoFactorCodeFormData = {
   token: '',
 };
 
+const profileInitialValues = {
+  name: '',
+  lastname: '',
+};
+
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isLoading, error, loginSuccess, loginToken, twoFactorSendSuccess, twoFactorPendingEmail } =
-    useAppSelector((state) => state.auth);
+  const {
+    isLoading,
+    error,
+    loginSuccess,
+    loginToken,
+    twoFactorSendSuccess,
+    twoFactorPendingEmail,
+    requiresProfileCompletion,
+    profileCompletionError,
+  } = useAppSelector((state) => state.auth);
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const googleInitializedRef = useRef(false);
@@ -58,7 +73,7 @@ export const LoginPage: React.FC = () => {
     touched: credentialsTouched,
     validateAll: validateCredentials,
     getFieldProps: getCredentialsFieldProps,
-  } = useFormValidation(credentialsInitialValues as unknown as Record<string, string>);
+  } = useFormValidation(credentialsInitialValues );
 
   const {
     values: codeValues,
@@ -67,7 +82,15 @@ export const LoginPage: React.FC = () => {
     validateAll: validateCode,
     getFieldProps: getCodeFieldProps,
     resetForm: resetCodeForm,
-  } = useFormValidation(codeInitialValues as unknown as Record<string, string>);
+  } = useFormValidation(codeInitialValues );
+
+  const {
+    values: profileValues,
+    errors: profileErrors,
+    touched: profileTouched,
+    validateAll: validateProfile,
+    getFieldProps: getProfileFieldProps,
+  } = useFormValidation(profileInitialValues);
 
   const isCodeStep = Boolean(twoFactorPendingEmail);
 
@@ -82,6 +105,14 @@ export const LoginPage: React.FC = () => {
       dispatch(clearAuthState());
     };
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!requiresProfileCompletion) return;
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      localStorage.removeItem('authToken');
+    }
+  }, [requiresProfileCompletion]);
 
   useEffect(() => {
     if (!loginToken) return;
@@ -169,6 +200,10 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (requiresProfileCompletion) {
+      handleProfileSubmit();
+      return;
+    }
     if (isCodeStep) {
       handleCodeSubmit();
       return;
@@ -178,6 +213,20 @@ export const LoginPage: React.FC = () => {
 
   const handleBackToCredentials = () => {
     dispatch(clearAuthState());
+  };
+
+  const handleProfileSubmit = () => {
+    const isValid = validateProfile();
+    if (!isValid) return;
+    if (!requiresProfileCompletion) return;
+
+    dispatch(
+      completeGoogleProfileThunk({
+        partialToken: requiresProfileCompletion,
+        name: profileValues.name,
+        lastname: profileValues.lastname,
+      })
+    );
   };
 
   return (
@@ -205,7 +254,43 @@ export const LoginPage: React.FC = () => {
           className="bg-[#121212] border border-[#282828] rounded-[24px] p-6"
         >
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-            {!isCodeStep ? (
+            {requiresProfileCompletion ? (
+              <>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-[12px] text-[#8A8A8A] text-center"
+                >
+                  Completá tu nombre para finalizar el registro con Google
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Input
+                    label="Nombre"
+                    type="text"
+                    placeholder="Tu nombre"
+                    {...getProfileFieldProps('name')}
+                    required
+                    error={profileTouched.name ? profileErrors.name : undefined}
+                  />
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Input
+                    label="Apellido (opcional)"
+                    type="text"
+                    placeholder="Tu apellido"
+                    {...getProfileFieldProps('lastname')}
+                    error={profileTouched.lastname ? profileErrors.lastname : undefined}
+                  />
+                </motion.div>
+              </>
+            ) : !isCodeStep ? (
               <>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -263,6 +348,9 @@ export const LoginPage: React.FC = () => {
             {error && (
               <p className="text-[12px] text-red-500 text-center">{error}</p>
             )}
+            {profileCompletionError && (
+              <p className="text-[12px] text-red-500 text-center">{profileCompletionError}</p>
+            )}
             {twoFactorSendSuccess && (
               <p className="text-[12px] text-[#22C55E] text-center">{twoFactorSendSuccess}</p>
             )}
@@ -277,7 +365,7 @@ export const LoginPage: React.FC = () => {
               className="flex flex-col gap-2"
             >
               <Button type="submit" loading={isLoading} className="w-full">
-                {isCodeStep ? 'Verificar código' : 'Enviar código de verificación'}
+                {requiresProfileCompletion ? 'Completar registro' : isCodeStep ? 'Verificar código' : 'Enviar código de verificación'}
               </Button>
               {isCodeStep && (
                 <Button
@@ -288,9 +376,18 @@ export const LoginPage: React.FC = () => {
                   Volver
                 </Button>
               )}
+              {requiresProfileCompletion && (
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => dispatch(clearProfileCompletion())}
+                >
+                  Cancelar
+                </Button>
+              )}
             </motion.div>
 
-            {!isCodeStep && (
+            {!isCodeStep && !requiresProfileCompletion && (
               <div className="flex flex-col gap-3 pt-2">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[#282828]" />

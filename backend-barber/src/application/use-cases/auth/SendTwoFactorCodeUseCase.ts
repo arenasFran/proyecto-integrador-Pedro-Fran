@@ -38,24 +38,62 @@ export class SendTwoFactorCodeUseCase {
       throw new AppError('Email y/o contraseña incorrectos.', 401);
     }
 
+    if (user.twoFactorLockedUntil && this.dateTimeProvider.now() < user.twoFactorLockedUntil) {
+      const remainingMin = Math.ceil(
+        (user.twoFactorLockedUntil.getTime() - this.dateTimeProvider.now().getTime()) / 60000
+      );
+      throw new AppError(
+        `Demasiados intentos fallidos de verificación. Intentalo de nuevo en ${remainingMin} minutos.`,
+        429
+      );
+    }
+
+    await this.userRepository.updateUserSecurity(user.id, {
+      twoFactorFailedAttempts: 0,
+      twoFactorLockedUntil: null,
+    });
+
     const code = this.randomGenerator.generateNumericCode(6);
     const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 5 * 60 * 1000);
     const codeHash = this.hashService.sha256(code);
+
+    let lastError: unknown;
+    let sent = false;
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        await this.emailService.sendMail({
+          to: email,
+          subject: 'Tu código de verificación',
+          html: `<h2>Tu código es: <strong>${code}</strong></h2><p>Expira en 5 minutos.</p>`,
+        });
+        sent = true;
+        break;
+      } catch (error) {
+        lastError = error;
+        console.error(
+          'Error enviando email 2FA (intento %d) a %s: %s',
+          attempt + 1,
+          email,
+          error instanceof Error ? error.message : 'Error desconocido'
+        );
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 500));
+        }
+      }
+    }
+
+    if (!sent) {
+      console.error('Fallo al enviar email después de 3 intentos:', lastError);
+      throw new AppError(
+        'No se pudo enviar el código de verificación. Servicio de correo no disponible, intentá de nuevo.',
+        500
+      );
+    }
 
     await this.userRepository.updateTwoFactor(user.id, {
       codeHash,
       expiresAt,
     });
-
-    this.emailService
-      .sendMail({
-        to: email,
-        subject: 'Tu código de verificación',
-        html: `<h2>Tu código es: <strong>${code}</strong></h2><p>Expira en 5 minutos.</p>`,
-      })
-      .catch((error: unknown) => {
-        console.error('Error enviando email 2FA a %s', email, error);
-      });
 
     return { message: 'Código enviado al email' };
   }

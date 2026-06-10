@@ -66,6 +66,8 @@ describe('CreateEmployeeBarberUseCase', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     barberRepository = {
@@ -96,7 +98,7 @@ describe('CreateEmployeeBarberUseCase', () => {
     await expect(
       useCase.execute({
         email: 'used@example.com',
-        password: '123456',
+        password: 'Abcd1234',
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
@@ -113,7 +115,7 @@ describe('CreateEmployeeBarberUseCase', () => {
     await expect(
       useCase.execute({
         email: 'new@example.com',
-        password: '123456',
+        password: 'Abcd1234',
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
@@ -131,7 +133,7 @@ describe('CreateEmployeeBarberUseCase', () => {
 
     await useCase.execute({
       email: 'new@example.com',
-      password: '123456',
+      password: 'Abcd1234',
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
@@ -141,7 +143,7 @@ describe('CreateEmployeeBarberUseCase', () => {
 
     const [createdBarber] = barberRepository.createEmployee.mock.calls[0];
 
-    expect(passwordHasher.hash).toHaveBeenCalledWith('123456');
+    expect(passwordHasher.hash).toHaveBeenCalledWith('Abcd1234');
     expect(createdBarber.slotDuration).toBe(30);
   });
 
@@ -153,7 +155,7 @@ describe('CreateEmployeeBarberUseCase', () => {
 
     await useCase.execute({
       email: 'new@example.com',
-      password: '123456',
+      password: 'Abcd1234',
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',

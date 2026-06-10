@@ -1,18 +1,30 @@
 import { User } from '../../../domain/entities/User';
+import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { GoogleLoginDTO } from '../../dto/auth/GoogleLoginDTO';
 import { AppError } from '../../errors/AppError';
+import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { IGoogleAuthService } from '../../ports/IGoogleAuthService';
+import { IPasswordHasher } from '../../ports/IPasswordHasher';
+import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
+
+type GoogleLoginResponse =
+  | { message: string; token: string; refreshToken: string }
+  | { requiresProfileCompletion: true; partialToken: string };
 
 export class AuthenticateWithGoogleUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly googleAuthService: IGoogleAuthService,
-    private readonly tokenService: ITokenService
+    private readonly tokenService: ITokenService,
+    private readonly refreshTokenRepository: IRefreshTokenRepository,
+    private readonly hashService: IHashService,
+    private readonly dateTimeProvider: IDateTimeProvider,
+    private readonly passwordHasher: IPasswordHasher
   ) {}
 
-  async execute(dto: GoogleLoginDTO): Promise<{ message: string; token: string }> {
+  async execute(dto: GoogleLoginDTO): Promise<GoogleLoginResponse> {
     let payload;
     try {
       payload = await this.googleAuthService.verifyIdToken(dto.token);
@@ -31,6 +43,7 @@ export class AuthenticateWithGoogleUseCase {
       if (existingUser.kind === 'Admin' || existingUser.kind === 'Empleado') {
         throw new AppError('Este usuario no puede iniciar con Google.', 401);
       }
+
       if (
         existingUser.authProvider === 'google' &&
         existingUser.googleId &&
@@ -39,32 +52,54 @@ export class AuthenticateWithGoogleUseCase {
         throw new AppError('Token de Google inválido', 401);
       }
 
-      const token = this.tokenService.sign({
-        id: existingUser.id,
-        email: existingUser.email,
-        kind: existingUser.kind,
-      });
+      if (existingUser.authProvider === 'local' && !existingUser.googleId) {
+        throw new AppError(
+          'ACCOUNT_EXISTS_LOCAL',
+          409
+        );
+      }
 
-      return { message: 'Login exitoso', token };
+      const tokenPayload = { id: existingUser.id, email: existingUser.email, kind: existingUser.kind };
+      const token = this.tokenService.signAccessToken(tokenPayload);
+      const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
+
+      const tokenHash = this.hashService.sha256(refreshToken);
+      const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+      await this.refreshTokenRepository.create(tokenHash, existingUser.id, expiresAt);
+      await this.userRepository.updateLastLogin(existingUser.id);
+
+      return { message: 'Login exitoso', token, refreshToken };
+    }
+
+    const name = payload.name || payload.givenName;
+    const lastname = payload.familyName;
+
+    if (!name) {
+      const partialToken = this.tokenService.signPartialToken(normalizedEmail);
+
+      return { requiresProfileCompletion: true, partialToken };
     }
 
     const user = User.create({
       id: '',
       email: normalizedEmail,
-      name: payload.givenName || payload.name || 'Usuario',
-      lastname: payload.familyName || '-',
+      name,
+      lastname: lastname || '',
       kind: 'Registrado',
       authProvider: 'google',
       googleId: payload.sub,
     });
 
     const created = await this.userRepository.createRegisteredClient(user);
-    const token = this.tokenService.sign({
-      id: created.id,
-      email: created.email,
-      kind: created.kind,
-    });
+    const tokenPayload = { id: created.id, email: created.email, kind: created.kind };
+    const token = this.tokenService.signAccessToken(tokenPayload);
+    const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
 
-    return { message: 'Login exitoso', token };
+    const tokenHash = this.hashService.sha256(refreshToken);
+    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+    await this.refreshTokenRepository.create(tokenHash, created.id, expiresAt);
+    await this.userRepository.updateLastLogin(created.id);
+
+    return { message: 'Login exitoso', token, refreshToken };
   }
 }

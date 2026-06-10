@@ -6,7 +6,7 @@ export class GetBarberByIdUseCase {
   constructor(private readonly barberRepository: IBarberRepository) {}
 
   async execute(barberId: string): Promise<BarberResponseDTO> {
-    const barber = await this.barberRepository.findEmployeeById(barberId);
+    const barber = await this.barberRepository.findBarberById(barberId);
     if (!barber) {
       throw new AppError('Barbero no encontrado.', 404);
     }

@@ -5,7 +5,7 @@ export type BarberUpdate = {
   name?: string;
   lastname?: string;
   phone?: string;
-  specialties?: string[];
+  services?: string[];
   age?: number | null;
   photoUrl?: string | null;
   isActive?: boolean;
@@ -14,11 +14,11 @@ export type BarberUpdate = {
 };
 
 export interface IBarberRepository {
-  findEmployeeById(id: string): Promise<Barber | null>;
-  findAllEmployees(): Promise<Barber[]>;
-  createEmployee(barber: Barber): Promise<Barber>;
-  updateEmployee(id: string, update: BarberUpdate): Promise<Barber | null>;
-  deactivateEmployee(id: string): Promise<void>;
-  deleteEmployee(id: string): Promise<void>;
+  findBarberById(id: string): Promise<Barber | null>;
+  findAllBarbers(): Promise<Barber[]>;
+  createBarber(barber: Barber): Promise<Barber>;
+  updateBarber(id: string, update: BarberUpdate): Promise<Barber | null>;
+  deactivateBarber(id: string): Promise<void>;
+  deleteBarber(id: string): Promise<void>;
   updateSchedule(id: string, schedule: BarberSchedule): Promise<Barber | null>;
 }

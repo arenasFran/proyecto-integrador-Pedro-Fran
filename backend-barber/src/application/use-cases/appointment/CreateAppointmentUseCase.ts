@@ -42,7 +42,7 @@ export class CreateAppointmentUseCase {
       }
     }
 
-    const barber = await this.barberRepository.findEmployeeById(dto.barberId);
+    const barber = await this.barberRepository.findBarberById(dto.barberId);
     if (!barber) {
       throw new AppError('Barbero no encontrado.', 404);
     }

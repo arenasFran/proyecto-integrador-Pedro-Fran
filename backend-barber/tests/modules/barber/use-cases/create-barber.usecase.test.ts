@@ -1,4 +1,4 @@
-import { CreateEmployeeBarberUseCase } from '../../../../src/application/use-cases/barber/CreateEmployeeBarberUseCase';
+import { CreateBarberUseCase } from '../../../../src/application/use-cases/barber/CreateBarberUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
@@ -6,7 +6,7 @@ import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRe
 import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { User } from '../../../../src/domain/entities/User';
 
-describe('CreateEmployeeBarberUseCase', () => {
+describe('CreateBarberUseCase', () => {
   const createScheduleDay = () => ({
     startTime: '09:00',
     endTime: '18:00',
@@ -31,7 +31,7 @@ describe('CreateEmployeeBarberUseCase', () => {
       lastname: 'Perez',
       phone: '123456789',
       kind: 'Empleado',
-      specialties: [],
+      services: [],
       isActive: true,
       slotDuration: 30,
       schedule: createSchedule(),
@@ -57,7 +57,7 @@ describe('CreateEmployeeBarberUseCase', () => {
   let userRepository: jest.Mocked<IUserRepository>;
   let barberRepository: jest.Mocked<IBarberRepository>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
-  let useCase: CreateEmployeeBarberUseCase;
+  let useCase: CreateBarberUseCase;
 
   beforeEach(() => {
     userRepository = {
@@ -71,12 +71,12 @@ describe('CreateEmployeeBarberUseCase', () => {
     };
 
     barberRepository = {
-      findEmployeeById: jest.fn(),
-      findAllEmployees: jest.fn(),
-      createEmployee: jest.fn(),
-      updateEmployee: jest.fn(),
-      deactivateEmployee: jest.fn(),
-      deleteEmployee: jest.fn(),
+      findBarberById: jest.fn(),
+      findAllBarbers: jest.fn(),
+      createBarber: jest.fn(),
+      updateBarber: jest.fn(),
+      deactivateBarber: jest.fn(),
+      deleteBarber: jest.fn(),
       updateSchedule: jest.fn(),
     };
 
@@ -85,7 +85,7 @@ describe('CreateEmployeeBarberUseCase', () => {
       compare: jest.fn(),
     };
 
-    useCase = new CreateEmployeeBarberUseCase(
+    useCase = new CreateBarberUseCase(
       userRepository,
       barberRepository,
       passwordHasher
@@ -102,7 +102,7 @@ describe('CreateEmployeeBarberUseCase', () => {
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
-        specialties: [],
+        services: [],
         schedule: createSchedule(),
       })
     ).rejects.toBeInstanceOf(AppError);
@@ -119,7 +119,7 @@ describe('CreateEmployeeBarberUseCase', () => {
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
-        specialties: [],
+        services: [],
         schedule: createSchedule(),
       })
     ).rejects.toBeInstanceOf(AppError);
@@ -129,7 +129,7 @@ describe('CreateEmployeeBarberUseCase', () => {
     userRepository.findByEmail.mockResolvedValue(null);
     userRepository.findByPhone.mockResolvedValue(null);
     passwordHasher.hash.mockResolvedValue('hashed');
-    barberRepository.createEmployee.mockResolvedValue(makeBarber());
+    barberRepository.createBarber.mockResolvedValue(makeBarber());
 
     await useCase.execute({
       email: 'new@example.com',
@@ -137,11 +137,11 @@ describe('CreateEmployeeBarberUseCase', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
-      specialties: ['corte'],
+      services: ['corte'],
       schedule: createSchedule(),
     });
 
-    const [createdBarber] = barberRepository.createEmployee.mock.calls[0];
+    const [createdBarber] = barberRepository.createBarber.mock.calls[0];
 
     expect(passwordHasher.hash).toHaveBeenCalledWith('Abcd1234');
     expect(createdBarber.slotDuration).toBe(30);
@@ -151,7 +151,7 @@ describe('CreateEmployeeBarberUseCase', () => {
     userRepository.findByEmail.mockResolvedValue(null);
     userRepository.findByPhone.mockResolvedValue(null);
     passwordHasher.hash.mockResolvedValue('hashed');
-    barberRepository.createEmployee.mockResolvedValue(makeBarber({ slotDuration: 45 }));
+    barberRepository.createBarber.mockResolvedValue(makeBarber({ slotDuration: 45 }));
 
     await useCase.execute({
       email: 'new@example.com',
@@ -159,12 +159,12 @@ describe('CreateEmployeeBarberUseCase', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
-      specialties: ['corte'],
+      services: ['corte'],
       slotDuration: 45,
       schedule: createSchedule(),
     });
 
-    const [createdBarber] = barberRepository.createEmployee.mock.calls[0];
+    const [createdBarber] = barberRepository.createBarber.mock.calls[0];
 
     expect(createdBarber.slotDuration).toBe(45);
   });

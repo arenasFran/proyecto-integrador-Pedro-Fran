@@ -28,7 +28,7 @@ describe('DeactivateBarberUseCase', () => {
       lastname: 'Perez',
       phone: '123456789',
       kind: 'Empleado',
-      specialties: [],
+      services: [],
       isActive: true,
       slotDuration: 30,
       schedule: createSchedule(),
@@ -43,12 +43,12 @@ describe('DeactivateBarberUseCase', () => {
 
   beforeEach(() => {
     barberRepository = {
-      findEmployeeById: jest.fn(),
-      findAllEmployees: jest.fn(),
-      createEmployee: jest.fn(),
-      updateEmployee: jest.fn(),
-      deactivateEmployee: jest.fn(),
-      deleteEmployee: jest.fn(),
+      findBarberById: jest.fn(),
+      findAllBarbers: jest.fn(),
+      createBarber: jest.fn(),
+      updateBarber: jest.fn(),
+      deactivateBarber: jest.fn(),
+      deleteBarber: jest.fn(),
       updateSchedule: jest.fn(),
     };
 
@@ -56,16 +56,16 @@ describe('DeactivateBarberUseCase', () => {
   });
 
   it('debe desactivar un barbero existente', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
 
     const result = await useCase.execute('barber-1');
 
-    expect(barberRepository.deactivateEmployee).toHaveBeenCalledWith('barber-1');
+    expect(barberRepository.deactivateBarber).toHaveBeenCalledWith('barber-1');
     expect(result).toEqual({ message: 'Barbero desactivado' });
   });
 
   it('debe fallar si el barbero no existe', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(null);
+    barberRepository.findBarberById.mockResolvedValue(null);
 
     await expect(useCase.execute('barber-1')).rejects.toBeInstanceOf(AppError);
   });

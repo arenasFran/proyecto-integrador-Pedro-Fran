@@ -7,8 +7,9 @@ import request from 'supertest';
 import express from 'express';
 import { createBarberRouter } from '../../../src/interface-adapters/routes/barber.routes';
 import { BarberController } from '../../../src/interface-adapters/controllers/barber/BarberController';
-import { CreateEmployeeBarberUseCase } from '../../../src/application/use-cases/barber/CreateEmployeeBarberUseCase';
-import { GetAllEmployeesUseCase } from '../../../src/application/use-cases/barber/GetAllEmployeesUseCase';
+import { CreateBarberUseCase } from '../../../src/application/use-cases/barber/CreateBarberUseCase';
+import { DeactivateBarberUseCase } from '../../../src/application/use-cases/barber/DeactivateBarberUseCase';
+import { GetAllBarbersUseCase } from '../../../src/application/use-cases/barber/GetAllBarbersUseCase';
 import { GetBarberByIdUseCase } from '../../../src/application/use-cases/barber/GetBarberByIdUseCase';
 import { UpdateBarberUseCase } from '../../../src/application/use-cases/barber/UpdateBarberUseCase';
 import { DeleteBarberUseCase } from '../../../src/application/use-cases/barber/DeleteBarberUseCase';
@@ -39,7 +40,7 @@ const makeBarberResponse = () => ({
   email: 'barber@example.com',
   phone: '123456789',
   kind: 'Empleado' as const,
-  specialties: [] as string[],
+  services: [] as string[],
   isActive: true,
   slotDuration: 30,
   schedule: createSchedule(),
@@ -49,23 +50,31 @@ const makeBarberResponse = () => ({
 describe('Barber routes', () => {
   let app: express.Application;
 
-  let createBarber: jest.Mocked<CreateEmployeeBarberUseCase>;
-  let getAllBarbers: jest.Mocked<GetAllEmployeesUseCase>;
+  let createBarber: jest.Mocked<CreateBarberUseCase>;
+  let getAllBarbers: jest.Mocked<GetAllBarbersUseCase>;
   let getBarberById: jest.Mocked<GetBarberByIdUseCase>;
   let updateBarber: jest.Mocked<UpdateBarberUseCase>;
   let deleteBarber: jest.Mocked<DeleteBarberUseCase>;
+  let deactivateBarber: jest.Mocked<DeactivateBarberUseCase>;
   let getBarberSchedule: jest.Mocked<GetBarberScheduleUseCase>;
   let updateBarberSchedule: jest.Mocked<UpdateBarberScheduleUseCase>;
   let getAvailableSlots: jest.Mocked<GetAvailableSlotsUseCase>;
 
-  const authenticate: express.RequestHandler = (_req, _res, next) => next();
+  let authUserKind: string;
+
+  const authenticate: express.RequestHandler = (req, _res, next) => {
+    (req as any).user = { _id: 'user-1', email: 'test@test.com', kind: authUserKind };
+    next();
+  };
 
   beforeEach(() => {
-    createBarber = { execute: jest.fn() } as unknown as jest.Mocked<CreateEmployeeBarberUseCase>;
-    getAllBarbers = { execute: jest.fn() } as unknown as jest.Mocked<GetAllEmployeesUseCase>;
+    authUserKind = 'Empleado';
+    createBarber = { execute: jest.fn() } as unknown as jest.Mocked<CreateBarberUseCase>;
+    getAllBarbers = { execute: jest.fn() } as unknown as jest.Mocked<GetAllBarbersUseCase>;
     getBarberById = { execute: jest.fn() } as unknown as jest.Mocked<GetBarberByIdUseCase>;
     updateBarber = { execute: jest.fn() } as unknown as jest.Mocked<UpdateBarberUseCase>;
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
+    deactivateBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeactivateBarberUseCase>;
     getBarberSchedule = { execute: jest.fn() } as unknown as jest.Mocked<GetBarberScheduleUseCase>;
     updateBarberSchedule = { execute: jest.fn() } as unknown as jest.Mocked<UpdateBarberScheduleUseCase>;
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
@@ -76,6 +85,7 @@ describe('Barber routes', () => {
       getBarberById,
       updateBarber,
       deleteBarber,
+      deactivateBarber,
       getBarberSchedule,
       updateBarberSchedule,
       getAvailableSlots
@@ -86,7 +96,33 @@ describe('Barber routes', () => {
     app.use('/api/barbers', createBarberRouter({ barberController: controller, authenticate }));
   });
 
-  it('GET /api/barbers debe devolver la lista de barberos', async () => {
+  it('GET /api/barbers como Admin debe devolver todos los barberos', async () => {
+    authUserKind = 'Admin';
+
+    const admin = { ...makeBarberResponse(), id: 'admin-1', kind: 'Admin' as const };
+    const inactive = { ...makeBarberResponse(), id: 'inactive-1', isActive: false };
+    const active = makeBarberResponse();
+    getAllBarbers.execute.mockResolvedValue([admin, inactive, active]);
+
+    const response = await request(app).get('/api/barbers');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ barbers: [admin, inactive, active] });
+  });
+
+  it('GET /api/barbers como Empleado debe filtrar Admins e inactivos', async () => {
+    const admin = { ...makeBarberResponse(), id: 'admin-1', kind: 'Admin' as const };
+    const inactive = { ...makeBarberResponse(), id: 'inactive-1', isActive: false };
+    const active = makeBarberResponse();
+    getAllBarbers.execute.mockResolvedValue([admin, inactive, active]);
+
+    const response = await request(app).get('/api/barbers');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ barbers: [active] });
+  });
+
+  it('GET /api/barbers debe devolver la lista de barberos (default Empleado)', async () => {
     getAllBarbers.execute.mockResolvedValue([makeBarberResponse()]);
 
     const response = await request(app).get('/api/barbers');
@@ -115,7 +151,7 @@ describe('Barber routes', () => {
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
-        specialties: ['corte'],
+        services: ['corte'],
         schedule: createSchedule(),
       });
 
@@ -195,6 +231,15 @@ describe('Barber routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ schedule });
+  });
+
+  it('PATCH /api/barbers/:id/deactivate debe desactivar un barbero', async () => {
+    deactivateBarber.execute.mockResolvedValue({ message: 'Barbero desactivado' });
+
+    const response = await request(app).patch('/api/barbers/barber-1/deactivate');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ message: 'Barbero desactivado' });
   });
 
   it('PUT /api/barbers/:id/schedule debe actualizar el horario', async () => {

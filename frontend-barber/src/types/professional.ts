@@ -27,7 +27,7 @@ export type Professional = {
   email: string;
   phone: string;
   kind: 'Admin' | 'Empleado';
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
@@ -41,7 +41,7 @@ export type ProfessionalPayload = {
   name: string;
   lastname: string;
   phone: string;
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   slotDuration?: number;
@@ -54,7 +54,7 @@ export type ProfessionalUpdatePayload = {
   name?: string;
   lastname?: string;
   phone?: string;
-  specialties?: string[];
+  services?: string[];
   age?: number | null;
   photoUrl?: string | null;
   isActive?: boolean;

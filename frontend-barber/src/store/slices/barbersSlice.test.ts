@@ -26,7 +26,7 @@ const mockBarber: Professional = {
   email: 'juan@barberia.com',
   phone: '099123456',
   kind: 'Empleado',
-  specialties: ['corte'],
+  services: ['corte'],
   age: 28,
   photoUrl: null,
   isActive: true,
@@ -84,7 +84,7 @@ describe('barbersSlice', () => {
       name: 'Juan',
       lastname: 'Pérez',
       phone: '099123456',
-      specialties: ['corte'],
+      services: ['corte'],
       schedule: mockBarber.schedule,
     };
     vi.mocked(professionalService.create).mockResolvedValueOnce(mockBarber);
@@ -143,7 +143,7 @@ describe('barbersSlice', () => {
       name: 'X',
       lastname: 'Y',
       phone: '099000000',
-      specialties: [],
+      services: [],
       schedule: mockBarber.schedule,
     });
 

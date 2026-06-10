@@ -18,7 +18,7 @@ http:
         "name": "Juan",
         "lastname": "Pérez",
         "phone": "099123456",
-        "specialties": ["corte", "barba"],
+        "services": ["corte", "barba"],
         "age": 28,
         "slotDuration": 30,
         "schedule": {

@@ -39,7 +39,7 @@ classDiagram
         }
         class Barber {
             <<entity>>
-            +specialties: string[]
+            +services: string[]
             +age: number
             +photoUrl: string
             +isActive: boolean
@@ -168,12 +168,12 @@ classDiagram
         }
         class IBarberRepository {
             <<interface>>
-            +findEmployeeById(id) Barber
-            +findAllEmployees() Barber[]
-            +createEmployee(barber) Barber
-            +updateEmployee(id, update) Barber
-            +deactivateEmployee(id) void
-            +deleteEmployee(id) void
+            +findBarberById(id) Barber
+            +findAllBarbers() Barber[]
+            +createBarber(barber) Barber
+            +updateBarber(id, update) Barber
+            +deactivateBarber(id) void
+            +deleteBarber(id) void
             +updateSchedule(id, schedule) Barber
         }
         class IClientRepository {
@@ -305,10 +305,10 @@ classDiagram
         class UpdateAppointmentStatusUseCase {
             +execute(id, dto) Appointment
         }
-        class CreateEmployeeBarberUseCase {
+        class CreateBarberUseCase {
             +execute(dto) Barber
         }
-        class GetAllEmployeesUseCase {
+        class GetAllBarbersUseCase {
             +execute() Barber[]
         }
         class GetBarberByIdUseCase {
@@ -354,12 +354,12 @@ classDiagram
         }
         class MongoBarberRepository {
             -BarberModel: Model
-            +findEmployeeById(id) Barber
-            +findAllEmployees() Barber[]
-            +createEmployee(barber) Barber
-            +updateEmployee(id, update) Barber
-            +deactivateEmployee(id) void
-            +deleteEmployee(id) void
+            +findBarberById(id) Barber
+            +findAllBarbers() Barber[]
+            +createBarber(barber) Barber
+            +updateBarber(id, update) Barber
+            +deactivateBarber(id) void
+            +deleteBarber(id) void
             +updateSchedule(id, schedule) Barber
         }
         class MongoClientRepository {
@@ -621,10 +621,10 @@ classDiagram
     GetAppointmentsUseCase --> IAppointmentRepository : depends
     GetAppointmentByIdUseCase --> IAppointmentRepository : depends
     UpdateAppointmentStatusUseCase --> IAppointmentRepository : depends
-    CreateEmployeeBarberUseCase --> IUserRepository : depends
-    CreateEmployeeBarberUseCase --> IBarberRepository : depends
-    CreateEmployeeBarberUseCase --> IPasswordHasher : depends
-    GetAllEmployeesUseCase --> IBarberRepository : depends
+    CreateBarberUseCase --> IUserRepository : depends
+    CreateBarberUseCase --> IBarberRepository : depends
+    CreateBarberUseCase --> IPasswordHasher : depends
+    GetAllBarbersUseCase --> IBarberRepository : depends
     GetBarberByIdUseCase --> IBarberRepository : depends
     UpdateBarberUseCase --> IUserRepository : depends
     UpdateBarberUseCase --> IBarberRepository : depends
@@ -652,11 +652,12 @@ classDiagram
     TwoFactorController --> VerifyTwoFactorUseCase : executes
     PasswordRecoveryController --> RequestPasswordResetUseCase : executes
     PasswordRecoveryController --> ResetPasswordUseCase : executes
-    BarberController --> CreateEmployeeBarberUseCase : executes
-    BarberController --> GetAllEmployeesUseCase : executes
+    BarberController --> CreateBarberUseCase : executes
+    BarberController --> GetAllBarbersUseCase : executes
     BarberController --> GetBarberByIdUseCase : executes
     BarberController --> UpdateBarberUseCase : executes
     BarberController --> DeleteBarberUseCase : executes
+    BarberController --> DeactivateBarberUseCase : executes
     BarberController --> GetBarberScheduleUseCase : executes
     BarberController --> UpdateBarberScheduleUseCase : executes
     BarberController --> GetAvailableSlotsUseCase : executes

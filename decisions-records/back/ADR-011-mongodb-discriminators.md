@@ -4,7 +4,7 @@
 
 El sistema tiene dos poblaciones de usuarios con campos muy diferentes:
 
-- **Staff** (barberos/administradores): tienen `schedule`, `slotDuration`, `specialties`, `isActive`, y autenticación (email, password)
+- **Staff** (barberos/administradores): tienen `schedule`, `slotDuration`, `services`, `isActive`, y autenticación (email, password)
 - **Clientes** (registrados y no registrados): tienen `contactEmail`, y los registrados además tienen autenticación (email, password, googleId, 2FA)
 
 Originalmente se modeló como un solo `User` con clase abstracta (commit `89c859b`), pero la divergencia de campos lo hacía difícil de mantener.
@@ -19,7 +19,7 @@ Se usan **dos colecciones MongoDB separadas**, cada una con discriminators de Mo
 - **Discriminators:**
   - `Admin` (kind: `'Admin'`) — puede gestionar el sistema
   - `Empleado` (kind: `'Empleado'`) — barbero con horarios y servicios
-- Ambos discriminators comparten schema de `schedule`, `specialties`, `slotDuration`, `isActive`, `age`, `photoUrl`
+- Ambos discriminators comparten schema de `schedule`, `services`, `slotDuration`, `isActive`, `age`, `photoUrl`
 - Fuente: `barber.model.ts:96-99`
 
 ### Colección `clients`

@@ -1,5 +1,5 @@
 import { Appointment, AppointmentPrimitives } from '../entities/Appointment';
-import { AppointmentStatus, StatusHistoryEntry } from '../types/appointment';
+import { AppointmentStatus, PaymentStatus, StatusHistoryEntry } from '../types/appointment';
 
 export type AppointmentFilters = {
   barberId?: string;
@@ -16,6 +16,7 @@ export type CreateAppointmentData = Omit<AppointmentPrimitives, 'id' | 'createdA
 
 export type UpdateStatusData = {
   status: AppointmentStatus;
+  paymentStatus?: PaymentStatus;
   cancelReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
@@ -27,6 +28,7 @@ export type UpdateAppointmentData = {
   startTime?: string;
   endTime?: string;
   barberId?: string;
+  paymentMethod?: string;
 };
 
 export interface IAppointmentRepository {

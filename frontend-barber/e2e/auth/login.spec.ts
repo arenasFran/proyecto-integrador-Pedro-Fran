@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { buildTestUser, twoFactorCode } from '../helpers/test-data';
-import { registerUser } from '../helpers/api';
+import { buildTestUser } from '../helpers/test-data';
+import { getTwoFactorCode, registerUser } from '../helpers/api';
 
 test('login con 2FA exitoso', async ({ page }) => {
   const user = buildTestUser();
@@ -21,7 +21,8 @@ test('login con 2FA exitoso', async ({ page }) => {
   expect(sendResponse.status()).toBe(200);
 
   await expect(page.getByText(`Código enviado a ${user.email}`)).toBeVisible();
-  await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(twoFactorCode);
+  const code = await getTwoFactorCode(user.email);
+  await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
 
   const verifyPromise = page.waitForResponse(
     (res) => res.url().includes('/auth/2fa/verify')

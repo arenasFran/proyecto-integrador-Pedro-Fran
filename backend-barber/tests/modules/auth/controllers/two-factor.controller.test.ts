@@ -38,14 +38,14 @@ describe('TwoFactorController', () => {
   });
 
   it('debe verificar codigo 2FA', async () => {
-    verifyTwoFactor.execute.mockResolvedValue({ message: 'ok', token: 'token' });
+    verifyTwoFactor.execute.mockResolvedValue({ message: 'ok', token: 'token', refreshToken: 'refresh-token' });
     const req = createMockReq({ email: 'test@example.com', code: '123456' });
     const res = createMockRes();
 
     await controller.verifyTwoFactorCode(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ message: 'ok', token: 'token' });
+    expect(res.json).toHaveBeenCalledWith({ message: 'ok', token: 'token', refreshToken: 'refresh-token' });
   });
 
   it('debe manejar error al verificar codigo 2FA', async () => {

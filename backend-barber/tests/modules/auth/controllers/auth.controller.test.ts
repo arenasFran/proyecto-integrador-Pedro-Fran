@@ -1,18 +1,18 @@
 import { AuthController } from '../../../../src/interface-adapters/controllers/auth/AuthController';
 import { RegisterUserUseCase } from '../../../../src/application/use-cases/auth/RegisterUserUseCase';
-import { LoginUserUseCase } from '../../../../src/application/use-cases/auth/LoginUserUseCase';
+import { RefreshTokenUseCase } from '../../../../src/application/use-cases/auth/RefreshTokenUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
 describe('AuthController', () => {
   let registerUser: jest.Mocked<RegisterUserUseCase>;
-  let loginUser: jest.Mocked<LoginUserUseCase>;
+  let refreshTokenUseCase: jest.Mocked<RefreshTokenUseCase>;
   let controller: AuthController;
 
   beforeEach(() => {
     registerUser = { execute: jest.fn() } as unknown as jest.Mocked<RegisterUserUseCase>;
-    loginUser = { execute: jest.fn() } as unknown as jest.Mocked<LoginUserUseCase>;
-    controller = new AuthController(registerUser, loginUser);
+    refreshTokenUseCase = { execute: jest.fn() } as unknown as jest.Mocked<RefreshTokenUseCase>;
+    controller = new AuthController(registerUser, refreshTokenUseCase);
   });
 
   it('debe registrar usuario y responder 201', async () => {
@@ -37,25 +37,22 @@ describe('AuthController', () => {
     expect(res.json).toHaveBeenCalledWith({ error: 'fail' });
   });
 
-  it('debe loguear usuario y responder 200', async () => {
-    loginUser.execute.mockResolvedValue({ message: 'ok', token: 'token' });
-    const req = createMockReq({ email: 'test@example.com', password: '123456' });
+  it('debe refrescar token', async () => {
+    refreshTokenUseCase.execute.mockResolvedValue({
+      message: 'Token renovado',
+      token: 'new-access',
+      refreshToken: 'new-refresh',
+    });
+    const req = createMockReq({ refreshToken: 'valid-refresh' });
     const res = createMockRes();
 
-    await controller.login(req, res);
+    await controller.refresh(req, res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith({ message: 'ok', token: 'token' });
-  });
-
-  it('debe manejar error en login', async () => {
-    loginUser.execute.mockRejectedValue(new Error('boom'));
-    const req = createMockReq({ email: 'test@example.com', password: '123456' });
-    const res = createMockRes();
-
-    await controller.login(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(res.json).toHaveBeenCalledWith({ error: 'Error interno del servidor.' });
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Token renovado',
+      token: 'new-access',
+      refreshToken: 'new-refresh',
+    });
   });
 });

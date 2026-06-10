@@ -4,17 +4,18 @@ import { GetAppointmentByIdUseCase } from '../application/use-cases/appointment/
 import { GetAppointmentsAnonymousUseCase } from '../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
+import { PayAppointmentUseCase } from '../application/use-cases/appointment/PayAppointmentUseCase';
 import { RescheduleAppointmentUseCase } from '../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { StaticServiceRepository } from '../infrastructure/repositories/static/StaticServiceRepository';
-import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
 import { AppointmentController } from '../interface-adapters/controllers/appointment/AppointmentController';
 import { createAppointmentRouter } from '../interface-adapters/routes/appointment.routes';
+import { buildTokenService } from './auth';
 
 export const buildAppointmentRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
@@ -22,7 +23,7 @@ export const buildAppointmentRouter = () => {
   const serviceRepository = new StaticServiceRepository();
   const clientRepository = new MongoClientRepository();
   const tempLockRepository = new MongoTempLockRepository();
-  const tokenService = new JwtTokenService();
+  const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
   const createAppointment = new CreateAppointmentUseCase(
@@ -44,6 +45,7 @@ export const buildAppointmentRouter = () => {
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
     appointmentRepository, cancelMinHoursBefore
   );
+  const payAppointment = new PayAppointmentUseCase(appointmentRepository);
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,
     barberRepository,
@@ -57,6 +59,7 @@ export const buildAppointmentRouter = () => {
     getAppointmentById,
     cancelAppointment,
     updateAppointmentStatus,
+    payAppointment,
     rescheduleAppointment,
     getAppointmentsAnonymous
   );

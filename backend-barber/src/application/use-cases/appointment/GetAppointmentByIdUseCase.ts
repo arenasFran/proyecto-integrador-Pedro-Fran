@@ -37,6 +37,8 @@ export class GetAppointmentByIdUseCase {
         startTime: primitives.startTime,
         endTime: primitives.endTime,
         status: primitives.status,
+        paymentStatus: primitives.paymentStatus,
+        paymentMethod: primitives.paymentMethod,
         cancelReason: primitives.cancelReason,
         cancelledAt: primitives.cancelledAt,
         statusHistory: primitives.statusHistory,

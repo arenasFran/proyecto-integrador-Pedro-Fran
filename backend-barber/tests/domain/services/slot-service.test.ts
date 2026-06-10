@@ -108,7 +108,7 @@ describe('SlotService', () => {
     it('debe excluir slots ocupados por turnos no cancelados', () => {
       const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
       const occupiedSlots = [
-        { startTime: '09:30', endTime: '10:00', status: 'Pendiente' },
+        { startTime: '09:30', endTime: '10:00', status: 'Confirmado' },
         { startTime: '10:00', endTime: '10:30', status: 'Confirmado' },
       ];
       const result = service.execute('2099-01-05', schedule, 30, occupiedSlots);
@@ -129,7 +129,7 @@ describe('SlotService', () => {
     it('debe filtrar slots por duracion del servicio existente', () => {
       const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
       const occupiedSlots = [
-        { startTime: '09:00', endTime: '09:50', status: 'Pendiente' },
+        { startTime: '09:00', endTime: '09:50', status: 'Confirmado' },
       ];
       const result = service.execute('2099-01-05', schedule, 30, occupiedSlots);
 

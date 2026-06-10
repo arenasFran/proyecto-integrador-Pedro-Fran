@@ -11,6 +11,9 @@ const validationSchema: Record<string, (value: string, allValues?: Record<string
   password: (value) => {
     if (!value) return ERROR_MESSAGES.required;
     if (value.length < VALIDATION_RULES.password.minLength) return ERROR_MESSAGES.password;
+    if (!VALIDATION_RULES.password.uppercase.test(value)) return VALIDATION_RULES.password.uppercaseMessage;
+    if (!VALIDATION_RULES.password.lowercase.test(value)) return VALIDATION_RULES.password.lowercaseMessage;
+    if (!VALIDATION_RULES.password.digit.test(value)) return VALIDATION_RULES.password.digitMessage;
     return undefined;
   },
   repeatPassword: (value, allValues) => {
@@ -40,7 +43,7 @@ const validationSchema: Record<string, (value: string, allValues?: Record<string
   },
 };
 
-export function useFormValidation(initialValues: Record<string, string>) {
+export function useFormValidation<T extends Record<string, string>>(initialValues: T) {
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});

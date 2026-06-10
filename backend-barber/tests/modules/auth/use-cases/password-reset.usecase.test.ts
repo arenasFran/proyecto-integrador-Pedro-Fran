@@ -42,6 +42,8 @@ describe('Password reset use cases', () => {
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
       updateTwoFactor: jest.fn(),
+      updateLastLogin: jest.fn(),
+      updateUserSecurity: jest.fn(),
     };
 
     passwordResetRepository = {
@@ -60,6 +62,7 @@ describe('Password reset use cases', () => {
 
     hashService = {
       sha256: jest.fn(),
+      constantTimeEqual: jest.fn(),
     };
 
     dateTimeProvider = {
@@ -122,16 +125,18 @@ describe('Password reset use cases', () => {
   describe('ResetPasswordUseCase', () => {
     it('debe fallar si el token es invalido', async () => {
       passwordResetRepository.verifyAndConsume.mockResolvedValue(null);
+      userRepository.findByEmail.mockResolvedValue(null);
 
       const useCase = new ResetPasswordUseCase(
         userRepository,
         passwordResetRepository,
         passwordHasher,
-        hashService
+        hashService,
+        dateTimeProvider
       );
 
       await expect(
-        useCase.execute({ token: 'token', password: '123456' })
+        useCase.execute({ token: 'token', password: 'Abcd1234', email: 'test@example.com' })
       ).rejects.toBeInstanceOf(AppError);
     });
 
@@ -144,17 +149,20 @@ describe('Password reset use cases', () => {
         })
       );
       passwordHasher.hash.mockResolvedValue('hash');
+      userRepository.findByEmail.mockResolvedValue(makeUser());
 
       const useCase = new ResetPasswordUseCase(
         userRepository,
         passwordResetRepository,
         passwordHasher,
-        hashService
+        hashService,
+        dateTimeProvider
       );
 
       const result = await useCase.execute({
         token: 'token',
-        password: '123456',
+        password: 'Abcd1234',
+        email: 'test@example.com',
       });
 
       expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', 'hash');

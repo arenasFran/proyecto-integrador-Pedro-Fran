@@ -1,16 +1,22 @@
-import dotenv from 'dotenv';
-import nodemailer from 'nodemailer';
+import nodemailer, { Transporter } from 'nodemailer';
+import { getConfig } from './env';
 
-dotenv.config();
+let transporter: Transporter | null = null;
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'localhost',
-  port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 587,
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: process.env.SMTP_USER
-    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS || process.env.SMTP_PASSWORD }
-    : undefined,
-});
+function getTransporter(): Transporter {
+  if (!transporter) {
+    const config = getConfig();
+    transporter = nodemailer.createTransport({
+      host: config.smtp.host,
+      port: config.smtp.port,
+      secure: config.smtp.secure,
+      auth: config.smtp.user
+        ? { user: config.smtp.user, pass: config.smtp.pass || '' }
+        : undefined,
+    });
+  }
+  return transporter;
+}
 
 export const sendMail = async ({
   from,
@@ -25,8 +31,8 @@ export const sendMail = async ({
   html?: string;
   text?: string;
 }) => {
-  const fallbackFrom = process.env.EMAIL_FROM || process.env.SMTP_USER || 'no-reply@example.com';
-  return transporter.sendMail({ from: from || fallbackFrom, to, subject, html, text });
+  const config = getConfig();
+  return getTransporter().sendMail({ from: from || config.smtp.from, to, subject, html, text });
 };
 
 export default { sendMail };

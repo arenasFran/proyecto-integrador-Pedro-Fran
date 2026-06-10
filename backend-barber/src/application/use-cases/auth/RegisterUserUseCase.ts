@@ -14,6 +14,10 @@ export class RegisterUserUseCase {
   ) {}
 
   async execute(dto: RegisterUserDTO): Promise<{ message: string }> {
+    if (dto.password !== dto.repeatPassword) {
+      throw new AppError('Las contraseñas no coinciden.', 400);
+    }
+
     const email = Email.create(dto.email).getValue();
     const phone = Phone.create(dto.phone).getValue();
     Password.create(dto.password);

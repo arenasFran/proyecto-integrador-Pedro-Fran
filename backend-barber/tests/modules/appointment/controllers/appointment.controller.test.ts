@@ -5,6 +5,7 @@ import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases
 import { GetAppointmentsAnonymousUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
+import { PayAppointmentUseCase } from '../../../../src/application/use-cases/appointment/PayAppointmentUseCase';
 import { RescheduleAppointmentUseCase } from '../../../../src/application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
@@ -16,6 +17,7 @@ describe('AppointmentController', () => {
   let getAppointmentsAnonymous: jest.Mocked<GetAppointmentsAnonymousUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
+  let payAppointment: jest.Mocked<PayAppointmentUseCase>;
   let rescheduleAppointment: jest.Mocked<RescheduleAppointmentUseCase>;
   let controller: AppointmentController;
 
@@ -26,6 +28,7 @@ describe('AppointmentController', () => {
     getAppointmentsAnonymous = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentsAnonymousUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
+    payAppointment = { execute: jest.fn() } as unknown as jest.Mocked<PayAppointmentUseCase>;
     rescheduleAppointment = { execute: jest.fn() } as unknown as jest.Mocked<RescheduleAppointmentUseCase>;
     controller = new AppointmentController(
       createAppointment,
@@ -33,6 +36,7 @@ describe('AppointmentController', () => {
       getAppointmentById,
       cancelAppointment,
       updateAppointmentStatus,
+      payAppointment,
       rescheduleAppointment,
       getAppointmentsAnonymous
     );

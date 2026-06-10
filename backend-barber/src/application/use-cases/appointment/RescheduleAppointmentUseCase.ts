@@ -134,7 +134,7 @@ export class RescheduleAppointmentUseCase {
     }
     const filtered = activeAppointments.filter((a) => a.id !== id);
     const hasActive = filtered.some(
-      (a) => a.status === 'Pendiente' || a.status === 'Confirmado'
+      (a) => a.status === 'Confirmado'
     );
     if (hasActive) {
       throw new AppError(

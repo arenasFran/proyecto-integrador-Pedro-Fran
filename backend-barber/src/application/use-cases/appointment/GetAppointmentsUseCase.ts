@@ -42,6 +42,8 @@ export class GetAppointmentsUseCase {
           startTime: p.startTime,
           endTime: p.endTime,
           status: p.status,
+          paymentStatus: p.paymentStatus,
+          paymentMethod: p.paymentMethod,
           cancelReason: p.cancelReason,
           cancelledAt: p.cancelledAt,
           statusHistory: p.statusHistory,

@@ -124,8 +124,10 @@ export class CreateAppointmentUseCase {
       date: dto.date,
       startTime: dto.startTime,
       endTime,
-      status: 'Pendiente',
-      statusHistory: [{ status: 'Pendiente', timestamp: now, actor: 'system' }],
+      status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
       createdAt: now,
       updatedAt: now,
     });
@@ -192,7 +194,7 @@ export class CreateAppointmentUseCase {
       : activeAppointments;
 
     const hasActive = filtered.some(
-      (a) => a.status === 'Pendiente' || a.status === 'Confirmado'
+      (a) => a.status === 'Confirmado'
     );
 
     if (hasActive) {
@@ -211,13 +213,14 @@ export class CreateAppointmentUseCase {
     const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
-    this.emailService
-      .sendMail({
-        to: clientEmail,
-        subject: 'Turno confirmado',
-        html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue creado exitosamente.</p>
+      this.emailService
+        .sendMail({
+          to: clientEmail,
+          subject: 'Turno agendado',
+          html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
 <p>Servicio: ${appointment.serviceName}</p>
-<p>Precio: $${appointment.servicePrice}</p>`,
+<p>Precio: $${appointment.servicePrice}</p>
+<p>Estado de pago: ${appointment.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
       })
       .catch((error) => {
         console.error('Error enviando email de creación:', error);

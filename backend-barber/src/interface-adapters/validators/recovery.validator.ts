@@ -11,6 +11,7 @@ export const resetPasswordSchema = Joi.object({
     .valid(Joi.ref('password'))
     .required()
     .messages({ 'any.only': 'Las contraseñas deben coincidir' }),
+  email: Joi.string().email().required(),
 });
 
 export default { requestResetSchema, resetPasswordSchema };

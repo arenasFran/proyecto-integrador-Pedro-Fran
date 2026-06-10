@@ -19,8 +19,10 @@ describe('GetAppointmentByIdUseCase', () => {
       date: '2099-01-01',
       startTime: '10:00',
       endTime: '10:50',
-      status: 'Pendiente',
-      statusHistory: [{ status: 'Pendiente', timestamp: new Date(), actor: 'system' }],
+      status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      statusHistory: [{ status: 'Confirmado', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -118,6 +118,9 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     if (data.barberId !== undefined) {
       updateData.barberId = new mongoose.Types.ObjectId(data.barberId);
     }
+    if (data.paymentMethod !== undefined) {
+      updateData.paymentMethod = data.paymentMethod;
+    }
 
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
@@ -134,6 +137,9 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       status: data.status,
     };
 
+    if (data.paymentStatus !== undefined) {
+      updateData.paymentStatus = data.paymentStatus;
+    }
     if (data.cancelReason !== undefined) {
       updateData.cancelReason = data.cancelReason;
     }

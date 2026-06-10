@@ -1,5 +1,5 @@
 import { Barber, BarberSchedule } from '../../domain/entities/Barber';
-import { IAdmin, IEmployee } from '../repositories/mongodb/models/barber.model';
+import type { IAdminRaw, IEmployeeRaw } from '../repositories/mongodb/models/barber.model';
 
 const createEmptyDay = () => ({
   startTime: null,
@@ -18,7 +18,7 @@ const createDefaultSchedule = (): BarberSchedule => ({
 });
 
 export class BarberMapper {
-  static fromDocument(doc: IEmployee | IAdmin): Barber {
+  static fromDocument(doc: IEmployeeRaw | IAdminRaw): Barber {
     const schedule = doc.schedule || createDefaultSchedule();
     const slotDuration = doc.slotDuration ?? 30;
 

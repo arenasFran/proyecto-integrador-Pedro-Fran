@@ -4,6 +4,7 @@ import { GetAppointmentsUseCase } from '../../../application/use-cases/appointme
 import { GetAppointmentByIdUseCase } from '../../../application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
+import { PayAppointmentUseCase } from '../../../application/use-cases/appointment/PayAppointmentUseCase';
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { GetAppointmentsAnonymousUseCase } from '../../../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
@@ -16,6 +17,7 @@ export class AppointmentController {
     private readonly getAppointmentById: GetAppointmentByIdUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
+    private readonly payAppointment: PayAppointmentUseCase,
     private readonly rescheduleAppointment: RescheduleAppointmentUseCase,
     private readonly getAppointmentsAnonymous: GetAppointmentsAnonymousUseCase
   ) {}
@@ -113,6 +115,22 @@ export class AppointmentController {
       return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
       return AppointmentPresenter.handleError(res, error, 'Error al actualizar el estado del turno');
+    }
+  };
+
+  pay = async (req: Request, res: Response) => {
+    try {
+      const authReq = req as AuthRequest;
+      const id = req.params.id as string;
+      const result = await this.payAppointment.execute(
+        id,
+        req.body,
+        authReq.user!._id,
+        authReq.user!.kind
+      );
+      return AppointmentPresenter.success(res, result, 200);
+    } catch (error) {
+      return AppointmentPresenter.handleError(res, error, 'Error al registrar el pago');
     }
   };
 

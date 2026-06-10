@@ -49,11 +49,17 @@ export const anonymousQuerySchema = Joi.object({
 
 export const updateAppointmentStatusSchema = Joi.object({
   status: Joi.string()
-    .valid('Pendiente', 'Confirmado', 'Cancelado', 'Completado', 'NoShow')
+    .valid('Confirmado', 'Cancelado', 'Completado', 'NoShow')
     .required(),
   cancelReason: Joi.string().trim().max(500).when('status', {
     is: 'Cancelado',
     then: Joi.allow('', null),
     otherwise: Joi.forbidden(),
   }),
+});
+
+export const payAppointmentSchema = Joi.object({
+  paymentMethod: Joi.string()
+    .valid('local', 'online', 'memberPass')
+    .default('local'),
 });

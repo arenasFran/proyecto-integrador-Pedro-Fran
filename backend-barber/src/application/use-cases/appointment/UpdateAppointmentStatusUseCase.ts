@@ -83,20 +83,30 @@ export class UpdateAppointmentStatusUseCase {
       actor,
     };
 
-    if (dto.status === 'Cancelado') {
-      await this.appointmentRepository.updateStatus(id, {
-        status: dto.status,
-        cancelReason: dto.cancelReason,
-        cancelledAt: new Date(),
-        cancelledBy: actor,
-        statusHistoryEntry,
-      });
-    } else {
-      await this.appointmentRepository.updateStatus(id, {
-        status: dto.status,
-        statusHistoryEntry,
-      });
+    const updateData: {
+      status: AppointmentStatus;
+      paymentStatus?: 'Pendiente' | 'Pagado';
+      cancelReason?: string;
+      cancelledAt?: Date;
+      cancelledBy?: string;
+      statusHistoryEntry: StatusHistoryEntry;
+    } = {
+      status: dto.status,
+      statusHistoryEntry,
+    };
+
+    // Al completar un turno con pago local, se marca como pagado automáticamente
+    if (dto.status === 'Completado') {
+      updateData.paymentStatus = 'Pagado';
     }
+
+    if (dto.status === 'Cancelado') {
+      updateData.cancelReason = dto.cancelReason;
+      updateData.cancelledAt = new Date();
+      updateData.cancelledBy = actor;
+    }
+
+    await this.appointmentRepository.updateStatus(id, updateData);
 
     return { message: `Estado actualizado a ${dto.status}` };
   }

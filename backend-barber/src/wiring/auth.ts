@@ -1,17 +1,20 @@
 import { AuthenticateWithGoogleUseCase } from '../application/use-cases/auth/AuthenticateWithGoogleUseCase';
-import { LoginUserUseCase } from '../application/use-cases/auth/LoginUserUseCase';
+import { CompleteGoogleProfileUseCase } from '../application/use-cases/auth/CompleteGoogleProfileUseCase';
+import { RefreshTokenUseCase } from '../application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../application/use-cases/auth/RegisterUserUseCase';
 import { SendTwoFactorCodeUseCase } from '../application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../application/use-cases/auth/VerifyTwoFactorUseCase';
 import { RequestPasswordResetUseCase } from '../application/use-cases/password/RequestPasswordResetUseCase';
 import { ResetPasswordUseCase } from '../application/use-cases/password/ResetPasswordUseCase';
 import { MongoPasswordResetRepository } from '../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
+import { MongoRefreshTokenRepository } from '../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
 import { DateTimeProvider } from '../infrastructure/services/DateTimeProvider';
 import { GoogleAuthService } from '../infrastructure/services/GoogleAuthService';
 import { HashService } from '../infrastructure/services/HashService';
 import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
+import { IEmailService } from '../application/ports/IEmailService';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { RandomGenerator } from '../infrastructure/services/RandomGenerator';
 import { AuthController } from '../interface-adapters/controllers/auth/AuthController';
@@ -19,42 +22,36 @@ import { AuthGoogleController } from '../interface-adapters/controllers/auth/Aut
 import { PasswordRecoveryController } from '../interface-adapters/controllers/auth/PasswordRecoveryController';
 import { TwoFactorController } from '../interface-adapters/controllers/auth/TwoFactorController';
 import { createAuthRouter } from '../interface-adapters/routes/auth.routes';
+import { getConfig } from '../infrastructure/config/env';
 
-const parseResetTokenExpirationMin = (value?: string) => {
-  if (!value) {
-    return 60;
-  }
-
-  const parsedValue = Number(value);
-
-  if (!Number.isInteger(parsedValue) || parsedValue <= 0) {
-    return 60;
-  }
-
-  return parsedValue;
-};
-
-export const buildAuthRouter = () => {
+export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
+  const config = getConfig();
   const userRepository = new MongoUserRepository();
   const passwordResetRepository = new MongoPasswordResetRepository();
+  const refreshTokenRepository = new MongoRefreshTokenRepository();
   const passwordHasher = new BcryptPasswordHasher();
-  const tokenService = new JwtTokenService();
-  const emailService = new NodemailerEmailService();
-  const googleAuthService = new GoogleAuthService();
+  const tokenService = new JwtTokenService({
+    secret: config.jwtSecret,
+    accessTokenExpiresIn: config.jwtExpiresIn,
+    refreshTokenExpiresIn: config.jwtRefreshExpiresIn,
+    issuer: config.jwtIssuer,
+    audience: config.jwtAudience,
+  });
+  const emailService = options?.emailService ?? new NodemailerEmailService();
+  const googleAuthService = new GoogleAuthService(config.googleClientId!);
   const randomGenerator = new RandomGenerator();
   const hashService = new HashService();
   const dateTimeProvider = new DateTimeProvider();
-  const frontendUrl = process.env.FRONTEND_URL || '';
-  const expirationMinutes = parseResetTokenExpirationMin(
-    process.env.RESET_TOKEN_EXPIRATION_MIN
-  );
 
   const registerUser = new RegisterUserUseCase(userRepository, passwordHasher);
-  const loginUser = new LoginUserUseCase(userRepository, passwordHasher, tokenService);
   const authenticateWithGoogle = new AuthenticateWithGoogleUseCase(
     userRepository,
     googleAuthService,
-    tokenService
+    tokenService,
+    refreshTokenRepository,
+    hashService,
+    dateTimeProvider,
+    passwordHasher
   );
   const sendTwoFactorCode = new SendTwoFactorCodeUseCase(
     userRepository,
@@ -68,7 +65,8 @@ export const buildAuthRouter = () => {
     userRepository,
     tokenService,
     hashService,
-    dateTimeProvider
+    dateTimeProvider,
+    refreshTokenRepository
   );
   const requestPasswordReset = new RequestPasswordResetUseCase(
     userRepository,
@@ -77,18 +75,32 @@ export const buildAuthRouter = () => {
     randomGenerator,
     hashService,
     dateTimeProvider,
-    frontendUrl,
-    expirationMinutes
+    config.frontendUrl,
+    config.resetTokenExpirationMin
+  );
+  const refreshTokenUseCase = new RefreshTokenUseCase(
+    tokenService,
+    refreshTokenRepository,
+    hashService,
+    dateTimeProvider
+  );
+  const completeGoogleProfile = new CompleteGoogleProfileUseCase(
+    userRepository,
+    tokenService,
+    hashService,
+    dateTimeProvider,
+    refreshTokenRepository
   );
   const resetPassword = new ResetPasswordUseCase(
     userRepository,
     passwordResetRepository,
     passwordHasher,
-    hashService
+    hashService,
+    dateTimeProvider
   );
 
-  const authController = new AuthController(registerUser, loginUser);
-  const authGoogleController = new AuthGoogleController(authenticateWithGoogle);
+  const authController = new AuthController(registerUser, refreshTokenUseCase);
+  const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(
     requestPasswordReset,
@@ -103,4 +115,13 @@ export const buildAuthRouter = () => {
   });
 };
 
-export const buildTokenService = () => new JwtTokenService();
+export const buildTokenService = () => {
+  const cfg = getConfig();
+  return new JwtTokenService({
+    secret: cfg.jwtSecret,
+    accessTokenExpiresIn: cfg.jwtExpiresIn,
+    refreshTokenExpiresIn: cfg.jwtRefreshExpiresIn,
+    issuer: cfg.jwtIssuer,
+    audience: cfg.jwtAudience,
+  });
+};

@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { getTwoFactorCode } from '../helpers/api';
 
 test('crud de profesionales desde el panel', async ({ page }) => {
   const uniqueId = Date.now().toString();
@@ -22,7 +23,8 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   const sendResponse = await sendPromise;
   expect(sendResponse.status()).toBe(200);
 
-  await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill('123456');
+  const code = await getTwoFactorCode(admin.email);
+  await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
 
   const verifyPromise = page.waitForResponse(
     (response) => response.url().includes('/auth/2fa/verify')
@@ -57,8 +59,8 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   await page.getByRole('button', { name: 'Crear profesional' }).click();
   const createResponse = await createResponsePromise;
   expect(createResponse.status()).toBe(201);
-  const createdProfessional = (await createResponse.json()) as { _id: string };
-  const professionalId = createdProfessional._id;
+  const createdProfessional = (await createResponse.json()) as { id: string };
+  const professionalId = createdProfessional.id;
 
   const createdCard = page.getByRole('heading', { name: fullName });
   await expect(createdCard).toBeVisible();

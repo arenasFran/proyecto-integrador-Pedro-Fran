@@ -31,7 +31,7 @@ export class DeleteBarberUseCase {
     });
 
     for (const apt of futureAppointments) {
-      if (apt.status === 'Pendiente' || apt.status === 'Confirmado') {
+      if (apt.status === 'Confirmado') {
         await this.appointmentRepository.updateStatus(apt.id, {
           status: 'Cancelado',
           cancelReason: 'Barbero dado de baja',

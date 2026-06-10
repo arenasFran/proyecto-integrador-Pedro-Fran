@@ -1,4 +1,8 @@
-export type AppointmentStatus = 'Pendiente' | 'Confirmado' | 'Cancelado' | 'Completado' | 'NoShow';
+export type AppointmentStatus = 'Confirmado' | 'Completado' | 'Cancelado' | 'NoShow';
+
+export type PaymentStatus = 'Pendiente' | 'Pagado';
+
+export type PaymentMethod = 'local' | 'online' | 'memberPass';
 
 export type StatusHistoryEntry = {
   status: AppointmentStatus;
@@ -7,9 +11,8 @@ export type StatusHistoryEntry = {
 };
 
 export const VALID_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-  Pendiente: ['Confirmado', 'Cancelado'],
   Confirmado: ['Completado', 'Cancelado', 'NoShow'],
-  Cancelado: [],
   Completado: [],
+  Cancelado: [],
   NoShow: [],
 };

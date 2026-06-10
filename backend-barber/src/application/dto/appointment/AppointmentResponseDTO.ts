@@ -14,6 +14,8 @@ export type AppointmentResponseDTO = {
   startTime: string;
   endTime: string;
   status: string;
+  paymentStatus: string;
+  paymentMethod: string;
   cancelReason?: string;
   cancelledAt?: Date | null;
   statusHistory: Array<{ status: string; timestamp: Date; actor: string }>;

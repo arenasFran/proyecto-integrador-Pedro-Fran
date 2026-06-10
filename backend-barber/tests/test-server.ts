@@ -1,4 +1,12 @@
 import 'dotenv/config';
+import { loadConfig } from '../src/infrastructure/config/env';
+
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'a'.repeat(32);
+process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
+process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/test';
+
+loadConfig();
 
 import cors from 'cors';
 import express from 'express';
@@ -7,6 +15,7 @@ import helmet from 'helmet';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Admin } from '../src/infrastructure/repositories/mongodb/models/barber.model';
+import { FakeEmailService } from '../src/infrastructure/services/FakeEmailService';
 import { buildAuthRouter } from '../src/wiring/auth';
 import { buildBarberRouter } from '../src/wiring/barber';
 
@@ -27,11 +36,23 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(helmet());
-app.use('/auth', buildAuthRouter());
+app.use('/auth', buildAuthRouter({ emailService: new FakeEmailService() }));
 app.use('/api/barbers', buildBarberRouter());
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
+});
+
+app.get('/__test/two-factor-code', (req, res) => {
+  const email = req.query.email as string;
+  if (!email) {
+    return res.status(400).json({ error: 'Email query param required' });
+  }
+  const code = FakeEmailService.getCode(email);
+  if (!code) {
+    return res.status(404).json({ error: 'Code not found for email', email });
+  }
+  res.json({ code });
 });
 
 function appListen(port: number) {
@@ -41,10 +62,6 @@ function appListen(port: number) {
 }
 
 const start = async () => {
-  process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret';
-  process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
-  process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
-  process.env.TEST_2FA_CODE = process.env.TEST_2FA_CODE || '123456';
   process.env.TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
   process.env.TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Admin123!';
   process.env.TEST_ADMIN_NAME = process.env.TEST_ADMIN_NAME || 'Admin';

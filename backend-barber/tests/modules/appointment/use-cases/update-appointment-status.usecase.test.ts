@@ -17,8 +17,10 @@ describe('UpdateAppointmentStatusUseCase', () => {
       date: '2099-01-01',
       startTime: '10:00',
       endTime: '10:50',
-      status: 'Pendiente',
-      statusHistory: [{ status: 'Pendiente', timestamp: new Date(), actor: 'system' }],
+      status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      statusHistory: [{ status: 'Confirmado', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -47,23 +49,24 @@ describe('UpdateAppointmentStatusUseCase', () => {
     appointmentRepository.findById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute('apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin')
+      useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin')
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe confirmar el turno', async () => {
+  it('debe completar el turno y marcarlo como pagado', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment());
     appointmentRepository.updateStatus.mockResolvedValue(
-      makeAppointment({ status: 'Confirmado' })
+      makeAppointment({ status: 'Completado' })
     );
 
-    const result = await useCase.execute('apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin');
+    const result = await useCase.execute('apt-1', { status: 'Completado' }, 'empleado-1', 'Empleado');
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
-      status: 'Confirmado',
-      statusHistoryEntry: { status: 'Confirmado', timestamp: expect.any(Date), actor: 'admin' },
+      status: 'Completado',
+      paymentStatus: 'Pagado',
+      statusHistoryEntry: { status: 'Completado', timestamp: expect.any(Date), actor: 'empleado' },
     });
-    expect(result.message).toMatch(/Confirmado/);
+    expect(result.message).toMatch(/Completado/);
   });
 
   it('debe cancelar el turno con razon', async () => {
@@ -87,34 +90,19 @@ describe('UpdateAppointmentStatusUseCase', () => {
     expect(result.message).toMatch(/Cancelado/);
   });
 
-  it('debe completar el turno solo desde Confirmado', async () => {
+  it('debe fallar si la transicion es invalida (Confirmado -> Confirmado)', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Confirmado' }));
-    appointmentRepository.updateStatus.mockResolvedValue(
-      makeAppointment({ status: 'Completado' })
-    );
-
-    const result = await useCase.execute('apt-1', { status: 'Completado' }, 'empleado-1', 'Empleado');
-
-    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
-      status: 'Completado',
-      statusHistoryEntry: { status: 'Completado', timestamp: expect.any(Date), actor: 'empleado' },
-    });
-    expect(result.message).toMatch(/Completado/);
-  });
-
-  it('debe fallar si la transicion es invalida (Pendiente -> Completado)', async () => {
-    appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Pendiente' }));
 
     await expect(
-      useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin')
+      useCase.execute('apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin')
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe fallar si se intenta cambiar desde Cancelado', async () => {
+  it('debe fallar si se intenta cambiar desde Cancelado a otro estado', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
 
     await expect(
-      useCase.execute('apt-1', { status: 'Pendiente' }, 'admin-1', 'Admin')
+      useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin')
     ).rejects.toBeInstanceOf(AppError);
   });
 
@@ -152,9 +140,9 @@ describe('UpdateAppointmentStatusUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it('debe fallar NoShow desde Pendiente (transicion invalida)', async () => {
+  it('debe fallar NoShow desde Completado (transicion invalida)', async () => {
     appointmentRepository.findById.mockResolvedValue(
-      makeAppointment({ status: 'Pendiente' })
+      makeAppointment({ status: 'Completado' })
     );
 
     await expect(
@@ -165,7 +153,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   it('debe rechazar cancelacion con menos de 2h de anticipacion (fecha pasada)', async () => {
     const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 2);
     appointmentRepository.findById.mockResolvedValue(
-      makeAppointment({ status: 'Pendiente', date: '2020-01-01', startTime: '10:00' })
+      makeAppointment({ status: 'Confirmado', date: '2020-01-01', startTime: '10:00' })
     );
 
     await expect(
@@ -176,7 +164,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {
     const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 2);
     appointmentRepository.findById.mockResolvedValue(
-      makeAppointment({ status: 'Pendiente', date: '2099-01-01', startTime: '10:00' })
+      makeAppointment({ status: 'Confirmado', date: '2099-01-01', startTime: '10:00' })
     );
     appointmentRepository.updateStatus.mockResolvedValue(
       makeAppointment({ status: 'Cancelado' })

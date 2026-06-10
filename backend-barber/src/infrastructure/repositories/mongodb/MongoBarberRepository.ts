@@ -2,8 +2,8 @@ import mongoose from 'mongoose';
 import { Barber, BarberSchedule } from '../../../domain/entities/Barber';
 import { BarberUpdate, IBarberRepository } from '../../../domain/repositories/IBarberRepository';
 import { BarberMapper } from '../../mappers/BarberMapper';
-import type { IAdmin, IEmployee } from './models/barber.model';
 import { Barber as BarberModel, Employee } from './models/barber.model';
+import { isBarberRaw } from './guards/barber.guards';
 
 export class MongoBarberRepository implements IBarberRepository {
   async findEmployeeById(id: string): Promise<Barber | null> {
@@ -11,12 +11,20 @@ export class MongoBarberRepository implements IBarberRepository {
     if (!doc) {
       return null;
     }
-    return BarberMapper.fromDocument(doc as unknown as IEmployee | IAdmin);
+    if (!isBarberRaw(doc)) {
+      throw new Error(`Documento inválido en barberos: el documento ${id} no cumple con el formato esperado`);
+    }
+    return BarberMapper.fromDocument(doc);
   }
 
   async findAllEmployees(): Promise<Barber[]> {
     const docs = await BarberModel.find({ kind: { $in: ['Empleado', 'Admin'] } }).lean();
-    return docs.map((doc) => BarberMapper.fromDocument(doc as unknown as IEmployee | IAdmin));
+    return docs.map((doc) => {
+      if (!isBarberRaw(doc)) {
+        throw new Error('Documento inválido en la colección de barberos');
+      }
+      return BarberMapper.fromDocument(doc);
+    });
   }
 
   async createEmployee(barber: Barber): Promise<Barber> {
@@ -40,8 +48,10 @@ export class MongoBarberRepository implements IBarberRepository {
     if (!doc) {
       return null;
     }
-
-    return BarberMapper.fromDocument(doc as unknown as IEmployee | IAdmin);
+    if (!isBarberRaw(doc)) {
+      throw new Error(`Documento inválido tras actualizar barbero ${id}`);
+    }
+    return BarberMapper.fromDocument(doc);
   }
 
   async deactivateEmployee(id: string): Promise<void> {
@@ -62,7 +72,9 @@ export class MongoBarberRepository implements IBarberRepository {
     if (!doc) {
       return null;
     }
-
-    return BarberMapper.fromDocument(doc as unknown as IEmployee | IAdmin);
+    if (!isBarberRaw(doc)) {
+      throw new Error(`Documento inválido tras actualizar schedule del barbero ${id}`);
+    }
+    return BarberMapper.fromDocument(doc);
   }
 }

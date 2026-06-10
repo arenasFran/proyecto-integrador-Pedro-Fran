@@ -21,6 +21,8 @@ export interface IAppointmentDocument extends Document {
   startTime: string;
   endTime: string;
   status: string;
+  paymentStatus: string;
+  paymentMethod: string;
   cancelReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
@@ -98,8 +100,18 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     },
     status: {
       type: String,
-      enum: ['Pendiente', 'Confirmado', 'Cancelado', 'Completado', 'NoShow'],
+      enum: ['Confirmado', 'Cancelado', 'Completado', 'NoShow'],
+      default: 'Confirmado',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['Pendiente', 'Pagado'],
       default: 'Pendiente',
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['local', 'online', 'memberPass'],
+      default: 'local',
     },
     cancelReason: {
       type: String,

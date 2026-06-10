@@ -1,4 +1,4 @@
-import { AppointmentStatus, StatusHistoryEntry } from '../types/appointment';
+import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry } from '../types/appointment';
 import { Email } from '../value-objects/Email';
 import { Phone } from '../value-objects/Phone';
 import { Price } from '../value-objects/Price';
@@ -20,6 +20,8 @@ export type AppointmentCreateProps = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
@@ -44,6 +46,8 @@ export type AppointmentPrimitives = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
@@ -68,6 +72,8 @@ type AppointmentData = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
@@ -100,6 +106,8 @@ export class Appointment {
       startTime: props.startTime,
       endTime: props.endTime,
       status: props.status,
+      paymentStatus: props.paymentStatus,
+      paymentMethod: props.paymentMethod,
       cancelReason: props.cancelReason,
       cancelledAt: props.cancelledAt,
       cancelledBy: props.cancelledBy,
@@ -169,6 +177,14 @@ export class Appointment {
     return this.props.status;
   }
 
+  get paymentStatus(): PaymentStatus {
+    return this.props.paymentStatus;
+  }
+
+  get paymentMethod(): PaymentMethod {
+    return this.props.paymentMethod;
+  }
+
   get cancelReason(): string | undefined {
     return this.props.cancelReason;
   }
@@ -206,9 +222,8 @@ export class Appointment {
     this.props.updatedAt = new Date();
   }
 
-  confirm(actor?: string): void {
-    this.props.status = 'Confirmado';
-    this.addStatusHistoryEntry('Confirmado', actor || 'system');
+  pay(actor?: string): void {
+    this.props.paymentStatus = 'Pagado';
     this.props.updatedAt = new Date();
   }
 
@@ -241,6 +256,8 @@ export class Appointment {
       startTime: this.props.startTime,
       endTime: this.props.endTime,
       status: this.props.status,
+      paymentStatus: this.props.paymentStatus,
+      paymentMethod: this.props.paymentMethod,
       cancelReason: this.props.cancelReason,
       cancelledAt: this.props.cancelledAt,
       cancelledBy: this.props.cancelledBy,

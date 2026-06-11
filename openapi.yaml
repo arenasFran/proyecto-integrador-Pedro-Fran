@@ -992,6 +992,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: Obtener perfil del usuario autenticado
+      description: Retorna la información del usuario actual según el token JWT. Cualquier usuario autenticado (cliente, barbero, admin) puede acceder a su propio perfil.
+      operationId: usersGetMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1502,6 +1527,33 @@ components:
           pattern: "^\\d{2}:\\d{2}$"
         barberId:
           type: string
+
+    # ──────────────────────────────────────────────
+    # User - Responses
+    # ──────────────────────────────────────────────
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastname:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        kind:
+          type: string
+          enum:
+            - Admin
+            - Empleado
+            - Registrado
+        photoUrl:
+          type: string
+          nullable: true
 
     TempLockRequest:
       type: object

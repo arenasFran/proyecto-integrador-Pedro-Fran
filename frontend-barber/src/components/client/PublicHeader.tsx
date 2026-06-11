@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';
@@ -69,12 +69,12 @@ export const PublicHeader: React.FC = () => {
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
-                      navigate('/admin/perfil');
+                      navigate('/mis-turnos');
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
                   >
-                    <FiUser className="text-[#FF5C00]" />
-                    Mi perfil
+                    <FiCalendar className="text-[#FF5C00]" />
+                    Mis turnos
                   </button>
                   <div className="border-t border-[#282828]" />
                   <button

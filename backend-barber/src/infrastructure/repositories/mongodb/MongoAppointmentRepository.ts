@@ -89,6 +89,21 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
 
+  async findByClientId(clientId: string): Promise<Appointment[]> {
+    const docs = await AppointmentModel.find({
+      clientId: new mongoose.Types.ObjectId(clientId),
+    }).lean();
+    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+  }
+
+  async findByContact(clientEmail: string, clientPhone: string): Promise<Appointment[]> {
+    const docs = await AppointmentModel.find({
+      clientEmail,
+      clientPhone,
+    }).lean();
+    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+  }
+
   async create(data: CreateAppointmentData): Promise<Appointment> {
     try {
       const doc = await AppointmentModel.create({
@@ -128,6 +143,16 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       { returnDocument: 'after', new: true }
     ).lean();
 
+    if (!doc) return null;
+    return AppointmentMapper.fromDocument(doc as any);
+  }
+
+  async updateClientId(id: string, clientId: string): Promise<Appointment | null> {
+    const doc = await AppointmentModel.findByIdAndUpdate(
+      id,
+      { $set: { clientId: new mongoose.Types.ObjectId(clientId) }, $currentDate: { updatedAt: true } },
+      { returnDocument: 'after', new: true }
+    ).lean();
     if (!doc) return null;
     return AppointmentMapper.fromDocument(doc as any);
   }

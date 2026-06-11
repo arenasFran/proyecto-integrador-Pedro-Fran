@@ -24,6 +24,7 @@ export class AppointmentMapper {
       cancelReason: doc.cancelReason,
       cancelledAt: doc.cancelledAt,
       cancelledBy: doc.cancelledBy,
+      createdBy: doc.createdBy,
       statusHistory: (doc.statusHistory || []).map((entry) => ({
         status: entry.status,
         timestamp: entry.timestamp,

@@ -6,6 +6,11 @@ export interface IStatusHistoryEntry {
   actor: string;
 }
 
+export interface ICreatedBy {
+  type: 'staff' | 'registered' | 'anonymous';
+  userId?: string;
+}
+
 export interface IAppointmentDocument extends Document {
   barberId: mongoose.Types.ObjectId;
   clientId?: mongoose.Types.ObjectId;
@@ -26,6 +31,7 @@ export interface IAppointmentDocument extends Document {
   cancelReason?: string;
   cancelledAt?: Date;
   cancelledBy?: string;
+  createdBy?: ICreatedBy;
   statusHistory: IStatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
@@ -36,6 +42,14 @@ const statusHistoryEntrySchema = new Schema<IStatusHistoryEntry>(
     status: { type: String, required: true },
     timestamp: { type: Date, required: true },
     actor: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const createdBySchema = new Schema<ICreatedBy>(
+  {
+    type: { type: String, enum: ['staff', 'registered', 'anonymous'], required: true },
+    userId: { type: String, required: false },
   },
   { _id: false }
 );
@@ -123,6 +137,10 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     },
     cancelledBy: {
       type: String,
+      required: false,
+    },
+    createdBy: {
+      type: createdBySchema,
       required: false,
     },
     statusHistory: {

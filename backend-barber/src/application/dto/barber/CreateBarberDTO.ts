@@ -6,7 +6,7 @@ export type CreateBarberDTO = {
   name: string;
   lastname: string;
   phone: string;
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   slotDuration?: number;

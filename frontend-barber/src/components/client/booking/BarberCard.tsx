@@ -22,7 +22,7 @@ const stableRating = (id: string): string => {
 
 export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSelect }) => {
   const fullName = `${barber.name} ${barber.lastname}`;
-  const specialty = barber.specialties[0] ?? 'Barbero';
+  const service = barber.services[0] ?? 'Barbero';
   const reviews = stableReviews(barber.id);
   const rating = stableRating(barber.id);
 
@@ -59,7 +59,7 @@ export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSe
         </div>
 
         <h3 className="text-[15px] font-semibold text-white">{fullName}</h3>
-        <p className="mt-0.5 text-[12px] text-[#8A8A8A]">{specialty}</p>
+        <p className="mt-0.5 text-[12px] text-[#8A8A8A]">{service}</p>
 
         <div className="mt-3 flex items-center gap-1.5">
           <FiStar className="w-3.5 h-3.5 text-[#FF5C00] fill-[#FF5C00]" />

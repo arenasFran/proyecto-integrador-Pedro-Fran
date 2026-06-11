@@ -24,7 +24,7 @@ const adminUser = {
   email: 'santiago@barberia.com',
   phone: '099000000',
   kind: 'Admin' as const,
-  specialties: ['corte', 'barba'],
+  services: ['corte', 'barba'],
   age: 30,
   photoUrl: 'https://example.com/photo.jpg',
   isActive: true,

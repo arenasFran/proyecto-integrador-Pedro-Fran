@@ -49,6 +49,13 @@ export const createBarberRouter = (deps: {
     deps.barberController.update
   );
 
+  router.patch(
+    '/:id/deactivate',
+    authorize('Admin'),
+    validate({ params: barberIdParamSchema }),
+    deps.barberController.deactivate
+  );
+
   router.delete(
     '/:id',
     authorize('Admin'),

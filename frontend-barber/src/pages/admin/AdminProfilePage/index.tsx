@@ -10,7 +10,7 @@ import {
   createEmptySchedule,
   days,
   mapScheduleToForm,
-  normalizeSpecialties,
+  normalizeServices,
   scheduleFromForm,
   validateSchedule,
   type ScheduleDayForm,
@@ -82,7 +82,7 @@ export const AdminProfilePage: React.FC = () => {
         name: formData.name.trim(),
         lastname: formData.lastname.trim(),
         phone: formData.phone.trim(),
-        specialties: formData.specialties,
+        services: formData.services,
         age: formData.age ?? null,
         photoUrl: formData.photoUrl ?? null,
         slotDuration,
@@ -226,10 +226,10 @@ export const AdminProfilePage: React.FC = () => {
 
             <div className="grid gap-4 md:grid-cols-2">
               <Input
-                label="Especialidades"
-                value={formData.specialties.join(', ')}
+                label="Servicios"
+                value={formData.services.join(', ')}
                 onChange={(e) =>
-                  setFormData({ ...formData, specialties: normalizeSpecialties(e.target.value) })
+                  setFormData({ ...formData, services: normalizeServices(e.target.value) })
                 }
                 placeholder="corte, barba, color"
                 helperText="Separadas por coma"

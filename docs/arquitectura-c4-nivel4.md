@@ -39,7 +39,7 @@ classDiagram
         }
         class Barber {
             <<entity>>
-            +specialties: string[]
+            +services: string[]
             +age: number
             +photoUrl: string
             +isActive: boolean
@@ -173,12 +173,12 @@ classDiagram
         }
         class IBarberRepository {
             <<interface>>
-            +findEmployeeById(id) Barber
-            +findAllEmployees() Barber[]
-            +createEmployee(barber) Barber
-            +updateEmployee(id, update) Barber
-            +deactivateEmployee(id) void
-            +deleteEmployee(id) void
+            +findBarberById(id) Barber
+            +findAllBarbers() Barber[]
+            +createBarber(barber) Barber
+            +updateBarber(id, update) Barber
+            +deactivateBarber(id) void
+            +deleteBarber(id) void
             +updateSchedule(id, schedule) Barber
         }
         class IClientRepository {
@@ -344,10 +344,10 @@ classDiagram
         class UpdateAppointmentStatusUseCase {
             +execute(id, dto) Appointment
         }
-        class CreateEmployeeBarberUseCase {
+        class CreateBarberUseCase {
             +execute(dto) Barber
         }
-        class GetAllEmployeesUseCase {
+        class GetAllBarbersUseCase {
             +execute() Barber[]
         }
         class GetBarberByIdUseCase {
@@ -379,7 +379,232 @@ classDiagram
         }
     }
 
-    %% Application → Domain Dependencies
+    %% ========== INFRASTRUCTURE LAYER ==========
+    namespace Infrastructure {
+        class MongoUserRepository {
+            -UserModel: Model
+            +findByEmail(email) User
+            +findByPhone(phone) User
+            +createRegisteredClient(user) User
+            +updatePassword(userId, hash) void
+            +updateTwoFactor(userId, update) void
+            +updateLastLogin(userId) void
+            +updateUserSecurity(userId, update) void
+        }
+        class MongoBarberRepository {
+            -BarberModel: Model
+            +findBarberById(id) Barber
+            +findAllBarbers() Barber[]
+            +createBarber(barber) Barber
+            +updateBarber(id, update) Barber
+            +deactivateBarber(id) void
+            +deleteBarber(id) void
+            +updateSchedule(id, schedule) Barber
+        }
+        class MongoClientRepository {
+            -ClientModel: Model
+            +findByEmail(email) Client
+            +findByPhone(phone) Client
+            +createUnregistered(data) Client
+        }
+        class MongoAppointmentRepository {
+            -AppointmentModel: Model
+            +findById(id) Appointment
+            +findMany(filters) Appointment[]
+            +findByBarberAndDate(barberId, date) Appointment[]
+            +findByClientAndDate(clientId, date) Appointment[]
+            +findByContactAndDate(date, email, phone) Appointment[]
+            +create(data) Appointment
+            +update(id, data) Appointment
+            +updateStatus(id, data) Appointment
+        }
+        class MongoRefreshTokenRepository {
+            -RefreshTokenModel: Model
+            +create(tokenHash, userId, expiresAt) RefreshToken
+            +findByTokenHash(hash) RefreshToken
+            +revoke(tokenHash) void
+            +revokeAllByUserId(userId) void
+        }
+        class MongoPasswordResetRepository {
+            -PasswordResetModel: Model
+            +create(userId, tokenHash, expiresAt) void
+            +verifyAndConsume(tokenHash) PasswordResetToken
+        }
+        class MongoTempLockRepository {
+            -TempLockModel: Model
+            +create(data) void
+            +deleteMany(filter) void
+            +deleteOne(barberId, date, startTime) void
+            +findByBarberAndDate(barberId, date) TempLockData[]
+        }
+        class StaticServiceRepository {
+            -services: Service[]
+            +findAll() Service[]
+            +findById(id) Service
+        }
+        class JwtTokenService {
+            -config: JwtTokenServiceConfig
+            +sign(payload) string
+            +verify(token) TokenPayload
+            +signAccessToken(payload) string
+            +signRefreshToken(payload) string
+            +verifyAccessToken(token) TokenPayload
+            +verifyRefreshToken(token) TokenPayload
+            +signPartialToken(email) string
+            +verifyPartialToken(token) ~{email}~
+        }
+        class BcryptPasswordHasher {
+            +hash(password) string
+            +compare(password, hash) boolean
+        }
+        class NodemailerEmailService {
+            +sendMail(message) Promise~void~
+        }
+        class FakeEmailService {
+            +sendMail(message) Promise~void~
+            +getCode(email) string
+            +clear() void
+        }
+        class GoogleAuthService {
+            -client: OAuth2Client
+            -clientId: string
+            +verifyIdToken(token) GoogleUser
+        }
+        class HashService {
+            +sha256(input) string
+            +constantTimeEqual(a, b) boolean
+        }
+        class RandomGenerator {
+            +generateNumericCode(length) string
+            +generateHexToken(bytes) string
+        }
+        class DateTimeProvider {
+            +now() Date
+        }
+        class AppointmentMapper {
+            +fromDocument(doc) Appointment
+            +toDocumentData(primitives) Record~string, unknown~
+        }
+        class BarberMapper {
+            +fromDocument(doc) Barber
+            +toPersist(barber) Record~string, unknown~
+        }
+        class ClientMapper {
+            +fromDocument(doc) Client
+            +toPersist(client) Record~string, unknown~
+        }
+        class UserMapper {
+            +fromDocument(doc) User
+        }
+        class ServiceMapper {
+            +fromDocument(doc) Service
+        }
+        class PasswordResetMapper {
+            +fromDocument(doc) PasswordResetToken
+        }
+    }
+
+    %% ========== INTERFACE-ADAPTERS LAYER ==========
+    namespace InterfaceAdapters {
+        class AuthController {
+            +register(req, res) Response
+            +refresh(req, res) Response
+        }
+        class AuthGoogleController {
+            +googleLogin(req, res) Response
+            +completeProfile(req, res) Response
+        }
+        class TwoFactorController {
+            +sendTwoFactorCode(req, res) Response
+            +verifyTwoFactorCode(req, res) Response
+        }
+        class PasswordRecoveryController {
+            +requestReset(req, res) Response
+            +resetPassword(req, res) Response
+        }
+        class BarberController {
+            +getAllPublic(req, res) Response
+            +create(req, res) Response
+            +getAll(req, res) Response
+            +getById(req, res) Response
+            +update(req, res) Response
+            +delete(req, res) Response
+            +getSchedule(req, res) Response
+            +updateSchedule(req, res) Response
+            +getSlots(req, res) Response
+        }
+        class AppointmentController {
+            +create(req, res) Response
+            +getAll(req, res) Response
+            +getById(req, res) Response
+            +cancel(req, res) Response
+            +updateStatus(req, res) Response
+            +reschedule(req, res) Response
+        }
+        class ServiceController {
+            +getAll(req, res) Response
+        }
+        class TempLockController {
+            +create(req, res) Response
+        }
+        class AuthMiddleware {
+            +createAuthenticate(tokenService) Middleware
+            +authorize(...kinds) Middleware
+            +authorizeSelfOrKinds(paramKey, ...kinds) Middleware
+            +createOptionalAuth(tokenService) Middleware
+        }
+        class ValidationMiddleware {
+            +validate(schemas) Middleware
+        }
+        class AuthPresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+        class BarberPresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+        class AppointmentPresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+        class ServicePresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+    }
+
+    %% ========== RELATIONSHIPS ==========
+
+    %% Domain Inheritance
+    Barber --|> User : extends via discriminator (kind='Admin'|'Empleado')
+    Client --|> User : extends via discriminator (kind='Registrado'|'NoRegistrado')
+
+    %% Domain Associations
+    Appointment --> Barber : barberId >
+    Appointment --> Client : clientId ?
+    Appointment --> Service : serviceId >
+    Appointment --> AppointmentStatus : status
+
+    %% Domain Interface Implementations (Infra)
+    MongoUserRepository ..|> IUserRepository : implements
+    MongoBarberRepository ..|> IBarberRepository : implements
+    MongoClientRepository ..|> IClientRepository : implements
+    MongoAppointmentRepository ..|> IAppointmentRepository : implements
+    MongoRefreshTokenRepository ..|> IRefreshTokenRepository : implements
+    MongoPasswordResetRepository ..|> IPasswordResetRepository : implements
+    MongoTempLockRepository ..|> ITempLockRepository : implements
+    StaticServiceRepository ..|> IServiceRepository : implements
+    JwtTokenService ..|> ITokenService : implements
+    BcryptPasswordHasher ..|> IPasswordHasher : implements
+    NodemailerEmailService ..|> IEmailService : implements
+    FakeEmailService ..|> IEmailService : implements
+    GoogleAuthService ..|> IGoogleAuthService : implements
+    HashService ..|> IHashService : implements
+    RandomGenerator ..|> IRandomGenerator : implements
+    DateTimeProvider ..|> IDateTimeProvider : implements
+
+    %% Application → Domain (Use Cases depend on Repos)
     RegisterUserUseCase --> IUserRepository : depends
     RegisterUserUseCase --> IPasswordHasher : depends
     AuthenticateWithGoogleUseCase --> IUserRepository : depends
@@ -435,10 +660,10 @@ classDiagram
     GetAppointmentsUseCase --> IAppointmentRepository : depends
     GetAppointmentByIdUseCase --> IAppointmentRepository : depends
     UpdateAppointmentStatusUseCase --> IAppointmentRepository : depends
-    CreateEmployeeBarberUseCase --> IUserRepository : depends
-    CreateEmployeeBarberUseCase --> IBarberRepository : depends
-    CreateEmployeeBarberUseCase --> IPasswordHasher : depends
-    GetAllEmployeesUseCase --> IBarberRepository : depends
+    CreateBarberUseCase --> IUserRepository : depends
+    CreateBarberUseCase --> IBarberRepository : depends
+    CreateBarberUseCase --> IPasswordHasher : depends
+    GetAllBarbersUseCase --> IBarberRepository : depends
     GetBarberByIdUseCase --> IBarberRepository : depends
     UpdateBarberUseCase --> IUserRepository : depends
     UpdateBarberUseCase --> IBarberRepository : depends
@@ -697,11 +922,12 @@ classDiagram
     TwoFactorController --> VerifyTwoFactorUseCase : executes
     PasswordRecoveryController --> RequestPasswordResetUseCase : executes
     PasswordRecoveryController --> ResetPasswordUseCase : executes
-    BarberController --> CreateEmployeeBarberUseCase : executes
-    BarberController --> GetAllEmployeesUseCase : executes
+    BarberController --> CreateBarberUseCase : executes
+    BarberController --> GetAllBarbersUseCase : executes
     BarberController --> GetBarberByIdUseCase : executes
     BarberController --> UpdateBarberUseCase : executes
     BarberController --> DeleteBarberUseCase : executes
+    BarberController --> DeactivateBarberUseCase : executes
     BarberController --> GetBarberScheduleUseCase : executes
     BarberController --> UpdateBarberScheduleUseCase : executes
     BarberController --> GetAvailableSlotsUseCase : executes

@@ -1,6 +1,7 @@
 import { BarberController } from '../../../../src/interface-adapters/controllers/barber/BarberController';
-import { CreateEmployeeBarberUseCase } from '../../../../src/application/use-cases/barber/CreateEmployeeBarberUseCase';
-import { GetAllEmployeesUseCase } from '../../../../src/application/use-cases/barber/GetAllEmployeesUseCase';
+import { CreateBarberUseCase } from '../../../../src/application/use-cases/barber/CreateBarberUseCase';
+import { DeactivateBarberUseCase } from '../../../../src/application/use-cases/barber/DeactivateBarberUseCase';
+import { GetAllBarbersUseCase } from '../../../../src/application/use-cases/barber/GetAllBarbersUseCase';
 import { GetBarberByIdUseCase } from '../../../../src/application/use-cases/barber/GetBarberByIdUseCase';
 import { UpdateBarberUseCase } from '../../../../src/application/use-cases/barber/UpdateBarberUseCase';
 import { DeleteBarberUseCase } from '../../../../src/application/use-cases/barber/DeleteBarberUseCase';
@@ -34,7 +35,7 @@ const makeBarberResponse = () => ({
   email: 'barber@example.com',
   phone: '123456789',
   kind: 'Empleado' as const,
-  specialties: [],
+  services: [],
   isActive: true,
   slotDuration: 30,
   schedule: createSchedule(),
@@ -43,22 +44,24 @@ const makeBarberResponse = () => ({
 });
 
 describe('BarberController', () => {
-  let createBarber: jest.Mocked<CreateEmployeeBarberUseCase>;
-  let getAllBarbers: jest.Mocked<GetAllEmployeesUseCase>;
+  let createBarber: jest.Mocked<CreateBarberUseCase>;
+  let getAllBarbers: jest.Mocked<GetAllBarbersUseCase>;
   let getBarberById: jest.Mocked<GetBarberByIdUseCase>;
   let updateBarber: jest.Mocked<UpdateBarberUseCase>;
   let deleteBarber: jest.Mocked<DeleteBarberUseCase>;
+  let deactivateBarber: jest.Mocked<DeactivateBarberUseCase>;
   let getBarberSchedule: jest.Mocked<GetBarberScheduleUseCase>;
   let updateBarberSchedule: jest.Mocked<UpdateBarberScheduleUseCase>;
   let getAvailableSlots: jest.Mocked<GetAvailableSlotsUseCase>;
   let controller: BarberController;
 
   beforeEach(() => {
-    createBarber = { execute: jest.fn() } as unknown as jest.Mocked<CreateEmployeeBarberUseCase>;
-    getAllBarbers = { execute: jest.fn() } as unknown as jest.Mocked<GetAllEmployeesUseCase>;
+    createBarber = { execute: jest.fn() } as unknown as jest.Mocked<CreateBarberUseCase>;
+    getAllBarbers = { execute: jest.fn() } as unknown as jest.Mocked<GetAllBarbersUseCase>;
     getBarberById = { execute: jest.fn() } as unknown as jest.Mocked<GetBarberByIdUseCase>;
     updateBarber = { execute: jest.fn() } as unknown as jest.Mocked<UpdateBarberUseCase>;
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
+    deactivateBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeactivateBarberUseCase>;
     getBarberSchedule = { execute: jest.fn() } as unknown as jest.Mocked<GetBarberScheduleUseCase>;
     updateBarberSchedule = { execute: jest.fn() } as unknown as jest.Mocked<UpdateBarberScheduleUseCase>;
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
@@ -68,6 +71,7 @@ describe('BarberController', () => {
       getBarberById,
       updateBarber,
       deleteBarber,
+      deactivateBarber,
       getBarberSchedule,
       updateBarberSchedule,
       getAvailableSlots

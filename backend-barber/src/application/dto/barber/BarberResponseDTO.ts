@@ -7,7 +7,7 @@ export type BarberResponseDTO = {
   email: string;
   phone: string;
   kind: BarberDTOKind;
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
@@ -22,7 +22,7 @@ type BarberEntityLike = {
   email: string;
   phone: string;
   kind: string;
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
@@ -38,7 +38,7 @@ export const toBarberResponse = (barber: BarberEntityLike): BarberResponseDTO =>
     email: barber.email,
     phone: barber.phone,
     kind: barber.kind as BarberDTOKind,
-    specialties: barber.specialties,
+    services: barber.services,
     age: barber.age,
     photoUrl: barber.photoUrl ?? null,
     isActive: barber.isActive,

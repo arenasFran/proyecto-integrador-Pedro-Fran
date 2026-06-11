@@ -31,7 +31,7 @@ describe('UpdateBarberUseCase', () => {
       lastname: 'Perez',
       phone: '123456789',
       kind: 'Empleado',
-      specialties: [],
+      services: [],
       isActive: true,
       slotDuration: 30,
       maxAdvanceDays: 30,
@@ -72,12 +72,12 @@ describe('UpdateBarberUseCase', () => {
     };
 
     barberRepository = {
-      findEmployeeById: jest.fn(),
-      findAllEmployees: jest.fn(),
-      createEmployee: jest.fn(),
-      updateEmployee: jest.fn(),
-      deactivateEmployee: jest.fn(),
-      deleteEmployee: jest.fn(),
+      findBarberById: jest.fn(),
+      findAllBarbers: jest.fn(),
+      createBarber: jest.fn(),
+      updateBarber: jest.fn(),
+      deactivateBarber: jest.fn(),
+      deleteBarber: jest.fn(),
       updateSchedule: jest.fn(),
     };
 
@@ -90,7 +90,7 @@ describe('UpdateBarberUseCase', () => {
   });
 
   it('debe fallar si el barbero no existe', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(null);
+    barberRepository.findBarberById.mockResolvedValue(null);
 
     await expect(useCase.execute('barber-1', { name: 'Pedro' })).rejects.toBeInstanceOf(
       AppError
@@ -98,7 +98,7 @@ describe('UpdateBarberUseCase', () => {
   });
 
   it('debe fallar si el email ya esta en uso por otro usuario', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     userRepository.findByEmail.mockResolvedValue(makeUser('user-1'));
 
     await expect(useCase.execute('barber-1', { email: 'used@example.com' })).rejects.toBeInstanceOf(
@@ -107,14 +107,14 @@ describe('UpdateBarberUseCase', () => {
   });
 
   it('debe actualizar slotDuration y devolver el barbero actualizado', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     userRepository.findByEmail.mockResolvedValue(null);
     userRepository.findByPhone.mockResolvedValue(null);
-    barberRepository.updateEmployee.mockResolvedValue(makeBarber({ slotDuration: 45 }));
+    barberRepository.updateBarber.mockResolvedValue(makeBarber({ slotDuration: 45 }));
 
     const result = await useCase.execute('barber-1', { slotDuration: 45 });
 
-    expect(barberRepository.updateEmployee).toHaveBeenCalledWith(
+    expect(barberRepository.updateBarber).toHaveBeenCalledWith(
       'barber-1',
       expect.objectContaining({ slotDuration: 45 })
     );
@@ -122,10 +122,10 @@ describe('UpdateBarberUseCase', () => {
   });
 
   it('debe fallar si no se puede actualizar el barbero', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     userRepository.findByEmail.mockResolvedValue(null);
     userRepository.findByPhone.mockResolvedValue(null);
-    barberRepository.updateEmployee.mockResolvedValue(null);
+    barberRepository.updateBarber.mockResolvedValue(null);
 
     await expect(useCase.execute('barber-1', { name: 'Pedro' })).rejects.toBeInstanceOf(
       AppError

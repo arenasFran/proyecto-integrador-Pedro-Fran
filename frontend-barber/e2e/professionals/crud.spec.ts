@@ -44,7 +44,7 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   await page.getByLabel('Teléfono').fill(createdPhone);
   await page.getByLabel('Contraseña').fill('Admin123!');
   await page.getByLabel('Duración del slot').fill('45');
-  await page.getByLabel('Especialidades').fill('corte, barba');
+  await page.getByLabel('Servicios').fill('corte, barba');
   await page.getByLabel('Edad').fill('28');
   await page.getByLabel('Inicio Lunes', { exact: true }).fill('09:00');
   await page.getByLabel('Fin Lunes', { exact: true }).fill('18:00');

@@ -31,7 +31,7 @@ const mapBarberPublic = (raw: PublicBarbersResponse['barbers'][number]): BarberP
     id: raw.id ?? raw._id ?? '',
     name: raw.name,
     lastname: raw.lastname,
-    specialties: raw.specialties,
+    services: raw.services,
     photoUrl: raw.photoUrl,
     isActive: raw.isActive,
     slotDuration: raw.slotDuration,

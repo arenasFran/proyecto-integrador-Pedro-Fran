@@ -13,13 +13,13 @@ export class DeleteBarberUseCase {
   ) {}
 
   async execute(barberId: string): Promise<{ message: string }> {
-    const barber = await this.barberRepository.findEmployeeById(barberId);
+    const barber = await this.barberRepository.findBarberById(barberId);
     if (!barber) {
       throw new AppError('Barbero no encontrado.', 404);
     }
 
     // RN12 — Soft-delete: desactivar barbero
-    await this.barberRepository.deactivateEmployee(barberId);
+    await this.barberRepository.deactivateBarber(barberId);
 
     // Eliminar TempLocks activos del barbero
     await this.tempLockRepository.deleteMany({ barberId });

@@ -27,7 +27,7 @@ export interface IBarberRaw {
   lastname: string;
   phone: string;
   kind?: string;
-  specialties?: string[];
+  services?: string[];
   age?: number;
   photoUrl?: string | null;
   isActive?: boolean;
@@ -135,7 +135,7 @@ const Employee = Barber.discriminator<IEmployee>(
   'Empleado',
   new Schema(
     {
-      specialties: {
+      services: {
         type: [String],
         default: [],
       },
@@ -172,7 +172,7 @@ const Admin = Barber.discriminator<IAdmin>(
   'Admin',
   new Schema(
     {
-      specialties: {
+      services: {
         type: [String],
         default: [],
       },

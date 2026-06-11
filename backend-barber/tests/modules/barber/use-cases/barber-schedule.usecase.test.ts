@@ -29,7 +29,7 @@ describe('Barber schedule use cases', () => {
       lastname: 'Perez',
       phone: '123456789',
       kind: 'Empleado',
-      specialties: [],
+      services: [],
       isActive: true,
       slotDuration: 30,
       maxAdvanceDays: 30,
@@ -44,19 +44,19 @@ describe('Barber schedule use cases', () => {
 
   beforeEach(() => {
     barberRepository = {
-      findEmployeeById: jest.fn(),
-      findAllEmployees: jest.fn(),
-      createEmployee: jest.fn(),
-      updateEmployee: jest.fn(),
-      deactivateEmployee: jest.fn(),
-      deleteEmployee: jest.fn(),
+      findBarberById: jest.fn(),
+      findAllBarbers: jest.fn(),
+      createBarber: jest.fn(),
+      updateBarber: jest.fn(),
+      deactivateBarber: jest.fn(),
+      deleteBarber: jest.fn(),
       updateSchedule: jest.fn(),
     };
   });
 
   it('debe obtener el horario del barbero', async () => {
     const barber = makeBarber();
-    barberRepository.findEmployeeById.mockResolvedValue(barber);
+    barberRepository.findBarberById.mockResolvedValue(barber);
 
     const useCase = new GetBarberScheduleUseCase(barberRepository);
     const schedule = await useCase.execute('barber-1');
@@ -65,7 +65,7 @@ describe('Barber schedule use cases', () => {
   });
 
   it('debe fallar si el barbero no existe al obtener horario', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(null);
+    barberRepository.findBarberById.mockResolvedValue(null);
 
     const useCase = new GetBarberScheduleUseCase(barberRepository);
 

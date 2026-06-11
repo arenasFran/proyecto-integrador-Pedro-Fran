@@ -9,7 +9,7 @@ import { BarberResponseDTO, toBarberResponse } from '../../dto/barber/BarberResp
 import { AppError } from '../../errors/AppError';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
-export class CreateEmployeeBarberUseCase {
+export class CreateBarberUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly barberRepository: IBarberRepository,
@@ -40,7 +40,7 @@ export class CreateEmployeeBarberUseCase {
       lastname: dto.lastname,
       phone,
       kind: 'Empleado',
-      specialties: dto.specialties || [],
+      services: dto.services || [],
       age: dto.age,
       photoUrl: dto.photoUrl ?? null,
       isActive: true,
@@ -50,7 +50,7 @@ export class CreateEmployeeBarberUseCase {
       passwordHash,
     });
 
-    const created = await this.barberRepository.createEmployee(barber);
+    const created = await this.barberRepository.createBarber(barber);
 
     return toBarberResponse(created);
   }

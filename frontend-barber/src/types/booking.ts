@@ -2,7 +2,7 @@ export type BarberPublic = {
   id: string;
   name: string;
   lastname: string;
-  specialties: string[];
+  services: string[];
   photoUrl: string | null;
   isActive: boolean;
   slotDuration: number;

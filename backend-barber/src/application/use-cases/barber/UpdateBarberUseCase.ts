@@ -16,7 +16,7 @@ export class UpdateBarberUseCase {
   ) {}
 
   async execute(barberId: string, dto: UpdateBarberDTO): Promise<BarberResponseDTO> {
-    const current = await this.barberRepository.findEmployeeById(barberId);
+    const current = await this.barberRepository.findBarberById(barberId);
     if (!current) {
       throw new AppError('Barbero no encontrado.', 404);
     }
@@ -26,7 +26,7 @@ export class UpdateBarberUseCase {
       name?: string;
       lastname?: string;
       phone?: string;
-      specialties?: string[];
+      services?: string[];
       age?: number | null;
       photoUrl?: string | null;
       isActive?: boolean;
@@ -66,8 +66,8 @@ export class UpdateBarberUseCase {
       update.lastname = dto.lastname;
     }
 
-    if (dto.specialties) {
-      update.specialties = dto.specialties;
+    if (dto.services) {
+      update.services = dto.services;
     }
 
     if (dto.age !== undefined) {
@@ -90,7 +90,7 @@ export class UpdateBarberUseCase {
       update.maxAdvanceDays = dto.maxAdvanceDays;
     }
 
-    const updated = await this.barberRepository.updateEmployee(barberId, update);
+    const updated = await this.barberRepository.updateBarber(barberId, update);
     if (!updated) {
       throw new AppError('Barbero no encontrado.', 404);
     }

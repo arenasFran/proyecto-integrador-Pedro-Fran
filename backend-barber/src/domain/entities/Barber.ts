@@ -31,7 +31,7 @@ export type BarberProps = {
   lastname: string;
   phone: string;
   kind: BarberKind;
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
@@ -48,7 +48,7 @@ type BarberInternalProps = {
   lastname: string;
   phone: Phone;
   kind: BarberKind;
-  specialties: string[];
+  services: string[];
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
@@ -99,8 +99,8 @@ export class Barber {
     return this.props.kind;
   }
 
-  get specialties(): string[] {
-    return this.props.specialties;
+  get services(): string[] {
+    return this.props.services;
   }
 
   get age(): number | undefined {
@@ -139,7 +139,7 @@ export class Barber {
       lastname: this.props.lastname,
       phone: this.props.phone.getValue(),
       kind: this.props.kind,
-      specialties: [...this.props.specialties],
+      services: [...this.props.services],
       age: this.props.age,
       photoUrl: this.props.photoUrl ?? null,
       isActive: this.props.isActive,

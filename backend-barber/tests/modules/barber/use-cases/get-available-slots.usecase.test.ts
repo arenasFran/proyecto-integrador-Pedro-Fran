@@ -32,7 +32,7 @@ describe('GetAvailableSlotsUseCase', () => {
       lastname: 'Perez',
       phone: '123456789',
       kind: 'Empleado',
-      specialties: [],
+      services: [],
       isActive: true,
       slotDuration: 30,
       maxAdvanceDays: 30,
@@ -72,12 +72,12 @@ describe('GetAvailableSlotsUseCase', () => {
 
   beforeEach(() => {
     barberRepository = {
-      findEmployeeById: jest.fn(),
-      findAllEmployees: jest.fn(),
-      createEmployee: jest.fn(),
-      updateEmployee: jest.fn(),
-      deactivateEmployee: jest.fn(),
-      deleteEmployee: jest.fn(),
+      findBarberById: jest.fn(),
+      findAllBarbers: jest.fn(),
+      createBarber: jest.fn(),
+      updateBarber: jest.fn(),
+      deactivateBarber: jest.fn(),
+      deleteBarber: jest.fn(),
       updateSchedule: jest.fn(),
     };
 
@@ -108,7 +108,7 @@ describe('GetAvailableSlotsUseCase', () => {
   });
 
   it('debe fallar si el barbero no existe', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(null);
+    barberRepository.findBarberById.mockResolvedValue(null);
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
 
     await expect(useCase.execute('barber-1', '2099-01-01')).rejects.toBeInstanceOf(AppError);
@@ -119,7 +119,7 @@ describe('GetAvailableSlotsUseCase', () => {
       breaks: [{ startTime: '10:00', endTime: '10:30' }],
     });
 
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ schedule }));
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ schedule }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
 
     const result = await useCase.execute('barber-1', '2099-01-05');
@@ -128,7 +128,7 @@ describe('GetAvailableSlotsUseCase', () => {
   });
 
   it('debe excluir slots ocupados por turnos existentes', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ startTime: '09:00', endTime: '09:50' }) as any,
     ]);
@@ -141,7 +141,7 @@ describe('GetAvailableSlotsUseCase', () => {
   });
 
   it('debe ignorar turnos cancelados al calcular disponibilidad', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ startTime: '09:00', endTime: '09:50', status: 'Cancelado' }) as any,
     ]);

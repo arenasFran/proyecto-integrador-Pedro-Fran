@@ -15,7 +15,7 @@ Se adopta una estrategia en dos capas:
 
 ### 1. Interfaces planas (`Raw`)
 
-Se crearon `IBarberRaw`, `IEmployeeRaw`, `IAdminRaw` que **no extienden `Document`**, reflejando la estructura real que devuelve `.lean()`. Los campos específicos de discriminadores (`schedule`, `specialties`, etc.) son opcionales, ya que al consultar vía el modelo base Mongoose no conoce el tipo concreto.
+Se crearon `IBarberRaw`, `IEmployeeRaw`, `IAdminRaw` que **no extienden `Document`**, reflejando la estructura real que devuelve `.lean()`. Los campos específicos de discriminadores (`schedule`, `services`, etc.) son opcionales, ya que al consultar vía el modelo base Mongoose no conoce el tipo concreto.
 
 ### 2. Type guards con validación runtime
 

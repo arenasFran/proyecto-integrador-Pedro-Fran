@@ -6,7 +6,7 @@ import { Barber as BarberModel, Employee } from './models/barber.model';
 import { isBarberRaw } from './guards/barber.guards';
 
 export class MongoBarberRepository implements IBarberRepository {
-  async findEmployeeById(id: string): Promise<Barber | null> {
+  async findBarberById(id: string): Promise<Barber | null> {
     const doc = await BarberModel.findById(id).lean();
     if (!doc) {
       return null;
@@ -17,7 +17,7 @@ export class MongoBarberRepository implements IBarberRepository {
     return BarberMapper.fromDocument(doc);
   }
 
-  async findAllEmployees(): Promise<Barber[]> {
+  async findAllBarbers(): Promise<Barber[]> {
     const docs = await BarberModel.find({ kind: { $in: ['Empleado', 'Admin'] } }).lean();
     return docs.map((doc) => {
       if (!isBarberRaw(doc)) {
@@ -27,12 +27,12 @@ export class MongoBarberRepository implements IBarberRepository {
     });
   }
 
-  async createEmployee(barber: Barber): Promise<Barber> {
+  async createBarber(barber: Barber): Promise<Barber> {
     const doc = await Employee.create(BarberMapper.toEmployeeData(barber));
     return BarberMapper.fromDocument(doc);
   }
 
-  async updateEmployee(id: string, update: BarberUpdate): Promise<Barber | null> {
+  async updateBarber(id: string, update: BarberUpdate): Promise<Barber | null> {
     const data: Record<string, unknown> = { ...update };
     if (update.passwordHash !== undefined) {
       data.password = update.passwordHash;
@@ -54,11 +54,11 @@ export class MongoBarberRepository implements IBarberRepository {
     return BarberMapper.fromDocument(doc);
   }
 
-  async deactivateEmployee(id: string): Promise<void> {
+  async deactivateBarber(id: string): Promise<void> {
     await Employee.findByIdAndUpdate(id, { isActive: false });
   }
 
-  async deleteEmployee(id: string): Promise<void> {
+  async deleteBarber(id: string): Promise<void> {
     await BarberModel.findByIdAndDelete(id);
   }
 

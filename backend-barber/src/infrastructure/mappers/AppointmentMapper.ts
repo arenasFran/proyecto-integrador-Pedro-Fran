@@ -34,32 +34,5 @@ export class AppointmentMapper {
     });
   }
 
-  static toDocumentData(
-    appointment: ReturnType<Appointment['toPrimitives']>
-  ): Record<string, unknown> {
-    return {
-      barberId: appointment.barberId,
-      clientId: appointment.clientId,
-      clientName: appointment.clientName,
-      clientLastname: appointment.clientLastname,
-      clientPhone: appointment.clientPhone,
-      clientEmail: appointment.clientEmail,
-      serviceId: appointment.serviceId,
-      serviceName: appointment.serviceName,
-      servicePrice: appointment.servicePrice,
-      serviceDuration: appointment.serviceDuration,
-      date: appointment.date,
-      startTime: appointment.startTime,
-      endTime: appointment.endTime,
-      status: appointment.status,
-      paymentStatus: appointment.paymentStatus,
-      paymentMethod: appointment.paymentMethod,
-      cancelReason: appointment.cancelReason,
-      cancelledAt: appointment.cancelledAt,
-      cancelledBy: appointment.cancelledBy,
-      statusHistory: appointment.statusHistory,
-      createdAt: appointment.createdAt,
-      updatedAt: appointment.updatedAt,
-    };
-  }
+
 }

@@ -10,7 +10,7 @@ type ProfessionalFormState = {
   name: string;
   lastname: string;
   phone: string;
-  specialties: string;
+  services: string;
   age: string;
   photoUrl: string;
   slotDuration: string;
@@ -117,9 +117,9 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
 
         <div className="grid gap-4 md:grid-cols-2">
           <Input
-            label="Especialidades"
-            value={form.specialties}
-            onChange={onFieldChange('specialties')}
+            label="Servicios"
+            value={form.services}
+            onChange={onFieldChange('services')}
             placeholder="corte, barba, color"
             helperText="Separadas por coma"
           />

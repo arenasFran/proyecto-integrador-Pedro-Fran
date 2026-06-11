@@ -40,7 +40,7 @@ describe('CreateAppointmentUseCase', () => {
       lastname: 'Lopez',
       phone: '098765432',
       kind: 'Empleado',
-      specialties: [],
+      services: [],
       isActive: true,
       slotDuration: 30,
       maxAdvanceDays: 99999,
@@ -116,12 +116,12 @@ describe('CreateAppointmentUseCase', () => {
     };
 
     barberRepository = {
-      findEmployeeById: jest.fn(),
-      findAllEmployees: jest.fn(),
-      createEmployee: jest.fn(),
-      updateEmployee: jest.fn(),
-      deactivateEmployee: jest.fn(),
-      deleteEmployee: jest.fn(),
+      findBarberById: jest.fn(),
+      findAllBarbers: jest.fn(),
+      createBarber: jest.fn(),
+      updateBarber: jest.fn(),
+      deactivateBarber: jest.fn(),
+      deleteBarber: jest.fn(),
       updateSchedule: jest.fn(),
     };
 
@@ -158,7 +158,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe fallar si el barbero no existe', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(null);
+    barberRepository.findBarberById.mockResolvedValue(null);
 
     await expect(
       useCase.execute({
@@ -173,7 +173,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe fallar si el barbero esta inactivo', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber({ isActive: false }));
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ isActive: false }));
 
     await expect(
       useCase.execute({
@@ -188,7 +188,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe fallar si el servicio no existe', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(null);
 
     await expect(
@@ -204,7 +204,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe fallar si el horario ya esta ocupado', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ startTime: '10:00', endTime: '10:50' }),
@@ -223,7 +223,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe crear un turno exitosamente', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
     appointmentRepository.findByClientAndDate.mockResolvedValue([]);
@@ -248,7 +248,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe crear turno correctamente con cualquier slot del barbero', async () => {
     const barber45 = makeBarber({ slotDuration: 45 });
-    barberRepository.findEmployeeById.mockResolvedValue(barber45);
+    barberRepository.findBarberById.mockResolvedValue(barber45);
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
     appointmentRepository.findByClientAndDate.mockResolvedValue([]);
@@ -282,7 +282,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe fallar si el turno esta fuera del horario laboral', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
 
     await expect(
@@ -301,7 +301,7 @@ describe('CreateAppointmentUseCase', () => {
     const schedule = createSchedule();
     schedule.monday.breaks = [{ startTime: '12:00', endTime: '14:00' }];
     const barberWithBreak = makeBarber({ schedule });
-    barberRepository.findEmployeeById.mockResolvedValue(barberWithBreak);
+    barberRepository.findBarberById.mockResolvedValue(barberWithBreak);
     serviceRepository.findById.mockResolvedValue(makeService());
 
     await expect(
@@ -317,7 +317,7 @@ describe('CreateAppointmentUseCase', () => {
   });
 
   it('debe ignorar turnos cancelados al verificar solapamiento', async () => {
-    barberRepository.findEmployeeById.mockResolvedValue(makeBarber());
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ status: 'Cancelado', startTime: '10:00', endTime: '10:50' }),
@@ -342,7 +342,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe rechazar si la fecha excede el maxAdvanceDays del barbero', async () => {
     const barber = makeBarber({ maxAdvanceDays: 1 });
-    barberRepository.findEmployeeById.mockResolvedValue(barber);
+    barberRepository.findBarberById.mockResolvedValue(barber);
     serviceRepository.findById.mockResolvedValue(makeService());
 
     await expect(
@@ -359,7 +359,7 @@ describe('CreateAppointmentUseCase', () => {
 
   it('debe aceptar si la fecha esta dentro del maxAdvanceDays del barbero', async () => {
     const barber = makeBarber({ maxAdvanceDays: 99999 });
-    barberRepository.findEmployeeById.mockResolvedValue(barber);
+    barberRepository.findBarberById.mockResolvedValue(barber);
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
     appointmentRepository.findByClientAndDate.mockResolvedValue([]);

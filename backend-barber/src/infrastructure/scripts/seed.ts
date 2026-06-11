@@ -282,6 +282,14 @@ async function seedAppointments(): Promise<void> {
         paymentMethod: seed.paymentMethod,
         cancelReason: seed.cancelReason,
         cancelledAt: seed.status === 'Cancelado' ? new Date() : undefined,
+        cancelledBy: seed.status === 'Cancelado' ? 'system' : undefined,
+        statusHistory: [
+          {
+            status: seed.status,
+            timestamp: new Date(),
+            actor: 'system',
+          },
+        ],
       });
 
       console.log(`  Turno ${seed.status} creado para ${barber.name} el ${dateStr} a las ${startTime}`);

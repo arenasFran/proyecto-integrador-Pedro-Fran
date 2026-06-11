@@ -1,4 +1,4 @@
-import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry } from '../types/appointment';
+import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry, VALID_TRANSITIONS } from '../types/appointment';
 import { Email } from '../value-objects/Email';
 import { Phone } from '../value-objects/Phone';
 import { Price } from '../value-objects/Price';
@@ -214,6 +214,10 @@ export class Appointment {
   }
 
   cancel(reason?: string, cancelledBy?: string): void {
+    const allowed = VALID_TRANSITIONS[this.props.status];
+    if (!allowed || !allowed.includes('Cancelado')) {
+      throw new Error(`No se puede cancelar un turno en estado ${this.props.status}.`);
+    }
     this.props.status = 'Cancelado';
     this.props.cancelReason = reason;
     this.props.cancelledAt = new Date();
@@ -223,17 +227,28 @@ export class Appointment {
   }
 
   pay(actor?: string): void {
+    if (this.props.status === 'Cancelado' || this.props.status === 'NoShow') {
+      throw new Error(`No se puede pagar un turno en estado ${this.props.status}.`);
+    }
     this.props.paymentStatus = 'Pagado';
     this.props.updatedAt = new Date();
   }
 
   complete(actor?: string): void {
+    const allowed = VALID_TRANSITIONS[this.props.status];
+    if (!allowed || !allowed.includes('Completado')) {
+      throw new Error(`No se puede completar un turno en estado ${this.props.status}.`);
+    }
     this.props.status = 'Completado';
     this.addStatusHistoryEntry('Completado', actor || 'system');
     this.props.updatedAt = new Date();
   }
 
   markNoShow(actor?: string): void {
+    const allowed = VALID_TRANSITIONS[this.props.status];
+    if (!allowed || !allowed.includes('NoShow')) {
+      throw new Error(`No se puede marcar como NoShow un turno en estado ${this.props.status}.`);
+    }
     this.props.status = 'NoShow';
     this.addStatusHistoryEntry('NoShow', actor || 'system');
     this.props.updatedAt = new Date();

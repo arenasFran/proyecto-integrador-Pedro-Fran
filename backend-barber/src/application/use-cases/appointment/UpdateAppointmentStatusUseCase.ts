@@ -1,5 +1,5 @@
-import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
-import { AppointmentStatus, VALID_TRANSITIONS, StatusHistoryEntry } from '../../../domain/types/appointment';
+import { IAppointmentRepository, UpdateStatusData } from '../../../domain/repositories/IAppointmentRepository';
+import { AppointmentStatus } from '../../../domain/types/appointment';
 import { AppError } from '../../errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
 
@@ -30,15 +30,10 @@ export class UpdateAppointmentStatusUseCase {
       return { message: 'El turno ya se encontraba cancelado' };
     }
 
-    // RN09 — State machine validation
-    const allowedFrom = VALID_TRANSITIONS[appointment.status];
-    if (!allowedFrom || !allowedFrom.includes(dto.status)) {
-      throw new AppError(
-        `No se puede cambiar de ${appointment.status} a ${dto.status}.`, 400
-      );
-    }
+    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
+    const actor = (userKind && actorMap[userKind]) || 'system';
 
-    // Task 2 — Límite mínimo de anticipación (solo para cancelación)
+    // Application-level rules before entity mutation
     if (dto.status === 'Cancelado') {
       const nowInTz = getNowInTimezone();
       const aptStartMinutes = toMinutes(appointment.startTime);
@@ -56,7 +51,6 @@ export class UpdateAppointmentStatusUseCase {
       }
     }
 
-    // Task 5 — NoShow solo si el turno ya pasó
     if (dto.status === 'NoShow') {
       const nowInTz = getNowInTimezone();
       const aptStartMinutes = toMinutes(appointment.startTime);
@@ -74,36 +68,42 @@ export class UpdateAppointmentStatusUseCase {
       }
     }
 
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = (userKind && actorMap[userKind]) || 'system';
+    // Entity methods validate transitions and mutate state
+    try {
+      if (dto.status === 'Cancelado') {
+        appointment.cancel(dto.cancelReason, actor);
+      } else if (dto.status === 'Completado') {
+        appointment.complete(actor);
+      } else if (dto.status === 'NoShow') {
+        appointment.markNoShow(actor);
+      } else {
+        throw new Error(`Transición inválida a ${dto.status}.`);
+      }
+    } catch (error) {
+      throw new AppError(
+        `No se puede cambiar de ${appointment.status} a ${dto.status}.`, 400
+      );
+    }
 
-    const statusHistoryEntry: StatusHistoryEntry = {
-      status: dto.status,
-      timestamp: new Date(),
-      actor,
+    const primitives = appointment.toPrimitives();
+    const lastEntry = primitives.statusHistory[primitives.statusHistory.length - 1];
+
+    const updateData: UpdateStatusData = {
+      status: primitives.status,
+      statusHistoryEntry: lastEntry,
     };
 
-    const updateData: {
-      status: AppointmentStatus;
-      paymentStatus?: 'Pendiente' | 'Pagado';
-      cancelReason?: string;
-      cancelledAt?: Date;
-      cancelledBy?: string;
-      statusHistoryEntry: StatusHistoryEntry;
-    } = {
-      status: dto.status,
-      statusHistoryEntry,
-    };
-
-    // Al completar un turno con pago local, se marca como pagado automáticamente
     if (dto.status === 'Completado') {
       updateData.paymentStatus = 'Pagado';
     }
-
-    if (dto.status === 'Cancelado') {
-      updateData.cancelReason = dto.cancelReason;
-      updateData.cancelledAt = new Date();
-      updateData.cancelledBy = actor;
+    if (primitives.cancelReason) {
+      updateData.cancelReason = primitives.cancelReason;
+    }
+    if (primitives.cancelledAt) {
+      updateData.cancelledAt = primitives.cancelledAt;
+    }
+    if (primitives.cancelledBy) {
+      updateData.cancelledBy = primitives.cancelledBy;
     }
 
     await this.appointmentRepository.updateStatus(id, updateData);

@@ -52,17 +52,12 @@ export const anonymousQuerySchema = Joi.object({
 
 export const updateAppointmentStatusSchema = Joi.object({
   status: Joi.string()
-    .valid('Confirmado', 'Cancelado', 'Completado', 'NoShow')
+    .valid('Cancelado', 'Completado', 'NoShow')
     .required(),
-  cancelReason: Joi.string().trim().max(500).when('status', {
+  cancelReason: Joi.string().trim().min(1).max(500).when('status', {
     is: 'Cancelado',
-    then: Joi.allow('', null),
+    then: Joi.required(),
     otherwise: Joi.forbidden(),
   }),
 });
 
-export const payAppointmentSchema = Joi.object({
-  paymentMethod: Joi.string()
-    .valid('local', 'online', 'memberPass')
-    .default('local'),
-});

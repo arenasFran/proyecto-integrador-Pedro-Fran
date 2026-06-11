@@ -1478,25 +1478,14 @@ components:
         status:
           type: string
           enum:
-            - Confirmado
             - Cancelado
             - Completado
             - NoShow
         cancelReason:
           type: string
+          minLength: 1
           maxLength: 500
           description: Obligatorio solo si status es Cancelado
-
-    PayAppointmentRequest:
-      type: object
-      properties:
-        paymentMethod:
-          type: string
-          enum:
-            - local
-            - online
-            - memberPass
-          default: local
 
     RescheduleAppointmentRequest:
       type: object

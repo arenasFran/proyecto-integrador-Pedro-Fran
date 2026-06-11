@@ -4,7 +4,6 @@ import { GetAppointmentByIdUseCase } from '../application/use-cases/appointment/
 import { GetAppointmentsAnonymousUseCase } from '../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
-import { PayAppointmentUseCase } from '../application/use-cases/appointment/PayAppointmentUseCase';
 import { RescheduleAppointmentUseCase } from '../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
@@ -45,7 +44,6 @@ export const buildAppointmentRouter = () => {
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
     appointmentRepository, cancelMinHoursBefore
   );
-  const payAppointment = new PayAppointmentUseCase(appointmentRepository);
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,
     barberRepository,
@@ -59,7 +57,6 @@ export const buildAppointmentRouter = () => {
     getAppointmentById,
     cancelAppointment,
     updateAppointmentStatus,
-    payAppointment,
     rescheduleAppointment,
     getAppointmentsAnonymous
   );

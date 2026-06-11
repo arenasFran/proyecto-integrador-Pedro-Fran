@@ -9,7 +9,6 @@ import {
   appointmentQuerySchema,
   cancelAppointmentSchema,
   createAppointmentSchema,
-  payAppointmentSchema,
   rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
 } from '../validators/appointment.validator';
@@ -68,14 +67,6 @@ export const createAppointmentRouter = (deps: {
     authorize('Admin', 'Empleado'),
     validate({ params: appointmentIdParamSchema, body: updateAppointmentStatusSchema }),
     deps.appointmentController.updateStatus
-  );
-
-  router.patch(
-    '/:id/pay',
-    deps.authenticate,
-    authorize('Admin', 'Empleado'),
-    validate({ params: appointmentIdParamSchema, body: payAppointmentSchema }),
-    deps.appointmentController.pay
   );
 
   router.patch(

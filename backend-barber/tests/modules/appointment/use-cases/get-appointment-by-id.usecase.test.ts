@@ -42,6 +42,9 @@ describe('GetAppointmentByIdUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
 
     useCase = new GetAppointmentByIdUseCase(appointmentRepository);
@@ -90,3 +93,4 @@ describe('GetAppointmentByIdUseCase', () => {
     expect(result.appointment.id).toBe('apt-1');
   });
 });
+

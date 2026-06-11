@@ -17,18 +17,18 @@ describe('Email', () => {
   });
 
   it('debe fallar con formato invalido', () => {
-    expect(() => Email.create('no-email')).toThrow('Email invalido');
+    expect(() => Email.create('no-email')).toThrow('Email inválido');
   });
 
   it('debe fallar sin TLD', () => {
-    expect(() => Email.create('user@dominio')).toThrow('Email invalido');
+    expect(() => Email.create('user@dominio')).toThrow('Email inválido');
   });
 
   it('debe fallar sin parte local', () => {
-    expect(() => Email.create('@dominio.com')).toThrow('Email invalido');
+    expect(() => Email.create('@dominio.com')).toThrow('Email inválido');
   });
 
   it('debe fallar con dominio empezando con punto', () => {
-    expect(() => Email.create('user@.com')).toThrow('Email invalido');
+    expect(() => Email.create('user@.com')).toThrow('Email inválido');
   });
 });

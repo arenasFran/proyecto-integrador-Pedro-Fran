@@ -90,6 +90,9 @@ describe('GetAvailableSlotsUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
 
     tempLockRepository = {

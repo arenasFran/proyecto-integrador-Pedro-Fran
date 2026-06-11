@@ -113,6 +113,9 @@ describe('CreateAppointmentUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
 
     barberRepository = {
@@ -226,7 +229,7 @@ describe('CreateAppointmentUseCase', () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.findByEmail.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -251,7 +254,7 @@ describe('CreateAppointmentUseCase', () => {
     barberRepository.findBarberById.mockResolvedValue(barber45);
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.createUnregistered.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -322,7 +325,7 @@ describe('CreateAppointmentUseCase', () => {
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ status: 'Cancelado', startTime: '10:00', endTime: '10:50' }),
     ]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.findByEmail.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -362,7 +365,7 @@ describe('CreateAppointmentUseCase', () => {
     barberRepository.findBarberById.mockResolvedValue(barber);
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.findByEmail.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -379,3 +382,4 @@ describe('CreateAppointmentUseCase', () => {
     expect(result.message).toMatch(/Turno creado/);
   });
 });
+

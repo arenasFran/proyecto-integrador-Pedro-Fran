@@ -63,6 +63,7 @@ describe('CreateBarberUseCase', () => {
   beforeEach(() => {
     userRepository = {
       findByEmail: jest.fn(),
+      findById: jest.fn(),
       findByPhone: jest.fn(),
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),

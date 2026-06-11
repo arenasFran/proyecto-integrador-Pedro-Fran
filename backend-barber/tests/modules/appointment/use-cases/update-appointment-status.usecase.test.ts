@@ -40,6 +40,9 @@ describe('UpdateAppointmentStatusUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
 
     useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 0);
@@ -175,3 +178,4 @@ describe('UpdateAppointmentStatusUseCase', () => {
     expect(result.message).toMatch(/Cancelado/);
   });
 });
+

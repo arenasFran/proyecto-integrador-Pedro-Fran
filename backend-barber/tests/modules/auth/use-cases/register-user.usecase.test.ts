@@ -1,6 +1,7 @@
 import { RegisterUserUseCase } from '../../../../src/application/use-cases/auth/RegisterUserUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
+import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 
@@ -21,12 +22,14 @@ describe('RegisterUserUseCase', () => {
   };
 
   let userRepository: jest.Mocked<IUserRepository>;
+  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
   let useCase: RegisterUserUseCase;
 
   beforeEach(() => {
     userRepository = {
       findByEmail: jest.fn(),
+      findById: jest.fn(),
       findByPhone: jest.fn(),
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
@@ -35,12 +38,26 @@ describe('RegisterUserUseCase', () => {
       updateUserSecurity: jest.fn(),
     };
 
+    appointmentRepository = {
+      findById: jest.fn(),
+      findMany: jest.fn(),
+      findByBarberAndDate: jest.fn(),
+      findByClientAndDate: jest.fn(),
+      findByContactAndDate: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateClientId: jest.fn(),
+      updateStatus: jest.fn(),
+    };
+
     passwordHasher = {
       hash: jest.fn(),
       compare: jest.fn(),
     };
 
-    useCase = new RegisterUserUseCase(userRepository, passwordHasher);
+    useCase = new RegisterUserUseCase(userRepository, passwordHasher, appointmentRepository);
   });
 
   it('debe fallar si las contrasenas no coinciden', async () => {
@@ -92,6 +109,7 @@ describe('RegisterUserUseCase', () => {
     userRepository.findByPhone.mockResolvedValue(null);
     passwordHasher.hash.mockResolvedValue('hashed');
     userRepository.createRegisteredClient.mockResolvedValue(makeUser());
+    appointmentRepository.findByContact.mockResolvedValue([]);
 
     const result = await useCase.execute({
       email: 'nuevo@example.com',
@@ -107,3 +125,4 @@ describe('RegisterUserUseCase', () => {
     expect(result.message).toMatch(/Usuario registrado/);
   });
 });
+

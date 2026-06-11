@@ -46,6 +46,9 @@ describe('GetAppointmentsAnonymousUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
     useCase = new GetAppointmentsAnonymousUseCase(appointmentRepository);
   });
@@ -95,3 +98,4 @@ describe('GetAppointmentsAnonymousUseCase', () => {
     expect(result.appointments).toEqual([]);
   });
 });
+

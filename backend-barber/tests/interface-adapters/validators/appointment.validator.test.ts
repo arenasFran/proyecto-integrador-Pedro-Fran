@@ -32,6 +32,30 @@ describe('createAppointmentSchema', () => {
     expect(error).toBeDefined();
   });
 
+  it('debe rechazar email sin TLD', () => {
+    const { error } = createAppointmentSchema.validate({
+      ...validPayload,
+      clientEmail: 'user@dominio',
+    });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar email sin parte local', () => {
+    const { error } = createAppointmentSchema.validate({
+      ...validPayload,
+      clientEmail: '@dominio.com',
+    });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar email con dominio empezando con punto', () => {
+    const { error } = createAppointmentSchema.validate({
+      ...validPayload,
+      clientEmail: 'user@.com',
+    });
+    expect(error).toBeDefined();
+  });
+
   it('debe rechazar clientName vacio', () => {
     const { error } = createAppointmentSchema.validate({
       ...validPayload,

@@ -1,10 +1,11 @@
+import { EMAIL_REGEX } from '../constants/validation';
+
 export class Email {
   private constructor(private readonly value: string) {}
 
   static create(raw: string): Email {
     const normalized = raw.trim().toLowerCase();
-    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
-    if (!isValid) {
+    if (!EMAIL_REGEX.test(normalized)) {
       throw new Error('Email invalido');
     }
     return new Email(normalized);

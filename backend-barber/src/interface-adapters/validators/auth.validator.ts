@@ -1,7 +1,8 @@
 import Joi from 'joi';
+import { EMAIL_REGEX } from '../../domain/constants/validation';
 
 export const registerSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   password: Joi.when('authProvider', {
     is: 'google',
     then: Joi.optional(),
@@ -24,8 +25,8 @@ export const registerSchema = Joi.object({
 });
 
 export const loginSchema = Joi.object({
-  email: Joi.string().email().required().messages({
-    'string.email': 'El email no tiene un formato válido',
+  email: Joi.string().pattern(EMAIL_REGEX).required().messages({
+    'string.pattern.base': 'El email no tiene un formato válido',
     'any.required': 'El email es obligatorio',
   }),
   password: Joi.string().required().messages({
@@ -41,11 +42,11 @@ export const googleLoginSchema = Joi.object({
 });
 
 export const twoFactorSendSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   password: Joi.string().required(),
 });
 
 export const twoFactorVerifySchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   code: Joi.string().length(6).required(),
 });

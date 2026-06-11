@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { EMAIL_REGEX } from '../../domain/constants/validation';
 
 const timeSchema = Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/);
 
@@ -44,7 +45,7 @@ export const scheduleSchema = Joi.object({
 });
 
 export const createBarberSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   password: Joi.string().min(6).required(),
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
@@ -58,7 +59,7 @@ export const createBarberSchema = Joi.object({
 });
 
 export const updateBarberSchema = Joi.object({
-  email: Joi.string().email().optional(),
+  email: Joi.string().pattern(EMAIL_REGEX).optional(),
   password: Joi.string().min(6).optional(),
   name: Joi.string().min(3).optional(),
   lastname: Joi.string().min(3).optional(),

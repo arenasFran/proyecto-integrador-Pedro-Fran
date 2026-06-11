@@ -29,8 +29,8 @@ export type CreateAppointmentPayload = {
   startTime: string;
   clientName: string;
   clientLastname: string;
-  clientPhone?: string;
-  clientEmail?: string;
+  clientPhone: string;
+  clientEmail: string;
 };
 
 export type Appointment = {

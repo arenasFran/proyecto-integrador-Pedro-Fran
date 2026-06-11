@@ -28,6 +28,10 @@ interface BookingFlowState {
   selectedService: Service | null;
   selectedDate: string | null;
   selectedTime: string | null;
+  clientName: string;
+  clientLastname: string;
+  clientPhone: string;
+  clientEmail: string;
 }
 
 interface BookingState {
@@ -53,6 +57,10 @@ const initialState: BookingState = {
     selectedService: null,
     selectedDate: null,
     selectedTime: null,
+    clientName: '',
+    clientLastname: '',
+    clientPhone: '',
+    clientEmail: '',
   },
 };
 
@@ -98,8 +106,19 @@ export const fetchAvailableSlots = createAsyncThunk(
 
 export const submitAppointment = createAsyncThunk(
   'booking/submitAppointment',
-  async (payload: CreateAppointmentPayload, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
     try {
+      const { flow } = (getState() as { booking: BookingState }).booking;
+      const payload: CreateAppointmentPayload = {
+        barberId: flow.selectedBarber!.id,
+        serviceId: flow.selectedService!.id,
+        date: flow.selectedDate!,
+        startTime: flow.selectedTime!,
+        clientName: flow.clientName,
+        clientLastname: flow.clientLastname,
+        clientPhone: flow.clientPhone,
+        clientEmail: flow.clientEmail,
+      };
       const response = await appointmentService.create(payload);
       return response.appointment;
     } catch (error: unknown) {
@@ -139,11 +158,32 @@ const bookingSlice = createSlice({
     setSelectedTime: (state, action: PayloadAction<string | null>) => {
       state.flow.selectedTime = action.payload;
     },
+    setClientData: (
+      state,
+      action: PayloadAction<{
+        name: string;
+        lastname: string;
+        phone: string;
+        email: string;
+      }>
+    ) => {
+      state.flow.clientName = action.payload.name;
+      state.flow.clientLastname = action.payload.lastname;
+      state.flow.clientPhone = action.payload.phone;
+      state.flow.clientEmail = action.payload.email;
+    },
     clearBookingError: (state) => {
       state.async.bookingError = null;
       state.async.confirmError = null;
     },
     resetBooking: () => initialState,
+    resetBookingFlow: (state) => {
+      state.flow = initialState.flow;
+      state.async.submitSuccess = false;
+      state.async.createdAppointment = null;
+      state.async.isConfirming = false;
+      state.async.confirmError = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -186,10 +226,31 @@ const bookingSlice = createSlice({
       .addCase(submitAppointment.pending, (state) => {
         state.async.isConfirming = true;
         state.async.confirmError = null;
+        // Optimistic UI: show success immediately while POST travels in background
+        state.async.submitSuccess = true;
+        state.async.createdAppointment = {
+          id: 'temp-' + Date.now(),
+          barberId: state.flow.selectedBarber?.id ?? '',
+          clientName: state.flow.clientName,
+          clientLastname: state.flow.clientLastname,
+          clientPhone: state.flow.clientPhone,
+          clientEmail: state.flow.clientEmail,
+          serviceId: state.flow.selectedService?.id ?? '',
+          serviceName: state.flow.selectedService?.name ?? '',
+          servicePrice: state.flow.selectedService?.price ?? 0,
+          serviceDuration: 0,
+          date: state.flow.selectedDate ?? '',
+          startTime: state.flow.selectedTime ?? '',
+          endTime: '',
+          status: 'Confirmado',
+          paymentStatus: 'Pendiente',
+          paymentMethod: 'local',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        } as Appointment;
       })
       .addCase(submitAppointment.fulfilled, (state, action) => {
         state.async.isConfirming = false;
-        state.async.submitSuccess = true;
         state.async.createdAppointment = action.payload;
       })
       .addCase(submitAppointment.rejected, (state, action) => {
@@ -205,8 +266,10 @@ export const {
   setSelectedService,
   setSelectedDate,
   setSelectedTime,
+  setClientData,
   clearBookingError,
   resetBooking,
+  resetBookingFlow,
 } = bookingSlice.actions;
 
 export default bookingSlice.reducer;

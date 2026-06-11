@@ -349,7 +349,7 @@ const authSlice = createSlice({
       .addCase(fetchUserProfile.fulfilled, (state, action) => {
         state.user = action.payload;
       })
-      .addCase(fetchUserProfile.rejected, (state) => {
+      .addCase(fetchUserProfile.rejected, () => {
         // Don't set error — this is a background fetch
       });
   },

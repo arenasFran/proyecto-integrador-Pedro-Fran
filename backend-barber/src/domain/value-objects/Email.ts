@@ -1,3 +1,4 @@
+import { AppError } from '../../application/errors/AppError';
 import { EMAIL_REGEX } from '../constants/validation';
 
 export class Email {
@@ -6,7 +7,7 @@ export class Email {
   static create(raw: string): Email {
     const normalized = raw.trim().toLowerCase();
     if (!EMAIL_REGEX.test(normalized)) {
-      throw new Error('Email invalido');
+      throw new AppError('Email inválido', 400);
     }
     return new Email(normalized);
   }

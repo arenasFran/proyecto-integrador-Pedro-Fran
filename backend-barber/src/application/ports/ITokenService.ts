@@ -1,7 +1,9 @@
+import { AuthKind } from '../../domain/types/auth';
+
 export type TokenPayload = {
   id: string;
   email: string;
-  kind: string;
+  kind: AuthKind;
 };
 
 export type TokenPair = {

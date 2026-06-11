@@ -6,6 +6,7 @@ import { SendTwoFactorCodeUseCase } from '../application/use-cases/auth/SendTwoF
 import { VerifyTwoFactorUseCase } from '../application/use-cases/auth/VerifyTwoFactorUseCase';
 import { RequestPasswordResetUseCase } from '../application/use-cases/password/RequestPasswordResetUseCase';
 import { ResetPasswordUseCase } from '../application/use-cases/password/ResetPasswordUseCase';
+import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoPasswordResetRepository } from '../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
 import { MongoRefreshTokenRepository } from '../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
@@ -43,7 +44,8 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
   const hashService = new HashService();
   const dateTimeProvider = new DateTimeProvider();
 
-  const registerUser = new RegisterUserUseCase(userRepository, passwordHasher);
+  const appointmentRepository = new MongoAppointmentRepository();
+  const registerUser = new RegisterUserUseCase(userRepository, passwordHasher, appointmentRepository);
   const authenticateWithGoogle = new AuthenticateWithGoogleUseCase(
     userRepository,
     googleAuthService,

@@ -105,8 +105,8 @@ export class CreateAppointmentUseCase {
       dto.clientId = unregisteredClient.id;
     }
 
-    // RN15 — Máximo 1 turno activo por día por cliente
-    await this.validateMaxOneActivePerDay(dto, undefined);
+    // RN15 — Máximo 1 turno activo por cliente
+    await this.validateMaxOneActive(dto, undefined, !!dto.clientId);
 
     const now = new Date();
     const appointment = Appointment.create({
@@ -127,6 +127,7 @@ export class CreateAppointmentUseCase {
       status: 'Confirmado',
       paymentStatus: 'Pendiente',
       paymentMethod: 'local',
+      createdBy: dto.createdBy,
       statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
       createdAt: now,
       updatedAt: now,
@@ -170,23 +171,17 @@ export class CreateAppointmentUseCase {
     return client;
   }
 
-  async validateMaxOneActivePerDay(
+  async validateMaxOneActive(
     dto: CreateAppointmentDTO,
-    excludeAppointmentId?: string
+    excludeAppointmentId: string | undefined,
+    isRegistered: boolean
   ): Promise<void> {
     let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
 
     if (dto.clientId) {
-      activeAppointments = await this.appointmentRepository.findByClientAndDate(
-        dto.clientId,
-        dto.date
-      );
-    } else if (dto.clientEmail || dto.clientPhone) {
-      activeAppointments = await this.appointmentRepository.findByContactAndDate(
-        dto.date,
-        dto.clientEmail,
-        dto.clientPhone
-      );
+      activeAppointments = await this.appointmentRepository.findByClientId(dto.clientId);
+    } else if (dto.clientEmail && dto.clientPhone) {
+      activeAppointments = await this.appointmentRepository.findByContact(dto.clientEmail, dto.clientPhone);
     }
 
     const filtered = excludeAppointmentId
@@ -198,10 +193,17 @@ export class CreateAppointmentUseCase {
     );
 
     if (hasActive) {
-      throw new AppError(
-        'Ya tenés un turno activo para esta fecha. Completalo o cancelalo antes de reservar otro.',
-        409
-      );
+      if (isRegistered) {
+        throw new AppError(
+          'Ya tenés un turno activo. Reagendalo desde Mis Turnos.',
+          409
+        );
+      } else {
+        throw new AppError(
+          'Ya tenés un turno activo con estos datos. Registrate para poder reagendarlo.',
+          409
+        );
+      }
     }
   }
 

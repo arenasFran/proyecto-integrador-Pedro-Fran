@@ -7,7 +7,6 @@ import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/a
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { GetAppointmentsAnonymousUseCase } from '../../../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
-import { AuthRequest } from '../../middlewares/auth.middleware';
 
 export class AppointmentController {
   constructor(
@@ -22,19 +21,19 @@ export class AppointmentController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const body = { ...req.body };
 
-      // RN11 — Asignación de clientId según rol
-      if (authReq.user) {
-        if (authReq.user.kind === 'Admin' || authReq.user.kind === 'Empleado') {
-          // Respetar clientId enviado, o dejarlo undefined para que aplique RN10
-          body.clientName = body.clientName || authReq.user.email;
+      if (req.user) {
+        if (req.user.kind === 'Admin' || req.user.kind === 'Empleado') {
+          body.clientName = body.clientName || req.user.email;
+          body.createdBy = { type: 'staff', userId: req.user._id };
         } else {
-          // Cliente registrado: auto-asignación
-          body.clientId = authReq.user._id;
-          body.clientName = body.clientName || authReq.user.email;
+          body.clientId = req.user._id;
+          body.clientName = body.clientName || req.user.email;
+          body.createdBy = { type: 'registered', userId: req.user._id };
         }
+      } else {
+        body.createdBy = { type: 'anonymous' };
       }
 
       const result = await this.createAppointment.execute(body);
@@ -46,14 +45,13 @@ export class AppointmentController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string } = {};
 
-      if (authReq.user?.kind === 'Admin' || authReq.user?.kind === 'Empleado') {
+      if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
         if (req.query.clientId) query.clientId = req.query.clientId as string;
       } else {
-        query.clientId = authReq.user?._id;
+        query.clientId = req.user?._id;
       }
 
       if (req.query.date) query.date = req.query.date as string;
@@ -69,12 +67,11 @@ export class AppointmentController {
 
   getById = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const id = req.params.id as string;
       const result = await this.getAppointmentById.execute(
         id,
-        authReq.user!._id,
-        authReq.user!.kind
+        req.user!._id,
+        req.user!.kind
       );
       return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
@@ -84,14 +81,13 @@ export class AppointmentController {
 
   cancel = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const id = req.params.id as string;
       const reason = req.body.reason;
 
       const result = await this.cancelAppointment.execute(
         id,
-        authReq.user!._id,
-        authReq.user!.kind,
+        req.user!._id,
+        req.user!.kind,
         reason
       );
       return AppointmentPresenter.success(res, result, 200);
@@ -102,13 +98,12 @@ export class AppointmentController {
 
   updateStatus = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const id = req.params.id as string;
       const result = await this.updateAppointmentStatus.execute(
         id,
         req.body,
-        authReq.user!._id,
-        authReq.user!.kind
+        req.user!._id,
+        req.user!.kind
       );
       return AppointmentPresenter.success(res, result, 200);
     } catch (error) {
@@ -131,13 +126,12 @@ export class AppointmentController {
 
   reschedule = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const id = req.params.id as string;
       const result = await this.rescheduleAppointment.execute(
         id,
         req.body,
-        authReq.user!._id,
-        authReq.user!.kind
+        req.user!._id,
+        req.user!.kind
       );
       return AppointmentPresenter.success(res, result, 200);
     } catch (error) {

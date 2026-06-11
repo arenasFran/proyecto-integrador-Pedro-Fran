@@ -120,14 +120,12 @@ export class RescheduleAppointmentUseCase {
       }
     }
 
-    // RN15 — Límite de 1 turno activo por día (excluyéndose a sí mismo)
-    let activeAppointments = await this.appointmentRepository.findByClientAndDate(
-      appointment.clientId || '',
-      dto.date
-    );
-    if (!appointment.clientId && (appointment.clientEmail || appointment.clientPhone)) {
-      activeAppointments = await this.appointmentRepository.findByContactAndDate(
-        dto.date,
+    // RN15 — Límite de 1 turno activo total (excluyéndose a sí mismo)
+    let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
+    if (appointment.clientId) {
+      activeAppointments = await this.appointmentRepository.findByClientId(appointment.clientId);
+    } else if (appointment.clientEmail && appointment.clientPhone) {
+      activeAppointments = await this.appointmentRepository.findByContact(
         appointment.clientEmail,
         appointment.clientPhone
       );
@@ -138,7 +136,7 @@ export class RescheduleAppointmentUseCase {
     );
     if (hasActive) {
       throw new AppError(
-        'Ya tenés un turno activo para esta fecha. Completalo o cancelalo antes de reservar otro.',
+        'Ya tenés un turno activo completo. Cancelalo antes de reagendar.',
         409
       );
     }

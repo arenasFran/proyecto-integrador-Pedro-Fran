@@ -2,17 +2,8 @@ import { NextFunction, Request, Response } from 'express';
 import { ITokenService } from '../../application/ports/ITokenService';
 import { AuthKind } from '../../domain/types/auth';
 
-export type AuthRequest = Omit<Request, 'user'> & {
-  user?: {
-    email: string;
-    _id: string;
-    kind: AuthKind;
-  };
-};
-
 export const createAuthenticate = (tokenService: ITokenService) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const authReq = req as AuthRequest;
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
       return res.status(401).json({ error: 'No autorizado' });
@@ -24,13 +15,13 @@ export const createAuthenticate = (tokenService: ITokenService) => {
 
     try {
       const payload = tokenService.verify(token);
-      authReq.user = {
+      req.user = {
         email: payload.email,
         _id: payload.id,
-        kind: payload.kind as AuthKind,
+        kind: payload.kind,
       };
       return next();
-    } catch (error) {
+    } catch {
       return res.status(403).json({ error: 'Token inválido' });
     }
   };
@@ -38,11 +29,10 @@ export const createAuthenticate = (tokenService: ITokenService) => {
 
 export const authorize = (...kinds: AuthKind[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const authReq = req as AuthRequest;
-    if (!authReq.user) {
+    if (!req.user) {
       return res.status(401).json({ error: 'No autorizado' });
     }
-    if (!kinds.includes(authReq.user.kind)) {
+    if (!kinds.includes(req.user.kind)) {
       return res.status(403).json({ error: 'No tenés permisos para acceder a este recurso' });
     }
     next();
@@ -51,16 +41,15 @@ export const authorize = (...kinds: AuthKind[]) => {
 
 export const authorizeSelfOrKinds = (paramKey: string, ...kinds: AuthKind[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const authReq = req as AuthRequest;
-    if (!authReq.user) {
+    if (!req.user) {
       return res.status(401).json({ error: 'No autorizado' });
     }
 
-    if (kinds.includes(authReq.user.kind)) {
+    if (kinds.includes(req.user.kind)) {
       return next();
     }
 
-    if (authReq.user._id === req.params[paramKey]) {
+    if (req.user._id === req.params[paramKey]) {
       return next();
     }
 
@@ -70,18 +59,17 @@ export const authorizeSelfOrKinds = (paramKey: string, ...kinds: AuthKind[]) => 
 
 export const createOptionalAuth = (tokenService: ITokenService) => {
   return (req: Request, _res: Response, next: NextFunction) => {
-    const authReq = req as AuthRequest;
-    const header = authReq.headers.authorization;
+    const header = req.headers.authorization;
     if (!header || !header.startsWith('Bearer ')) {
       return next();
     }
     const token = header.split(' ')[1];
     try {
       const decoded = tokenService.verify(token);
-      authReq.user = {
+      req.user = {
         email: decoded.email,
         _id: decoded.id,
-        kind: decoded.kind as AuthKind,
+        kind: decoded.kind,
       };
     } catch {
       // token inválido -> sigue sin usuario

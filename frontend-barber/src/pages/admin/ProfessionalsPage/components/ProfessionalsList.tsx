@@ -48,7 +48,7 @@ export const ProfessionalsList: React.FC<ProfessionalsListProps> = ({
           type="search"
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder="Nombre, email, teléfono o especialidad"
+          placeholder="Nombre, email, teléfono o servicio"
           helperText="Filtrá rápido la lista antes de editar"
         />
       </div>
@@ -101,7 +101,7 @@ export const ProfessionalsList: React.FC<ProfessionalsListProps> = ({
                   ))}
                   {professional.services.length === 0 && (
                     <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#8A8A8A]">
-                      Sin especialidades
+                      Sin servicios
                     </span>
                   )}
                 </div>

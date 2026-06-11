@@ -121,7 +121,7 @@ describe('ProfessionalsPage', () => {
   it('renders the search input', () => {
     renderWithProviders(<ProfessionalsPage />, { preloadedState });
 
-    expect(screen.getByPlaceholderText('Nombre, email, teléfono o especialidad')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Nombre, email, teléfono o servicio')).toBeInTheDocument();
   });
 
   it('renders the slots section with date picker', () => {

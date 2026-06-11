@@ -122,7 +122,7 @@ export const LoginPage: React.FC = () => {
       navigate('/admin/profesionales');
       return;
     }
-    navigate('/');
+    navigate('/mis-turnos');
   }, [loginToken, navigate]);
 
   useEffect(() => {

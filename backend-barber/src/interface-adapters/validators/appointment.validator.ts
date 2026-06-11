@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import { EMAIL_REGEX, TIME_REGEX } from '../../domain/constants/validation';
 
 export const createAppointmentSchema = Joi.object({
   barberId: Joi.string().required(),
@@ -7,12 +8,13 @@ export const createAppointmentSchema = Joi.object({
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
   startTime: Joi.string()
-    .pattern(/^\d{2}:\d{2}$/)
+    .pattern(TIME_REGEX)
+    .messages({ 'string.pattern.base': 'startTime debe tener formato HH:mm (ej. 09:30)' })
     .required(),
   clientName: Joi.string().trim().min(1).max(100).required(),
   clientLastname: Joi.string().trim().min(1).max(100).required(),
   clientPhone: Joi.string().trim().max(20).allow('', null),
-  clientEmail: Joi.string().email().trim().required(),
+  clientEmail: Joi.string().pattern(EMAIL_REGEX).trim().required(),
 });
 
 export const appointmentQuerySchema = Joi.object({
@@ -36,13 +38,14 @@ export const rescheduleAppointmentSchema = Joi.object({
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),
   startTime: Joi.string()
-    .pattern(/^\d{2}:\d{2}$/)
+    .pattern(TIME_REGEX)
+    .messages({ 'string.pattern.base': 'startTime debe tener formato HH:mm (ej. 09:30)' })
     .required(),
   barberId: Joi.string().required(),
 });
 
 export const anonymousQuerySchema = Joi.object({
-  email: Joi.string().email().trim(),
+  email: Joi.string().pattern(EMAIL_REGEX).trim(),
   phone: Joi.string().trim().max(20),
   date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
 }).min(1);

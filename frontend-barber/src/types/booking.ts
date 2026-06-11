@@ -52,9 +52,9 @@ export type Appointment = {
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
   cancelReason?: string;
-  cancelledAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  cancelledAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type BookingStep = 'barber' | 'service' | 'datetime';

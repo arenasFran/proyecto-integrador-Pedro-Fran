@@ -89,8 +89,9 @@ api.interceptors.response.use(
       }
     }
 
-    if (error.response?.data?.error) {
-      return Promise.reject(new Error(error.response.data.error));
+    const errMsg = error.response?.data?.error ?? error.response?.data?.message;
+    if (errMsg) {
+      return Promise.reject(new Error(errMsg));
     }
     if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
       return Promise.reject(new Error('No se pudo conectar al servidor'));

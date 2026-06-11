@@ -51,7 +51,7 @@ export class RescheduleAppointmentUseCase {
       throw new AppError('No tenés permiso para reagendar este turno.', 403);
     }
 
-    const barber = await this.barberRepository.findEmployeeById(dto.barberId);
+    const barber = await this.barberRepository.findBarberById(dto.barberId);
     if (!barber) {
       throw new AppError('Barbero no encontrado.', 404);
     }

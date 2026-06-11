@@ -14,7 +14,7 @@ export interface IBarberBaseInput {
 
 export interface IEmployeeInput extends IBarberBaseInput {
   kind: 'Empleado';
-  specialties?: string[];
+  services?: string[];
   age?: number;
   photoUrl?: string | null;
   isActive?: boolean;
@@ -24,7 +24,7 @@ export interface IEmployeeInput extends IBarberBaseInput {
 
 export interface IAdminInput extends IBarberBaseInput {
   kind: 'Admin';
-  specialties?: string[];
+  services?: string[];
   age?: number;
   photoUrl?: string | null;
   isActive?: boolean;

@@ -15,7 +15,7 @@ import type { DayKey, Professional, ProfessionalPayload, ProfessionalUpdatePaylo
 import {
   createEmptySchedule,
   mapScheduleToForm,
-  normalizeSpecialties,
+  normalizeServices,
   scheduleFromForm,
   validateSchedule,
   type ScheduleDayForm,
@@ -30,7 +30,7 @@ type ProfessionalFormState = {
   name: string;
   lastname: string;
   phone: string;
-  specialties: string;
+  services: string;
   age: string;
   photoUrl: string;
   slotDuration: string;
@@ -45,7 +45,7 @@ const createEmptyForm = (): ProfessionalFormState => ({
   name: '',
   lastname: '',
   phone: '',
-  specialties: '',
+  services: '',
   age: '',
   photoUrl: '',
   slotDuration: '30',
@@ -98,7 +98,7 @@ export const ProfessionalsPage: React.FC = () => {
         professional.email,
         professional.phone,
         professional.kind,
-        professional.specialties.join(' '),
+        professional.services.join(' '),
       ]
         .join(' ')
         .toLowerCase()
@@ -124,7 +124,7 @@ export const ProfessionalsPage: React.FC = () => {
       name: professional.name,
       lastname: professional.lastname,
       phone: professional.phone,
-      specialties: professional.specialties.join(', '),
+      services: professional.services.join(', '),
       age: professional.age ? String(professional.age) : '',
       photoUrl: professional.photoUrl ?? '',
       slotDuration: String(professional.slotDuration ?? 30),
@@ -199,7 +199,7 @@ export const ProfessionalsPage: React.FC = () => {
       name: form.name.trim(),
       lastname: form.lastname.trim(),
       phone: form.phone.trim(),
-      specialties: normalizeSpecialties(form.specialties),
+      services: normalizeServices(form.services),
       age: form.age ? Number(form.age) : undefined,
       photoUrl: form.photoUrl.trim() || null,
       slotDuration,
@@ -221,7 +221,7 @@ export const ProfessionalsPage: React.FC = () => {
           name: payload.name,
           lastname: payload.lastname,
           phone: payload.phone,
-          specialties: payload.specialties,
+          services: payload.services,
           age: payload.age ?? null,
           photoUrl: payload.photoUrl,
           slotDuration: payload.slotDuration,

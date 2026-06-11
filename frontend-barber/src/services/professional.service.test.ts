@@ -25,7 +25,7 @@ const mockBarberRaw = {
   email: 'juan@barberia.com',
   phone: '099123456',
   kind: 'Empleado' as const,
-  specialties: ['corte'],
+  services: ['corte'],
   age: 28,
   photoUrl: null,
   isActive: true,
@@ -72,7 +72,7 @@ describe('professionalService', () => {
       name: 'Nuevo',
       lastname: 'Barber',
       phone: '099999999',
-      specialties: ['barba'],
+      services: ['barba'],
       schedule: mockBarberRaw.schedule,
     };
     mockedApi.post.mockResolvedValueOnce({ data: { ...mockBarberRaw, ...payload } });

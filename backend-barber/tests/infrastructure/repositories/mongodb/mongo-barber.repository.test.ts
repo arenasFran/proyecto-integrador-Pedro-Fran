@@ -29,7 +29,7 @@ const makeBarber = () =>
     lastname: 'Gomez',
     phone: '999888777',
     kind: 'Empleado',
-    specialties: ['corte'],
+    services: ['corte'],
     isActive: true,
     slotDuration: 30,
     schedule: createSchedule(),
@@ -46,7 +46,7 @@ describeIfMongo('MongoBarberRepository', () => {
   it('debe crear un empleado y devolver la entidad Barber', async () => {
     const barber = makeBarber();
 
-    const created = await repository.createEmployee(barber);
+    const created = await repository.createBarber(barber);
 
     expect(created).toBeInstanceOf(Barber);
     expect(created.email).toBe('repo@example.com');
@@ -57,16 +57,16 @@ describeIfMongo('MongoBarberRepository', () => {
   });
 
   it('debe buscar un empleado por id', async () => {
-    const created = await repository.createEmployee(makeBarber());
+    const created = await repository.createBarber(makeBarber());
 
-    const found = await repository.findEmployeeById(created.id);
+    const found = await repository.findBarberById(created.id);
 
     expect(found).not.toBeNull();
     expect(found!.email).toBe('repo@example.com');
   });
 
   it('debe devolver null si no encuentra empleado por id', async () => {
-    const found = await repository.findEmployeeById('000000000000000000000000');
+    const found = await repository.findBarberById('000000000000000000000000');
 
     expect(found).toBeNull();
   });
@@ -80,10 +80,10 @@ describeIfMongo('MongoBarberRepository', () => {
       phone: '111222333',
     });
 
-    await repository.createEmployee(barber1);
-    await repository.createEmployee(barber2);
+    await repository.createBarber(barber1);
+    await repository.createBarber(barber2);
 
-    const all = await repository.findAllEmployees();
+    const all = await repository.findAllBarbers();
 
     expect(all.length).toBeGreaterThanOrEqual(2);
     expect(all.some((b) => b.email === 'repo@example.com')).toBe(true);
@@ -91,9 +91,9 @@ describeIfMongo('MongoBarberRepository', () => {
   });
 
   it('debe actualizar un empleado', async () => {
-    const created = await repository.createEmployee(makeBarber());
+    const created = await repository.createBarber(makeBarber());
 
-    const updated = await repository.updateEmployee(created.id, {
+    const updated = await repository.updateBarber(created.id, {
       name: 'Carlos Updated',
       slotDuration: 45,
     });
@@ -104,7 +104,7 @@ describeIfMongo('MongoBarberRepository', () => {
   });
 
   it('debe devolver null al actualizar un empleado inexistente', async () => {
-    const result = await repository.updateEmployee('000000000000000000000000', {
+    const result = await repository.updateBarber('000000000000000000000000', {
       name: 'Nadie',
     });
 
@@ -112,25 +112,25 @@ describeIfMongo('MongoBarberRepository', () => {
   });
 
   it('debe desactivar un empleado', async () => {
-    const created = await repository.createEmployee(makeBarber());
+    const created = await repository.createBarber(makeBarber());
 
-    await repository.deactivateEmployee(created.id);
+    await repository.deactivateBarber(created.id);
 
-    const found = await repository.findEmployeeById(created.id);
+    const found = await repository.findBarberById(created.id);
     expect(found?.isActive).toBe(false);
   });
 
   it('debe eliminar un empleado', async () => {
-    const created = await repository.createEmployee(makeBarber());
+    const created = await repository.createBarber(makeBarber());
 
-    await repository.deleteEmployee(created.id);
+    await repository.deleteBarber(created.id);
 
-    const found = await repository.findEmployeeById(created.id);
+    const found = await repository.findBarberById(created.id);
     expect(found).toBeNull();
   });
 
   it('debe actualizar el horario de un empleado', async () => {
-    const created = await repository.createEmployee(makeBarber());
+    const created = await repository.createBarber(makeBarber());
 
     const newSchedule: BarberSchedule = {
       monday: { startTime: '10:00', endTime: '16:00', breaks: [] },

@@ -20,7 +20,7 @@ export class GetAvailableSlotsUseCase {
       throw new AppError('Fecha inválida. Formato esperado: YYYY-MM-DD.', 400);
     }
 
-    const barber = await this.barberRepository.findEmployeeById(barberId);
+    const barber = await this.barberRepository.findBarberById(barberId);
     if (!barber) {
       throw new AppError('Barbero no encontrado.', 404);
     }

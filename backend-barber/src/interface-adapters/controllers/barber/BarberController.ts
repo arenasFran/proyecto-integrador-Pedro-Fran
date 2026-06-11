@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
-import { CreateEmployeeBarberUseCase } from '../../../application/use-cases/barber/CreateEmployeeBarberUseCase';
+import { AuthRequest } from '../../middlewares/auth.middleware';
+import { CreateBarberUseCase } from '../../../application/use-cases/barber/CreateBarberUseCase';
+import { DeactivateBarberUseCase } from '../../../application/use-cases/barber/DeactivateBarberUseCase';
 import { DeleteBarberUseCase } from '../../../application/use-cases/barber/DeleteBarberUseCase';
-import { GetAllEmployeesUseCase } from '../../../application/use-cases/barber/GetAllEmployeesUseCase';
+import { GetAllBarbersUseCase } from '../../../application/use-cases/barber/GetAllBarbersUseCase';
 import { GetAvailableSlotsUseCase } from '../../../application/use-cases/barber/GetAvailableSlotsUseCase';
 import { GetBarberByIdUseCase } from '../../../application/use-cases/barber/GetBarberByIdUseCase';
 import { GetBarberScheduleUseCase } from '../../../application/use-cases/barber/GetBarberScheduleUseCase';
@@ -11,11 +13,12 @@ import { BarberPresenter } from '../../presenters/BarberPresenter';
 
 export class BarberController {
   constructor(
-    private readonly createBarber: CreateEmployeeBarberUseCase,
-    private readonly getAllBarbers: GetAllEmployeesUseCase,
+    private readonly createBarber: CreateBarberUseCase,
+    private readonly getAllBarbers: GetAllBarbersUseCase,
     private readonly getBarberById: GetBarberByIdUseCase,
     private readonly updateBarber: UpdateBarberUseCase,
     private readonly deleteBarber: DeleteBarberUseCase,
+    private readonly deactivateBarber: DeactivateBarberUseCase,
     private readonly getBarberSchedule: GetBarberScheduleUseCase,
     private readonly updateBarberSchedule: UpdateBarberScheduleUseCase,
     private readonly getAvailableSlots: GetAvailableSlotsUseCase
@@ -30,7 +33,7 @@ export class BarberController {
           id: b.id,
           name: b.name,
           lastname: b.lastname,
-          specialties: b.specialties,
+          services: b.services,
           photoUrl: b.photoUrl,
           isActive: b.isActive,
           slotDuration: b.slotDuration,
@@ -50,10 +53,15 @@ export class BarberController {
     }
   };
 
-  getAll = async (_req: Request, res: Response) => {
+  getAll = async (req: Request, res: Response) => {
     try {
+      const authReq = req as AuthRequest;
       const result = await this.getAllBarbers.execute();
-      return BarberPresenter.success(res, { barbers: result }, 200);
+      const isAdmin = authReq.user?.kind === 'Admin';
+      const filtered = isAdmin
+        ? result
+        : result.filter((b) => b.kind !== 'Admin' && b.isActive);
+      return BarberPresenter.success(res, { barbers: filtered }, 200);
     } catch (error) {
       return BarberPresenter.handleError(res, error, 'Error al obtener barberos');
     }
@@ -76,6 +84,16 @@ export class BarberController {
       return BarberPresenter.success(res, result, 200);
     } catch (error) {
       return BarberPresenter.handleError(res, error, 'Error al actualizar barbero');
+    }
+  };
+
+  deactivate = async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const result = await this.deactivateBarber.execute(id);
+      return BarberPresenter.success(res, result, 200);
+    } catch (error) {
+      return BarberPresenter.handleError(res, error, 'Error al desactivar barbero');
     }
   };
 

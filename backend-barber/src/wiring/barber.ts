@@ -1,7 +1,8 @@
 import { SlotService } from '../domain/services/SlotService';
-import { CreateEmployeeBarberUseCase } from '../application/use-cases/barber/CreateEmployeeBarberUseCase';
+import { CreateBarberUseCase } from '../application/use-cases/barber/CreateBarberUseCase';
+import { DeactivateBarberUseCase } from '../application/use-cases/barber/DeactivateBarberUseCase';
 import { DeleteBarberUseCase } from '../application/use-cases/barber/DeleteBarberUseCase';
-import { GetAllEmployeesUseCase } from '../application/use-cases/barber/GetAllEmployeesUseCase';
+import { GetAllBarbersUseCase } from '../application/use-cases/barber/GetAllBarbersUseCase';
 import { GetAvailableSlotsUseCase } from '../application/use-cases/barber/GetAvailableSlotsUseCase';
 import { GetBarberByIdUseCase } from '../application/use-cases/barber/GetBarberByIdUseCase';
 import { GetBarberScheduleUseCase } from '../application/use-cases/barber/GetBarberScheduleUseCase';
@@ -27,18 +28,20 @@ export const buildBarberRouter = () => {
   const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
-  const createBarber = new CreateEmployeeBarberUseCase(
+  const createBarber = new CreateBarberUseCase(
     userRepository,
     barberRepository,
     passwordHasher
   );
-  const getAllBarbers = new GetAllEmployeesUseCase(barberRepository);
+  const getAllBarbers = new GetAllBarbersUseCase(barberRepository);
   const getBarberById = new GetBarberByIdUseCase(barberRepository);
   const updateBarber = new UpdateBarberUseCase(
     userRepository,
     barberRepository,
     passwordHasher
   );
+
+  const deactivateBarber = new DeactivateBarberUseCase(barberRepository);
 
   const deleteBarber = new DeleteBarberUseCase(
     barberRepository,
@@ -57,6 +60,7 @@ export const buildBarberRouter = () => {
     getBarberById,
     updateBarber,
     deleteBarber,
+    deactivateBarber,
     getBarberSchedule,
     updateBarberSchedule,
     getAvailableSlots

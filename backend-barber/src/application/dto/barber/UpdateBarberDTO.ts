@@ -4,7 +4,7 @@ export type UpdateBarberDTO = {
   name?: string;
   lastname?: string;
   phone?: string;
-  specialties?: string[];
+  services?: string[];
   age?: number | null;
   photoUrl?: string | null;
   isActive?: boolean;

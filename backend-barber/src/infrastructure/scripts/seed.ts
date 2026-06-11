@@ -18,7 +18,7 @@ const barbersSeedData = [
     name: 'Carlos',
     lastname: 'Gutiérrez',
     phone: '099111111',
-    specialties: ['Corte clásico', 'Barba', 'Arreglo de puntas'],
+    services: ['Corte clásico', 'Barba', 'Arreglo de puntas'],
     age: 32,
     slotDuration: 30,
     schedule: {
@@ -37,7 +37,7 @@ const barbersSeedData = [
     name: 'Martín',
     lastname: 'López',
     phone: '099222222',
-    specialties: ['Degradados', 'Corte moderno', 'Barba'],
+    services: ['Degradados', 'Corte moderno', 'Barba'],
     age: 28,
     slotDuration: 30,
     schedule: {
@@ -56,7 +56,7 @@ const barbersSeedData = [
     name: 'Lucía',
     lastname: 'Fernández',
     phone: '099333333',
-    specialties: ['Corte femenino', 'Colorimetría', 'Peinado'],
+    services: ['Corte femenino', 'Colorimetría', 'Peinado'],
     age: 26,
     slotDuration: 45,
     schedule: {

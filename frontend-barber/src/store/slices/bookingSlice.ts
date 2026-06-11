@@ -14,9 +14,13 @@ interface BookingAsyncState {
   barbers: BarberPublic[];
   services: Service[];
   availableSlots: string[];
-  isBooking: boolean;
+  isLoadingBarbers: boolean;
+  isLoadingServices: boolean;
+  isLoadingSlots: boolean;
   isConfirming: boolean;
-  bookingError: string | null;
+  barbersError: string | null;
+  servicesError: string | null;
+  slotsError: string | null;
   confirmError: string | null;
   createdAppointment: Appointment | null;
   submitSuccess: boolean;
@@ -44,9 +48,13 @@ const initialState: BookingState = {
     barbers: [],
     services: [],
     availableSlots: [],
-    isBooking: false,
+    isLoadingBarbers: false,
+    isLoadingServices: false,
+    isLoadingSlots: false,
     isConfirming: false,
-    bookingError: null,
+    barbersError: null,
+    servicesError: null,
+    slotsError: null,
     confirmError: null,
     createdAppointment: null,
     submitSuccess: false,
@@ -173,7 +181,9 @@ const bookingSlice = createSlice({
       state.flow.clientEmail = action.payload.email;
     },
     clearBookingError: (state) => {
-      state.async.bookingError = null;
+      state.async.barbersError = null;
+      state.async.servicesError = null;
+      state.async.slotsError = null;
       state.async.confirmError = null;
     },
     resetBooking: () => initialState,
@@ -188,69 +198,48 @@ const bookingSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchPublicBarbers.pending, (state) => {
-        state.async.isBooking = true;
-        state.async.bookingError = null;
+        state.async.isLoadingBarbers = true;
+        state.async.barbersError = null;
       })
       .addCase(fetchPublicBarbers.fulfilled, (state, action) => {
-        state.async.isBooking = false;
+        state.async.isLoadingBarbers = false;
         state.async.barbers = action.payload;
       })
       .addCase(fetchPublicBarbers.rejected, (state, action) => {
-        state.async.isBooking = false;
-        state.async.bookingError = action.payload as string;
+        state.async.isLoadingBarbers = false;
+        state.async.barbersError = action.payload as string;
       })
       .addCase(fetchServices.pending, (state) => {
-        state.async.isBooking = true;
-        state.async.bookingError = null;
+        state.async.isLoadingServices = true;
+        state.async.servicesError = null;
       })
       .addCase(fetchServices.fulfilled, (state, action) => {
-        state.async.isBooking = false;
+        state.async.isLoadingServices = false;
         state.async.services = action.payload;
       })
       .addCase(fetchServices.rejected, (state, action) => {
-        state.async.isBooking = false;
-        state.async.bookingError = action.payload as string;
+        state.async.isLoadingServices = false;
+        state.async.servicesError = action.payload as string;
       })
       .addCase(fetchAvailableSlots.pending, (state) => {
-        state.async.isBooking = true;
-        state.async.bookingError = null;
+        state.async.isLoadingSlots = true;
+        state.async.slotsError = null;
       })
       .addCase(fetchAvailableSlots.fulfilled, (state, action) => {
-        state.async.isBooking = false;
+        state.async.isLoadingSlots = false;
         state.async.availableSlots = action.payload;
       })
       .addCase(fetchAvailableSlots.rejected, (state, action) => {
-        state.async.isBooking = false;
-        state.async.bookingError = action.payload as string;
+        state.async.isLoadingSlots = false;
+        state.async.slotsError = action.payload as string;
       })
       .addCase(submitAppointment.pending, (state) => {
         state.async.isConfirming = true;
         state.async.confirmError = null;
-        // Optimistic UI: show success immediately while POST travels in background
-        state.async.submitSuccess = true;
-        state.async.createdAppointment = {
-          id: 'temp-' + Date.now(),
-          barberId: state.flow.selectedBarber?.id ?? '',
-          clientName: state.flow.clientName,
-          clientLastname: state.flow.clientLastname,
-          clientPhone: state.flow.clientPhone,
-          clientEmail: state.flow.clientEmail,
-          serviceId: state.flow.selectedService?.id ?? '',
-          serviceName: state.flow.selectedService?.name ?? '',
-          servicePrice: state.flow.selectedService?.price ?? 0,
-          serviceDuration: 0,
-          date: state.flow.selectedDate ?? '',
-          startTime: state.flow.selectedTime ?? '',
-          endTime: '',
-          status: 'Confirmado',
-          paymentStatus: 'Pendiente',
-          paymentMethod: 'local',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as Appointment;
       })
       .addCase(submitAppointment.fulfilled, (state, action) => {
         state.async.isConfirming = false;
+        state.async.submitSuccess = true;
         state.async.createdAppointment = action.payload;
       })
       .addCase(submitAppointment.rejected, (state, action) => {

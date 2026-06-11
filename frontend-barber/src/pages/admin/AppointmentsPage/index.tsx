@@ -90,6 +90,12 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   const [statusError, setStatusError] = useState<string | null>(null);
 
+  const extractError = (err: unknown): string => {
+    if (err instanceof Error) return err.message;
+    if (err && typeof err === 'object' && 'data' in err) return String((err as { data: unknown }).data);
+    return 'Error inesperado';
+  };
+
   const handleCancelConfirm = async () => {
     if (!cancelTarget) return;
     try {
@@ -98,7 +104,7 @@ export const AdminAppointmentsPage: React.FC = () => {
       setCancelReason('');
       setStatusError(null);
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Error al cancelar turno');
+      setStatusError(extractError(err));
     }
   };
 
@@ -107,7 +113,7 @@ export const AdminAppointmentsPage: React.FC = () => {
       await updateStatus({ id, status }).unwrap();
       setStatusError(null);
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Error al actualizar estado');
+      setStatusError(extractError(err));
     }
   };
 
@@ -126,7 +132,7 @@ export const AdminAppointmentsPage: React.FC = () => {
       setRescheduleBarberId('');
       setStatusError(null);
     } catch (err) {
-      setStatusError(err instanceof Error ? err.message : 'Error al reprogramar turno');
+      setStatusError(extractError(err));
     }
   };
 

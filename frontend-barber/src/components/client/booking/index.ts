@@ -1,4 +1,5 @@
 export { AccordionStep } from './AccordionStep';
+export { ClientDataOverlay } from './ClientDataOverlay';
 export { StepIndicator } from './StepIndicator';
 export { BarberCard } from './BarberCard';
 export { BarberSelectionStep } from './BarberSelectionStep';
@@ -7,5 +8,4 @@ export { ServiceSelectionStep } from './ServiceSelectionStep';
 export { BookingCalendar } from './BookingCalendar';
 export { TimeSlotGrid } from './TimeSlotGrid';
 export { DateTimeStep } from './DateTimeStep';
-export { StickyBookingFooter } from './StickyBookingFooter';
 export { BookingSuccessModal } from './BookingSuccessModal';

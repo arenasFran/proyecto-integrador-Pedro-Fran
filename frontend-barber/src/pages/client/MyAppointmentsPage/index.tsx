@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input } from '../../../components/common';
 import {
@@ -26,8 +27,8 @@ export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
   const { data: appointments = [], isLoading, error, refetch } = useGetAppointmentsQuery(
-    user ? { clientId: user.id } : undefined,
-    { pollingInterval: 15000, skip: !user }
+    user ? { clientId: user.id } : skipToken,
+    { pollingInterval: 15000 }
   );
 
   const [cancelAppointment, { isLoading: isCancelling }] = useCancelAppointmentMutation();

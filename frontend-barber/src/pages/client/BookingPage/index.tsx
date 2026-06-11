@@ -1,14 +1,14 @@
 import React, { useEffect, useCallback } from 'react';
-import { FiScissors, FiUser, FiPhone, FiMail } from 'react-icons/fi';
+import { FiScissors } from 'react-icons/fi';
 import { AnimatedContainer } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
 import { PublicFooter } from '../../../components/client/PublicFooter';
 import {
   AccordionStep,
+  ClientDataOverlay,
   BarberSelectionStep,
   ServiceSelectionStep,
   DateTimeStep,
-  StickyBookingFooter,
   BookingSuccessModal,
 } from '../../../components/client/booking';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -32,16 +32,29 @@ const getTodayString = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const areStepsComplete = (
+  barber: unknown,
+  service: unknown,
+  date: unknown,
+  time: unknown,
+): boolean => Boolean(barber) && Boolean(service) && Boolean(date) && Boolean(time);
+
 export const BookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
+  const authUser = useAppSelector((state) => state.auth.user);
+  const hasPrefilled = React.useRef(false);
   const {
     async: {
       barbers,
       services,
       availableSlots,
-      isBooking,
+      isLoadingBarbers,
+      isLoadingServices,
+      isLoadingSlots,
       isConfirming,
-      bookingError,
+      barbersError,
+      servicesError,
+      slotsError,
       confirmError,
       submitSuccess,
       createdAppointment,
@@ -61,6 +74,7 @@ export const BookingPage: React.FC = () => {
 
   const [expandedStep, setExpandedStep] = React.useState<BookingStep>('barber');
   const [anyBarber, setAnyBarber] = React.useState(false);
+  const [showClientForm, setShowClientForm] = React.useState(false);
 
   useEffect(() => {
     dispatch(fetchPublicBarbers());
@@ -69,6 +83,18 @@ export const BookingPage: React.FC = () => {
       dispatch(resetBooking());
     };
   }, [dispatch]);
+
+  useEffect(() => {
+    if (authUser && !hasPrefilled.current) {
+      hasPrefilled.current = true;
+      dispatch(setClientData({
+        name: authUser.name || '',
+        lastname: authUser.lastname || '',
+        phone: authUser.phone || '',
+        email: authUser.email || '',
+      }));
+    }
+  }, [authUser, dispatch]);
 
   useEffect(() => {
     setExpandedStep(currentStep);
@@ -80,14 +106,24 @@ export const BookingPage: React.FC = () => {
     }
   }, [currentStep, selectedDate, selectedBarber, dispatch]);
 
+  useEffect(() => {
+    if (areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime)) {
+      setShowClientForm(true);
+    }
+  }, [selectedBarber, selectedService, selectedDate, selectedTime]);
+
   const handleStepToggle = useCallback(
     (step: BookingStep) => {
+      if (showClientForm) {
+        setShowClientForm(false);
+        return;
+      }
       if (step === 'service' && !selectedBarber) return;
       if (step === 'datetime' && !selectedService) return;
       if (step === expandedStep) return;
       dispatch(setCurrentStep(step));
     },
-    [selectedBarber, selectedService, expandedStep, dispatch]
+    [selectedBarber, selectedService, expandedStep, showClientForm, dispatch]
   );
 
   const handleBarberSelect = useCallback(
@@ -109,15 +145,13 @@ export const BookingPage: React.FC = () => {
     dispatch(submitAppointment());
   }, [dispatch]);
 
-  const isFormValid =
-    Boolean(selectedBarber) &&
-    Boolean(selectedService) &&
-    Boolean(selectedDate) &&
-    Boolean(selectedTime) &&
-    clientName.trim().length >= 2 &&
-    clientLastname.trim().length >= 2 &&
-    clientPhone.trim().length >= 7 &&
-    clientEmail.includes('@');
+  useEffect(() => {
+    if (submitSuccess) {
+      setShowClientForm(false);
+    }
+  }, [submitSuccess]);
+
+  const isStep3Complete = !!selectedDate && !!selectedTime;
 
   const barberSummary = anyBarber
     ? 'Cualquier barbero'
@@ -162,8 +196,8 @@ export const BookingPage: React.FC = () => {
               <BarberSelectionStep
                 barbers={barbers}
                 selectedBarber={selectedBarber}
-                isLoading={isBooking}
-                error={bookingError}
+                isLoading={isLoadingBarbers}
+                error={barbersError}
                 onSelect={handleBarberSelect}
                 onSelectAny={handleAnyBarberSelect}
                 anyBarber={anyBarber}
@@ -182,109 +216,57 @@ export const BookingPage: React.FC = () => {
               <ServiceSelectionStep
                 services={services}
                 selectedService={selectedService}
-                isLoading={isBooking}
-                error={bookingError}
+                isLoading={isLoadingServices}
+                error={servicesError}
                 onSelect={(svc) => dispatch(setSelectedService(svc))}
               />
             </AccordionStep>
 
             <AccordionStep
               stepNumber={3}
-              title="Fecha, hora y datos"
+              title="Fecha y hora"
               summary={
                 selectedDate
                   ? `${selectedDate.split('-').reverse().join('/')}${selectedTime ? ` - ${selectedTime}` : ''}`
                   : null
               }
               isExpanded={expandedStep === 'datetime'}
-              isCompleted={isFormValid}
+              isCompleted={isStep3Complete}
               isLocked={!selectedService}
               onToggle={() => handleStepToggle('datetime')}
             >
               {selectedBarber && (
-                <div className="divide-y divide-[#282828]">
-                  <DateTimeStep
-                    barberId={selectedBarber.id}
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                    availableSlots={availableSlots}
-                    isLoadingSlots={isBooking}
-                    onSelectDate={(date) => dispatch(setSelectedDate(date))}
-                    onSelectTime={(time) => dispatch(setSelectedTime(time))}
-                  />
-
-                  <div className="p-4 space-y-3">
-                    <h3 className="text-[13px] font-semibold text-white">Tus datos</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="relative">
-                        <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                        <input
-                          type="text"
-                          placeholder="Nombre *"
-                          value={clientName}
-                          onChange={(e) =>
-                            dispatch(setClientData({ name: e.target.value, lastname: clientLastname, phone: clientPhone, email: clientEmail }))
-                          }
-                          className="w-full rounded-[10px] border border-[#282828] bg-[#121212] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                        <input
-                          type="text"
-                          placeholder="Apellido *"
-                          value={clientLastname}
-                          onChange={(e) =>
-                            dispatch(setClientData({ name: clientName, lastname: e.target.value, phone: clientPhone, email: clientEmail }))
-                          }
-                          className="w-full rounded-[10px] border border-[#282828] bg-[#121212] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                        <input
-                          type="tel"
-                          placeholder="Teléfono *"
-                          value={clientPhone}
-                          onChange={(e) =>
-                            dispatch(setClientData({ name: clientName, lastname: clientLastname, phone: e.target.value, email: clientEmail }))
-                          }
-                          className="w-full rounded-[10px] border border-[#282828] bg-[#121212] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                        />
-                      </div>
-
-                      <div className="relative">
-                        <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                        <input
-                          type="email"
-                          placeholder="Email *"
-                          value={clientEmail}
-                          onChange={(e) =>
-                            dispatch(setClientData({ name: clientName, lastname: clientLastname, phone: clientPhone, email: e.target.value }))
-                          }
-                          className="w-full rounded-[10px] border border-[#282828] bg-[#121212] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <DateTimeStep
+                  barberId={selectedBarber.id}
+                  selectedDate={selectedDate}
+                  selectedTime={selectedTime}
+                  availableSlots={availableSlots}
+                  isLoadingSlots={isLoadingSlots}
+                  onSelectDate={(date) => dispatch(setSelectedDate(date))}
+                  onSelectTime={(time) => dispatch(setSelectedTime(time))}
+                />
               )}
             </AccordionStep>
           </div>
         </div>
       </div>
 
-      <StickyBookingFooter
+      <ClientDataOverlay
+        isOpen={showClientForm}
         barber={selectedBarber}
         service={selectedService}
         selectedDate={selectedDate}
         selectedTime={selectedTime}
-        isStepComplete={isFormValid}
+        clientName={clientName}
+        clientLastname={clientLastname}
+        clientPhone={clientPhone}
+        clientEmail={clientEmail}
         isConfirming={isConfirming}
         confirmError={confirmError}
+        isLoggedIn={!!authUser}
+        onChange={(data) => dispatch(setClientData(data))}
         onSubmit={handleSubmit}
+        onClose={() => setShowClientForm(false)}
       />
 
       <BookingSuccessModal

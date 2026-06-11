@@ -126,9 +126,16 @@ export const LoginPage: React.FC = () => {
   }, [loginToken, navigate]);
 
   useEffect(() => {
-    if (isCodeStep || !googleClientId || googleInitializedRef.current) return;
+    if (isCodeStep || !googleClientId) return;
+    if (googleInitializedRef.current) return;
+
+    const scriptId = 'google-identity-services';
+    let currentScript = document.getElementById(scriptId) as HTMLScriptElement | null;
+    let loadHandler: (() => void) | null = null;
+    let aborted = false;
 
     const initializeGoogleButton = () => {
+      if (aborted) return;
       if (!googleButtonRef.current || !window.google) return;
 
       window.google.accounts.id.initialize({
@@ -156,21 +163,24 @@ export const LoginPage: React.FC = () => {
       return;
     }
 
-    const scriptId = 'google-identity-services';
-    const existingScript = document.getElementById(scriptId) as HTMLScriptElement | null;
-
-    if (existingScript) {
-      existingScript.addEventListener('load', initializeGoogleButton, { once: true });
-      return;
+    if (!currentScript) {
+      currentScript = document.createElement('script');
+      currentScript.id = scriptId;
+      currentScript.src = 'https://accounts.google.com/gsi/client';
+      currentScript.async = true;
+      currentScript.defer = true;
+      document.body.appendChild(currentScript);
     }
 
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = initializeGoogleButton;
-    document.body.appendChild(script);
+    loadHandler = initializeGoogleButton;
+    currentScript.addEventListener('load', loadHandler);
+
+    return () => {
+      aborted = true;
+      if (currentScript && loadHandler) {
+        currentScript.removeEventListener('load', loadHandler);
+      }
+    };
   }, [dispatch, googleClientId, isCodeStep]);
 
   const handleCredentialsSubmit = () => {
@@ -327,7 +337,7 @@ export const LoginPage: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="text-[12px] text-[#8A8A8A] text-center"
                 >
-                  Código enviado a <span className="text-white">{twoFactorPendingEmail}</span>
+                  Código enviado al email registrado
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}

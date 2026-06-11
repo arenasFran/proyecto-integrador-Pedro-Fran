@@ -19,7 +19,7 @@ import {
 export const AdminProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
+  const user = useAppSelector((state) => state.auth.user) as Professional | null;
 
   const [password, setPassword] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);

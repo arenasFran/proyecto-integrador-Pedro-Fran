@@ -55,7 +55,7 @@ const createEmptyForm = (): ProfessionalFormState => ({
 export const ProfessionalsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { list: professionals } = useAppSelector((state) => state.barbers);
-  const authUser = useAppSelector((state) => state.auth.user);
+  const authUser = useAppSelector((state) => state.auth.user) as Professional | null;
 
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [form, setForm] = useState<ProfessionalFormState>(createEmptyForm());

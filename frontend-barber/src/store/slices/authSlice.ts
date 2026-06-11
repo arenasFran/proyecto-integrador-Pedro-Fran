@@ -9,9 +9,8 @@ import {
   type ResetPasswordData,
   type TwoFactorVerifyData,
 } from '../../services/auth.service';
-import { professionalService } from '../../services/professional.service';
 import { getTokenUser } from '../../utils/token';
-import type { Professional } from '../../types/professional';
+import type { User } from '../../types/auth';
 
 const REFRESH_TOKEN_KEY = 'refreshToken';
 
@@ -25,7 +24,7 @@ interface AuthState {
   registerSuccess: string | null;
   requestResetSuccess: string | null;
   resetPasswordSuccess: string | null;
-  user: Professional | null;
+  user: User | null;
   refreshToken: string | null;
   requiresProfileCompletion: string | null;
   profileCompletionError: string | null;
@@ -175,10 +174,7 @@ export const fetchUserProfile = createAsyncThunk(
   'auth/fetchUserProfile',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('authToken');
-      const userData = getTokenUser(token);
-      if (!userData?.id) throw new Error('No hay sesión activa');
-      return await professionalService.getById(userData.id);
+      return await authService.getProfile();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error al cargar perfil';
       return rejectWithValue(message);

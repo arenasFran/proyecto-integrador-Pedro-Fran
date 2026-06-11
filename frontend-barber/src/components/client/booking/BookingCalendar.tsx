@@ -69,8 +69,8 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
   }, [month, year]);
 
   return (
-    <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-5">
-      <div className="flex items-center justify-between mb-5">
+    <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
+      <div className="flex items-center justify-between mb-4">
         <motion.button
           onClick={canGoPrev ? onPrevMonth : undefined}
           disabled={!canGoPrev}
@@ -82,7 +82,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
           <FiChevronLeft className="w-4 h-4" />
         </motion.button>
 
-        <span className="text-[14px] font-semibold text-white">
+        <span className="text-[13px] font-semibold text-white">
           {MONTHS[month]} {year}
         </span>
 

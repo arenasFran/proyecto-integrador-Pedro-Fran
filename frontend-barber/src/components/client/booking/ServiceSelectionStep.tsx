@@ -26,38 +26,41 @@ export const ServiceSelectionStep: React.FC<ServiceSelectionStepProps> = ({
 
   if (error) {
     return (
-      <div className="rounded-[16px] border border-red-500/30 bg-red-500/10 p-6 text-center">
-        <p className="text-[14px] text-red-400">{error}</p>
-        <p className="mt-2 text-[12px] text-[#8A8A8A]">Intentá de nuevo más tarde</p>
+      <div className="rounded-[12px] border border-red-500/30 bg-red-500/10 p-4 text-center">
+        <p className="text-[13px] text-red-400">{error}</p>
+        <p className="mt-1 text-[11px] text-[#8A8A8A]">Intentá de nuevo más tarde</p>
       </div>
     );
   }
 
   if (services.length === 0) {
     return (
-      <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-6 text-center">
-        <p className="text-[14px] text-[#8A8A8A]">No hay servicios disponibles</p>
+      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4 text-center">
+        <p className="text-[13px] text-[#8A8A8A]">No hay servicios disponibles</p>
       </div>
     );
   }
 
   return (
     <AnimatedContainer animation="fadeInUp">
-      <div className="grid grid-cols-1 gap-4">
-        {services.map((service, index) => (
-          <motion.div
-            key={service.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.05, duration: 0.3 }}
-          >
-            <ServiceCard
-              service={service}
-              isSelected={selectedService?.id === service.id}
-              onSelect={onSelect}
-            />
-          </motion.div>
-        ))}
+      <div className="p-4 space-y-3">
+        <p className="text-[12px] text-[#8A8A8A]">Seleccioná el servicio que querés</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {services.map((service, index) => (
+            <motion.div
+              key={service.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.04, duration: 0.2 }}
+            >
+              <ServiceCard
+                service={service}
+                isSelected={selectedService?.id === service.id}
+                onSelect={onSelect}
+              />
+            </motion.div>
+          ))}
+        </div>
       </div>
     </AnimatedContainer>
   );

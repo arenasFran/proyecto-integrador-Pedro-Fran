@@ -17,7 +17,7 @@ classDiagram
             +name: string
             +lastname: string
             +phone: string
-            +kind: UserRole
+            +kind: AuthKind
             +authProvider: AuthProvider
             +passwordHash: string
             +googleId: string
@@ -155,6 +155,7 @@ classDiagram
             AuthProvider: 'local' | 'google'
             BarberKind: 'Admin' | 'Empleado'
             ClientKind: 'Registrado' | 'NoRegistrado'
+            AuthKind: BarberKind | 'Registrado'
         }
         class ClientKind {
             <<type>>
@@ -163,6 +164,7 @@ classDiagram
         }
         class IUserRepository {
             <<interface>>
+            +findById(id) User
             +findByEmail(email) User
             +findByPhone(phone) User
             +createRegisteredClient(user) User
@@ -194,8 +196,11 @@ classDiagram
             +findByBarberAndDate(barberId, date) Appointment[]
             +findByClientAndDate(clientId, date) Appointment[]
             +findByContactAndDate(date, email, phone) Appointment[]
+            +findByClientId(clientId) Appointment[]
+            +findByContact(email, phone) Appointment[]
             +create(data) Appointment
             +update(id, data) Appointment
+            +updateClientId(id, clientId) Appointment
             +updateStatus(id, data) Appointment
         }
         class IRefreshTokenRepository {
@@ -377,12 +382,16 @@ classDiagram
         class CreateTempLockUseCase {
             +execute(dto) void
         }
+        class GetCurrentUserUseCase {
+            +execute(userId) User
+        }
     }
 
     %% ========== INFRASTRUCTURE LAYER ==========
     namespace Infrastructure {
         class MongoUserRepository {
             -UserModel: Model
+            +findById(id) User
             +findByEmail(email) User
             +findByPhone(phone) User
             +createRegisteredClient(user) User
@@ -414,8 +423,11 @@ classDiagram
             +findByBarberAndDate(barberId, date) Appointment[]
             +findByClientAndDate(clientId, date) Appointment[]
             +findByContactAndDate(date, email, phone) Appointment[]
+            +findByClientId(clientId) Appointment[]
+            +findByContact(email, phone) Appointment[]
             +create(data) Appointment
             +update(id, data) Appointment
+            +updateClientId(id, clientId) Appointment
             +updateStatus(id, data) Appointment
         }
         class MongoRefreshTokenRepository {
@@ -546,6 +558,9 @@ classDiagram
         }
         class TempLockController {
             +create(req, res) Response
+        }
+        class UserController {
+            +getMe(req, res) Response
         }
         class AuthMiddleware {
             +createAuthenticate(tokenService) Middleware
@@ -681,6 +696,7 @@ classDiagram
     GetAvailableSlotsUseCase --> ITempLockRepository : depends
     GetAllServicesUseCase --> IServiceRepository : depends
     CreateTempLockUseCase --> ITempLockRepository : depends
+    GetCurrentUserUseCase --> IUserRepository : depends
 ```
 
 ### Capa de Infraestructura
@@ -691,6 +707,7 @@ classDiagram
     namespace Infrastructure {
         class MongoUserRepository {
             -UserModel: Model
+            +findById(id) User
             +findByEmail(email) User
             +findByPhone(phone) User
             +createRegisteredClient(user) User
@@ -722,8 +739,11 @@ classDiagram
             +findByBarberAndDate(barberId, date) Appointment[]
             +findByClientAndDate(clientId, date) Appointment[]
             +findByContactAndDate(date, email, phone) Appointment[]
+            +findByClientId(clientId) Appointment[]
+            +findByContact(email, phone) Appointment[]
             +create(data) Appointment
             +update(id, data) Appointment
+            +updateClientId(id, clientId) Appointment
             +updateStatus(id, data) Appointment
         }
         class MongoRefreshTokenRepository {
@@ -886,6 +906,9 @@ classDiagram
         class TempLockController {
             +create(req, res) Response
         }
+        class UserController {
+            +getMe(req, res) Response
+        }
         class AuthMiddleware {
             +createAuthenticate(tokenService) Middleware
             +authorize(...kinds) Middleware
@@ -939,6 +962,7 @@ classDiagram
     AppointmentController --> RescheduleAppointmentUseCase : executes
     ServiceController --> GetAllServicesUseCase : executes
     TempLockController --> CreateTempLockUseCase : executes
+    UserController --> GetCurrentUserUseCase : executes
 
     %% Controller → Presenter
     AuthController --> AuthPresenter : uses
@@ -949,6 +973,7 @@ classDiagram
     AppointmentController --> AppointmentPresenter : uses
     ServiceController --> ServicePresenter : uses
     TempLockController --> BarberPresenter : uses
+    UserController --> AuthPresenter : uses
 ```
 
 ---
@@ -958,11 +983,11 @@ classDiagram
 El Nivel 4 expone la estructura de clases concreta del backend siguiendo Clean Architecture. Se destacan:
 
 - **Herencia por discriminador:** `Barber` (kind `Admin`|`Empleado`) y `Client` (kind `Registrado`|`NoRegistrado`) extienden `User` mapeado vía Mongoose discriminators a las colecciones `users`, `barbers` y `clients`.
-- **Inversión de dependencias:** Los 25 `UseCases` en `application/` dependen de interfaces definidas en `domain/repositories/` y `application/ports/`. La capa `infrastructure/` las implementa sin que el core de negocio conozca detalles de MongoDB, JWT, bcrypt o Nodemailer.
+- **Inversión de dependencias:** Los 26 `UseCases` en `application/` dependen de interfaces definidas en `domain/repositories/` y `application/ports/`. La capa `infrastructure/` las implementa sin que el core de negocio conozca detalles de MongoDB, JWT, bcrypt o Nodemailer.
 - **Mappers como traducción:** Los repositorios de infraestructura usan `*Mapper` para convertir entre documentos de Mongoose y entidades de dominio, manteniendo el dominio puro (sin acoplamiento a la ODM).
 - **Controllers como orquestadores HTTP:** Los controladores reciben `req/res` de Express, ejecutan un caso de uso y delegan la respuesta en un `Presenter`.
 - **Wiring (no visible en clases):** Los módulos en `wiring/` construyen manualmente cada controlador inyectándole sus dependencias (use cases, repositorios, servicios) sin contenedor IoC.
-- **Domain types:** `appointment.ts` define la máquina de estados `VALİD_TRANSITIONS` que los use cases deben respetar. `auth.ts` define tipos `AuthProvider`, `BarberKind`, `ClientKind`.
+- **Domain types:** `appointment.ts` define la máquina de estados `VALİD_TRANSITIONS` que los use cases deben respetar. `auth.ts` define tipos `AuthProvider`, `BarberKind`, `ClientKind` y `AuthKind` (`Admin` | `Empleado` | `Registrado`), que reemplazó a `UserRole` en la entidad `User`.
 - **Autenticación en 2 pasos (2FA obligatorio):** No hay un endpoint `/login`. El flujo es: `POST /auth/2fa/send` (valida credenciales + envía código) → `POST /auth/2fa/verify` (valida código + emite tokens). Esto está orquestado por `SendTwoFactorCodeUseCase` y `VerifyTwoFactorUseCase`.
 - **Refresh Token Rotation:** `RefreshTokenUseCase` revoca el token anterior al refrescar. Si se reutiliza un token ya revocado, se revocan **todos** los tokens del usuario (detección de robo).
 - **Anti brute-force nativo:** `VerifyTwoFactorUseCase` y `ResetPasswordUseCase` implementan lockout tras 5 intentos fallidos (15 min de bloqueo), persistido en `twoFactorLockedUntil` / `resetLockedUntil` del usuario.

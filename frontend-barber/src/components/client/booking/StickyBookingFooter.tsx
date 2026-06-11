@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiClock, FiUser, FiCalendar, FiArrowUp } from 'react-icons/fi';
 import { Button } from '../../common';
-import { BookingConfirmationModal } from './BookingConfirmationModal';
 import type { BarberPublic, Service } from '../../../types/booking';
 
 interface StickyBookingFooterProps {
@@ -13,7 +12,7 @@ interface StickyBookingFooterProps {
   isStepComplete: boolean;
   isConfirming: boolean;
   confirmError: string | null;
-  onSubmit: (data: { name: string; lastname: string; phone?: string; email?: string }) => void;
+  onSubmit: () => void;
 }
 
 const formatDate = (dateStr: string | null): string => {
@@ -32,17 +31,11 @@ export const StickyBookingFooter: React.FC<StickyBookingFooterProps> = ({
   confirmError,
   onSubmit,
 }) => {
-  const [showModal, setShowModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const handleConfirm = () => {
     if (!isStepComplete) return;
-    setShowModal(true);
-  };
-
-  const handleModalSubmit = (data: { name: string; lastname: string; phone?: string; email?: string }) => {
-    setShowModal(false);
-    onSubmit(data);
+    onSubmit();
   };
 
   const totalPrice = service?.price ?? 0;
@@ -166,17 +159,6 @@ export const StickyBookingFooter: React.FC<StickyBookingFooterProps> = ({
         </div>
       </div>
 
-      <BookingConfirmationModal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        onSubmit={handleModalSubmit}
-        barber={barber}
-        service={service}
-        selectedDate={selectedDate}
-        selectedTime={selectedTime}
-        totalPrice={totalPrice}
-        totalDuration={totalDuration}
-      />
     </>
   );
 };

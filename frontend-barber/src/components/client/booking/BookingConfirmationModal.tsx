@@ -7,7 +7,7 @@ import type { BarberPublic, Service } from '../../../types/booking';
 interface BookingConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { name: string; lastname: string; phone?: string; email?: string }) => void;
+  onSubmit: (data: { name: string; lastname: string; phone: string; email: string }) => void;
   barber: BarberPublic | null;
   service: Service | null;
   selectedDate: string | null;
@@ -40,16 +40,16 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !lastname.trim()) return;
+    if (!name.trim() || !lastname.trim() || !phone.trim() || !email.trim()) return;
     onSubmit({
       name: name.trim(),
       lastname: lastname.trim(),
-      phone: phone.trim() || undefined,
-      email: email.trim() || undefined,
+      phone: phone.trim(),
+      email: email.trim(),
     });
   };
 
-  const isValid = name.trim().length >= 2 && lastname.trim().length >= 2;
+  const isValid = name.trim().length >= 2 && lastname.trim().length >= 2 && phone.trim().length >= 7 && email.includes('@');
 
   return (
     <AnimatePresence>
@@ -135,9 +135,10 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
                   <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8A8A]" />
                   <input
                     type="tel"
-                    placeholder="Teléfono (opcional)"
+                    placeholder="Teléfono"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    required
                     className="w-full rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-3 pl-10 pr-4 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
                   />
                 </div>
@@ -146,9 +147,10 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
                   <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8A8A8A]" />
                   <input
                     type="email"
-                    placeholder="Email (opcional)"
+                    placeholder="Email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
                     className="w-full rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-3 pl-10 pr-4 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
                   />
                 </div>

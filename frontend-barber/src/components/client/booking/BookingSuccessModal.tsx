@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCheck, FiScissors, FiUser, FiClock, FiCalendar, FiCreditCard } from 'react-icons/fi';
+import { FiCheck, FiScissors, FiUser, FiClock, FiCalendar } from 'react-icons/fi';
 import { Button } from '../../common';
 import type { Appointment } from '../../../types/booking';
 

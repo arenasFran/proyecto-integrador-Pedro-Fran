@@ -1,7 +1,7 @@
 import Joi from 'joi';
-import { EMAIL_REGEX } from '../../domain/constants/validation';
+import { EMAIL_REGEX, TIME_REGEX } from '../../domain/constants/validation';
 
-const timeSchema = Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/);
+const timeSchema = Joi.string().pattern(TIME_REGEX);
 
 const breakSchema = Joi.object({
   startTime: timeSchema.required(),

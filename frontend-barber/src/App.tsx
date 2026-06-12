@@ -22,6 +22,7 @@ import { getTokenKind, isTokenValid } from './utils/token';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
+  const loginToken = useAppSelector((state) => state.auth.loginToken);
 
   useEffect(() => {
     const init = async () => {
@@ -41,6 +42,12 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
     init();
   }, [dispatch]);
+
+  useEffect(() => {
+    if (loginToken) {
+      dispatch(authApi.endpoints.getProfile.initiate());
+    }
+  }, [loginToken, dispatch]);
 
   return <>{children}</>;
 }

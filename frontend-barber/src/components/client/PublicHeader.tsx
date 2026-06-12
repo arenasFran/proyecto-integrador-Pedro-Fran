@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
+import { getAccessToken } from '../../services/api';
+import { getTokenUser } from '../../utils/token';
 import { Button } from '../common';
 
 export const PublicHeader: React.FC = () => {
@@ -14,6 +16,7 @@ export const PublicHeader: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const loginToken = useAppSelector((state) => state.auth.loginToken);
   const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const tokenUser = getTokenUser(getAccessToken());
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -59,7 +62,7 @@ export const PublicHeader: React.FC = () => {
                   <FiUser className="text-[#FF5C00] text-sm" />
                 </div>
                 <span className="hidden sm:inline">
-                  {user ? `${user.name}` : 'Usuario'}
+                  {user ? `${user.name}` : tokenUser?.email ?? 'Usuario'}
                 </span>
                 <FiChevronDown
                   className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}

@@ -52,11 +52,13 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
 
-  async findByBarberAndDate(barberId: string, date: string): Promise<Appointment[]> {
-    const docs = await AppointmentModel.find({
+  async findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<Appointment[]> {
+    const query = AppointmentModel.find({
       barberId: new mongoose.Types.ObjectId(barberId),
       date,
-    }).lean();
+    });
+    if (session) query.session(session);
+    const docs = await query.lean();
 
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
@@ -104,15 +106,15 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
 
-  async create(data: CreateAppointmentData): Promise<Appointment> {
+  async create(data: CreateAppointmentData, session?: mongoose.ClientSession): Promise<Appointment> {
     try {
-      const doc = await AppointmentModel.create({
+      const [doc] = await AppointmentModel.create([{
         ...data,
         barberId: new mongoose.Types.ObjectId(data.barberId),
         clientId: data.clientId ? new mongoose.Types.ObjectId(data.clientId) : undefined,
-      });
+      }], session ? { session } : {});
 
-      const created = await AppointmentModel.findById(doc._id).lean();
+      const created = await AppointmentModel.findById(doc._id).session(session ?? null).lean();
       if (!created) throw new Error('Error al crear el turno');
 
       return AppointmentMapper.fromDocument(created as any);

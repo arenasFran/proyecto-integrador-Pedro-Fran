@@ -29,14 +29,6 @@ app.use(
   })
 );
 
-const loginLimiter = rateLimit({
-  windowMs: config.rateLimit.login.windowMs,
-  max: config.rateLimit.login.max,
-  message: { error: "Demasiados intentos de login, esperá 15 minutos" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
 const registerLimiter = rateLimit({
   windowMs: config.rateLimit.register.windowMs,
   max: config.rateLimit.register.max,
@@ -84,6 +76,7 @@ app.use("/auth/reset-password", resetLimiter);
 app.use("/auth/2fa/send", twoFALimiter);
 app.use("/auth/2fa/verify", twoFALimiter);
 app.use("/auth/google", googleLimiter);
+app.use("/auth/google/complete-profile", googleLimiter);
 
 app.use("/auth", buildAuthRouter());
 app.use("/api/barbers", buildBarberRouter());

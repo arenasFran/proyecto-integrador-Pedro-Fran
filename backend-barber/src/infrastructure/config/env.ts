@@ -3,7 +3,9 @@ import dotenv from 'dotenv';
 export type Config = {
   port: number;
   corsOrigin: string;
-  jwtSecret: string;
+  jwtAccessSecret: string;
+  jwtRefreshSecret: string;
+  jwtPartialSecret: string;
   jwtExpiresIn: string;
   jwtRefreshExpiresIn: string;
   jwtIssuer: string;
@@ -30,7 +32,7 @@ export type Config = {
   };
 };
 
-const requiredVars = ['JWT_SECRET', 'MONGO_URI', 'REFRESH_HASH_SECRET'] as const;
+const requiredVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'JWT_PARTIAL_SECRET', 'MONGO_URI', 'REFRESH_HASH_SECRET'] as const;
 const requiredIfEmail = ['SMTP_HOST', 'SMTP_PORT'] as const;
 
 function requireEnv(name: string): string {
@@ -65,12 +67,16 @@ function parseBoolEnv(name: string, defaultValue: boolean): boolean {
 export function loadConfig(): Config {
   dotenv.config();
 
-  const jwtSecret = requireEnv('JWT_SECRET');
+  const jwtAccessSecret = requireEnv('JWT_ACCESS_SECRET');
+  const jwtRefreshSecret = requireEnv('JWT_REFRESH_SECRET');
+  const jwtPartialSecret = requireEnv('JWT_PARTIAL_SECRET');
 
   return {
     port: parseIntEnv('PORT', 3000),
     corsOrigin: optionalEnv('CORS_ORIGIN', 'http://localhost:5173'),
-    jwtSecret,
+    jwtAccessSecret,
+    jwtRefreshSecret,
+    jwtPartialSecret,
     jwtExpiresIn: optionalEnv('JWT_EXPIRES_IN', '15m'),
     jwtRefreshExpiresIn: optionalEnv('JWT_REFRESH_EXPIRES_IN', '7d'),
     jwtIssuer: optionalEnv('JWT_ISSUER', 'barberia-api'),

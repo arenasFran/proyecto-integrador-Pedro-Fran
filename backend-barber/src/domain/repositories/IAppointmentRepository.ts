@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Appointment, AppointmentPrimitives } from '../entities/Appointment';
 import { AppointmentStatus, PaymentStatus, StatusHistoryEntry } from '../types/appointment';
 
@@ -34,12 +35,12 @@ export type UpdateAppointmentData = {
 export interface IAppointmentRepository {
   findById(id: string): Promise<Appointment | null>;
   findMany(filters: AppointmentFilters): Promise<Appointment[]>;
-  findByBarberAndDate(barberId: string, date: string): Promise<Appointment[]>;
+  findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<Appointment[]>;
   findByClientAndDate(clientId: string, date: string): Promise<Appointment[]>;
   findByContactAndDate(date: string, clientEmail?: string, clientPhone?: string): Promise<Appointment[]>;
   findByClientId(clientId: string): Promise<Appointment[]>;
   findByContact(clientEmail: string, clientPhone: string): Promise<Appointment[]>;
-  create(data: CreateAppointmentData): Promise<Appointment>;
+  create(data: CreateAppointmentData, session?: mongoose.ClientSession): Promise<Appointment>;
   update(id: string, data: UpdateAppointmentData): Promise<Appointment | null>;
   updateClientId(id: string, clientId: string): Promise<Appointment | null>;
   updateStatus(id: string, data: UpdateStatusData): Promise<Appointment | null>;

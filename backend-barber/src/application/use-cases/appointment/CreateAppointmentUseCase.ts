@@ -86,19 +86,6 @@ export class CreateAppointmentUseCase {
       throw new AppError('El turno se superpone con un descanso del barbero.', 400);
     }
 
-    // RN04 — Colisión con otros turnos activos
-    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
-      dto.barberId,
-      dto.date
-    );
-
-    for (const existing of existingAppointments) {
-      if (existing.status === 'Cancelado') continue;
-      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
-        throw new AppError('El horario seleccionado ya está ocupado.', 409);
-      }
-    }
-
     // RN10 — Cliente no registrado: buscar o crear entidad
     if (!dto.clientId) {
       let unregisteredClient = await this.findOrCreateUnregisteredClient(dto);
@@ -133,11 +120,44 @@ export class CreateAppointmentUseCase {
       updatedAt: now,
     });
 
-    const created = await this.appointmentRepository.create(appointment.toPrimitives());
+    // RN04 — Colisión con otros turnos activos
+    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
+      dto.barberId,
+      dto.date
+    );
 
-    // RN16 — Eliminar TempLock si existe
+    for (const existing of existingAppointments) {
+      if (existing.status === 'Cancelado') continue;
+      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
+        throw new AppError('El horario seleccionado ya está ocupado.', 409);
+      }
+    }
+
+    // Validar TempLock antes de crear
     if (dto.tempLockId) {
-      this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime).catch(() => {});
+      const lock = await this.tempLockRepository.findById(dto.tempLockId);
+      if (!lock) {
+        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+      }
+      if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
+        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+      }
+    }
+
+    // Crear el turno
+    let created;
+    try {
+      created = await this.appointmentRepository.create(appointment.toPrimitives());
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new AppError('El horario ya está ocupado.', 409);
+      }
+      throw error;
+    }
+
+    // Eliminar TempLock si existe
+    if (dto.tempLockId) {
+      await this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime).catch(() => {});
     }
 
     // RN17 — Notificar por email (asíncrono, no bloqueante)

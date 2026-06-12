@@ -3,7 +3,9 @@ import type { StringValue } from 'ms';
 import { ITokenService, TokenPayload } from '../../application/ports/ITokenService';
 
 export type JwtTokenServiceConfig = {
-  secret: string;
+  accessSecret: string;
+  refreshSecret: string;
+  partialSecret: string;
   accessTokenExpiresIn: string;
   refreshTokenExpiresIn: string;
   issuer: string;
@@ -34,7 +36,7 @@ export class JwtTokenService implements ITokenService {
         aud: this.config.audience,
         iat: Math.floor(Date.now() / 1000),
       },
-      this.config.secret,
+      this.config.accessSecret,
       {
         expiresIn: toMs(this.config.accessTokenExpiresIn),
         algorithm: 'HS256',
@@ -51,7 +53,7 @@ export class JwtTokenService implements ITokenService {
         aud: this.config.audience,
         iat: Math.floor(Date.now() / 1000),
       },
-      this.config.secret,
+      this.config.refreshSecret,
       {
         expiresIn: toMs(this.config.refreshTokenExpiresIn),
         algorithm: 'HS256',
@@ -60,7 +62,7 @@ export class JwtTokenService implements ITokenService {
   }
 
   verifyAccessToken(token: string): TokenPayload {
-    const decoded = jwt.verify(token, this.config.secret, {
+    const decoded = jwt.verify(token, this.config.accessSecret, {
       algorithms: ['HS256'],
       issuer: this.config.issuer,
       audience: this.config.audience,
@@ -80,7 +82,7 @@ export class JwtTokenService implements ITokenService {
   }
 
   verifyRefreshToken(token: string): TokenPayload {
-    const decoded = jwt.verify(token, this.config.secret, {
+    const decoded = jwt.verify(token, this.config.refreshSecret, {
       algorithms: ['HS256'],
       issuer: this.config.issuer,
       audience: this.config.audience,
@@ -99,21 +101,21 @@ export class JwtTokenService implements ITokenService {
     return { id, email, kind };
   }
 
-  signPartialToken(email: string): string {
+  signPartialToken(email: string, googleId?: string): string {
     return jwt.sign(
-      { email, type: 'partial' },
-      this.config.secret,
+      { email, googleId, type: 'partial' },
+      this.config.partialSecret,
       { expiresIn: '5m', algorithm: 'HS256' }
     );
   }
 
-  verifyPartialToken(token: string): { email: string } {
-    const decoded = jwt.verify(token, this.config.secret, {
+  verifyPartialToken(token: string): { email: string; googleId?: string } {
+    const decoded = jwt.verify(token, this.config.partialSecret, {
       algorithms: ['HS256'],
-    }) as { email?: string; type?: string };
+    }) as { email?: string; googleId?: string; type?: string };
     if (!decoded || typeof decoded === 'string' || !decoded.email || decoded.type !== 'partial') {
       throw new Error('Token parcial inválido');
     }
-    return { email: decoded.email };
+    return { email: decoded.email, googleId: decoded.googleId };
   }
 }

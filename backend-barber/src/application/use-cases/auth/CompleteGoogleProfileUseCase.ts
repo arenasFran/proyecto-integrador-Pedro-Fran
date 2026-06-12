@@ -1,6 +1,7 @@
 import { User } from '../../../domain/entities/User';
 import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { Phone } from '../../../domain/value-objects/Phone';
 import { CompleteGoogleProfileDTO } from '../../dto/auth/CompleteGoogleProfileDTO';
 import { AppError } from '../../errors/AppError';
 import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
@@ -16,11 +17,13 @@ export class CompleteGoogleProfileUseCase {
     private readonly refreshTokenRepository: IRefreshTokenRepository
   ) {}
 
-  async execute(dto: CompleteGoogleProfileDTO): Promise<{ message: string; token: string; refreshToken: string }> {
+  async execute(dto: CompleteGoogleProfileDTO): Promise<{ message: string; token: string; refreshToken: string; user: { id: string; name: string; lastname: string; email: string; phone: string; kind: string; photoUrl: string | null } }> {
     let email: string;
+    let googleId: string | undefined;
     try {
       const result = this.tokenService.verifyPartialToken(dto.partialToken);
       email = result.email.trim().toLowerCase();
+      googleId = result.googleId;
     } catch {
       throw new AppError('Token parcial inválido o expirado', 401);
     }
@@ -34,11 +37,18 @@ export class CompleteGoogleProfileUseCase {
       throw new AppError('El nombre es obligatorio', 400);
     }
 
+    const phone = dto.phone?.trim() || undefined;
+    if (phone) {
+      Phone.create(phone);
+    }
+
     const user = User.create({
       id: '',
       email,
       name,
       lastname: dto.lastname?.trim() || '',
+      phone,
+      googleId,
       kind: 'Registrado',
       authProvider: 'google',
     });
@@ -54,6 +64,19 @@ export class CompleteGoogleProfileUseCase {
     await this.refreshTokenRepository.create(tokenHash, created.id, expiresAt);
     await this.userRepository.updateLastLogin(created.id);
 
-    return { message: 'Perfil completado exitosamente', token, refreshToken };
+    return {
+      message: 'Perfil completado exitosamente',
+      token,
+      refreshToken,
+      user: {
+        id: created.id,
+        name: created.name,
+        lastname: created.lastname,
+        email: created.email,
+        phone: created.phone || '',
+        kind: created.kind,
+        photoUrl: null,
+      },
+    };
   }
 }

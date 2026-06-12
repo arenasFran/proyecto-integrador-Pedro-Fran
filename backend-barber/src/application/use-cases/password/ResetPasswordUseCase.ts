@@ -20,9 +20,14 @@ export class ResetPasswordUseCase {
   ) {}
 
   async execute(dto: ResetPasswordDTO): Promise<{ message: string }> {
+    if (dto.password !== dto.repeatPassword) {
+      throw new AppError('Las contraseñas no coinciden.', 400);
+    }
     Password.create(dto.password);
 
     const tokenHash = this.hashService.sha256(dto.token);
+
+    // Buscar al usuario primero para poder incrementar failedAttempts en errores
     const user = await this.userRepository.findByEmail(dto.email);
 
     if (user && user.resetLockedUntil && this.dateTimeProvider.now() < user.resetLockedUntil) {
@@ -35,26 +40,26 @@ export class ResetPasswordUseCase {
       );
     }
 
+    // Consumir el token
     const tokenDoc = await this.passwordResetRepository.verifyAndConsume(tokenHash);
 
     if (!tokenDoc) {
+      // Token inválido o expirado — incrementar contador si encontramos al usuario
       if (user) {
         const currentAttempts = (user.resetFailedAttempts || 0) + 1;
-        if (currentAttempts >= MAX_RESET_ATTEMPTS) {
-          const lockedUntil = new Date(this.dateTimeProvider.now().getTime() + LOCKOUT_DURATION_MS);
-          await this.userRepository.updateUserSecurity(user.id, {
-            resetFailedAttempts: currentAttempts,
-            resetLockedUntil: lockedUntil,
-          });
-          throw new AppError(
-            `Demasiados intentos fallidos. Intentalo de nuevo en ${LOCKOUT_DURATION_MS / 60000} minutos.`,
-            429
-          );
-        }
-        await this.userRepository.updateUserSecurity(user.id, {
-          resetFailedAttempts: currentAttempts,
-        });
+        await this.incrementOrLockout(user, currentAttempts);
       }
+      throw new AppError('Token inválido o expirado', 400);
+    }
+
+    if (!user) {
+      throw new AppError('Token inválido o expirado', 400);
+    }
+
+    // Verificar que el token pertenece al usuario
+    if (tokenDoc.userId !== user.id) {
+      const currentAttempts = (user.resetFailedAttempts || 0) + 1;
+      await this.incrementOrLockout(user, currentAttempts);
       throw new AppError('Token inválido o expirado', 400);
     }
 
@@ -67,5 +72,22 @@ export class ResetPasswordUseCase {
     await this.userRepository.updatePassword(tokenDoc.userId, hash);
 
     return { message: 'Contraseña restablecida con éxito' };
+  }
+
+  private async incrementOrLockout(
+    user: import('../../../domain/entities/User').User,
+    currentAttempts: number
+  ): Promise<void> {
+    if (currentAttempts >= MAX_RESET_ATTEMPTS) {
+      const lockedUntil = new Date(this.dateTimeProvider.now().getTime() + LOCKOUT_DURATION_MS);
+      await this.userRepository.updateUserSecurity(user.id, {
+        resetFailedAttempts: currentAttempts,
+        resetLockedUntil: lockedUntil,
+      });
+    } else {
+      await this.userRepository.updateUserSecurity(user.id, {
+        resetFailedAttempts: currentAttempts,
+      });
+    }
   }
 }

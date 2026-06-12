@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
 import { Button, Input, PasswordInput } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { useAppDispatch } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
 import { authApi, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation, useGoogleLoginMutation, useCompleteGoogleProfileMutation } from '../../../services/authApi';
 import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
@@ -48,9 +48,6 @@ const profileInitialValues = {
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-
-  const loginToken = useAppSelector((state) => state.auth.loginToken);
-  const user = useAppSelector((state) => state.auth.user);
 
   const [sendTwoFactorCode, { isLoading: isSending }] = useSendTwoFactorCodeMutation();
   const [verifyTwoFactorCode, { isLoading: isVerifying }] = useVerifyTwoFactorCodeMutation();
@@ -113,21 +110,6 @@ export const LoginPage: React.FC = () => {
     });
   }, [requiresProfileCompletion, profileCompletionName, profileCompletionLastname, setProfileValues]);
 
-  useEffect(() => {
-    if (!loginToken) return;
-
-    if (!user && !requiresProfileCompletion) {
-      dispatch(authApi.endpoints.getProfile.initiate());
-    }
-
-    const role = getTokenKind(loginToken);
-    if (role === 'Admin') {
-      navigate('/admin/profesionales');
-    } else {
-      navigate('/mis-turnos');
-    }
-  }, [loginToken, user, navigate, dispatch, requiresProfileCompletion]);
-
   const handleGoogleCredential = useCallback(async (credential: string) => {
     try {
       const result = await googleLoginMutation({ token: credential }).unwrap();
@@ -138,6 +120,11 @@ export const LoginPage: React.FC = () => {
         setErrorMessage(null);
         return;
       }
+      if ('token' in result) {
+        await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+        const role = getTokenKind(result.token);
+        navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+      }
     } catch (err: unknown) {
       const apiError = err as { data?: string };
       const message = apiError?.data || (err instanceof Error ? err.message : 'Error al iniciar sesión con Google');
@@ -147,7 +134,7 @@ export const LoginPage: React.FC = () => {
         setErrorMessage(message);
       }
     }
-  }, [googleLoginMutation]);
+  }, [googleLoginMutation, dispatch, navigate]);
 
   useEffect(() => {
     if (isCodeStep || !googleClientId) return;
@@ -236,10 +223,13 @@ export const LoginPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      await verifyTwoFactorCode({
+      const result = await verifyTwoFactorCode({
         email: twoFactorPendingEmail,
         code: codeValues.token,
       }).unwrap();
+      await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      const role = getTokenKind(result.token);
+      navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
       const apiError = err as { data?: string };
       const message = apiError?.data || (err instanceof Error ? err.message : 'Error al verificar el código');
@@ -275,13 +265,16 @@ export const LoginPage: React.FC = () => {
     setProfileCompletionError(null);
 
     try {
-      await completeGoogleProfileMutation({
+      const result = await completeGoogleProfileMutation({
         partialToken: requiresProfileCompletion,
         name: profileValues.name,
         lastname: profileValues.lastname,
         phone: profileValues.phone,
       }).unwrap();
       setRequiresProfileCompletion(null);
+      await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      const role = getTokenKind(result.token);
+      navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
       const apiError = err as { data?: string };
       const message = apiError?.data || (err instanceof Error ? err.message : 'Error al completar el perfil');

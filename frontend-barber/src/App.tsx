@@ -28,14 +28,14 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
     const init = async () => {
       const token = getAccessToken();
       if (isTokenValid(token)) {
-        dispatch(authApi.endpoints.getProfile.initiate());
+        await dispatch(authApi.endpoints.getProfile.initiate());
         dispatch(setInitialized());
         return;
       }
 
       const refreshed = await silentRefresh();
       if (refreshed) {
-        dispatch(authApi.endpoints.getProfile.initiate());
+        await dispatch(authApi.endpoints.getProfile.initiate());
       }
       dispatch(setInitialized());
     };
@@ -45,7 +45,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loginToken) {
-      dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      dispatch(authApi.endpoints.getProfile.initiate());
     }
   }, [loginToken, dispatch]);
 

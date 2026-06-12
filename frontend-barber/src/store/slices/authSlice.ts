@@ -1,7 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { authApi } from '../../services/authApi';
 import { setAccessToken } from '../../services/api';
-import { decodeTokenPayload } from '../../utils/token';
 import type { User } from '../../types/auth';
 
 interface AuthState {
@@ -9,20 +8,6 @@ interface AuthState {
   user: User | null;
   isInitializing: boolean;
 }
-
-const setUserFromToken = (state: AuthState, token: string) => {
-  const payload = decodeTokenPayload(token);
-  if (payload) {
-    state.user = {
-      id: payload.id,
-      name: '',
-      lastname: '',
-      email: payload.email,
-      phone: '',
-      kind: payload.kind as User['kind'],
-    };
-  }
-};
 
 const initialState: AuthState = {
   loginToken: null,
@@ -52,7 +37,6 @@ const authSlice = createSlice({
     setLoginToken: (state, action: PayloadAction<string>) => {
       state.loginToken = action.payload;
       setAccessToken(action.payload);
-      setUserFromToken(state, action.payload);
     },
   },
   extraReducers: (builder) => {
@@ -60,12 +44,10 @@ const authSlice = createSlice({
       .addMatcher(authApi.endpoints.verifyTwoFactorCode.matchFulfilled, (state, action) => {
         state.loginToken = action.payload.token;
         setAccessToken(action.payload.token);
-        setUserFromToken(state, action.payload.token);
       })
       .addMatcher(authApi.endpoints.completeGoogleProfile.matchFulfilled, (state, action) => {
         state.loginToken = action.payload.token;
         setAccessToken(action.payload.token);
-        setUserFromToken(state, action.payload.token);
         if ('user' in action.payload) {
           state.user = action.payload.user as any;
         }
@@ -74,13 +56,11 @@ const authSlice = createSlice({
         if ('token' in action.payload) {
           state.loginToken = action.payload.token;
           setAccessToken(action.payload.token);
-          setUserFromToken(state, action.payload.token);
         }
       })
       .addMatcher(authApi.endpoints.refreshToken.matchFulfilled, (state, action) => {
         state.loginToken = action.payload.token;
         setAccessToken(action.payload.token);
-        setUserFromToken(state, action.payload.token);
       })
       .addMatcher(authApi.endpoints.refreshToken.matchRejected, (state) => {
         setAccessToken(null);

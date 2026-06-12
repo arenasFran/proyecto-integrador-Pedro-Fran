@@ -57,7 +57,7 @@ export const AdminHeader: React.FC = () => {
               <FiUser className="text-[#FF5C00] text-sm" />
             </div>
             <span>
-              {user ? `${user.name} ${user.lastname}` : tokenUser?.email ?? 'Admin'}
+              {user?.name ? `${user.name} ${user.lastname}` : user?.email ?? tokenUser?.email ?? 'Admin'}
             </span>
             <FiChevronDown className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>

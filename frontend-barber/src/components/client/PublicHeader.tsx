@@ -62,7 +62,7 @@ export const PublicHeader: React.FC = () => {
                   <FiUser className="text-[#FF5C00] text-sm" />
                 </div>
                 <span className="hidden sm:inline">
-                  {user ? `${user.name}` : tokenUser?.email ?? 'Usuario'}
+                  {user?.name ? `${user.name}` : user?.email ?? tokenUser?.email ?? 'Usuario'}
                 </span>
                 <FiChevronDown
                   className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}

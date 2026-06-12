@@ -45,7 +45,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loginToken) {
-      dispatch(authApi.endpoints.getProfile.initiate());
+      dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
     }
   }, [loginToken, dispatch]);
 

@@ -1,20 +1,15 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
 import { Button, Input, PasswordInput } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import {
-  clearAuthState,
-  clearProfileCompletion,
-  completeGoogleProfileThunk,
-  googleLoginThunk,
-  sendTwoFactorCodeThunk,
-  verifyTwoFactorCodeThunk,
-} from '../../../store/slices/authSlice';
+import { logout } from '../../../store/slices/authSlice';
+import { authApi, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation, useGoogleLoginMutation, useCompleteGoogleProfileMutation } from '../../../services/authApi';
 import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
 import { getTokenKind } from '../../../utils/token';
+import { getAccessToken } from '../../../services/api';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -48,21 +43,29 @@ const codeInitialValues: TwoFactorCodeFormData = {
 const profileInitialValues = {
   name: '',
   lastname: '',
+  phone: '',
 };
 
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const {
-    isLoading,
-    error,
-    loginSuccess,
-    loginToken,
-    twoFactorSendSuccess,
-    twoFactorPendingEmail,
-    requiresProfileCompletion,
-    profileCompletionError,
-  } = useAppSelector((state) => state.auth);
+
+  const loginToken = useAppSelector((state) => state.auth.loginToken);
+  const user = useAppSelector((state) => state.auth.user);
+
+  const [sendTwoFactorCode, { isLoading: isSending }] = useSendTwoFactorCodeMutation();
+  const [verifyTwoFactorCode, { isLoading: isVerifying }] = useVerifyTwoFactorCodeMutation();
+  const [googleLoginMutation, { isLoading: isGoogleLoading }] = useGoogleLoginMutation();
+  const [completeGoogleProfileMutation, { isLoading: isCompleting }] = useCompleteGoogleProfileMutation();
+
+  const [twoFactorPendingEmail, setTwoFactorPendingEmail] = useState<string | null>(null);
+  const [requiresProfileCompletion, setRequiresProfileCompletion] = useState<string | null>(null);
+  const [profileCompletionName, setProfileCompletionName] = useState('');
+  const [profileCompletionLastname, setProfileCompletionLastname] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [profileCompletionError, setProfileCompletionError] = useState<string | null>(null);
+
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
   const googleInitializedRef = useRef(false);
@@ -73,7 +76,7 @@ export const LoginPage: React.FC = () => {
     touched: credentialsTouched,
     validateAll: validateCredentials,
     getFieldProps: getCredentialsFieldProps,
-  } = useFormValidation(credentialsInitialValues );
+  } = useFormValidation(credentialsInitialValues);
 
   const {
     values: codeValues,
@@ -82,7 +85,7 @@ export const LoginPage: React.FC = () => {
     validateAll: validateCode,
     getFieldProps: getCodeFieldProps,
     resetForm: resetCodeForm,
-  } = useFormValidation(codeInitialValues );
+  } = useFormValidation(codeInitialValues);
 
   const {
     values: profileValues,
@@ -90,9 +93,11 @@ export const LoginPage: React.FC = () => {
     touched: profileTouched,
     validateAll: validateProfile,
     getFieldProps: getProfileFieldProps,
+    setValues: setProfileValues,
   } = useFormValidation(profileInitialValues);
 
   const isCodeStep = Boolean(twoFactorPendingEmail);
+  const isLoading = isSending || isVerifying || isGoogleLoading || isCompleting;
 
   useEffect(() => {
     if (!isCodeStep) {
@@ -101,29 +106,50 @@ export const LoginPage: React.FC = () => {
   }, [isCodeStep, resetCodeForm]);
 
   useEffect(() => {
-    return () => {
-      dispatch(clearAuthState());
-    };
-  }, [dispatch]);
-
-  useEffect(() => {
     if (!requiresProfileCompletion) return;
-    const token = localStorage.getItem('authToken');
-    if (token) {
-      localStorage.removeItem('authToken');
-    }
-  }, [requiresProfileCompletion]);
+    setProfileValues({
+      name: profileCompletionName,
+      lastname: profileCompletionLastname,
+      phone: '',
+    });
+  }, [requiresProfileCompletion, profileCompletionName, profileCompletionLastname, setProfileValues]);
 
   useEffect(() => {
     if (!loginToken) return;
-    localStorage.setItem('authToken', loginToken);
+    if (!user) {
+      if (!requiresProfileCompletion) {
+        dispatch(authApi.endpoints.getProfile.initiate());
+      }
+      return;
+    }
     const role = getTokenKind(loginToken);
     if (role === 'Admin') {
       navigate('/admin/profesionales');
-      return;
+    } else {
+      navigate('/mis-turnos');
     }
-    navigate('/mis-turnos');
-  }, [loginToken, navigate]);
+  }, [loginToken, user, navigate, dispatch, requiresProfileCompletion]);
+
+  const handleGoogleCredential = useCallback(async (credential: string) => {
+    try {
+      const result = await googleLoginMutation({ token: credential }).unwrap();
+      if ('requiresProfileCompletion' in result) {
+        setRequiresProfileCompletion(result.partialToken);
+        setProfileCompletionName(result.name || '');
+        setProfileCompletionLastname(result.lastname || '');
+        setErrorMessage(null);
+        return;
+      }
+    } catch (err: unknown) {
+      const apiError = err as { data?: string };
+      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al iniciar sesión con Google');
+      if (message === 'ACCOUNT_EXISTS_LOCAL') {
+        setErrorMessage('Este email ya está registrado con una contraseña. Usá el formulario de inicio de sesión.');
+      } else {
+        setErrorMessage(message);
+      }
+    }
+  }, [googleLoginMutation]);
 
   useEffect(() => {
     if (isCodeStep || !googleClientId) return;
@@ -142,7 +168,7 @@ export const LoginPage: React.FC = () => {
         client_id: googleClientId,
         callback: (response) => {
           if (!response.credential) return;
-          dispatch(googleLoginThunk({ token: response.credential }));
+          handleGoogleCredential(response.credential);
         },
       });
       googleInitializedRef.current = true;
@@ -181,62 +207,88 @@ export const LoginPage: React.FC = () => {
         currentScript.removeEventListener('load', loadHandler);
       }
     };
-  }, [dispatch, googleClientId, isCodeStep]);
+  }, [dispatch, googleClientId, isCodeStep, handleGoogleCredential]);
 
-  const handleCredentialsSubmit = () => {
+  const handleCredentialsSubmit = async () => {
     const isValid = validateCredentials();
     if (!isValid) return;
 
-    dispatch(
-      sendTwoFactorCodeThunk({
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const result = await sendTwoFactorCode({
         email: credentialsValues.email,
         password: credentialsValues.password,
-      })
-    );
+      }).unwrap();
+      setTwoFactorPendingEmail(credentialsValues.email);
+      setSuccessMessage(result.message);
+    } catch (err: unknown) {
+      const apiError = err as { data?: string };
+      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al enviar el código');
+      setErrorMessage(message);
+    }
   };
 
-  const handleCodeSubmit = () => {
+  const handleCodeSubmit = async () => {
     if (!twoFactorPendingEmail) return;
     const isValid = validateCode();
     if (!isValid) return;
 
-    dispatch(
-      verifyTwoFactorCodeThunk({
+    setErrorMessage(null);
+
+    try {
+      await verifyTwoFactorCode({
         email: twoFactorPendingEmail,
         code: codeValues.token,
-      })
-    );
+      }).unwrap();
+    } catch (err: unknown) {
+      const apiError = err as { data?: string };
+      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al verificar el código');
+      setErrorMessage(message);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (requiresProfileCompletion) {
-      handleProfileSubmit();
+      await handleProfileSubmit();
       return;
     }
     if (isCodeStep) {
-      handleCodeSubmit();
+      await handleCodeSubmit();
       return;
     }
-    handleCredentialsSubmit();
+    await handleCredentialsSubmit();
   };
 
   const handleBackToCredentials = () => {
-    dispatch(clearAuthState());
+    setTwoFactorPendingEmail(null);
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    dispatch(logout());
   };
 
-  const handleProfileSubmit = () => {
+  const handleProfileSubmit = async () => {
     const isValid = validateProfile();
     if (!isValid) return;
     if (!requiresProfileCompletion) return;
 
-    dispatch(
-      completeGoogleProfileThunk({
+    setProfileCompletionError(null);
+
+    try {
+      await completeGoogleProfileMutation({
         partialToken: requiresProfileCompletion,
         name: profileValues.name,
         lastname: profileValues.lastname,
-      })
-    );
+        phone: profileValues.phone,
+      }).unwrap();
+      setRequiresProfileCompletion(null);
+    } catch (err: unknown) {
+      const apiError = err as { data?: string };
+      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al completar el perfil');
+      setProfileCompletionError(message);
+    }
   };
 
   return (
@@ -299,6 +351,19 @@ export const LoginPage: React.FC = () => {
                     error={profileTouched.lastname ? profileErrors.lastname : undefined}
                   />
                 </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                >
+                  <Input
+                    label="Teléfono"
+                    type="tel"
+                    placeholder="+54 9 11 1234 5678"
+                    {...getProfileFieldProps('phone')}
+                    error={profileTouched.phone ? profileErrors.phone : undefined}
+                  />
+                </motion.div>
               </>
             ) : !isCodeStep ? (
               <>
@@ -355,17 +420,14 @@ export const LoginPage: React.FC = () => {
               </>
             )}
 
-            {error && (
-              <p className="text-[12px] text-red-500 text-center">{error}</p>
+            {errorMessage && (
+              <p className="text-[12px] text-red-500 text-center">{errorMessage}</p>
             )}
             {profileCompletionError && (
               <p className="text-[12px] text-red-500 text-center">{profileCompletionError}</p>
             )}
-            {twoFactorSendSuccess && (
-              <p className="text-[12px] text-[#22C55E] text-center">{twoFactorSendSuccess}</p>
-            )}
-            {loginSuccess && (
-              <p className="text-[12px] text-[#22C55E] text-center">{loginSuccess}</p>
+            {successMessage && (
+              <p className="text-[12px] text-[#22C55E] text-center">{successMessage}</p>
             )}
 
             <motion.div
@@ -390,7 +452,12 @@ export const LoginPage: React.FC = () => {
                 <Button
                   type="button"
                   className="w-full"
-                  onClick={() => dispatch(clearProfileCompletion())}
+                  onClick={() => {
+                    setRequiresProfileCompletion(null);
+                    setProfileCompletionName('');
+                    setProfileCompletionLastname('');
+                    setProfileCompletionError(null);
+                  }}
                 >
                   Cancelar
                 </Button>

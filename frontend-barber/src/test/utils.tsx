@@ -5,20 +5,23 @@ import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import authReducer from '../store/slices/authSlice';
 import barbersReducer from '../store/slices/barbersSlice';
+import { authApi } from '../services/authApi';
 import type { RootState } from '../store';
-
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
   preloadedState?: PreloadedState<RootState>;
   initialEntries?: string[];
 }
 
-function createTestStore(preloadedState?: PreloadedState<{
-  auth: ReturnType<typeof authReducer>;
-  barbers: ReturnType<typeof barbersReducer>;
-}>) {
+function createTestStore(preloadedState?: PreloadedState<Partial<RootState>>) {
   return configureStore({
-    reducer: { auth: authReducer, barbers: barbersReducer },
+    reducer: {
+      auth: authReducer,
+      barbers: barbersReducer,
+      [authApi.reducerPath]: authApi.reducer,
+    },
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(authApi.middleware),
     preloadedState,
   });
 }
@@ -41,4 +44,4 @@ export function renderWithProviders(
     store,
     ...render(ui, { wrapper: Wrapper, ...renderOptions }),
   };
-} 
+}

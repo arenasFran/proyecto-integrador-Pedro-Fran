@@ -6,6 +6,7 @@ import { Button } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
 import { getTokenUser } from '../../../utils/token';
+import { getAccessToken } from '../../../services/api';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -54,7 +55,7 @@ export const LandingPage: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const token = getAccessToken();
   const tokenUser = getTokenUser(token);
   const isAuthenticated = Boolean(token && tokenUser);
 
@@ -68,7 +69,12 @@ export const LandingPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/auth/logout`, { method: 'POST', credentials: 'include' });
+    } catch {
+      // logout optimista
+    }
     dispatch(logout());
     setDropdownOpen(false);
   };

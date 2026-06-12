@@ -68,7 +68,7 @@ export const isTokenValid = (token?: string | null): boolean => {
   }
 
   if (typeof payload.exp !== 'number') {
-    return true;
+    return false;
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);

@@ -2,8 +2,10 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
-import { useAppDispatch } from './store/hooks';
-import { fetchUserProfile } from './store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from './store/hooks';
+import { authApi } from './services/authApi';
+import { silentRefresh, getAccessToken } from './services/api';
+import { setInitialized } from './store/slices/authSlice';
 import AdminLayout from './pages/admin/AdminLayout';
 import ProfessionalsPage from './pages/admin/ProfessionalsPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
@@ -22,10 +24,22 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (isTokenValid(token)) {
-      dispatch(fetchUserProfile());
-    }
+    const init = async () => {
+      const token = getAccessToken();
+      if (isTokenValid(token)) {
+        dispatch(authApi.endpoints.getProfile.initiate());
+        dispatch(setInitialized());
+        return;
+      }
+
+      const refreshed = await silentRefresh();
+      if (refreshed) {
+        dispatch(authApi.endpoints.getProfile.initiate());
+      }
+      dispatch(setInitialized());
+    };
+
+    init();
   }, [dispatch]);
 
   return <>{children}</>;
@@ -74,8 +88,13 @@ function App() {
 }
 
 function RequireAdminRoute({ children }: { children: React.ReactNode }) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const token = getAccessToken();
   const role = getTokenKind(token);
+
+  if (isInitializing) {
+    return null;
+  }
 
   if (!isTokenValid(token) || role !== 'Admin') {
     return <Navigate to="/login" replace />;
@@ -85,7 +104,12 @@ function RequireAdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RequireAuthRoute({ children }: { children: React.ReactNode }) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
+  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const token = getAccessToken();
+
+  if (isInitializing) {
+    return null;
+  }
 
   if (!isTokenValid(token)) {
     return <Navigate to="/login" replace />;

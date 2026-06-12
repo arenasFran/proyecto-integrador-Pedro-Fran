@@ -1,19 +1,13 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import { RegisterForm } from './RegisterForm';
-import { registerThunk } from '../../../../store/slices/authSlice';
 import { renderWithProviders } from '../../../../test/utils';
 
-vi.mock('../../../../services/auth.service', () => ({
-  authService: {
-    register: vi.fn().mockResolvedValue('ok'),
-    sendTwoFactorCode: vi.fn(),
-    googleLogin: vi.fn(),
-    verifyTwoFactorCode: vi.fn(),
-    requestReset: vi.fn(),
-    resetPassword: vi.fn(),
-  },
+const apiMock = vi.hoisted(() => vi.fn());
+vi.mock('../../../../services/api', () => ({
+  default: apiMock,
+  setupDispatch: vi.fn(),
 }));
 
 const fillRegisterForm = async () => {
@@ -27,6 +21,11 @@ const fillRegisterForm = async () => {
 };
 
 describe('RegisterForm', () => {
+  beforeEach(() => {
+    apiMock.mockReset();
+    apiMock.mockResolvedValue({ data: { message: 'Usuario registrado con éxito' } });
+  });
+
   it('renders all fields', () => {
     renderWithProviders(<RegisterForm />);
     expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
@@ -37,65 +36,36 @@ describe('RegisterForm', () => {
     expect(screen.getByLabelText(/confirmar/i)).toBeInTheDocument();
   });
 
-  it('shows validation errors on submit when invalid', async () => {
+  it('does not submit when form is invalid', async () => {
     const user = userEvent.setup();
-    const { store } = renderWithProviders(<RegisterForm />);
-    const dispatchSpy = vi.spyOn(store, 'dispatch');
+    renderWithProviders(<RegisterForm />);
 
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
-    expect(dispatchSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ type: registerThunk.pending.type })
-    );
+    expect(apiMock).not.toHaveBeenCalled();
   });
 
-  it('dispatches register thunk on valid submit', async () => {
+  it('submits and shows success on valid form', async () => {
     const user = userEvent.setup();
-    const { store } = renderWithProviders(<RegisterForm />);
-    const dispatchSpy = vi.spyOn(store, 'dispatch');
+    renderWithProviders(<RegisterForm />);
 
     await fillRegisterForm();
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
 
-    expect(dispatchSpy).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.getByText('¡Registro exitoso!')).toBeInTheDocument();
+    });
   });
 
-  it('renders success state when registerSuccess is set', () => {
-    renderWithProviders(<RegisterForm />, {
-      preloadedState: {
-        auth: {
-          isLoading: false,
-          error: null,
-          twoFactorSendSuccess: null,
-          twoFactorPendingEmail: null,
-          loginSuccess: null,
-          loginToken: null,
-          registerSuccess: 'ok',
-          requestResetSuccess: null,
-          resetPasswordSuccess: null,
-        },
-      },
+  it('shows error message when registration fails', async () => {
+    apiMock.mockRejectedValue(new Error('Email en uso'));
+    const user = userEvent.setup();
+    renderWithProviders(<RegisterForm />);
+
+    await fillRegisterForm();
+    await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Email en uso')).toBeInTheDocument();
     });
-
-    expect(screen.getByText('¡Registro exitoso!')).toBeInTheDocument();
-  });
-
-  it('shows error from store', () => {
-    renderWithProviders(<RegisterForm />, {
-      preloadedState: {
-        auth: {
-          isLoading: false,
-          error: 'Error',
-          twoFactorSendSuccess: null,
-          twoFactorPendingEmail: null,
-          loginSuccess: null,
-          loginToken: null,
-          registerSuccess: null,
-          requestResetSuccess: null,
-          resetPasswordSuccess: null,
-        },
-      },
-    });
-
-    expect(screen.getByText('Error')).toBeInTheDocument();
   });
 });

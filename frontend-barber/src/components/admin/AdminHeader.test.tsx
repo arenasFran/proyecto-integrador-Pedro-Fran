@@ -18,6 +18,14 @@ vi.mock('../../utils/token', () => ({
   getTokenUser: vi.fn(),
 }));
 
+vi.mock('../../services/api', () => ({
+  default: {
+    post: vi.fn().mockResolvedValue({ data: { message: 'ok' } }),
+  },
+  getAccessToken: vi.fn(() => null),
+  setAccessToken: vi.fn(),
+}));
+
 import { getTokenUser } from '../../utils/token';
 
 const adminUser: Professional = {

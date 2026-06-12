@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight, FiCheck } from 'react-icons/fi';
 import { PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
-import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { resetPasswordThunk, clearAuthState } from '../../../../store/slices/authSlice';
+import { useResetPasswordMutation } from '../../../../services/authApi';
 import type { ResetPasswordFormData } from '../../../../types/auth';
 
 interface ResetPasswordFormProps {
@@ -20,11 +19,11 @@ const initialValues: ResetPasswordFormData = {
 };
 
 export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess, email }) => {
-  const dispatch = useAppDispatch();
-  const { isLoading, error, resetPasswordSuccess } = useAppSelector((state) => state.auth);
+  const [resetPassword, { isLoading, error }] = useResetPasswordMutation();
+  const [resetPasswordSuccess, setResetPasswordSuccess] = useState(false);
 
   const formInit = { ...initialValues, email };
-  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit );
+  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit);
 
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
@@ -39,23 +38,22 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess,
     return () => window.clearTimeout(timeoutId);
   }, [resetPasswordSuccess]);
 
-  useEffect(() => {
-    return () => {
-      dispatch(clearAuthState());
-    };
-  }, [dispatch]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isValid = validateAll();
     if (!isValid) return;
 
-    dispatch(resetPasswordThunk({
-      token: values.token,
-      password: values.password,
-      repeatPassword: values.repeatPassword,
-      email: values.email,
-    }));
+    try {
+      await resetPassword({
+        token: values.token,
+        password: values.password,
+        repeatPassword: values.repeatPassword,
+        email: values.email,
+      }).unwrap();
+      setResetPasswordSuccess(true);
+    } catch {
+      // error handled via mutation result
+    }
   };
 
   if (resetPasswordSuccess) {
@@ -80,6 +78,8 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess,
       </motion.div>
     );
   }
+
+  const errorMessage = error ? ((error as { data?: string }).data ?? 'Error al restablecer contraseña') : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -130,8 +130,8 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ onSuccess,
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
       >
-        {error && (
-          <p className="text-[12px] text-red-500 text-center mb-3">{error}</p>
+        {errorMessage && (
+          <p className="text-[12px] text-red-500 text-center mb-3">{errorMessage}</p>
         )}
         <Button
           type="submit"

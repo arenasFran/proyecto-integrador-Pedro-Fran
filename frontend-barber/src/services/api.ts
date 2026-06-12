@@ -7,13 +7,27 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
 });
+
+let _accessToken: string | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _dispatch: ((action: any) => void) | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  _accessToken = token;
+};
+
+export const getAccessToken = (): string | null => _accessToken;
+
+export const setupDispatch = (dispatch: (action: { type: string }) => void) => {
+  _dispatch = dispatch;
+};
 
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (_accessToken) {
+      config.headers.Authorization = `Bearer ${_accessToken}`;
     }
     return config;
   },
@@ -39,12 +53,28 @@ const processQueue = (error: unknown, token: string | null) => {
   failedQueue = [];
 };
 
+const refreshTokens = async (): Promise<string> => {
+  const { data } = await axios.post<{ token: string; refreshToken: string }>(
+    `${API_URL}/auth/refresh`,
+    {},
+    { withCredentials: true }
+  );
+  setAccessToken(data.token);
+  if (_dispatch) {
+    _dispatch({ type: 'auth/setLoginToken', payload: data.token });
+  }
+  return data.token;
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError<{ error?: string }>) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    if (error.response?.status === 401 && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
+    const isAuthError = error.response?.status === 401 ||
+      (error.response?.status === 403 && error.response?.data?.error === 'Token inválido');
+
+    if (isAuthError && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({
@@ -61,28 +91,17 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const storedRefreshToken = localStorage.getItem('refreshToken');
-        if (!storedRefreshToken) {
-          throw new Error('No refresh token');
-        }
+        const token = await refreshTokens();
+        processQueue(null, token);
 
-        const { data } = await axios.post<{ token: string; refreshToken: string }>(
-          `${API_URL}/auth/refresh`,
-          { refreshToken: storedRefreshToken }
-        );
-
-        localStorage.setItem('authToken', data.token);
-        localStorage.setItem('refreshToken', data.refreshToken);
-
-        processQueue(null, data.token);
-
-        originalRequest.headers.Authorization = `Bearer ${data.token}`;
+        originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        setAccessToken(null);
+        if (_dispatch) {
+          _dispatch({ type: 'auth/logout' });
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -99,5 +118,29 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+export const silentRefresh = async (): Promise<boolean> => {
+  if (isRefreshing) {
+    return new Promise<boolean>((resolve) => {
+      failedQueue.push({
+        resolve: () => resolve(true),
+        reject: () => resolve(false),
+      });
+    });
+  }
+
+  isRefreshing = true;
+  try {
+    await refreshTokens();
+    processQueue(null, _accessToken);
+    return true;
+  } catch {
+    setAccessToken(null);
+    processQueue(null, null);
+    return false;
+  } finally {
+    isRefreshing = false;
+  }
+};
 
 export default api;

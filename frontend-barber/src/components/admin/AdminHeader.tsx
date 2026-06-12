@@ -4,6 +4,8 @@ import { FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-i
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';
+import { getAccessToken } from '../../services/api';
+import api from '../../services/api';
 
 export const AdminHeader: React.FC = () => {
   const navigate = useNavigate();
@@ -12,9 +14,7 @@ export const AdminHeader: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = useAppSelector((state) => state.auth.user);
-  const tokenUser = getTokenUser(
-    typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
-  );
+  const tokenUser = getTokenUser(getAccessToken());
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -27,7 +27,12 @@ export const AdminHeader: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // logout optimista
+    }
     dispatch(logout());
     navigate('/login');
   };

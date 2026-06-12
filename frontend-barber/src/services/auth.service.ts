@@ -53,6 +53,8 @@ export interface GoogleLoginSuccessResponse {
 export interface GoogleRequiresProfileResponse {
   requiresProfileCompletion: true;
   partialToken: string;
+  name?: string;
+  lastname?: string;
 }
 
 export type GoogleLoginResponse = GoogleLoginSuccessResponse | GoogleRequiresProfileResponse;
@@ -61,6 +63,7 @@ export interface CompleteGoogleProfileData {
   partialToken: string;
   name: string;
   lastname?: string;
+  phone?: string;
 }
 
 export interface RefreshTokenResponse {

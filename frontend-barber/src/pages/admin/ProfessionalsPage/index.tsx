@@ -11,6 +11,7 @@ import {
 } from '../../../store/slices/barbersSlice';
 import { professionalService } from '../../../services/professional.service';
 import { getTokenUser } from '../../../utils/token';
+import { getAccessToken } from '../../../services/api';
 import type { DayKey, Professional, ProfessionalPayload, ProfessionalUpdatePayload } from '../../../types/professional';
 import {
   createEmptySchedule,
@@ -71,8 +72,7 @@ export const ProfessionalsPage: React.FC = () => {
   const [viewingAdminSlots, setViewingAdminSlots] = useState(false);
 
   const currentTokenUser = useMemo(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    return getTokenUser(token);
+    return getTokenUser(getAccessToken());
   }, []);
 
   const employees = useMemo(

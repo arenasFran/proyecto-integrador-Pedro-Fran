@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiClock, FiSave, FiScissors, FiShield } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, PasswordInput } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchUserProfile } from '../../../store/slices/authSlice';
+import { authApi } from '../../../services/authApi';
 import { updateBarber, updateBarberSchedule } from '../../../store/slices/barbersSlice';
 import type { DayKey, Professional, ProfessionalUpdatePayload } from '../../../types/professional';
 import {
@@ -43,7 +43,8 @@ export const AdminProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
-      dispatch(fetchUserProfile());
+      const promise = dispatch(authApi.endpoints.getProfile.initiate());
+      return () => { promise.unsubscribe(); };
     }
   }, [user, dispatch]);
 
@@ -100,7 +101,9 @@ export const AdminProfilePage: React.FC = () => {
 
       await dispatch(updateBarber({ id: formData.id, data: updatePayload })).unwrap();
       await dispatch(updateBarberSchedule({ id: formData.id, schedule: scheduleFromForm(schedule) })).unwrap();
-      await dispatch(fetchUserProfile());
+      const profilePromise = dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      await profilePromise.unwrap();
+      profilePromise.unsubscribe();
       setPassword('');
       setPageMessage('Perfil actualizado con éxito.');
     } catch (error) {

@@ -32,6 +32,7 @@ export type Professional = {
   photoUrl?: string | null;
   isActive: boolean;
   slotDuration: number;
+  maxAdvanceDays: number;
   schedule: BarberSchedule;
 };
 
@@ -45,6 +46,7 @@ export type ProfessionalPayload = {
   age?: number;
   photoUrl?: string | null;
   slotDuration?: number;
+  maxAdvanceDays?: number;
   schedule: BarberSchedule;
 };
 
@@ -59,6 +61,7 @@ export type ProfessionalUpdatePayload = {
   photoUrl?: string | null;
   isActive?: boolean;
   slotDuration?: number;
+  maxAdvanceDays?: number;
 };
 
 export type SlotsResponse = {

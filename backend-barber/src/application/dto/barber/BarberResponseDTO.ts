@@ -12,6 +12,7 @@ export type BarberResponseDTO = {
   photoUrl?: string | null;
   isActive: boolean;
   slotDuration: number;
+  maxAdvanceDays: number;
   schedule: BarberDTOSchedule;
 };
 
@@ -27,6 +28,7 @@ type BarberEntityLike = {
   photoUrl?: string | null;
   isActive: boolean;
   slotDuration: number;
+  maxAdvanceDays: number;
   schedule: BarberDTOSchedule;
 };
 
@@ -43,6 +45,7 @@ export const toBarberResponse = (barber: BarberEntityLike): BarberResponseDTO =>
     photoUrl: barber.photoUrl ?? null,
     isActive: barber.isActive,
     slotDuration: barber.slotDuration,
+    maxAdvanceDays: barber.maxAdvanceDays,
     schedule: barber.schedule,
   };
 };

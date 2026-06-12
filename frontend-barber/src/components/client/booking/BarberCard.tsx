@@ -22,7 +22,6 @@ const stableRating = (id: string): string => {
 
 export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSelect }) => {
   const fullName = `${barber.name} ${barber.lastname}`;
-  const service = barber.services[0] ?? 'Barbero';
   const reviews = stableReviews(barber.id);
   const rating = stableRating(barber.id);
 

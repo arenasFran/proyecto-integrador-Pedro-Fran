@@ -25,6 +25,8 @@ import {
   resetBooking,
   resetBookingFlow,
 } from '../../../store/slices/bookingSlice';
+import { authApi } from '../../../services/authApi';
+import { getAccessToken } from '../../../services/api';
 import type { BookingStep, BarberPublic } from '../../../types/booking';
 
 const getTodayString = (): string => {
@@ -42,9 +44,6 @@ const areStepsComplete = (
 export const BookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const authUser = useAppSelector((state) => state.auth.user);
-  const authUserRef = React.useRef(authUser);
-  authUserRef.current = authUser;
-  const hasPrefilled = React.useRef(false);
   const {
     async: {
       barbers,
@@ -85,28 +84,23 @@ export const BookingPage: React.FC = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (authUser && !hasPrefilled.current) {
-      hasPrefilled.current = true;
-      dispatch(setClientData({
-        name: authUser.name || '',
-        lastname: authUser.lastname || '',
-        phone: authUser.phone || '',
-        email: authUser.email || '',
-      }));
+    if (authUser) {
+      if (!clientName && !clientLastname && !clientPhone && !clientEmail) {
+        dispatch(setClientData({
+          name: authUser.name || '',
+          lastname: authUser.lastname || '',
+          phone: authUser.phone || '',
+          email: authUser.email || '',
+        }));
+      }
     }
-  }, [authUser, dispatch]);
+  }, [authUser, clientName, clientLastname, clientPhone, clientEmail, dispatch]);
 
   useEffect(() => {
-    if (showClientForm && !hasPrefilled.current && authUserRef.current) {
-      hasPrefilled.current = true;
-      dispatch(setClientData({
-        name: authUserRef.current.name || '',
-        lastname: authUserRef.current.lastname || '',
-        phone: authUserRef.current.phone || '',
-        email: authUserRef.current.email || '',
-      }));
+    if (!authUser && getAccessToken()) {
+      dispatch(authApi.endpoints.getProfile.initiate());
     }
-  }, [showClientForm, dispatch]);
+  }, [authUser, dispatch]);
 
   useEffect(() => {
     if (currentStep === 'datetime' && !selectedDate && selectedBarber) {
@@ -118,7 +112,7 @@ export const BookingPage: React.FC = () => {
     if (areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime)) {
       setShowClientForm(true);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
   }, [selectedBarber, selectedService, selectedDate, selectedTime]);
 
   const handleStepToggle = useCallback(
@@ -158,7 +152,7 @@ export const BookingPage: React.FC = () => {
     if (submitSuccess) {
       setShowClientForm(false);
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
   }, [submitSuccess]);
 
   const isStep3Complete = !!selectedDate && !!selectedTime;

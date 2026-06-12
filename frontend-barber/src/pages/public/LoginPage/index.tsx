@@ -9,7 +9,6 @@ import { logout } from '../../../store/slices/authSlice';
 import { authApi, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation, useGoogleLoginMutation, useCompleteGoogleProfileMutation } from '../../../services/authApi';
 import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
 import { getTokenKind } from '../../../utils/token';
-import { getAccessToken } from '../../../services/api';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -116,12 +115,11 @@ export const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (!loginToken) return;
-    if (!user) {
-      if (!requiresProfileCompletion) {
-        dispatch(authApi.endpoints.getProfile.initiate());
-      }
-      return;
+
+    if (!user && !requiresProfileCompletion) {
+      dispatch(authApi.endpoints.getProfile.initiate());
     }
+
     const role = getTokenKind(loginToken);
     if (role === 'Admin') {
       navigate('/admin/profesionales');

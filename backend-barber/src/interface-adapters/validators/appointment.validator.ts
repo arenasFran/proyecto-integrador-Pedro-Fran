@@ -15,6 +15,7 @@ export const createAppointmentSchema = Joi.object({
   clientLastname: Joi.string().trim().min(1).max(100).required(),
   clientPhone: Joi.string().trim().max(20).allow('', null),
   clientEmail: Joi.string().pattern(EMAIL_REGEX).trim().required(),
+  tempLockId: Joi.string().optional(),
 });
 
 export const appointmentQuerySchema = Joi.object({

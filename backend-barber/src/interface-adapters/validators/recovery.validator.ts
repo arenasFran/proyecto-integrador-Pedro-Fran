@@ -7,7 +7,16 @@ export const requestResetSchema = Joi.object({
 
 export const resetPasswordSchema = Joi.object({
   token: Joi.string().required(),
-  password: Joi.string().min(6).required(),
+  password: Joi.string()
+    .min(8)
+    .pattern(/[A-Z]/, 'mayúscula')
+    .pattern(/[a-z]/, 'minúscula')
+    .pattern(/[0-9]/, 'número')
+    .required()
+    .messages({
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.pattern.name': 'La contraseña debe contener al menos una {#name}',
+    }),
   repeatPassword: Joi.any()
     .valid(Joi.ref('password'))
     .required()

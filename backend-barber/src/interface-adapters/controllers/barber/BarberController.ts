@@ -36,6 +36,7 @@ export class BarberController {
           photoUrl: b.photoUrl,
           isActive: b.isActive,
           slotDuration: b.slotDuration,
+          maxAdvanceDays: b.maxAdvanceDays,
         }));
       return BarberPresenter.success(res, { barbers: publicBarbers }, 200);
     } catch (error) {

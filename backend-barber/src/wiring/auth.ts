@@ -32,7 +32,9 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
   const refreshTokenRepository = new MongoRefreshTokenRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = new JwtTokenService({
-    secret: config.jwtSecret,
+    accessSecret: config.jwtAccessSecret,
+    refreshSecret: config.jwtRefreshSecret,
+    partialSecret: config.jwtPartialSecret,
     accessTokenExpiresIn: config.jwtExpiresIn,
     refreshTokenExpiresIn: config.jwtRefreshExpiresIn,
     issuer: config.jwtIssuer,
@@ -120,7 +122,9 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
 export const buildTokenService = () => {
   const cfg = getConfig();
   return new JwtTokenService({
-    secret: cfg.jwtSecret,
+    accessSecret: cfg.jwtAccessSecret,
+    refreshSecret: cfg.jwtRefreshSecret,
+    partialSecret: cfg.jwtPartialSecret,
     accessTokenExpiresIn: cfg.jwtExpiresIn,
     refreshTokenExpiresIn: cfg.jwtRefreshExpiresIn,
     issuer: cfg.jwtIssuer,

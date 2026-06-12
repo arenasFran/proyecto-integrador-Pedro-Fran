@@ -42,7 +42,7 @@ export const buildAppointmentRouter = () => {
     appointmentRepository, emailService, cancelMinHoursBefore
   );
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
-    appointmentRepository, cancelMinHoursBefore
+    appointmentRepository, emailService, cancelMinHoursBefore
   );
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,

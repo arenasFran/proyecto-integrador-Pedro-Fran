@@ -3,31 +3,23 @@ import { EMAIL_REGEX } from '../../domain/constants/validation';
 
 export const registerSchema = Joi.object({
   email: Joi.string().pattern(EMAIL_REGEX).required(),
-  password: Joi.when('authProvider', {
-    is: 'google',
-    then: Joi.optional(),
-    otherwise: Joi.string()
-      .min(8)
-      .pattern(/[A-Z]/, 'mayúscula')
-      .pattern(/[a-z]/, 'minúscula')
-      .pattern(/[0-9]/, 'número')
-      .required()
-      .messages({
-        'string.min': 'La contraseña debe tener al menos 8 caracteres',
-        'string.pattern.name': 'La contraseña debe contener al menos una {#name}',
-      }),
-  }),
-  repeatPassword: Joi.when('authProvider', {
-    is: 'google',
-    then: Joi.optional(),
-    otherwise: Joi.any()
-      .valid(Joi.ref('password'))
-      .required()
-      .messages({
-        'any.only': 'Las contraseñas deben coincidir',
-        'any.required': 'La confirmación de contraseña es obligatoria',
-      }),
-  }),
+  password: Joi.string()
+    .min(8)
+    .pattern(/[A-Z]/, 'mayúscula')
+    .pattern(/[a-z]/, 'minúscula')
+    .pattern(/[0-9]/, 'número')
+    .required()
+    .messages({
+      'string.min': 'La contraseña debe tener al menos 8 caracteres',
+      'string.pattern.name': 'La contraseña debe contener al menos una {#name}',
+    }),
+  repeatPassword: Joi.any()
+    .valid(Joi.ref('password'))
+    .required()
+    .messages({
+      'any.only': 'Las contraseñas deben coincidir',
+      'any.required': 'La confirmación de contraseña es obligatoria',
+    }),
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
   phone: Joi.string().required(),
@@ -69,6 +61,7 @@ export const completeGoogleProfileSchema = Joi.object({
     'string.min': 'El nombre no puede estar vacío',
   }),
   lastname: Joi.string().allow('').optional(),
+  phone: Joi.string().optional(),
 });
 
 export const refreshTokenSchema = Joi.object({

@@ -10,7 +10,9 @@ export const buildUserRouter = () => {
   const config = getConfig();
   const userRepository = new MongoUserRepository();
   const tokenService = new JwtTokenService({
-    secret: config.jwtSecret,
+    accessSecret: config.jwtAccessSecret,
+    refreshSecret: config.jwtRefreshSecret,
+    partialSecret: config.jwtPartialSecret,
     accessTokenExpiresIn: config.jwtExpiresIn,
     refreshTokenExpiresIn: config.jwtRefreshExpiresIn,
     issuer: config.jwtIssuer,

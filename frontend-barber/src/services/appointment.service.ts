@@ -42,6 +42,16 @@ export type AppointmentQueryParams = {
   dateTo?: string;
 };
 
+export const tempLockService = {
+  acquire: async (barberId: string, date: string, startTime: string): Promise<string> => {
+    const response = await api.post<{ message: string; tempLockId: string }>('/api/appointments/temp-lock', { barberId, date, startTime });
+    return response.data.tempLockId;
+  },
+  release: async (tempLockId: string): Promise<void> => {
+    await api.delete(`/api/appointments/temp-lock/${tempLockId}`);
+  },
+};
+
 export const appointmentService = {
   create: async (payload: CreateAppointmentPayload): Promise<CreateAppointmentResponse> => {
     const response = await api.post<CreateAppointmentResponse>('/api/appointments', payload);

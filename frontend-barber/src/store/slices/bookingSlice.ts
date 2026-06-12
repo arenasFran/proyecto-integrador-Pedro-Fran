@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { professionalService } from '../../services/professional.service';
 import { serviceService } from '../../services/service.service';
-import { appointmentService } from '../../services/appointment.service';
+import { appointmentService, tempLockService } from '../../services/appointment.service';
 import type {
   BarberPublic,
   Service,
@@ -115,21 +115,30 @@ export const fetchAvailableSlots = createAsyncThunk(
 export const submitAppointment = createAsyncThunk(
   'booking/submitAppointment',
   async (_, { getState, rejectWithValue }) => {
+    let tempLockId: string | undefined;
     try {
       const { flow } = (getState() as { booking: BookingState }).booking;
+      const barberId = flow.selectedBarber!.id;
+      const date = flow.selectedDate!;
+      const startTime = flow.selectedTime!;
+      tempLockId = await tempLockService.acquire(barberId, date, startTime);
       const payload: CreateAppointmentPayload = {
-        barberId: flow.selectedBarber!.id,
+        barberId,
         serviceId: flow.selectedService!.id,
-        date: flow.selectedDate!,
-        startTime: flow.selectedTime!,
+        date,
+        startTime,
         clientName: flow.clientName,
         clientLastname: flow.clientLastname,
         clientPhone: flow.clientPhone,
         clientEmail: flow.clientEmail,
+        tempLockId,
       };
       const response = await appointmentService.create(payload);
       return response.appointment;
     } catch (error: unknown) {
+      if (tempLockId) {
+        tempLockService.release(tempLockId).catch(() => {});
+      }
       const message = error instanceof Error ? error.message : 'Error al crear la reserva';
       return rejectWithValue(message);
     }

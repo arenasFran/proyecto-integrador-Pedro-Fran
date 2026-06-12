@@ -6,6 +6,7 @@ export type BarberPublic = {
   photoUrl: string | null;
   isActive: boolean;
   slotDuration: number;
+  maxAdvanceDays: number;
 };
 
 export type Service = {
@@ -31,6 +32,7 @@ export type CreateAppointmentPayload = {
   clientLastname: string;
   clientPhone: string;
   clientEmail: string;
+  tempLockId?: string;
 };
 
 export type Appointment = {

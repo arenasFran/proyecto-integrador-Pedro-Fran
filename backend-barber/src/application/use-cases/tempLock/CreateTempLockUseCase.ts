@@ -13,10 +13,10 @@ export class CreateTempLockUseCase {
     private readonly tempLockRepository: ITempLockRepository
   ) {}
 
-  async execute(dto: CreateTempLockDTO): Promise<{ message: string }> {
+  async execute(dto: CreateTempLockDTO): Promise<{ message: string; tempLockId: string }> {
     try {
-      await this.tempLockRepository.create(dto);
-      return { message: 'Slot apartado temporalmente' };
+      const tempLockId = await this.tempLockRepository.create(dto);
+      return { message: 'Slot apartado temporalmente', tempLockId };
     } catch (error: any) {
       if (error?.message?.includes('ya fue apartado')) {
         throw new AppError('El horario ya fue apartado por otro usuario.', 409);

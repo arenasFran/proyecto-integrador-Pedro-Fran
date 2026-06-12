@@ -121,7 +121,11 @@ export const LoginPage: React.FC = () => {
         return;
       }
       if ('token' in result) {
-        await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+        try {
+          await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+        } catch {
+          // Profile fetch failed — navigate anyway
+        }
         const role = getTokenKind(result.token);
         navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
       }
@@ -227,7 +231,11 @@ export const LoginPage: React.FC = () => {
         email: twoFactorPendingEmail,
         code: codeValues.token,
       }).unwrap();
-      await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      try {
+        await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      } catch {
+        // Profile fetch failed — navigate anyway
+      }
       const role = getTokenKind(result.token);
       navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
@@ -272,7 +280,11 @@ export const LoginPage: React.FC = () => {
         phone: profileValues.phone,
       }).unwrap();
       setRequiresProfileCompletion(null);
-      await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      try {
+        await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      } catch {
+        // Profile fetch failed — navigate anyway
+      }
       const role = getTokenKind(result.token);
       navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {

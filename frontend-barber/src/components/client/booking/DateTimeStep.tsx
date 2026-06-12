@@ -7,6 +7,7 @@ import { fetchAvailableSlots } from '../../../store/slices/bookingSlice';
 
 interface DateTimeStepProps {
   barberId: string;
+  maxAdvanceDays: number;
   selectedDate: string | null;
   selectedTime: string | null;
   availableSlots: string[];
@@ -17,6 +18,7 @@ interface DateTimeStepProps {
 
 export const DateTimeStep: React.FC<DateTimeStepProps> = ({
   barberId,
+  maxAdvanceDays,
   selectedDate,
   selectedTime,
   availableSlots,
@@ -49,7 +51,10 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
 
   useEffect(() => {
     if (selectedDate && barberId) {
-      dispatch(fetchAvailableSlots({ barberId, date: selectedDate }));
+      const promise = dispatch(fetchAvailableSlots({ barberId, date: selectedDate }));
+      return () => {
+        promise.abort();
+      };
     }
   }, [dispatch, barberId, selectedDate]);
 
@@ -63,6 +68,7 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
             onSelectDate={onSelectDate}
             month={month}
             year={year}
+            maxAdvanceDays={maxAdvanceDays}
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
           />

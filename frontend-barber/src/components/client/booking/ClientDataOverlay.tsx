@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar, FiEdit2 } from 'react-icons/fi';
+import { FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar } from 'react-icons/fi';
 import { Button } from '../../common';
 import type { BarberPublic, Service } from '../../../types/booking';
 
@@ -47,7 +47,8 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
 }) => {
   const totalPrice = service?.price ?? 0;
   const barberName = barber ? `${barber.name} ${barber.lastname}` : '';
-  const isValid = clientName.trim().length >= 2 && clientLastname.trim().length >= 2 && clientPhone.trim().length >= 7 && clientEmail.includes('@');
+  const phoneValid = isLoggedIn ? clientPhone.trim().length >= 7 || clientPhone.trim().length === 0 : clientPhone.trim().length >= 7;
+  const isValid = clientName.trim().length >= 2 && clientLastname.trim().length >= 2 && phoneValid && clientEmail.includes('@');
 
   return (
     <AnimatePresence>
@@ -70,15 +71,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
           >
             <h2 className="text-[18px] font-bold text-white mb-1">Casi listo</h2>
             <p className="text-[13px] text-[#8A8A8A] mb-5">
-              {isLoggedIn ? (
-                <>
-                  Tus datos —{' '}
-                  <FiEdit2 className="inline w-3 h-3 text-[#8A8A8A] align-[-1px]" />
-                  <span className="text-[#8A8A8A]">podés editarlos</span>
-                </>
-              ) : (
-                'Completá tus datos para confirmar'
-              )}
+              {isLoggedIn ? 'Tus datos' : 'Completá tus datos para confirmar'}
             </p>
 
             <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4 space-y-2.5 mb-5">

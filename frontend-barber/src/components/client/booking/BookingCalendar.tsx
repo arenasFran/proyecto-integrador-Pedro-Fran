@@ -7,6 +7,7 @@ interface BookingCalendarProps {
   onSelectDate: (date: string) => void;
   month: number;
   year: number;
+  maxAdvanceDays: number;
   onPrevMonth: () => void;
   onNextMonth: () => void;
 }
@@ -22,11 +23,18 @@ const todayString = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
+const maxDateString = (maxAdvanceDays: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + maxAdvanceDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
 export const BookingCalendar: React.FC<BookingCalendarProps> = ({
   selectedDate,
   onSelectDate,
   month,
   year,
+  maxAdvanceDays,
   onPrevMonth,
   onNextMonth,
 }) => {
@@ -48,7 +56,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
 
   const isPastDate = (day: number): boolean => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return dateStr < todayString();
+    return dateStr < todayString() || dateStr > maxDateString(maxAdvanceDays);
   };
 
   const isSelectedDate = (day: number): boolean => {
@@ -67,6 +75,14 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
     const today = new Date();
     return year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth());
   }, [month, year]);
+
+  const canGoNext = useMemo(() => {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + maxAdvanceDays);
+    const maxMonth = maxDate.getMonth();
+    const maxYear = maxDate.getFullYear();
+    return year < maxYear || (year === maxYear && month < maxMonth);
+  }, [month, year, maxAdvanceDays]);
 
   return (
     <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
@@ -87,10 +103,12 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
         </span>
 
         <motion.button
-          onClick={onNextMonth}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="flex h-8 w-8 items-center justify-center rounded-[8px] text-white hover:bg-[#242424] transition-colors"
+          onClick={canGoNext ? onNextMonth : undefined}
+          disabled={!canGoNext}
+          whileHover={canGoNext ? { scale: 1.1 } : {}}
+          whileTap={canGoNext ? { scale: 0.9 } : {}}
+          className={`flex h-8 w-8 items-center justify-center rounded-[8px] transition-colors
+            ${canGoNext ? 'text-white hover:bg-[#242424]' : 'text-[#8A8A8A] cursor-not-allowed'}`}
         >
           <FiChevronRight className="w-4 h-4" />
         </motion.button>

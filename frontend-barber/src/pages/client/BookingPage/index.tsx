@@ -42,6 +42,8 @@ const areStepsComplete = (
 export const BookingPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const authUser = useAppSelector((state) => state.auth.user);
+  const authUserRef = React.useRef(authUser);
+  authUserRef.current = authUser;
   const hasPrefilled = React.useRef(false);
   const {
     async: {
@@ -54,7 +56,6 @@ export const BookingPage: React.FC = () => {
       isConfirming,
       barbersError,
       servicesError,
-      slotsError,
       confirmError,
       submitSuccess,
       createdAppointment,
@@ -72,7 +73,6 @@ export const BookingPage: React.FC = () => {
     },
   } = useAppSelector((state) => state.booking);
 
-  const [expandedStep, setExpandedStep] = React.useState<BookingStep>('barber');
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
 
@@ -97,8 +97,16 @@ export const BookingPage: React.FC = () => {
   }, [authUser, dispatch]);
 
   useEffect(() => {
-    setExpandedStep(currentStep);
-  }, [currentStep]);
+    if (showClientForm && !hasPrefilled.current && authUserRef.current) {
+      hasPrefilled.current = true;
+      dispatch(setClientData({
+        name: authUserRef.current.name || '',
+        lastname: authUserRef.current.lastname || '',
+        phone: authUserRef.current.phone || '',
+        email: authUserRef.current.email || '',
+      }));
+    }
+  }, [showClientForm, dispatch]);
 
   useEffect(() => {
     if (currentStep === 'datetime' && !selectedDate && selectedBarber) {
@@ -110,6 +118,7 @@ export const BookingPage: React.FC = () => {
     if (areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime)) {
       setShowClientForm(true);
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [selectedBarber, selectedService, selectedDate, selectedTime]);
 
   const handleStepToggle = useCallback(
@@ -120,10 +129,10 @@ export const BookingPage: React.FC = () => {
       }
       if (step === 'service' && !selectedBarber) return;
       if (step === 'datetime' && !selectedService) return;
-      if (step === expandedStep) return;
+      if (step === currentStep) return;
       dispatch(setCurrentStep(step));
     },
-    [selectedBarber, selectedService, expandedStep, showClientForm, dispatch]
+    [selectedBarber, selectedService, currentStep, showClientForm, dispatch]
   );
 
   const handleBarberSelect = useCallback(
@@ -149,6 +158,7 @@ export const BookingPage: React.FC = () => {
     if (submitSuccess) {
       setShowClientForm(false);
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
   }, [submitSuccess]);
 
   const isStep3Complete = !!selectedDate && !!selectedTime;
@@ -188,7 +198,7 @@ export const BookingPage: React.FC = () => {
               stepNumber={1}
               title="Tu barbero"
               summary={barberSummary}
-              isExpanded={expandedStep === 'barber'}
+              isExpanded={currentStep === 'barber'}
               isCompleted={!!selectedBarber}
               isLocked={false}
               onToggle={() => handleStepToggle('barber')}
@@ -208,7 +218,7 @@ export const BookingPage: React.FC = () => {
               stepNumber={2}
               title="Servicio"
               summary={selectedService ? `${selectedService.name} · $${selectedService.price}` : null}
-              isExpanded={expandedStep === 'service'}
+              isExpanded={currentStep === 'service'}
               isCompleted={!!selectedService}
               isLocked={!selectedBarber}
               onToggle={() => handleStepToggle('service')}
@@ -230,7 +240,7 @@ export const BookingPage: React.FC = () => {
                   ? `${selectedDate.split('-').reverse().join('/')}${selectedTime ? ` - ${selectedTime}` : ''}`
                   : null
               }
-              isExpanded={expandedStep === 'datetime'}
+              isExpanded={currentStep === 'datetime'}
               isCompleted={isStep3Complete}
               isLocked={!selectedService}
               onToggle={() => handleStepToggle('datetime')}
@@ -238,6 +248,7 @@ export const BookingPage: React.FC = () => {
               {selectedBarber && (
                 <DateTimeStep
                   barberId={selectedBarber.id}
+                  maxAdvanceDays={selectedBarber.maxAdvanceDays}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
                   availableSlots={availableSlots}
@@ -250,6 +261,19 @@ export const BookingPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime) && !showClientForm && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#282828] bg-[#121212] p-4">
+          <div className="mx-auto max-w-xl">
+            <button
+              onClick={() => setShowClientForm(true)}
+              className="w-full rounded-[12px] bg-[#FF5C00] py-3 text-[14px] font-semibold text-white hover:bg-[#FF5C00]/90 transition-colors"
+            >
+              Continuar con la reserva
+            </button>
+          </div>
+        </div>
+      )}
 
       <ClientDataOverlay
         isOpen={showClientForm}

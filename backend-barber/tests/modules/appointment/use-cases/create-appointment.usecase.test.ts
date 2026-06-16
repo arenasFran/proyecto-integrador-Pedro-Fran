@@ -113,8 +113,8 @@ describe('CreateAppointmentUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
-      findByClientId: jest.fn(),
-      findByContact: jest.fn(),
+      findByClientId: jest.fn().mockResolvedValue([]),
+      findByContact: jest.fn().mockResolvedValue([]),
       updateClientId: jest.fn(),
     };
 
@@ -136,14 +136,16 @@ describe('CreateAppointmentUseCase', () => {
     clientRepository = {
       findByEmail: jest.fn(),
       findByPhone: jest.fn(),
-      createUnregistered: jest.fn(),
+      createUnregistered: jest.fn().mockResolvedValue({ id: 'client-1' } as any),
     };
 
     tempLockRepository = {
       create: jest.fn(),
       deleteMany: jest.fn(),
       deleteOne: jest.fn(),
+      deleteById: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findById: jest.fn(),
     };
 
     emailService = {

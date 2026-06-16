@@ -99,7 +99,9 @@ describe('GetAvailableSlotsUseCase', () => {
       create: jest.fn(),
       deleteMany: jest.fn(),
       deleteOne: jest.fn(),
+      deleteById: jest.fn(),
       findByBarberAndDate: jest.fn().mockResolvedValue([]),
+      findById: jest.fn(),
     };
 
     slotService = new SlotService();

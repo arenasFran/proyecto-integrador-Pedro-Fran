@@ -137,7 +137,7 @@ describe('Password reset use cases', () => {
       );
 
       await expect(
-        useCase.execute({ token: 'token', password: 'Abcd1234', email: 'test@example.com' })
+        useCase.execute({ token: 'token', password: 'Abcd1234', repeatPassword: 'Abcd1234', email: 'test@example.com' })
       ).rejects.toBeInstanceOf(AppError);
     });
 
@@ -163,6 +163,7 @@ describe('Password reset use cases', () => {
       const result = await useCase.execute({
         token: 'token',
         password: 'Abcd1234',
+        repeatPassword: 'Abcd1234',
         email: 'test@example.com',
       });
 

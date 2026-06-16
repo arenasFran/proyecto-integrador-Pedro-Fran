@@ -1,6 +1,7 @@
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
+import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
 
 describe('UpdateAppointmentStatusUseCase', () => {
@@ -28,6 +29,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   };
 
   let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let emailService: jest.Mocked<IEmailService>;
   let useCase: UpdateAppointmentStatusUseCase;
 
   beforeEach(() => {
@@ -45,7 +47,11 @@ describe('UpdateAppointmentStatusUseCase', () => {
       updateClientId: jest.fn(),
     };
 
-    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 0);
+    emailService = {
+      sendMail: jest.fn().mockResolvedValue(undefined),
+    };
+
+    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, emailService, 0);
   });
 
   it('debe fallar si el turno no existe', async () => {
@@ -154,7 +160,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   });
 
   it('debe rechazar cancelacion con menos de 2h de anticipacion (fecha pasada)', async () => {
-    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 2);
+    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, emailService, 2);
     appointmentRepository.findById.mockResolvedValue(
       makeAppointment({ status: 'Confirmado', date: '2020-01-01', startTime: '10:00' })
     );
@@ -165,7 +171,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   });
 
   it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {
-    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, 2);
+    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, emailService, 2);
     appointmentRepository.findById.mockResolvedValue(
       makeAppointment({ status: 'Confirmado', date: '2099-01-01', startTime: '10:00' })
     );

@@ -1,3 +1,5 @@
+import { CreatedBy } from '../../../domain/entities/Appointment';
+
 export type CreateAppointmentDTO = {
   barberId: string;
   serviceId: string;
@@ -9,4 +11,5 @@ export type CreateAppointmentDTO = {
   clientPhone?: string;
   clientEmail?: string;
   tempLockId?: string;
+  createdBy?: CreatedBy;
 };

@@ -19,7 +19,10 @@ describe('GetAppointmentByIdUseCase', () => {
       date: '2099-01-01',
       startTime: '10:00',
       endTime: '10:50',
-      status: 'Pendiente',
+      status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      statusHistory: [{ status: 'Confirmado', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -39,6 +42,9 @@ describe('GetAppointmentByIdUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
 
     useCase = new GetAppointmentByIdUseCase(appointmentRepository);
@@ -87,3 +93,4 @@ describe('GetAppointmentByIdUseCase', () => {
     expect(result.appointment.id).toBe('apt-1');
   });
 });
+

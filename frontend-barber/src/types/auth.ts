@@ -31,6 +31,16 @@ export interface ResetPasswordFormData {
   email: string;
 }
 
+export type User = {
+  id: string;
+  name: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  kind: 'Admin' | 'Empleado' | 'Registrado';
+  photoUrl?: string | null;
+};
+
 export interface ValidationError {
   field: string;
   message: string;

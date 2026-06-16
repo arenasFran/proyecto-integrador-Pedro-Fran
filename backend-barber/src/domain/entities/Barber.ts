@@ -37,6 +37,7 @@ export type BarberProps = {
   isActive: boolean;
   slotDuration: number;
   schedule: BarberSchedule;
+  maxAdvanceDays: number;
   passwordHash?: string;
 };
 
@@ -53,6 +54,7 @@ type BarberInternalProps = {
   isActive: boolean;
   slotDuration: DurationMinutes;
   schedule: BarberSchedule;
+  maxAdvanceDays: number;
   passwordHash?: string;
 };
 
@@ -69,6 +71,7 @@ export class Barber {
       email: Email.create(props.email),
       phone: Phone.create(props.phone),
       slotDuration: DurationMinutes.create(props.slotDuration),
+      maxAdvanceDays: props.maxAdvanceDays ?? 30,
     });
   }
 
@@ -120,6 +123,10 @@ export class Barber {
     return this.props.schedule;
   }
 
+  get maxAdvanceDays(): number {
+    return this.props.maxAdvanceDays;
+  }
+
   get passwordHash(): string | undefined {
     return this.props.passwordHash;
   }
@@ -138,6 +145,7 @@ export class Barber {
       isActive: this.props.isActive,
       slotDuration: this.props.slotDuration.getValue(),
       schedule: { ...this.props.schedule },
+      maxAdvanceDays: this.props.maxAdvanceDays,
       passwordHash: this.props.passwordHash,
     };
   }

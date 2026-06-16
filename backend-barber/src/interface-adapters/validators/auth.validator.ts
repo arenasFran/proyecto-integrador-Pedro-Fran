@@ -1,7 +1,8 @@
 import Joi from 'joi';
+import { EMAIL_REGEX } from '../../domain/constants/validation';
 
 export const registerSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   password: Joi.string()
     .min(8)
     .pattern(/[A-Z]/, 'mayúscula')
@@ -24,6 +25,16 @@ export const registerSchema = Joi.object({
   phone: Joi.string().required(),
 });
 
+export const loginSchema = Joi.object({
+  email: Joi.string().pattern(EMAIL_REGEX).required().messages({
+    'string.pattern.base': 'El email no tiene un formato válido',
+    'any.required': 'El email es obligatorio',
+  }),
+  password: Joi.string().required().messages({
+    'any.required': 'La contraseña es obligatoria',
+  }),
+});
+
 export const googleLoginSchema = Joi.object({
   token: Joi.string().required().messages({
     'any.required': 'El token de Google es obligatorio',
@@ -32,12 +43,12 @@ export const googleLoginSchema = Joi.object({
 });
 
 export const twoFactorSendSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   password: Joi.string().required(),
 });
 
 export const twoFactorVerifySchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   code: Joi.string().length(6).required(),
 });
 
@@ -50,6 +61,7 @@ export const completeGoogleProfileSchema = Joi.object({
     'string.min': 'El nombre no puede estar vacío',
   }),
   lastname: Joi.string().allow('').optional(),
+  phone: Joi.string().optional(),
 });
 
 export const refreshTokenSchema = Joi.object({

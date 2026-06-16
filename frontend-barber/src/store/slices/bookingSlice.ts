@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { professionalService } from '../../services/professional.service';
 import { serviceService } from '../../services/service.service';
-import { appointmentService } from '../../services/appointment.service';
+import { appointmentService, tempLockService } from '../../services/appointment.service';
 import type {
   BarberPublic,
   Service,
@@ -14,9 +14,13 @@ interface BookingAsyncState {
   barbers: BarberPublic[];
   services: Service[];
   availableSlots: string[];
-  isBooking: boolean;
+  isLoadingBarbers: boolean;
+  isLoadingServices: boolean;
+  isLoadingSlots: boolean;
   isConfirming: boolean;
-  bookingError: string | null;
+  barbersError: string | null;
+  servicesError: string | null;
+  slotsError: string | null;
   confirmError: string | null;
   createdAppointment: Appointment | null;
   submitSuccess: boolean;
@@ -28,6 +32,10 @@ interface BookingFlowState {
   selectedService: Service | null;
   selectedDate: string | null;
   selectedTime: string | null;
+  clientName: string;
+  clientLastname: string;
+  clientPhone: string;
+  clientEmail: string;
 }
 
 interface BookingState {
@@ -40,9 +48,13 @@ const initialState: BookingState = {
     barbers: [],
     services: [],
     availableSlots: [],
-    isBooking: false,
+    isLoadingBarbers: false,
+    isLoadingServices: false,
+    isLoadingSlots: false,
     isConfirming: false,
-    bookingError: null,
+    barbersError: null,
+    servicesError: null,
+    slotsError: null,
     confirmError: null,
     createdAppointment: null,
     submitSuccess: false,
@@ -53,6 +65,10 @@ const initialState: BookingState = {
     selectedService: null,
     selectedDate: null,
     selectedTime: null,
+    clientName: '',
+    clientLastname: '',
+    clientPhone: '',
+    clientEmail: '',
   },
 };
 
@@ -98,11 +114,31 @@ export const fetchAvailableSlots = createAsyncThunk(
 
 export const submitAppointment = createAsyncThunk(
   'booking/submitAppointment',
-  async (payload: CreateAppointmentPayload, { rejectWithValue }) => {
+  async (_, { getState, rejectWithValue }) => {
+    let tempLockId: string | undefined;
     try {
+      const { flow } = (getState() as { booking: BookingState }).booking;
+      const barberId = flow.selectedBarber!.id;
+      const date = flow.selectedDate!;
+      const startTime = flow.selectedTime!;
+      tempLockId = await tempLockService.acquire(barberId, date, startTime);
+      const payload: CreateAppointmentPayload = {
+        barberId,
+        serviceId: flow.selectedService!.id,
+        date,
+        startTime,
+        clientName: flow.clientName,
+        clientLastname: flow.clientLastname,
+        clientPhone: flow.clientPhone,
+        clientEmail: flow.clientEmail,
+        tempLockId,
+      };
       const response = await appointmentService.create(payload);
       return response.appointment;
     } catch (error: unknown) {
+      if (tempLockId) {
+        tempLockService.release(tempLockId).catch(() => {});
+      }
       const message = error instanceof Error ? error.message : 'Error al crear la reserva';
       return rejectWithValue(message);
     }
@@ -139,49 +175,72 @@ const bookingSlice = createSlice({
     setSelectedTime: (state, action: PayloadAction<string | null>) => {
       state.flow.selectedTime = action.payload;
     },
+    setClientData: (
+      state,
+      action: PayloadAction<{
+        name: string;
+        lastname: string;
+        phone: string;
+        email: string;
+      }>
+    ) => {
+      state.flow.clientName = action.payload.name;
+      state.flow.clientLastname = action.payload.lastname;
+      state.flow.clientPhone = action.payload.phone;
+      state.flow.clientEmail = action.payload.email;
+    },
     clearBookingError: (state) => {
-      state.async.bookingError = null;
+      state.async.barbersError = null;
+      state.async.servicesError = null;
+      state.async.slotsError = null;
       state.async.confirmError = null;
     },
     resetBooking: () => initialState,
+    resetBookingFlow: (state) => {
+      state.flow = initialState.flow;
+      state.async.submitSuccess = false;
+      state.async.createdAppointment = null;
+      state.async.isConfirming = false;
+      state.async.confirmError = null;
+    },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchPublicBarbers.pending, (state) => {
-        state.async.isBooking = true;
-        state.async.bookingError = null;
+        state.async.isLoadingBarbers = true;
+        state.async.barbersError = null;
       })
       .addCase(fetchPublicBarbers.fulfilled, (state, action) => {
-        state.async.isBooking = false;
+        state.async.isLoadingBarbers = false;
         state.async.barbers = action.payload;
       })
       .addCase(fetchPublicBarbers.rejected, (state, action) => {
-        state.async.isBooking = false;
-        state.async.bookingError = action.payload as string;
+        state.async.isLoadingBarbers = false;
+        state.async.barbersError = action.payload as string;
       })
       .addCase(fetchServices.pending, (state) => {
-        state.async.isBooking = true;
-        state.async.bookingError = null;
+        state.async.isLoadingServices = true;
+        state.async.servicesError = null;
       })
       .addCase(fetchServices.fulfilled, (state, action) => {
-        state.async.isBooking = false;
+        state.async.isLoadingServices = false;
         state.async.services = action.payload;
       })
       .addCase(fetchServices.rejected, (state, action) => {
-        state.async.isBooking = false;
-        state.async.bookingError = action.payload as string;
+        state.async.isLoadingServices = false;
+        state.async.servicesError = action.payload as string;
       })
       .addCase(fetchAvailableSlots.pending, (state) => {
-        state.async.isBooking = true;
-        state.async.bookingError = null;
+        state.async.isLoadingSlots = true;
+        state.async.slotsError = null;
       })
       .addCase(fetchAvailableSlots.fulfilled, (state, action) => {
-        state.async.isBooking = false;
+        state.async.isLoadingSlots = false;
         state.async.availableSlots = action.payload;
       })
       .addCase(fetchAvailableSlots.rejected, (state, action) => {
-        state.async.isBooking = false;
-        state.async.bookingError = action.payload as string;
+        state.async.isLoadingSlots = false;
+        state.async.slotsError = action.payload as string;
       })
       .addCase(submitAppointment.pending, (state) => {
         state.async.isConfirming = true;
@@ -205,8 +264,10 @@ export const {
   setSelectedService,
   setSelectedDate,
   setSelectedTime,
+  setClientData,
   clearBookingError,
   resetBooking,
+  resetBookingFlow,
 } = bookingSlice.actions;
 
 export default bookingSlice.reducer;

@@ -82,7 +82,7 @@ La API Express es el backend monolítico con Clean Architecture. MongoDB es la b
 graph TD
     subgraph "interface-adapters"
         direction TB
-        ROUTES["Routes<br/>(auth, barber, appointment,<br/>service, tempLock)"]
+        ROUTES["Routes<br/>(auth, barber, appointment,<br/>service, tempLock, user)"]
         CTRL["Controllers<br/>(Auth, AuthGoogle, TwoFactor,<br/>PasswordRecovery, Barber,<br/>Appointment, Service, TempLock)"]
         MID["Middlewares<br/>(createAuthenticate, authorize,<br/>authorizeSelfOrKinds,<br/>createOptionalAuth, validate)"]
         PRES["Presenters<br/>(Auth, Barber, Appointment,<br/>Service)"]
@@ -91,7 +91,7 @@ graph TD
 
     subgraph "application"
         direction TB
-        UC["Use Cases<br/>(25 casos: auth 7, barber 8,<br/>appointment 5, password 2,<br/>service 1, tempLock 1)"]
+        UC["Use Cases<br/>(26 casos: auth 6, barber 9,<br/>appointment 6, password 2,<br/>service 1, tempLock 1, user 1)"]
         PORTS["Ports / Interfaces<br/>(IEmailService, ITokenService,<br/>IHashService, IPasswordHasher,<br/>IGoogleAuthService,<br/>IDateTimeProvider,<br/>IRandomGenerator)"]
         DTO["DTOs<br/>(auth, barber, appointment,<br/>password, service)"]
         ERR["AppError<br/>(message + statusCode)"]
@@ -120,7 +120,7 @@ graph TD
 
     subgraph "wiring"
         direction TB
-        WIRING["Wiring Modules<br/>(auth.ts, barber.ts,<br/>appointment.ts, service.ts,<br/>tempLock.ts)"]
+        WIRING["Wiring Modules<br/>(auth.ts, barber.ts,<br/>appointment.ts, service.ts,<br/>tempLock.ts, user.ts)"]
     end
 
     subgraph "security"
@@ -173,7 +173,7 @@ graph TD
     style security fill:#f9e79f,color:#000
 ```
 
-La API sigue Clean Architecture estricta con dependencias apuntando hacia adentro (dominio no conoce infraestructura). La capa `wiring` ensambla manualmente todas las dependencias (DI sin contenedor). Los 25 casos de uso orquestan la lógica de negocio; el dominio contiene reglas puras (entities, value objects, tipos con máquina de estados para Appointment) y el servicio de dominio `SlotService` para cálculo de disponibilidad horaria. La infraestructura implementa repositorios MongoDB con mappers que traducen entre modelos de Mongoose y entidades de dominio.
+La API sigue Clean Architecture estricta con dependencias apuntando hacia adentro (dominio no conoce infraestructura). La capa `wiring` ensambla manualmente todas las dependencias (DI sin contenedor). Los 26 casos de uso orquestan la lógica de negocio; el dominio contiene reglas puras (entities, value objects, tipos con máquina de estados para Appointment) y el servicio de dominio `SlotService` para cálculo de disponibilidad horaria. La infraestructura implementa repositorios MongoDB con mappers que traducen entre modelos de Mongoose y entidades de dominio.
 
 ### Mecanismos de seguridad reales
 
@@ -235,6 +235,8 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 
 | Cambio | Evidencia | Justificación |
 |---|---|---|
+| Se agregó endpoint `GET /api/users/me` con UserController, GetCurrentUserUseCase y wiring | `interface-adapters/routes/user.routes.ts`, `controllers/user/UserController.ts`, `application/use-cases/user/GetCurrentUserUseCase.ts`, `wiring/user.ts` | Issue #5: endpoint para que el frontend obtenga el perfil del usuario autenticado |
+| Se actualizó conteo de Use Cases: 25 → 26 | Se agregó `GetCurrentUserUseCase` | Nuevo caso de uso para obtener perfil de usuario |
 | Se agregaron los 7 rate limiters como subcomponente de seguridad | `app.ts:31-85`, `tempLock.routes.ts:17-21` | Eran 6 definiciones en app.ts + 1 en tempLock (loginLimiter definido pero no usado) |
 | Se agregó bloque "security" con Helmet, CORS, AntiBF, Retry, Token Rotation, Constant-Time | Código fuente verificado en cada caso | Existían pero no se documentaban en ningún nivel |
 | Se corrigió conteo de Use Cases: de 26 → 25 | Conteo real de archivos en `src/application/use-cases/` | El número anterior era incorrecto |
@@ -261,6 +263,15 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 
 | Cambio | Evidencia | Justificación |
 |---|---|---|
+| Se agregó GetCurrentUserUseCase | `application/use-cases/user/GetCurrentUserUseCase.ts` | Issue #5: nuevo caso de uso para obtener perfil del usuario autenticado |
+| Se agregó UserController con método getMe | `interface-adapters/controllers/user/UserController.ts` | Controller para GET /api/users/me |
+| Se agregó user.routes.ts | `interface-adapters/routes/user.routes.ts` | Ruta protegida /api/users/me |
+| Se agregó wiring/user.ts | `wiring/user.ts` | Ensamblaje de dependencias para módulo user |
+| Se agregó `findById` a IUserRepository y MongoUserRepository | `domain/repositories/IUserRepository.ts`, `infrastructure/repositories/mongodb/MongoUserRepository.ts` | Necesario para GetCurrentUserUseCase |
+| Se agregaron `findByClientId`, `findByContact`, `updateClientId` a IAppointmentRepository y MongoAppointmentRepository | `domain/repositories/IAppointmentRepository.ts`, `infrastructure/repositories/mongodb/MongoAppointmentRepository.ts` | Métodos para buscar y actualizar turnos por cliente |
+| Se cambió tipo `kind` de UserEntity de `UserRole` a `AuthKind` | `domain/entities/User.ts`, `domain/types/auth.ts` | Type alignment: UserRole eliminado, AuthKind agrupa Admin, Empleado y Registrado |
+| Se limpió AuthKind: eliminado `NoRegistrado` | `domain/types/auth.ts` | NoRegistrado ya no es un auth kind; ClientKind conserva 'Registrado' y 'NoRegistrado' para Client entity |
+| Se eliminó `UserRole` de `User.ts`, ahora importa `AuthKind` | `domain/entities/User.ts` | Type alignment: Reemplazo de UserRole por AuthKind |
 | Se agregaron 13 Use Cases faltantes | `src/application/use-cases/` | Solo 12 de 25 estaban documentados |
 | Se agregaron 4 Controllers faltantes | `interface-adapters/controllers/` | Solo 3 de 7 estaban documentados |
 | Se agregaron 2 Presenters faltantes | `interface-adapters/presenters/` | Solo 2 de 4 estaban documentados |

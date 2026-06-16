@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
+import { getAccessToken } from '../../services/api';
 import { getTokenUser } from '../../utils/token';
 import { Button } from '../common';
 
@@ -13,8 +14,9 @@ export const PublicHeader: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = useAppSelector((state) => state.auth.user);
-  const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-  const tokenUser = getTokenUser(token);
+  const loginToken = useAppSelector((state) => state.auth.loginToken);
+  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const tokenUser = getTokenUser(getAccessToken());
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,9 +31,10 @@ export const PublicHeader: React.FC = () => {
   const handleLogout = () => {
     dispatch(logout());
     setDropdownOpen(false);
+    navigate('/');
   };
 
-  const isAuthenticated = Boolean(token && tokenUser);
+  const isAuthenticated = Boolean(loginToken);
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#282828] bg-[#121212]">
@@ -47,7 +50,9 @@ export const PublicHeader: React.FC = () => {
         </Link>
 
         <div className="flex items-center gap-3">
-          {isAuthenticated ? (
+          {isInitializing ? (
+            <div className="h-9 w-24 rounded-[12px] bg-[#1A1A1A] animate-pulse" />
+          ) : isAuthenticated ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -57,7 +62,7 @@ export const PublicHeader: React.FC = () => {
                   <FiUser className="text-[#FF5C00] text-sm" />
                 </div>
                 <span className="hidden sm:inline">
-                  {user ? `${user.name}` : tokenUser?.email ?? 'Usuario'}
+                  {user?.name ? `${user.name}` : user?.email ?? tokenUser?.email ?? 'Usuario'}
                 </span>
                 <FiChevronDown
                   className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
@@ -69,12 +74,12 @@ export const PublicHeader: React.FC = () => {
                   <button
                     onClick={() => {
                       setDropdownOpen(false);
-                      navigate('/admin/perfil');
+                      navigate('/mis-turnos');
                     }}
                     className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
                   >
-                    <FiUser className="text-[#FF5C00]" />
-                    Mi perfil
+                    <FiCalendar className="text-[#FF5C00]" />
+                    Mis turnos
                   </button>
                   <div className="border-t border-[#282828]" />
                   <button

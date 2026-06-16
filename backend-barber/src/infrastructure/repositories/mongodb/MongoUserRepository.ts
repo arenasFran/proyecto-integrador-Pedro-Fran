@@ -5,13 +5,28 @@ import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
 
 export class MongoUserRepository implements IUserRepository {
-  async findByEmail(email: string): Promise<User | null> {
-    const barber = await Barber.findOne({ email });
+  async findById(id: string): Promise<User | null> {
+    const barber = await Barber.findById(id);
     if (barber) {
       return UserMapper.fromBarber(barber);
     }
 
-    const client = await RegisteredClient.findOne({ email });
+    const client = await RegisteredClient.findById(id);
+    if (client) {
+      return UserMapper.fromRegisteredClient(client);
+    }
+
+    return null;
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const barber = await Barber.findOne({ email: normalizedEmail });
+    if (barber) {
+      return UserMapper.fromBarber(barber);
+    }
+
+    const client = await RegisteredClient.findOne({ email: normalizedEmail });
     if (client) {
       return UserMapper.fromRegisteredClient(client);
     }

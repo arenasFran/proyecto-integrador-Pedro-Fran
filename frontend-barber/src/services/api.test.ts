@@ -18,20 +18,26 @@ vi.mock('axios', () => {
 });
 
 describe('api interceptors', () => {
-  it('adds Authorization header when token exists', async () => {
-    const localStorageMock = {
-      getItem: vi.fn().mockReturnValue('token123'),
-    };
-    vi.stubGlobal('localStorage', localStorageMock);
-
-    await import('./api');
+  it('adds Authorization header when access token is set', async () => {
+    const mod = await import('./api');
+    mod.setAccessToken('token123');
 
     const requestHandler = requestUse.mock.calls[0][0];
     const config = { headers: {} } as { headers: Record<string, string> };
     const result = requestHandler(config);
 
-    expect(localStorageMock.getItem).toHaveBeenCalledWith('authToken');
     expect(result.headers.Authorization).toBe('Bearer token123');
+  });
+
+  it('does not add Authorization header when no token', async () => {
+    const mod = await import('./api');
+    mod.setAccessToken(null);
+
+    const requestHandler = requestUse.mock.calls[0][0];
+    const config = { headers: {} } as { headers: Record<string, string> };
+    const result = requestHandler(config);
+
+    expect(result.headers.Authorization).toBeUndefined();
   });
 
   it('normalizes error responses', async () => {

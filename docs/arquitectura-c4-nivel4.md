@@ -17,7 +17,7 @@ classDiagram
             +name: string
             +lastname: string
             +phone: string
-            +kind: UserRole
+            +kind: AuthKind
             +authProvider: AuthProvider
             +passwordHash: string
             +googleId: string
@@ -52,7 +52,7 @@ classDiagram
         class Client {
             <<entity>>
             +contactEmail: string
-            +kind: 'Registrado' | 'NoRegistrado'
+            +kind: ClientKind
             +create(props) Client
             +toPrimitives() ClientProps
         }
@@ -155,9 +155,16 @@ classDiagram
             AuthProvider: 'local' | 'google'
             BarberKind: 'Admin' | 'Empleado'
             ClientKind: 'Registrado' | 'NoRegistrado'
+            AuthKind: BarberKind | 'Registrado'
+        }
+        class ClientKind {
+            <<type>>
+            Registrado
+            NoRegistrado
         }
         class IUserRepository {
             <<interface>>
+            +findById(id) User
             +findByEmail(email) User
             +findByPhone(phone) User
             +createRegisteredClient(user) User
@@ -189,8 +196,11 @@ classDiagram
             +findByBarberAndDate(barberId, date) Appointment[]
             +findByClientAndDate(clientId, date) Appointment[]
             +findByContactAndDate(date, email, phone) Appointment[]
+            +findByClientId(clientId) Appointment[]
+            +findByContact(email, phone) Appointment[]
             +create(data) Appointment
             +update(id, data) Appointment
+            +updateClientId(id, clientId) Appointment
             +updateStatus(id, data) Appointment
         }
         class IRefreshTokenRepository {
@@ -219,6 +229,21 @@ classDiagram
         }
     }
 
+    %% Domain Inheritance
+    Barber --|> User : extends
+    Client --|> User : extends
+
+    %% Domain Associations
+    Appointment --> Barber : barberId >
+    Appointment --> Client : clientId ?
+    Appointment --> Service : serviceId >
+    Appointment --> AppointmentStatus : status
+```
+
+### Capa de Aplicación
+
+```mermaid
+classDiagram
     %% ========== APPLICATION LAYER ==========
     namespace Application {
         class ITokenService {
@@ -230,11 +255,11 @@ classDiagram
             +verifyAccessToken(token) TokenPayload
             +verifyRefreshToken(token) TokenPayload
             +signPartialToken(email) string
-            +verifyPartialToken(token) ~{email: string}~
+            +verifyPartialToken(token) EmailPayload
         }
         class IEmailService {
             <<interface>>
-            +sendMail(message) Promise~void~
+            +sendMail(message) Promise<void>
         }
         class IHashService {
             <<interface>>
@@ -263,38 +288,57 @@ classDiagram
             +message: string
             +statusCode: number
         }
+        class MessageResponse {
+            +message: string
+        }
+        class AuthTokensResponse {
+            +token: string
+            +refreshToken: string
+        }
+        class EmailPayload {
+            +email: string
+        }
+        class AppointmentResponse {
+            +appointment: Appointment
+        }
+        class GoogleLoginResponse {
+            +requiresProfileCompletion: boolean
+            +partialToken: string
+            +token: string
+            +refreshToken: string
+        }
         class RegisterUserUseCase {
-            +execute(dto) ~{message: string}~
+            +execute(dto) MessageResponse
         }
         class AuthenticateWithGoogleUseCase {
-            +execute(dto) ~GoogleLoginResponse~
+            +execute(dto) GoogleLoginResponse
         }
         class CompleteGoogleProfileUseCase {
-            +execute(dto) ~{token, refreshToken}~
+            +execute(dto) AuthTokensResponse
         }
         class SendTwoFactorCodeUseCase {
-            +execute(dto) ~{message}~
+            +execute(dto) MessageResponse
         }
         class VerifyTwoFactorUseCase {
-            +execute(dto) ~{token, refreshToken}~
+            +execute(dto) AuthTokensResponse
         }
         class RefreshTokenUseCase {
-            +execute(refreshToken) ~{token, refreshToken}~
+            +execute(refreshToken) AuthTokensResponse
         }
         class RequestPasswordResetUseCase {
-            +execute(dto) ~{message}~
+            +execute(dto) MessageResponse
         }
         class ResetPasswordUseCase {
-            +execute(dto) ~{message}~
+            +execute(dto) MessageResponse
         }
         class CreateAppointmentUseCase {
-            +execute(dto) ~{appointment}~
+            +execute(dto) AppointmentResponse
         }
         class CancelAppointmentUseCase {
-            +execute(id, userId, userKind, reason) ~Appointment~
+            +execute(id, userId, userKind, reason) Appointment
         }
         class RescheduleAppointmentUseCase {
-            +execute(id, dto, userId, userKind) ~Appointment~
+            +execute(id, dto, userId, userKind) Appointment
         }
         class GetAppointmentsUseCase {
             +execute(filters) Appointment[]
@@ -318,10 +362,10 @@ classDiagram
             +execute(barberId, dto) Barber
         }
         class DeleteBarberUseCase {
-            +execute(barberId) ~{message}~
+            +execute(barberId) MessageResponse
         }
         class DeactivateBarberUseCase {
-            +execute(barberId) ~{message}~
+            +execute(barberId) MessageResponse
         }
         class GetBarberScheduleUseCase {
             +execute(barberId) BarberSchedule
@@ -330,7 +374,7 @@ classDiagram
             +execute(barberId, schedule) Barber
         }
         class GetAvailableSlotsUseCase {
-            +execute(barberId, date) ~SlotsResult~
+            +execute(barberId, date) SlotsResult
         }
         class GetAllServicesUseCase {
             +execute() Service[]
@@ -338,12 +382,16 @@ classDiagram
         class CreateTempLockUseCase {
             +execute(dto) void
         }
+        class GetCurrentUserUseCase {
+            +execute(userId) User
+        }
     }
 
     %% ========== INFRASTRUCTURE LAYER ==========
     namespace Infrastructure {
         class MongoUserRepository {
             -UserModel: Model
+            +findById(id) User
             +findByEmail(email) User
             +findByPhone(phone) User
             +createRegisteredClient(user) User
@@ -375,8 +423,11 @@ classDiagram
             +findByBarberAndDate(barberId, date) Appointment[]
             +findByClientAndDate(clientId, date) Appointment[]
             +findByContactAndDate(date, email, phone) Appointment[]
+            +findByClientId(clientId) Appointment[]
+            +findByContact(email, phone) Appointment[]
             +create(data) Appointment
             +update(id, data) Appointment
+            +updateClientId(id, clientId) Appointment
             +updateStatus(id, data) Appointment
         }
         class MongoRefreshTokenRepository {
@@ -507,6 +558,9 @@ classDiagram
         }
         class TempLockController {
             +create(req, res) Response
+        }
+        class UserController {
+            +getMe(req, res) Response
         }
         class AuthMiddleware {
             +createAuthenticate(tokenService) Middleware
@@ -642,6 +696,245 @@ classDiagram
     GetAvailableSlotsUseCase --> ITempLockRepository : depends
     GetAllServicesUseCase --> IServiceRepository : depends
     CreateTempLockUseCase --> ITempLockRepository : depends
+    GetCurrentUserUseCase --> IUserRepository : depends
+```
+
+### Capa de Infraestructura
+
+```mermaid
+classDiagram
+    %% ========== INFRASTRUCTURE LAYER ==========
+    namespace Infrastructure {
+        class MongoUserRepository {
+            -UserModel: Model
+            +findById(id) User
+            +findByEmail(email) User
+            +findByPhone(phone) User
+            +createRegisteredClient(user) User
+            +updatePassword(userId, hash) void
+            +updateTwoFactor(userId, update) void
+            +updateLastLogin(userId) void
+            +updateUserSecurity(userId, update) void
+        }
+        class MongoBarberRepository {
+            -BarberModel: Model
+            +findEmployeeById(id) Barber
+            +findAllEmployees() Barber[]
+            +createEmployee(barber) Barber
+            +updateEmployee(id, update) Barber
+            +deactivateEmployee(id) void
+            +deleteEmployee(id) void
+            +updateSchedule(id, schedule) Barber
+        }
+        class MongoClientRepository {
+            -ClientModel: Model
+            +findByEmail(email) Client
+            +findByPhone(phone) Client
+            +createUnregistered(data) Client
+        }
+        class MongoAppointmentRepository {
+            -AppointmentModel: Model
+            +findById(id) Appointment
+            +findMany(filters) Appointment[]
+            +findByBarberAndDate(barberId, date) Appointment[]
+            +findByClientAndDate(clientId, date) Appointment[]
+            +findByContactAndDate(date, email, phone) Appointment[]
+            +findByClientId(clientId) Appointment[]
+            +findByContact(email, phone) Appointment[]
+            +create(data) Appointment
+            +update(id, data) Appointment
+            +updateClientId(id, clientId) Appointment
+            +updateStatus(id, data) Appointment
+        }
+        class MongoRefreshTokenRepository {
+            -RefreshTokenModel: Model
+            +create(tokenHash, userId, expiresAt) RefreshToken
+            +findByTokenHash(hash) RefreshToken
+            +revoke(tokenHash) void
+            +revokeAllByUserId(userId) void
+        }
+        class MongoPasswordResetRepository {
+            -PasswordResetModel: Model
+            +create(userId, tokenHash, expiresAt) void
+            +verifyAndConsume(tokenHash) PasswordResetToken
+        }
+        class MongoTempLockRepository {
+            -TempLockModel: Model
+            +create(data) void
+            +deleteMany(filter) void
+            +deleteOne(barberId, date, startTime) void
+            +findByBarberAndDate(barberId, date) TempLockData[]
+        }
+        class StaticServiceRepository {
+            -services: Service[]
+            +findAll() Service[]
+            +findById(id) Service
+        }
+        class JwtTokenService {
+            -config: JwtTokenServiceConfig
+            +sign(payload) string
+            +verify(token) TokenPayload
+            +signAccessToken(payload) string
+            +signRefreshToken(payload) string
+            +verifyAccessToken(token) TokenPayload
+            +verifyRefreshToken(token) TokenPayload
+            +signPartialToken(email) string
+            +verifyPartialToken(token) EmailPayload
+        }
+        class BcryptPasswordHasher {
+            +hash(password) string
+            +compare(password, hash) boolean
+        }
+        class NodemailerEmailService {
+            +sendMail(message) Promise<void>
+        }
+        class FakeEmailService {
+            +sendMail(message) Promise<void>
+            +getCode(email) string
+            +clear() void
+        }
+        class GoogleAuthService {
+            -client: OAuth2Client
+            -clientId: string
+            +verifyIdToken(token) GoogleUser
+        }
+        class HashService {
+            +sha256(input) string
+            +constantTimeEqual(a, b) boolean
+        }
+        class RandomGenerator {
+            +generateNumericCode(length) string
+            +generateHexToken(bytes) string
+        }
+        class DateTimeProvider {
+            +now() Date
+        }
+        class AppointmentMapper {
+            +fromDocument(doc) Appointment
+            +toDocumentData(primitives) Record<string, unknown>
+        }
+        class BarberMapper {
+            +fromDocument(doc) Barber
+            +toPersist(barber) Record<string, unknown>
+        }
+        class ClientMapper {
+            +fromDocument(doc) Client
+            +toPersist(client) Record<string, unknown>
+        }
+        class UserMapper {
+            +fromDocument(doc) User
+        }
+        class ServiceMapper {
+            +fromDocument(doc) Service
+        }
+        class PasswordResetMapper {
+            +fromDocument(doc) PasswordResetToken
+        }
+    }
+
+    %% Interface Implementations
+    MongoUserRepository ..|> IUserRepository : implements
+    MongoBarberRepository ..|> IBarberRepository : implements
+    MongoClientRepository ..|> IClientRepository : implements
+    MongoAppointmentRepository ..|> IAppointmentRepository : implements
+    MongoRefreshTokenRepository ..|> IRefreshTokenRepository : implements
+    MongoPasswordResetRepository ..|> IPasswordResetRepository : implements
+    MongoTempLockRepository ..|> ITempLockRepository : implements
+    StaticServiceRepository ..|> IServiceRepository : implements
+    JwtTokenService ..|> ITokenService : implements
+    BcryptPasswordHasher ..|> IPasswordHasher : implements
+    NodemailerEmailService ..|> IEmailService : implements
+    FakeEmailService ..|> IEmailService : implements
+    GoogleAuthService ..|> IGoogleAuthService : implements
+    HashService ..|> IHashService : implements
+    RandomGenerator ..|> IRandomGenerator : implements
+    DateTimeProvider ..|> IDateTimeProvider : implements
+
+    %% Mapper Usage
+    MongoAppointmentRepository --> AppointmentMapper : uses
+    MongoBarberRepository --> BarberMapper : uses
+    MongoClientRepository --> ClientMapper : uses
+    MongoUserRepository --> UserMapper : uses
+    StaticServiceRepository --> ServiceMapper : uses
+    MongoPasswordResetRepository --> PasswordResetMapper : uses
+```
+
+### Capa de Interfaces de Adaptador
+
+```mermaid
+classDiagram
+    %% ========== INTERFACE-ADAPTERS LAYER ==========
+    namespace InterfaceAdapters {
+        class AuthController {
+            +register(req, res) Response
+            +refresh(req, res) Response
+        }
+        class AuthGoogleController {
+            +googleLogin(req, res) Response
+            +completeProfile(req, res) Response
+        }
+        class TwoFactorController {
+            +sendTwoFactorCode(req, res) Response
+            +verifyTwoFactorCode(req, res) Response
+        }
+        class PasswordRecoveryController {
+            +requestReset(req, res) Response
+            +resetPassword(req, res) Response
+        }
+        class BarberController {
+            +getAllPublic(req, res) Response
+            +create(req, res) Response
+            +getAll(req, res) Response
+            +getById(req, res) Response
+            +update(req, res) Response
+            +delete(req, res) Response
+            +getSchedule(req, res) Response
+            +updateSchedule(req, res) Response
+            +getSlots(req, res) Response
+        }
+        class AppointmentController {
+            +create(req, res) Response
+            +getAll(req, res) Response
+            +getById(req, res) Response
+            +cancel(req, res) Response
+            +updateStatus(req, res) Response
+            +reschedule(req, res) Response
+        }
+        class ServiceController {
+            +getAll(req, res) Response
+        }
+        class TempLockController {
+            +create(req, res) Response
+        }
+        class UserController {
+            +getMe(req, res) Response
+        }
+        class AuthMiddleware {
+            +createAuthenticate(tokenService) Middleware
+            +authorize(...kinds) Middleware
+            +authorizeSelfOrKinds(paramKey, ...kinds) Middleware
+            +createOptionalAuth(tokenService) Middleware
+        }
+        class ValidationMiddleware {
+            +validate(schemas) Middleware
+        }
+        class AuthPresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+        class BarberPresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+        class AppointmentPresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+        class ServicePresenter {
+            +static success(res, payload, status) Response
+            +static handleError(res, error, fallback) Response
+        }
+    }
 
     %% Controller → Use Case
     AuthController --> RegisterUserUseCase : executes
@@ -669,6 +962,7 @@ classDiagram
     AppointmentController --> RescheduleAppointmentUseCase : executes
     ServiceController --> GetAllServicesUseCase : executes
     TempLockController --> CreateTempLockUseCase : executes
+    UserController --> GetCurrentUserUseCase : executes
 
     %% Controller → Presenter
     AuthController --> AuthPresenter : uses
@@ -679,14 +973,7 @@ classDiagram
     AppointmentController --> AppointmentPresenter : uses
     ServiceController --> ServicePresenter : uses
     TempLockController --> BarberPresenter : uses
-
-    %% Infrastructure Mappers
-    MongoAppointmentRepository --> AppointmentMapper : uses
-    MongoBarberRepository --> BarberMapper : uses
-    MongoClientRepository --> ClientMapper : uses
-    MongoUserRepository --> UserMapper : uses
-    StaticServiceRepository --> ServiceMapper : uses
-    MongoPasswordResetRepository --> PasswordResetMapper : uses
+    UserController --> AuthPresenter : uses
 ```
 
 ---
@@ -696,11 +983,11 @@ classDiagram
 El Nivel 4 expone la estructura de clases concreta del backend siguiendo Clean Architecture. Se destacan:
 
 - **Herencia por discriminador:** `Barber` (kind `Admin`|`Empleado`) y `Client` (kind `Registrado`|`NoRegistrado`) extienden `User` mapeado vía Mongoose discriminators a las colecciones `users`, `barbers` y `clients`.
-- **Inversión de dependencias:** Los 25 `UseCases` en `application/` dependen de interfaces definidas en `domain/repositories/` y `application/ports/`. La capa `infrastructure/` las implementa sin que el core de negocio conozca detalles de MongoDB, JWT, bcrypt o Nodemailer.
+- **Inversión de dependencias:** Los 26 `UseCases` en `application/` dependen de interfaces definidas en `domain/repositories/` y `application/ports/`. La capa `infrastructure/` las implementa sin que el core de negocio conozca detalles de MongoDB, JWT, bcrypt o Nodemailer.
 - **Mappers como traducción:** Los repositorios de infraestructura usan `*Mapper` para convertir entre documentos de Mongoose y entidades de dominio, manteniendo el dominio puro (sin acoplamiento a la ODM).
 - **Controllers como orquestadores HTTP:** Los controladores reciben `req/res` de Express, ejecutan un caso de uso y delegan la respuesta en un `Presenter`.
 - **Wiring (no visible en clases):** Los módulos en `wiring/` construyen manualmente cada controlador inyectándole sus dependencias (use cases, repositorios, servicios) sin contenedor IoC.
-- **Domain types:** `appointment.ts` define la máquina de estados `VALİD_TRANSITIONS` que los use cases deben respetar. `auth.ts` define tipos `AuthProvider`, `BarberKind`, `ClientKind`.
+- **Domain types:** `appointment.ts` define la máquina de estados `VALİD_TRANSITIONS` que los use cases deben respetar. `auth.ts` define tipos `AuthProvider`, `BarberKind`, `ClientKind` y `AuthKind` (`Admin` | `Empleado` | `Registrado`), que reemplazó a `UserRole` en la entidad `User`.
 - **Autenticación en 2 pasos (2FA obligatorio):** No hay un endpoint `/login`. El flujo es: `POST /auth/2fa/send` (valida credenciales + envía código) → `POST /auth/2fa/verify` (valida código + emite tokens). Esto está orquestado por `SendTwoFactorCodeUseCase` y `VerifyTwoFactorUseCase`.
 - **Refresh Token Rotation:** `RefreshTokenUseCase` revoca el token anterior al refrescar. Si se reutiliza un token ya revocado, se revocan **todos** los tokens del usuario (detección de robo).
 - **Anti brute-force nativo:** `VerifyTwoFactorUseCase` y `ResetPasswordUseCase` implementan lockout tras 5 intentos fallidos (15 min de bloqueo), persistido en `twoFactorLockedUntil` / `resetLockedUntil` del usuario.

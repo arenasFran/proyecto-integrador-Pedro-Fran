@@ -1,4 +1,5 @@
-export type UserRole = 'Admin' | 'Empleado' | 'Registrado';
+import { AuthKind } from '../types/auth';
+
 export type AuthProvider = 'local' | 'google';
 
 export type TwoFactorState = {
@@ -12,7 +13,7 @@ export type UserProps = {
   name: string;
   lastname: string;
   phone?: string;
-  kind: UserRole;
+  kind: AuthKind;
   authProvider: AuthProvider;
   passwordHash?: string;
   googleId?: string;
@@ -55,7 +56,7 @@ export class User {
     return this.props.phone;
   }
 
-  get kind(): UserRole {
+  get kind(): AuthKind {
     return this.props.kind;
   }
 

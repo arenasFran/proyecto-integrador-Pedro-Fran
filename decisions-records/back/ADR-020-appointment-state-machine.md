@@ -1,46 +1,64 @@
-# ADR-020: Máquina de Estados de Appointment (Transiciones de Estado)
+# ADR-020: Máquina de Estados de Appointment y Sistema de Pagos
 
 ## Contexto
 
-Los turnos (`Appointment`) tienen un ciclo de vida. No todas las transiciones son válidas (ej: un turno completado no puede reconfirmarse). El sistema necesitaba reglas de negocio para rechazar transiciones inválidas.
+Los turnos (`Appointment`) tienen un ciclo de vida con transiciones de estado restringidas. Además, se requiere tracking del estado de pago y método de pago (local, online o memberPass).
+
+Originalmente el estado `Pendiente` representaba "esperando confirmación del admin", pero el negocio real no tiene ese paso — el turno se confirma automáticamente al crearse. El `Pendiente` corresponde al **pago**, no al turno.
 
 ## Decisión
 
-Se define una máquina de estados en `domain/types/appointment.ts`:
+Se separan dos dimensiones ortogonales:
+
+### AppointmentStatus (asistencia)
 
 ```ts
-export type AppointmentStatus = 'Pendiente' | 'Confirmado' | 'Cancelado' | 'Completado';
-
-export const VALID_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-  Pendiente: ['Confirmado', 'Cancelado'],
-  Confirmado: ['Completado', 'Cancelado'],
-  Cancelado: [],
-  Completado: [],
-};
+export type AppointmentStatus = 'Confirmado' | 'Completado' | 'Cancelado' | 'NoShow';
 ```
 
-Adicionalmente, la entidad `Appointment` tiene métodos que encapsulan los efectos secundarios de cada transición:
-- `cancel(reason?)` — setea `status = 'Cancelado'`, `cancelReason`, `cancelledAt`, `updatedAt`
-- `confirm()` — setea `status = 'Confirmado'`, `updatedAt`
-- `complete()` — setea `status = 'Completado'`, `updatedAt`
+Transiciones válidas:
+```
+Confirmado → Completado, Cancelado, NoShow
+Completado → (ninguna)
+Cancelado  → (ninguna)
+NoShow     → (ninguna)
+```
 
-`UpdateAppointmentStatusUseCase` valida la transición contra `VALID_TRANSITIONS` antes de persistir.
+### PaymentStatus + PaymentMethod (pago)
+
+```ts
+export type PaymentStatus = 'Pendiente' | 'Pagado';
+export type PaymentMethod = 'local' | 'online' | 'memberPass';
+```
+
+- Al crear un turno → `status: 'Confirmado'`, `paymentStatus: 'Pendiente'`, `paymentMethod: 'local'`
+- Al completar un turno con pago local → `status: 'Completado'` + `paymentStatus: 'Pagado'` (automático)
+- `NoShow` mantiene el pago como `Pagado` si ya estaba pagado (el comercio retiene el dinero)
+
+## Cambios respecto a versión anterior
+
+- Se eliminó `'Pendiente'` de `AppointmentStatus`
+- Se eliminó el método `confirm()` de la entidad (ya no existe esa transición)
+- Se agregaron los métodos `cancel()`, `complete()`, `markNoShow()`, `pay()` con validación de transiciones vía `VALID_TRANSITIONS`
+- Se agregaron los campos `paymentStatus` y `paymentMethod` a la entidad, DTOs, repositorio, modelo y mapper
+- El email de creación ahora informa el estado de pago
 
 ## Alternativas consideradas
 
 | Alternativa | Motivo de rechazo |
 |---|---|
-| Clase Finite State Machine completa con validación centralizada | No implementado; actualmente la validación está en el use case y los métodos en la entidad |
-| Campo status libre sin validación | Permitiría estados inválidos (ej: Pendiente → Completado directo) |
-| CHECK constraint en base de datos | MongoDB no tiene CHECK constraints nativas |
+| Entidad `Payment` separada con su propio repositorio | Prematuro — un turno tiene un solo pago; se agregaría cuando existan pagos parciales, reembolsos o suscripciones |
+| Mantener `Pendiente` como estado del turno | Confundía el dominio: `Pendiente` significaba "esperando admin", pero en el negocio real el turno se agenda directamente |
+| Clase Finite State Machine completa | No implementado; la validación de transiciones vive en los métodos de la entidad |
 
 ## Consecuencias
 
-- **Positivo**: Las transiciones inválidas se rechazan en la capa de aplicación, no solo en UI
-- **Positivo**: Los métodos de `Appointment` encapsulan efectos secundarios (setear `cancelReason`, `cancelledAt`)
-- **Negativo**: La máquina de estados está en `types/appointment.ts` pero los métodos de transición están en `entities/Appointment.ts`; lógica duplicada que podría divergir
-- **Negativo**: `UpdateAppointmentStatusUseCase` no usa los métodos de la entidad (`cancel()`, `confirm()`, `complete()`); actualiza el status directamente vía repositorio
+- **Positivo**: El dominio ahora refleja el negocio real (el turno arranca Confirmado, lo que varía es el pago)
+- **Positivo**: Preparado para pago online y memberPass (solo cambiar `paymentMethod`)
+- **Negativo**: Datos existentes con `status: 'Pendiente'` quedan inconsistentes — requieren migración
+- ~~**Negativo**: La máquina de estados y los métodos de la entidad no son usados por los casos de uso~~  
+  **Resuelto**: Ahora los use cases llaman a los métodos de la entidad (`cancel()`, `complete()`, `markNoShow()`), que validan internamente las transiciones vía `VALID_TRANSITIONS` antes de mutar el estado. La lógica de negocio está centralizada en el dominio.
 
 ## Estado
 
-Aceptada.
+Aceptada — actualizada 2026-06-11.

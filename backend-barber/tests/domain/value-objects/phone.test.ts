@@ -34,15 +34,15 @@ describe('Phone', () => {
     });
 
     it('debe fallar si esta vacio', () => {
-      expect(() => Phone.create(' ')).toThrow('Telefono invalido');
+      expect(() => Phone.create(' ')).toThrow('Teléfono inválido');
     });
 
     it('debe fallar si el formato es invalido', () => {
-      expect(() => Phone.create('abc')).toThrow('Telefono invalido');
+      expect(() => Phone.create('abc')).toThrow('Teléfono inválido');
     });
 
     it('debe fallar si es muy corto', () => {
-      expect(() => Phone.create('123')).toThrow('Telefono invalido');
+      expect(() => Phone.create('123')).toThrow('Teléfono inválido');
     });
   });
 });

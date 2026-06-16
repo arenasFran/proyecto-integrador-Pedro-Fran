@@ -2,6 +2,7 @@ import { AppointmentController } from '../../../../src/interface-adapters/contro
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { GetAppointmentsUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsUseCase';
 import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentByIdUseCase';
+import { GetAppointmentsAnonymousUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../../src/application/use-cases/appointment/RescheduleAppointmentUseCase';
@@ -12,6 +13,7 @@ describe('AppointmentController', () => {
   let createAppointment: jest.Mocked<CreateAppointmentUseCase>;
   let getAppointments: jest.Mocked<GetAppointmentsUseCase>;
   let getAppointmentById: jest.Mocked<GetAppointmentByIdUseCase>;
+  let getAppointmentsAnonymous: jest.Mocked<GetAppointmentsAnonymousUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
   let rescheduleAppointment: jest.Mocked<RescheduleAppointmentUseCase>;
@@ -21,6 +23,7 @@ describe('AppointmentController', () => {
     createAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CreateAppointmentUseCase>;
     getAppointments = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentsUseCase>;
     getAppointmentById = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentByIdUseCase>;
+    getAppointmentsAnonymous = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentsAnonymousUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
     rescheduleAppointment = { execute: jest.fn() } as unknown as jest.Mocked<RescheduleAppointmentUseCase>;
@@ -30,7 +33,8 @@ describe('AppointmentController', () => {
       getAppointmentById,
       cancelAppointment,
       updateAppointmentStatus,
-      rescheduleAppointment
+      rescheduleAppointment,
+      getAppointmentsAnonymous
     );
   });
 
@@ -196,20 +200,22 @@ describe('AppointmentController', () => {
     it('debe actualizar estado y responder 200', async () => {
       updateAppointmentStatus.execute.mockResolvedValue({ message: 'Estado actualizado' });
       const req = createMockReq({ status: 'Confirmado' });
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
       (req as any).params = { id: 'apt-1' };
       const res = createMockRes();
 
       await controller.updateStatus(req, res);
 
-      expect(updateAppointmentStatus.execute).toHaveBeenCalledWith('apt-1', {
-        status: 'Confirmado',
-      });
+      expect(updateAppointmentStatus.execute).toHaveBeenCalledWith(
+        'apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin'
+      );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe manejar error al actualizar estado', async () => {
       updateAppointmentStatus.execute.mockRejectedValue(new AppError('Turno no encontrado', 404));
       const req = createMockReq({ status: 'Confirmado' });
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
       (req as any).params = { id: 'apt-1' };
       const res = createMockRes();
 
@@ -257,6 +263,46 @@ describe('AppointmentController', () => {
       const res = createMockRes();
 
       await controller.reschedule(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('getAnonymous', () => {
+    it('debe devolver turnos del anonimo', async () => {
+      getAppointmentsAnonymous.execute.mockResolvedValue({ appointments: [] });
+      const req = createMockReq();
+      (req as any).query = { email: 'juan@test.com' };
+      const res = createMockRes();
+
+      await controller.getAnonymous(req, res);
+
+      expect(getAppointmentsAnonymous.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ clientEmail: 'juan@test.com' })
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe pasar date si se proporciona', async () => {
+      getAppointmentsAnonymous.execute.mockResolvedValue({ appointments: [] });
+      const req = createMockReq();
+      (req as any).query = { email: 'juan@test.com', date: '2099-01-01' };
+      const res = createMockRes();
+
+      await controller.getAnonymous(req, res);
+
+      expect(getAppointmentsAnonymous.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ date: '2099-01-01' })
+      );
+    });
+
+    it('debe manejar error', async () => {
+      getAppointmentsAnonymous.execute.mockRejectedValue(new AppError('Error', 400));
+      const req = createMockReq();
+      (req as any).query = { email: 'juan@test.com' };
+      const res = createMockRes();
+
+      await controller.getAnonymous(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
     });

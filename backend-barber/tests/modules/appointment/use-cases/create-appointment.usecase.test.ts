@@ -43,6 +43,7 @@ describe('CreateAppointmentUseCase', () => {
       services: [],
       isActive: true,
       slotDuration: 30,
+      maxAdvanceDays: 99999,
       schedule: createSchedule(),
       passwordHash: 'hash',
     };
@@ -63,7 +64,10 @@ describe('CreateAppointmentUseCase', () => {
       date: '2099-01-01',
       startTime: '10:00',
       endTime: '11:00',
-      status: 'Pendiente',
+      status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      statusHistory: [{ status: 'Confirmado', timestamp: new Date(), actor: 'system' }],
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -109,6 +113,9 @@ describe('CreateAppointmentUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn().mockResolvedValue([]),
+      findByContact: jest.fn().mockResolvedValue([]),
+      updateClientId: jest.fn(),
     };
 
     barberRepository = {
@@ -129,14 +136,16 @@ describe('CreateAppointmentUseCase', () => {
     clientRepository = {
       findByEmail: jest.fn(),
       findByPhone: jest.fn(),
-      createUnregistered: jest.fn(),
+      createUnregistered: jest.fn().mockResolvedValue({ id: 'client-1' } as any),
     };
 
     tempLockRepository = {
       create: jest.fn(),
       deleteMany: jest.fn(),
       deleteOne: jest.fn(),
+      deleteById: jest.fn(),
       findByBarberAndDate: jest.fn(),
+      findById: jest.fn(),
     };
 
     emailService = {
@@ -222,7 +231,7 @@ describe('CreateAppointmentUseCase', () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.findByEmail.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -247,7 +256,7 @@ describe('CreateAppointmentUseCase', () => {
     barberRepository.findBarberById.mockResolvedValue(barber45);
     serviceRepository.findById.mockResolvedValue(makeService());
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.createUnregistered.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -318,7 +327,7 @@ describe('CreateAppointmentUseCase', () => {
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
       makeAppointment({ status: 'Cancelado', startTime: '10:00', endTime: '10:50' }),
     ]);
-    appointmentRepository.findByClientAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.findByEmail.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
 
@@ -335,4 +344,44 @@ describe('CreateAppointmentUseCase', () => {
     expect(appointmentRepository.create).toHaveBeenCalled();
     expect(result.message).toMatch(/Turno creado/);
   });
+
+  it('debe rechazar si la fecha excede el maxAdvanceDays del barbero', async () => {
+    const barber = makeBarber({ maxAdvanceDays: 1 });
+    barberRepository.findBarberById.mockResolvedValue(barber);
+    serviceRepository.findById.mockResolvedValue(makeService());
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      })
+    ).rejects.toThrow(/anticipación/);
+  });
+
+  it('debe aceptar si la fecha esta dentro del maxAdvanceDays del barbero', async () => {
+    const barber = makeBarber({ maxAdvanceDays: 99999 });
+    barberRepository.findBarberById.mockResolvedValue(barber);
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    const result = await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: 'svc-1',
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      clientEmail: 'juan@test.com',
+    });
+
+    expect(result.message).toMatch(/Turno creado/);
+  });
 });
+

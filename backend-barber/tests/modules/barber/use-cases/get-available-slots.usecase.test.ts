@@ -35,10 +35,11 @@ describe('GetAvailableSlotsUseCase', () => {
       services: [],
       isActive: true,
       slotDuration: 30,
+      maxAdvanceDays: 30,
       schedule: createSchedule(),
       passwordHash: 'hash',
     };
-
+ 
     return Barber.create({ ...base, ...overrides });
   };
 
@@ -54,7 +55,9 @@ describe('GetAvailableSlotsUseCase', () => {
     date: '2099-01-01',
     startTime: overrides?.startTime ?? '09:00',
     endTime: overrides?.endTime ?? '09:50',
-    status: overrides?.status ?? 'Pendiente',
+    status: overrides?.status ?? 'Confirmado',
+    paymentStatus: 'Pendiente',
+    paymentMethod: 'local',
     cancelReason: undefined,
     cancelledAt: undefined,
     createdAt: new Date(),
@@ -87,13 +90,18 @@ describe('GetAvailableSlotsUseCase', () => {
       create: jest.fn(),
       update: jest.fn(),
       updateStatus: jest.fn(),
+      findByClientId: jest.fn(),
+      findByContact: jest.fn(),
+      updateClientId: jest.fn(),
     };
 
     tempLockRepository = {
       create: jest.fn(),
       deleteMany: jest.fn(),
       deleteOne: jest.fn(),
+      deleteById: jest.fn(),
       findByBarberAndDate: jest.fn().mockResolvedValue([]),
+      findById: jest.fn(),
     };
 
     slotService = new SlotService();

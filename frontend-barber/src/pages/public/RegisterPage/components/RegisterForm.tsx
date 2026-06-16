@@ -1,10 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiCheck, FiArrowRight } from 'react-icons/fi';
 import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
-import { useAppDispatch, useAppSelector } from '../../../../store/hooks';
-import { registerThunk, clearAuthState } from '../../../../store/slices/authSlice';
+import { useRegisterMutation } from '../../../../services/authApi';
 import type { RegisterFormData } from '../../../../types/auth';
 
 interface RegisterFormProps {
@@ -21,10 +20,10 @@ const initialValues: RegisterFormData = {
 };
 
 export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
-  const dispatch = useAppDispatch();
-  const { isLoading, error, registerSuccess } = useAppSelector((state) => state.auth);
+  const [register, { isLoading, error }] = useRegisterMutation();
+  const [registerSuccess, setRegisterSuccess] = useState(false);
 
-  const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues );
+  const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues);
 
   const onSuccessRef = useRef(onSuccess);
   useEffect(() => {
@@ -39,25 +38,24 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
     return () => window.clearTimeout(timeoutId);
   }, [registerSuccess]);
 
-  useEffect(() => {
-    return () => {
-      dispatch(clearAuthState());
-    };
-  }, [dispatch]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isValid = validateAll();
     if (!isValid) return;
 
-    dispatch(registerThunk({
-      email: values.email,
-      password: values.password,
-      repeatPassword: values.repeatPassword,
-      name: values.name,
-      lastname: values.lastname,
-      phone: values.phone,
-    }));
+    try {
+      await register({
+        email: values.email,
+        password: values.password,
+        repeatPassword: values.repeatPassword,
+        name: values.name,
+        lastname: values.lastname,
+        phone: values.phone,
+      }).unwrap();
+      setRegisterSuccess(true);
+    } catch {
+      // error handled via mutation result
+    }
   };
 
   if (registerSuccess) {
@@ -82,6 +80,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
       </motion.div>
     );
   }
+
+  const errorMessage = error ? ((error as { data?: string }).data ?? 'Error al registrar') : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
@@ -139,8 +139,8 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
         error={touched.repeatPassword ? errors.repeatPassword : undefined}
       />
 
-      {error && (
-        <p className="text-[12px] text-red-500 text-center">{error}</p>
+      {errorMessage && (
+        <p className="text-[12px] text-red-500 text-center">{errorMessage}</p>
       )}
 
       <Button

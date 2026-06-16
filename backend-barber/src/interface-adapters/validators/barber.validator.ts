@@ -1,6 +1,7 @@
 import Joi from 'joi';
+import { EMAIL_REGEX, TIME_REGEX } from '../../domain/constants/validation';
 
-const timeSchema = Joi.string().pattern(/^([01]\d|2[0-3]):[0-5]\d$/);
+const timeSchema = Joi.string().pattern(TIME_REGEX);
 
 const breakSchema = Joi.object({
   startTime: timeSchema.required(),
@@ -44,7 +45,7 @@ export const scheduleSchema = Joi.object({
 });
 
 export const createBarberSchema = Joi.object({
-  email: Joi.string().email().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
   password: Joi.string().min(6).required(),
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
@@ -53,11 +54,12 @@ export const createBarberSchema = Joi.object({
   age: Joi.number().integer().min(0).optional(),
   photoUrl: Joi.string().uri().allow(null).optional(),
   slotDuration: Joi.number().integer().min(1).default(30),
+  maxAdvanceDays: Joi.number().integer().min(1).default(30),
   schedule: scheduleSchema.required(),
 });
 
 export const updateBarberSchema = Joi.object({
-  email: Joi.string().email().optional(),
+  email: Joi.string().pattern(EMAIL_REGEX).optional(),
   password: Joi.string().min(6).optional(),
   name: Joi.string().min(3).optional(),
   lastname: Joi.string().min(3).optional(),
@@ -67,6 +69,7 @@ export const updateBarberSchema = Joi.object({
   photoUrl: Joi.string().uri().allow(null).optional(),
   isActive: Joi.boolean().optional(),
   slotDuration: Joi.number().integer().min(1).optional(),
+  maxAdvanceDays: Joi.number().integer().min(1).optional(),
 }).min(1);
 
 export const barberIdParamSchema = Joi.object({

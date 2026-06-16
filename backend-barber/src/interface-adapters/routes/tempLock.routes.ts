@@ -32,5 +32,10 @@ export const createTempLockRouter = (deps: {
     deps.tempLockController.create
   );
 
+  router.delete(
+    '/:tempLockId',
+    deps.tempLockController.release
+  );
+
   return router;
 };

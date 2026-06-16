@@ -11,6 +11,7 @@ import {
 } from '../../../store/slices/barbersSlice';
 import { professionalService } from '../../../services/professional.service';
 import { getTokenUser } from '../../../utils/token';
+import { getAccessToken } from '../../../services/api';
 import type { DayKey, Professional, ProfessionalPayload, ProfessionalUpdatePayload } from '../../../types/professional';
 import {
   createEmptySchedule,
@@ -55,7 +56,7 @@ const createEmptyForm = (): ProfessionalFormState => ({
 export const ProfessionalsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { list: professionals } = useAppSelector((state) => state.barbers);
-  const authUser = useAppSelector((state) => state.auth.user);
+  const authUser = useAppSelector((state) => state.auth.user) as Professional | null;
 
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [form, setForm] = useState<ProfessionalFormState>(createEmptyForm());
@@ -71,8 +72,7 @@ export const ProfessionalsPage: React.FC = () => {
   const [viewingAdminSlots, setViewingAdminSlots] = useState(false);
 
   const currentTokenUser = useMemo(() => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null;
-    return getTokenUser(token);
+    return getTokenUser(getAccessToken());
   }, []);
 
   const employees = useMemo(

@@ -1,8 +1,14 @@
-import { AppointmentStatus } from '../types/appointment';
+import { AppError } from '../../application/errors/AppError';
+import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry, VALID_TRANSITIONS } from '../types/appointment';
 import { Email } from '../value-objects/Email';
 import { Phone } from '../value-objects/Phone';
 import { Price } from '../value-objects/Price';
 import { DurationMinutes } from '../value-objects/DurationMinutes';
+
+export type CreatedBy = {
+  type: 'staff' | 'registered' | 'anonymous';
+  userId?: string;
+};
 
 export type AppointmentCreateProps = {
   id: string;
@@ -20,8 +26,13 @@ export type AppointmentCreateProps = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  createdBy?: CreatedBy;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -42,8 +53,13 @@ export type AppointmentPrimitives = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  createdBy?: CreatedBy;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -64,8 +80,13 @@ type AppointmentData = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  createdBy?: CreatedBy;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };
@@ -94,8 +115,13 @@ export class Appointment {
       startTime: props.startTime,
       endTime: props.endTime,
       status: props.status,
+      paymentStatus: props.paymentStatus,
+      paymentMethod: props.paymentMethod,
       cancelReason: props.cancelReason,
       cancelledAt: props.cancelledAt,
+      cancelledBy: props.cancelledBy,
+      createdBy: props.createdBy,
+      statusHistory: props.statusHistory,
       createdAt: props.createdAt,
       updatedAt: props.updatedAt,
     });
@@ -161,12 +187,32 @@ export class Appointment {
     return this.props.status;
   }
 
+  get paymentStatus(): PaymentStatus {
+    return this.props.paymentStatus;
+  }
+
+  get paymentMethod(): PaymentMethod {
+    return this.props.paymentMethod;
+  }
+
   get cancelReason(): string | undefined {
     return this.props.cancelReason;
   }
 
   get cancelledAt(): Date | undefined {
     return this.props.cancelledAt;
+  }
+
+  get cancelledBy(): string | undefined {
+    return this.props.cancelledBy;
+  }
+
+  get createdBy(): CreatedBy | undefined {
+    return this.props.createdBy;
+  }
+
+  get statusHistory(): StatusHistoryEntry[] {
+    return this.props.statusHistory;
   }
 
   get createdAt(): Date {
@@ -177,20 +223,48 @@ export class Appointment {
     return this.props.updatedAt;
   }
 
-  cancel(reason?: string): void {
+  addStatusHistoryEntry(status: AppointmentStatus, actor: string): void {
+    this.props.statusHistory.push({ status, timestamp: new Date(), actor });
+  }
+
+  cancel(reason?: string, cancelledBy?: string): void {
+    const allowed = VALID_TRANSITIONS[this.props.status];
+    if (!allowed || !allowed.includes('Cancelado')) {
+      throw new AppError(`No se puede cancelar un turno en estado ${this.props.status}.`, 400);
+    }
     this.props.status = 'Cancelado';
     this.props.cancelReason = reason;
     this.props.cancelledAt = new Date();
+    this.props.cancelledBy = cancelledBy;
+    this.addStatusHistoryEntry('Cancelado', cancelledBy || 'system');
     this.props.updatedAt = new Date();
   }
 
-  confirm(): void {
-    this.props.status = 'Confirmado';
+  pay(actor?: string): void {
+    if (this.props.status === 'Cancelado' || this.props.status === 'NoShow') {
+      throw new AppError(`No se puede pagar un turno en estado ${this.props.status}.`, 400);
+    }
+    this.props.paymentStatus = 'Pagado';
     this.props.updatedAt = new Date();
   }
 
-  complete(): void {
+  complete(actor?: string): void {
+    const allowed = VALID_TRANSITIONS[this.props.status];
+    if (!allowed || !allowed.includes('Completado')) {
+      throw new AppError(`No se puede completar un turno en estado ${this.props.status}.`, 400);
+    }
     this.props.status = 'Completado';
+    this.addStatusHistoryEntry('Completado', actor || 'system');
+    this.props.updatedAt = new Date();
+  }
+
+  markNoShow(actor?: string): void {
+    const allowed = VALID_TRANSITIONS[this.props.status];
+    if (!allowed || !allowed.includes('NoShow')) {
+      throw new AppError(`No se puede marcar como NoShow un turno en estado ${this.props.status}.`, 400);
+    }
+    this.props.status = 'NoShow';
+    this.addStatusHistoryEntry('NoShow', actor || 'system');
     this.props.updatedAt = new Date();
   }
 
@@ -211,8 +285,13 @@ export class Appointment {
       startTime: this.props.startTime,
       endTime: this.props.endTime,
       status: this.props.status,
+      paymentStatus: this.props.paymentStatus,
+      paymentMethod: this.props.paymentMethod,
       cancelReason: this.props.cancelReason,
       cancelledAt: this.props.cancelledAt,
+      cancelledBy: this.props.cancelledBy,
+      createdBy: this.props.createdBy,
+      statusHistory: this.props.statusHistory,
       createdAt: this.props.createdAt,
       updatedAt: this.props.updatedAt,
     };

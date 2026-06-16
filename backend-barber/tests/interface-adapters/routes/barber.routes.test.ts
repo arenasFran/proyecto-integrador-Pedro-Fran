@@ -43,6 +43,7 @@ const makeBarberResponse = () => ({
   services: [] as string[],
   isActive: true,
   slotDuration: 30,
+  maxAdvanceDays: 30,
   schedule: createSchedule(),
   photoUrl: null,
 });

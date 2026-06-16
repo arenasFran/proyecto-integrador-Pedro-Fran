@@ -38,6 +38,7 @@ const makeBarberResponse = () => ({
   services: [],
   isActive: true,
   slotDuration: 30,
+  maxAdvanceDays: 30,
   schedule: createSchedule(),
   photoUrl: null,
   age: undefined,

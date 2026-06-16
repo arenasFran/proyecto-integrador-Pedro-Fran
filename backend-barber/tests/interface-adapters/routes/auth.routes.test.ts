@@ -136,14 +136,42 @@ describeIfMongo('Auth routes', () => {
     expect(updated?.password).not.toBeNull();
   });
 
-  it('debe autenticar con Google', async () => {
+  it('debe autenticar con Google (nuevo usuario → requiresProfileCompletion)', async () => {
     verifyIdTokenMock.mockResolvedValue({
-      email: 'google@example.com',
+      email: 'google-new@example.com',
       emailVerified: true,
       givenName: 'Juan',
       familyName: 'Perez',
       name: 'Juan Perez',
       sub: 'google-1',
+    });
+
+    const response = await request(app).post('/auth/google').send({ token: 'google-token' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.requiresProfileCompletion).toBe(true);
+    expect(response.body.partialToken).toBeTruthy();
+  });
+
+  it('debe autenticar con Google (usuario existente → token)', async () => {
+    const hash = await bcrypt.hash('SomePass1!', 10);
+    await RegisteredClient.create({
+      email: 'google-existing@example.com',
+      password: hash,
+      name: 'Juan',
+      lastname: 'Perez',
+      phone: '777777',
+      authProvider: 'google',
+      googleId: 'google-existing-1',
+    });
+
+    verifyIdTokenMock.mockResolvedValue({
+      email: 'google-existing@example.com',
+      emailVerified: true,
+      givenName: 'Juan',
+      familyName: 'Perez',
+      name: 'Juan Perez',
+      sub: 'google-existing-1',
     });
 
     const response = await request(app).post('/auth/google').send({ token: 'google-token' });

@@ -177,6 +177,8 @@ async function seedAppointments(): Promise<void> {
   const seeds: Array<{
     targetDay: number;
     status: string;
+    paymentStatus: string;
+    paymentMethod: string;
     getDate: () => Date;
     serviceIndex: number;
     cancelReason?: string;
@@ -184,18 +186,24 @@ async function seedAppointments(): Promise<void> {
     {
       targetDay: 1,
       status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
       getDate: () => getNextWeekday(now, 1),
       serviceIndex: 0,
     },
     {
       targetDay: 2,
-      status: 'Pendiente',
+      status: 'Confirmado',
+      paymentStatus: 'Pagado',
+      paymentMethod: 'local',
       getDate: () => getNextWeekday(now, 2),
       serviceIndex: 1,
     },
     {
       targetDay: 3,
       status: 'Completado',
+      paymentStatus: 'Pagado',
+      paymentMethod: 'local',
       getDate: () => {
         const prev = getPreviousWeekday(now, 3);
         if (now.getDay() > 3) prev.setDate(prev.getDate() - 7);
@@ -206,6 +214,8 @@ async function seedAppointments(): Promise<void> {
     {
       targetDay: 4,
       status: 'Cancelado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
       getDate: () => getNextWeekday(now, 4),
       serviceIndex: 3,
       cancelReason: 'Ya no podía asistir',
@@ -268,8 +278,18 @@ async function seedAppointments(): Promise<void> {
         startTime,
         endTime,
         status: seed.status,
+        paymentStatus: seed.paymentStatus,
+        paymentMethod: seed.paymentMethod,
         cancelReason: seed.cancelReason,
         cancelledAt: seed.status === 'Cancelado' ? new Date() : undefined,
+        cancelledBy: seed.status === 'Cancelado' ? 'system' : undefined,
+        statusHistory: [
+          {
+            status: seed.status,
+            timestamp: new Date(),
+            actor: 'system',
+          },
+        ],
       });
 
       console.log(`  Turno ${seed.status} creado para ${barber.name} el ${dateStr} a las ${startTime}`);

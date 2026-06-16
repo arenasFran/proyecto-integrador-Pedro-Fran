@@ -1,7 +1,7 @@
 export type TokenUser = {
   id: string;
   email: string;
-  kind: string;
+  kind: 'Admin' | 'Empleado' | 'Registrado';
 };
 
 type JwtPayload = TokenUser & {
@@ -35,7 +35,7 @@ export const decodeTokenPayload = (token: string): JwtPayload | null => {
   }
 };
 
-export const getTokenKind = (token?: string | null): string | null => {
+export const getTokenKind = (token?: string | null): TokenUser['kind'] | null => {
   if (!token) {
     return null;
   }
@@ -54,7 +54,7 @@ export const getTokenUser = (token?: string | null): TokenUser | null => {
     return null;
   }
 
-  return { id: payload.id, email: payload.email, kind: payload.kind };
+  return { id: payload.id, email: payload.email, kind: payload.kind as TokenUser['kind'] };
 };
 
 export const isTokenValid = (token?: string | null): boolean => {
@@ -68,7 +68,7 @@ export const isTokenValid = (token?: string | null): boolean => {
   }
 
   if (typeof payload.exp !== 'number') {
-    return true;
+    return false;
   }
 
   const nowSeconds = Math.floor(Date.now() / 1000);

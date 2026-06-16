@@ -1,7 +1,9 @@
+import { AuthKind } from '../../domain/types/auth';
+
 export type TokenPayload = {
   id: string;
   email: string;
-  kind: string;
+  kind: AuthKind;
 };
 
 export type TokenPair = {
@@ -16,6 +18,6 @@ export interface ITokenService {
   signRefreshToken(payload: TokenPayload): string;
   verifyAccessToken(token: string): TokenPayload;
   verifyRefreshToken(token: string): TokenPayload;
-  signPartialToken(email: string): string;
-  verifyPartialToken(token: string): { email: string };
+  signPartialToken(email: string, googleId?: string): string;
+  verifyPartialToken(token: string): { email: string; googleId?: string };
 }

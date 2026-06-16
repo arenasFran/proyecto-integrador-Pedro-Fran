@@ -1,5 +1,6 @@
 import { User } from '../../../domain/entities/User';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { Password } from '../../../domain/value-objects/Password';
 import { Phone } from '../../../domain/value-objects/Phone';
@@ -10,7 +11,8 @@ import { IPasswordHasher } from '../../ports/IPasswordHasher';
 export class RegisterUserUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
-    private readonly passwordHasher: IPasswordHasher
+    private readonly passwordHasher: IPasswordHasher,
+    private readonly appointmentRepository: IAppointmentRepository
   ) {}
 
   async execute(dto: RegisterUserDTO): Promise<{ message: string }> {
@@ -45,8 +47,26 @@ export class RegisterUserUseCase {
       passwordHash: hash,
     });
 
-    await this.userRepository.createRegisteredClient(user);
+    const createdUser = await this.userRepository.createRegisteredClient(user);
+
+    // Vincular turnos anónimos con mismo email y teléfono
+    this.linkAnonymousAppointments(createdUser.id, email, phone);
 
     return { message: 'Usuario registrado con éxito' };
+  }
+
+  private async linkAnonymousAppointments(
+    registeredClientId: string,
+    email: string,
+    phone: string
+  ): Promise<void> {
+    try {
+      const anonymousAppointments = await this.appointmentRepository.findByContact(email, phone);
+      for (const appointment of anonymousAppointments) {
+        await this.appointmentRepository.updateClientId(appointment.id, registeredClientId);
+      }
+    } catch (error) {
+      console.error('Error vinculando turnos anónimos:', error);
+    }
   }
 }

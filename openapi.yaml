@@ -862,7 +862,7 @@ paths:
       tags:
         - Appointments
       summary: Actualizar estado del turno
-      description: Actualiza el estado de un turno (Pendiente -> Confirmado -> Completado, o cualquier estado -> Cancelado). Solo Admin/Empleado.
+      description: Actualiza el estado de un turno (Confirmado -> Completado/Cancelado/NoShow). Solo Admin/Empleado.
       operationId: appointmentsUpdateStatus
       security:
         - bearerAuth: []
@@ -987,6 +987,31 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "429":
           description: Demasiados intentos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: Obtener perfil del usuario autenticado
+      description: Retorna la información del usuario actual según el token JWT. Cualquier usuario autenticado (cliente, barbero, admin) puede acceder a su propio perfil.
+      operationId: usersGetMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Usuario no encontrado
           content:
             application/json:
               schema:
@@ -1478,12 +1503,12 @@ components:
         status:
           type: string
           enum:
-            - Pendiente
-            - Confirmado
             - Cancelado
             - Completado
+            - NoShow
         cancelReason:
           type: string
+          minLength: 1
           maxLength: 500
           description: Obligatorio solo si status es Cancelado
 
@@ -1502,6 +1527,33 @@ components:
           pattern: "^\\d{2}:\\d{2}$"
         barberId:
           type: string
+
+    # ──────────────────────────────────────────────
+    # User - Responses
+    # ──────────────────────────────────────────────
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastname:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        kind:
+          type: string
+          enum:
+            - Admin
+            - Empleado
+            - Registrado
+        photoUrl:
+          type: string
+          nullable: true
 
     TempLockRequest:
       type: object
@@ -1561,10 +1613,21 @@ components:
         status:
           type: string
           enum:
-            - Pendiente
             - Confirmado
             - Cancelado
             - Completado
+            - NoShow
+        paymentStatus:
+          type: string
+          enum:
+            - Pendiente
+            - Pagado
+        paymentMethod:
+          type: string
+          enum:
+            - local
+            - online
+            - memberPass
         cancelReason:
           type: string
           nullable: true

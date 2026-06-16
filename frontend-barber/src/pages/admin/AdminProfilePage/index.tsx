@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiClock, FiSave, FiScissors, FiShield } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, PasswordInput } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchUserProfile } from '../../../store/slices/authSlice';
+import { authApi } from '../../../services/authApi';
 import { updateBarber, updateBarberSchedule } from '../../../store/slices/barbersSlice';
-import type { BarberSchedule, DayKey, Professional, ProfessionalUpdatePayload } from '../../../types/professional';
+import type { DayKey, Professional, ProfessionalUpdatePayload } from '../../../types/professional';
 import {
   createEmptySchedule,
   days,
@@ -19,38 +19,49 @@ import {
 export const AdminProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user);
+  const user = useAppSelector((state) => state.auth.user) as Professional | null;
 
-  const [formData, setFormData] = useState<Professional | null>(null);
   const [password, setPassword] = useState('');
-  const [schedule, setSchedule] = useState<Record<DayKey, ScheduleDayForm>>(createEmptySchedule());
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [editedFields, setEditedFields] = useState<Partial<Pick<Professional, 'name' | 'lastname' | 'email' | 'phone' | 'services' | 'age' | 'photoUrl' | 'slotDuration'>>>({});
+  const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
+
+  const formData = useMemo<Professional | null>(() => {
+    if (!user) return null;
+    return { ...user, ...editedFields };
+  }, [user, editedFields]);
+
+  const schedule = useMemo(() => {
+    if (!user) return createEmptySchedule();
+    return editedSchedule ?? mapScheduleToForm(user.schedule);
+  }, [user, editedSchedule]);
+
+  const isLoading = !user;
+
   useEffect(() => {
-    if (user) {
-      setFormData(user);
-      setSchedule(mapScheduleToForm(user.schedule));
-      setIsLoading(false);
-    } else {
-      dispatch(fetchUserProfile());
+    if (!user) {
+      const promise = dispatch(authApi.endpoints.getProfile.initiate());
+      return () => { promise.unsubscribe(); };
     }
   }, [user, dispatch]);
 
   const handleFieldChange = (field: keyof Pick<Professional, 'name' | 'lastname' | 'email' | 'phone'>) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      if (!formData) return;
-      setFormData({ ...formData, [field]: event.target.value });
+      setEditedFields((prev) => ({ ...prev, [field]: event.target.value }));
     };
 
   const handleDayChange = (day: DayKey, field: keyof ScheduleDayForm) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      setSchedule((prev) => ({
-        ...prev,
-        [day]: { ...prev[day], [field]: value },
+      setEditedSchedule((prev) => ({
+        ...(prev ?? (user ? mapScheduleToForm(user.schedule) : createEmptySchedule())),
+        [day]: {
+          ...((prev ?? (user ? mapScheduleToForm(user.schedule) : createEmptySchedule()))[day]),
+          [field]: value,
+        },
       }));
     };
 
@@ -90,7 +101,9 @@ export const AdminProfilePage: React.FC = () => {
 
       await dispatch(updateBarber({ id: formData.id, data: updatePayload })).unwrap();
       await dispatch(updateBarberSchedule({ id: formData.id, schedule: scheduleFromForm(schedule) })).unwrap();
-      await dispatch(fetchUserProfile());
+      const profilePromise = dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      await profilePromise.unwrap();
+      profilePromise.unsubscribe();
       setPassword('');
       setPageMessage('Perfil actualizado con éxito.');
     } catch (error) {
@@ -216,7 +229,7 @@ export const AdminProfilePage: React.FC = () => {
                 min={1}
                 value={String(formData.slotDuration ?? 30)}
                 onChange={(e) =>
-                  setFormData({ ...formData, slotDuration: Number(e.target.value) || 30 })
+                  setEditedFields((prev) => ({ ...prev, slotDuration: Number(e.target.value) || 30 }))
                 }
                 required
                 placeholder="30"
@@ -229,7 +242,7 @@ export const AdminProfilePage: React.FC = () => {
                 label="Servicios"
                 value={formData.services.join(', ')}
                 onChange={(e) =>
-                  setFormData({ ...formData, services: normalizeServices(e.target.value) })
+                  setEditedFields((prev) => ({ ...prev, services: normalizeServices(e.target.value) }))
                 }
                 placeholder="corte, barba, color"
                 helperText="Separadas por coma"
@@ -240,7 +253,7 @@ export const AdminProfilePage: React.FC = () => {
                 min={0}
                 value={formData.age ? String(formData.age) : ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, age: e.target.value ? Number(e.target.value) : undefined })
+                  setEditedFields((prev) => ({ ...prev, age: e.target.value ? Number(e.target.value) : undefined }))
                 }
                 placeholder="30"
               />
@@ -250,9 +263,9 @@ export const AdminProfilePage: React.FC = () => {
               label="Foto de perfil"
               type="url"
               value={formData.photoUrl ?? ''}
-              onChange={(e) =>
-                setFormData({ ...formData, photoUrl: e.target.value.trim() || null })
-              }
+                onChange={(e) =>
+                  setEditedFields((prev) => ({ ...prev, photoUrl: e.target.value.trim() || null }))
+                }
               placeholder="https://..."
               helperText="Opcional"
             />

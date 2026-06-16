@@ -41,7 +41,9 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
             </div>
 
             <h2 className="text-[20px] font-bold text-white mb-1">Reserva confirmada</h2>
-            <p className="text-[13px] text-[#8A8A8A] mb-6">Tu turno fue agendado exitosamente</p>
+            <p className="text-[13px] text-[#8A8A8A] mb-6">
+              Turno confirmado &mdash; Pago pendiente (en local)
+            </p>
 
             <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 space-y-3 text-left mb-6">
               <div className="flex items-center gap-3">

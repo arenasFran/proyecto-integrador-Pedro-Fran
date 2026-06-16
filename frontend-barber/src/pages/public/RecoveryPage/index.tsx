@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiLock } from 'react-icons/fi';
 import { RequestResetForm } from './components/RequestResetForm';
 import { ResetPasswordForm } from './components/ResetPasswordForm';
@@ -27,6 +27,7 @@ const itemVariants = {
 };
 
 export const RecoveryPage: React.FC = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [resetEmail, setResetEmail] = useState('');
 
@@ -36,7 +37,7 @@ export const RecoveryPage: React.FC = () => {
   };
 
   const handleResetSuccess = () => {
-    window.location.href = '/login';
+    navigate('/login');
   };
 
   return (

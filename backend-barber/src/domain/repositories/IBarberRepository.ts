@@ -10,6 +10,7 @@ export type BarberUpdate = {
   photoUrl?: string | null;
   isActive?: boolean;
   slotDuration?: number;
+  maxAdvanceDays?: number;
   passwordHash?: string;
 };
 

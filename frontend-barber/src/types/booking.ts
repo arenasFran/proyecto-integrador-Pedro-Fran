@@ -6,6 +6,7 @@ export type BarberPublic = {
   photoUrl: string | null;
   isActive: boolean;
   slotDuration: number;
+  maxAdvanceDays: number;
 };
 
 export type Service = {
@@ -16,7 +17,11 @@ export type Service = {
   imageUrl: string;
 };
 
-export type AppointmentStatus = 'Pendiente' | 'Confirmado' | 'Cancelado' | 'Completado';
+export type AppointmentStatus = 'Confirmado' | 'Cancelado' | 'Completado' | 'NoShow';
+
+export type PaymentStatus = 'Pendiente' | 'Pagado';
+
+export type PaymentMethod = 'local' | 'online' | 'memberPass';
 
 export type CreateAppointmentPayload = {
   barberId: string;
@@ -25,8 +30,9 @@ export type CreateAppointmentPayload = {
   startTime: string;
   clientName: string;
   clientLastname: string;
-  clientPhone?: string;
-  clientEmail?: string;
+  clientPhone: string;
+  clientEmail: string;
+  tempLockId?: string;
 };
 
 export type Appointment = {
@@ -45,10 +51,12 @@ export type Appointment = {
   startTime: string;
   endTime: string;
   status: AppointmentStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
   cancelReason?: string;
-  cancelledAt?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  cancelledAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type BookingStep = 'barber' | 'service' | 'datetime';

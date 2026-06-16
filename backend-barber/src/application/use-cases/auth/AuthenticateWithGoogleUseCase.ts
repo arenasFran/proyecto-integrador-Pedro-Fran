@@ -11,7 +11,7 @@ import { ITokenService } from '../../ports/ITokenService';
 
 type GoogleLoginResponse =
   | { message: string; token: string; refreshToken: string }
-  | { requiresProfileCompletion: true; partialToken: string };
+  | { requiresProfileCompletion: true; partialToken: string; name?: string; lastname?: string };
 
 export class AuthenticateWithGoogleUseCase {
   constructor(
@@ -54,8 +54,9 @@ export class AuthenticateWithGoogleUseCase {
 
       if (existingUser.authProvider === 'local' && !existingUser.googleId) {
         throw new AppError(
-          'ACCOUNT_EXISTS_LOCAL',
-          409
+          'Ya existe una cuenta con este email. Iniciá sesión con tu contraseña.',
+          409,
+          'ACCOUNT_EXISTS_LOCAL'
         );
       }
 
@@ -74,32 +75,13 @@ export class AuthenticateWithGoogleUseCase {
     const name = payload.name || payload.givenName;
     const lastname = payload.familyName;
 
-    if (!name) {
-      const partialToken = this.tokenService.signPartialToken(normalizedEmail);
+    const partialToken = this.tokenService.signPartialToken(normalizedEmail, payload.sub);
 
-      return { requiresProfileCompletion: true, partialToken };
-    }
-
-    const user = User.create({
-      id: '',
-      email: normalizedEmail,
-      name,
-      lastname: lastname || '',
-      kind: 'Registrado',
-      authProvider: 'google',
-      googleId: payload.sub,
-    });
-
-    const created = await this.userRepository.createRegisteredClient(user);
-    const tokenPayload = { id: created.id, email: created.email, kind: created.kind };
-    const token = this.tokenService.signAccessToken(tokenPayload);
-    const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
-
-    const tokenHash = this.hashService.sha256(refreshToken);
-    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
-    await this.refreshTokenRepository.create(tokenHash, created.id, expiresAt);
-    await this.userRepository.updateLastLogin(created.id);
-
-    return { message: 'Login exitoso', token, refreshToken };
+    return {
+      requiresProfileCompletion: true,
+      partialToken,
+      name: name || undefined,
+      lastname: lastname || undefined,
+    };
   }
 }

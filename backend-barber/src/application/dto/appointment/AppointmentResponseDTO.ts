@@ -1,3 +1,5 @@
+import { CreatedBy } from '../../../domain/entities/Appointment';
+
 export type AppointmentResponseDTO = {
   id: string;
   barberId: string;
@@ -14,8 +16,12 @@ export type AppointmentResponseDTO = {
   startTime: string;
   endTime: string;
   status: string;
+  paymentStatus: string;
+  paymentMethod: string;
   cancelReason?: string;
   cancelledAt?: Date | null;
+  createdBy?: CreatedBy;
+  statusHistory: Array<{ status: string; timestamp: Date; actor: string }>;
   createdAt: Date;
   updatedAt: Date;
 };

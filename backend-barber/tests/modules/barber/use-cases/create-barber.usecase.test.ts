@@ -34,10 +34,11 @@ describe('CreateBarberUseCase', () => {
       services: [],
       isActive: true,
       slotDuration: 30,
+      maxAdvanceDays: 30,
       schedule: createSchedule(),
       passwordHash: 'hash',
     };
-
+ 
     return Barber.create({ ...base, ...overrides });
   };
 
@@ -62,6 +63,7 @@ describe('CreateBarberUseCase', () => {
   beforeEach(() => {
     userRepository = {
       findByEmail: jest.fn(),
+      findById: jest.fn(),
       findByPhone: jest.fn(),
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),

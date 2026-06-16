@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import { AuthRequest } from '../../middlewares/auth.middleware';
 import { CreateBarberUseCase } from '../../../application/use-cases/barber/CreateBarberUseCase';
 import { DeactivateBarberUseCase } from '../../../application/use-cases/barber/DeactivateBarberUseCase';
 import { DeleteBarberUseCase } from '../../../application/use-cases/barber/DeleteBarberUseCase';
@@ -37,6 +36,7 @@ export class BarberController {
           photoUrl: b.photoUrl,
           isActive: b.isActive,
           slotDuration: b.slotDuration,
+          maxAdvanceDays: b.maxAdvanceDays,
         }));
       return BarberPresenter.success(res, { barbers: publicBarbers }, 200);
     } catch (error) {
@@ -55,9 +55,8 @@ export class BarberController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const authReq = req as AuthRequest;
       const result = await this.getAllBarbers.execute();
-      const isAdmin = authReq.user?.kind === 'Admin';
+      const isAdmin = req.user?.kind === 'Admin';
       const filtered = isAdmin
         ? result
         : result.filter((b) => b.kind !== 'Admin' && b.isActive);

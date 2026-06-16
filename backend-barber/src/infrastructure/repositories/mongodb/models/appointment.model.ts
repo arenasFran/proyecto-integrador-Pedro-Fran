@@ -1,5 +1,16 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IStatusHistoryEntry {
+  status: string;
+  timestamp: Date;
+  actor: string;
+}
+
+export interface ICreatedBy {
+  type: 'staff' | 'registered' | 'anonymous';
+  userId?: string;
+}
+
 export interface IAppointmentDocument extends Document {
   barberId: mongoose.Types.ObjectId;
   clientId?: mongoose.Types.ObjectId;
@@ -15,11 +26,33 @@ export interface IAppointmentDocument extends Document {
   startTime: string;
   endTime: string;
   status: string;
+  paymentStatus: string;
+  paymentMethod: string;
   cancelReason?: string;
   cancelledAt?: Date;
+  cancelledBy?: string;
+  createdBy?: ICreatedBy;
+  statusHistory: IStatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const statusHistoryEntrySchema = new Schema<IStatusHistoryEntry>(
+  {
+    status: { type: String, required: true },
+    timestamp: { type: Date, required: true },
+    actor: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const createdBySchema = new Schema<ICreatedBy>(
+  {
+    type: { type: String, enum: ['staff', 'registered', 'anonymous'], required: true },
+    userId: { type: String, required: false },
+  },
+  { _id: false }
+);
 
 const appointmentSchema = new Schema<IAppointmentDocument>(
   {
@@ -81,8 +114,18 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     },
     status: {
       type: String,
-      enum: ['Pendiente', 'Confirmado', 'Cancelado', 'Completado'],
+      enum: ['Confirmado', 'Cancelado', 'Completado', 'NoShow'],
+      default: 'Confirmado',
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['Pendiente', 'Pagado'],
       default: 'Pendiente',
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['local', 'online', 'memberPass'],
+      default: 'local',
     },
     cancelReason: {
       type: String,
@@ -91,6 +134,18 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     cancelledAt: {
       type: Date,
       required: false,
+    },
+    cancelledBy: {
+      type: String,
+      required: false,
+    },
+    createdBy: {
+      type: createdBySchema,
+      required: false,
+    },
+    statusHistory: {
+      type: [statusHistoryEntrySchema],
+      default: [],
     },
   },
   {

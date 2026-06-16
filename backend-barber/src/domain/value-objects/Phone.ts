@@ -1,10 +1,12 @@
+import { AppError } from '../../application/errors/AppError';
+
 export class Phone {
   private constructor(private readonly value: string) {}
 
   static create(raw: string): Phone {
     const normalized = Phone.normalize(raw);
     if (!/^\+?\d{7,15}$/.test(normalized)) {
-      throw new Error('Telefono invalido');
+      throw new AppError('Teléfono inválido', 400);
     }
     return new Phone(normalized);
   }

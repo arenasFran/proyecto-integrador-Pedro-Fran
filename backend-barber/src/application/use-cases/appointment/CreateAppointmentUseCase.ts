@@ -50,6 +50,18 @@ export class CreateAppointmentUseCase {
       throw new AppError('El barbero no está activo.', 400);
     }
 
+    // Task 7 — Límite máximo de anticipación por barbero
+    const [y, m, d] = dto.date.split('-').map(Number);
+    const [ny, nm, nd] = nowInTz.date.split('-').map(Number);
+    const aptEpoch = Date.UTC(y, m - 1, d);
+    const nowEpoch = Date.UTC(ny, nm - 1, nd);
+    const diffDays = (aptEpoch - nowEpoch) / (1000 * 60 * 60 * 24);
+    if (diffDays > barber.maxAdvanceDays) {
+      throw new AppError(
+        `No se puede reservar con más de ${barber.maxAdvanceDays} días de anticipación.`, 400
+      );
+    }
+
     const service = await this.serviceRepository.findById(dto.serviceId);
     if (!service) {
       throw new AppError('Servicio no encontrado.', 404);
@@ -74,27 +86,14 @@ export class CreateAppointmentUseCase {
       throw new AppError('El turno se superpone con un descanso del barbero.', 400);
     }
 
-    // RN04 — Colisión con otros turnos activos
-    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
-      dto.barberId,
-      dto.date
-    );
-
-    for (const existing of existingAppointments) {
-      if (existing.status === 'Cancelado') continue;
-      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
-        throw new AppError('El horario seleccionado ya está ocupado.', 409);
-      }
-    }
-
     // RN10 — Cliente no registrado: buscar o crear entidad
     if (!dto.clientId) {
       let unregisteredClient = await this.findOrCreateUnregisteredClient(dto);
       dto.clientId = unregisteredClient.id;
     }
 
-    // RN15 — Máximo 1 turno activo por día por cliente
-    await this.validateMaxOneActivePerDay(dto, undefined);
+    // RN15 — Máximo 1 turno activo por cliente
+    await this.validateMaxOneActive(dto, undefined, !!dto.clientId);
 
     const now = new Date();
     const appointment = Appointment.create({
@@ -112,16 +111,53 @@ export class CreateAppointmentUseCase {
       date: dto.date,
       startTime: dto.startTime,
       endTime,
-      status: 'Pendiente',
+      status: 'Confirmado',
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      createdBy: dto.createdBy,
+      statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
       createdAt: now,
       updatedAt: now,
     });
 
-    const created = await this.appointmentRepository.create(appointment.toPrimitives());
+    // RN04 — Colisión con otros turnos activos
+    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
+      dto.barberId,
+      dto.date
+    );
 
-    // RN16 — Eliminar TempLock si existe
+    for (const existing of existingAppointments) {
+      if (existing.status === 'Cancelado') continue;
+      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
+        throw new AppError('El horario seleccionado ya está ocupado.', 409);
+      }
+    }
+
+    // Validar TempLock antes de crear
     if (dto.tempLockId) {
-      this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime).catch(() => {});
+      const lock = await this.tempLockRepository.findById(dto.tempLockId);
+      if (!lock) {
+        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+      }
+      if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
+        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+      }
+    }
+
+    // Crear el turno
+    let created;
+    try {
+      created = await this.appointmentRepository.create(appointment.toPrimitives());
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new AppError('El horario ya está ocupado.', 409);
+      }
+      throw error;
+    }
+
+    // Eliminar TempLock si existe
+    if (dto.tempLockId) {
+      await this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime).catch(() => {});
     }
 
     // RN17 — Notificar por email (asíncrono, no bloqueante)
@@ -155,23 +191,17 @@ export class CreateAppointmentUseCase {
     return client;
   }
 
-  async validateMaxOneActivePerDay(
+  async validateMaxOneActive(
     dto: CreateAppointmentDTO,
-    excludeAppointmentId?: string
+    excludeAppointmentId: string | undefined,
+    isRegistered: boolean
   ): Promise<void> {
     let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
 
     if (dto.clientId) {
-      activeAppointments = await this.appointmentRepository.findByClientAndDate(
-        dto.clientId,
-        dto.date
-      );
-    } else if (dto.clientEmail || dto.clientPhone) {
-      activeAppointments = await this.appointmentRepository.findByContactAndDate(
-        dto.date,
-        dto.clientEmail,
-        dto.clientPhone
-      );
+      activeAppointments = await this.appointmentRepository.findByClientId(dto.clientId);
+    } else if (dto.clientEmail && dto.clientPhone) {
+      activeAppointments = await this.appointmentRepository.findByContact(dto.clientEmail, dto.clientPhone);
     }
 
     const filtered = excludeAppointmentId
@@ -179,14 +209,21 @@ export class CreateAppointmentUseCase {
       : activeAppointments;
 
     const hasActive = filtered.some(
-      (a) => a.status === 'Pendiente' || a.status === 'Confirmado'
+      (a) => a.status === 'Confirmado'
     );
 
     if (hasActive) {
-      throw new AppError(
-        'Ya tenés un turno activo para esta fecha. Completalo o cancelalo antes de reservar otro.',
-        409
-      );
+      if (isRegistered) {
+        throw new AppError(
+          'Ya tenés un turno activo. Reagendalo desde Mis Turnos.',
+          409
+        );
+      } else {
+        throw new AppError(
+          'Ya tenés un turno activo con estos datos. Registrate para poder reagendarlo.',
+          409
+        );
+      }
     }
   }
 
@@ -198,13 +235,14 @@ export class CreateAppointmentUseCase {
     const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
-    this.emailService
-      .sendMail({
-        to: clientEmail,
-        subject: 'Turno confirmado',
-        html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue creado exitosamente.</p>
+      this.emailService
+        .sendMail({
+          to: clientEmail,
+          subject: 'Turno agendado',
+          html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
 <p>Servicio: ${appointment.serviceName}</p>
-<p>Precio: $${appointment.servicePrice}</p>`,
+<p>Precio: $${appointment.servicePrice}</p>
+<p>Estado de pago: ${appointment.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
       })
       .catch((error) => {
         console.error('Error enviando email de creación:', error);

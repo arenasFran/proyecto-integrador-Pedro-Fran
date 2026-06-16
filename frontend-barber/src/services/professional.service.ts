@@ -14,7 +14,7 @@ type ProfessionalsResponse = {
 };
 
 type PublicBarbersResponse = {
-  barbers: (Omit<BarberPublic, 'id'> & { id?: string; _id?: string })[];
+  barbers: (Omit<BarberPublic, 'id'> & { id?: string; _id?: string; maxAdvanceDays?: number })[];
 };
 
 type ScheduleResponse = {
@@ -35,6 +35,7 @@ const mapBarberPublic = (raw: PublicBarbersResponse['barbers'][number]): BarberP
     photoUrl: raw.photoUrl,
     isActive: raw.isActive,
     slotDuration: raw.slotDuration,
+    maxAdvanceDays: raw.maxAdvanceDays ?? 30,
   };
 };
 

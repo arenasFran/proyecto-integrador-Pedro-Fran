@@ -7,6 +7,7 @@ import { buildAuthRouter } from "./wiring/auth";
 import { buildBarberRouter } from "./wiring/barber";
 import { buildServiceRouter } from "./wiring/service";
 import { buildTempLockRouter } from "./wiring/tempLock";
+import { buildUserRouter } from "./wiring/user";
 import { getConfig } from "./infrastructure/config/env";
 
 const app = express();
@@ -27,14 +28,6 @@ app.use(
     credentials: true,
   })
 );
-
-const loginLimiter = rateLimit({
-  windowMs: config.rateLimit.login.windowMs,
-  max: config.rateLimit.login.max,
-  message: { error: "Demasiados intentos de login, esperá 15 minutos" },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 const registerLimiter = rateLimit({
   windowMs: config.rateLimit.register.windowMs,
@@ -83,12 +76,14 @@ app.use("/auth/reset-password", resetLimiter);
 app.use("/auth/2fa/send", twoFALimiter);
 app.use("/auth/2fa/verify", twoFALimiter);
 app.use("/auth/google", googleLimiter);
+app.use("/auth/google/complete-profile", googleLimiter);
 
 app.use("/auth", buildAuthRouter());
 app.use("/api/barbers", buildBarberRouter());
 app.use("/api/services", buildServiceRouter());
 app.use("/api/appointments", buildAppointmentRouter());
 app.use("/api/appointments/temp-lock", buildTempLockRouter());
+app.use("/api/users", buildUserRouter());
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });

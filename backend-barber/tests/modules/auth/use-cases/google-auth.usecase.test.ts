@@ -39,6 +39,7 @@ describe('AuthenticateWithGoogleUseCase', () => {
   beforeEach(() => {
     userRepository = {
       findByEmail: jest.fn(),
+      findById: jest.fn(),
       findByPhone: jest.fn(),
       createRegisteredClient: jest.fn(),
       updatePassword: jest.fn(),
@@ -183,27 +184,41 @@ describe('AuthenticateWithGoogleUseCase', () => {
     });
   });
 
-  it('debe crear usuario si no existe', async () => {
+  it('debe requerir completar perfil sin nombre si Google no lo provee', async () => {
+    googleAuthService.verifyIdToken.mockResolvedValue({
+      email: 'test@example.com',
+      emailVerified: true,
+      sub: 'google-1',
+    });
+    userRepository.findByEmail.mockResolvedValue(null);
+    tokenService.signPartialToken.mockReturnValue('partial-token');
+
+    const result = await useCase.execute({ token: 'ok' }) as { requiresProfileCompletion: true; partialToken: string; name?: string; lastname?: string };
+
+    expect(userRepository.createRegisteredClient).not.toHaveBeenCalled();
+    expect(result.requiresProfileCompletion).toBe(true);
+    expect(result.partialToken).toBe('partial-token');
+    expect(result.name).toBeUndefined();
+    expect(result.lastname).toBeUndefined();
+  });
+
+  it('debe requerir completar perfil si el usuario no existe', async () => {
     googleAuthService.verifyIdToken.mockResolvedValue({
       email: 'test@example.com',
       emailVerified: true,
       givenName: 'Juan',
       familyName: 'Perez',
-      name: 'Juan Perez',
       sub: 'google-1',
     });
     userRepository.findByEmail.mockResolvedValue(null);
-    userRepository.createRegisteredClient.mockResolvedValue(makeUser());
-    tokenService.signAccessToken.mockReturnValue('token');
-    tokenService.signRefreshToken.mockReturnValue('refresh-token');
-    hashService.sha256.mockReturnValue('hash');
-    dateTimeProvider.now.mockReturnValue(now);
+    tokenService.signPartialToken.mockReturnValue('partial-token');
 
-    const result = await useCase.execute({ token: 'ok' }) as { message: string; token: string; refreshToken: string };
+    const result = await useCase.execute({ token: 'ok' }) as { requiresProfileCompletion: true; partialToken: string; name?: string; lastname?: string };
 
-    expect(userRepository.createRegisteredClient).toHaveBeenCalled();
-    expect(userRepository.updateLastLogin).toHaveBeenCalled();
-    expect(result.token).toBe('token');
-    expect(result.refreshToken).toBe('refresh-token');
+    expect(userRepository.createRegisteredClient).not.toHaveBeenCalled();
+    expect(result.requiresProfileCompletion).toBe(true);
+    expect(result.partialToken).toBe('partial-token');
+    expect(result.name).toBe('Juan');
+    expect(result.lastname).toBe('Perez');
   });
 });

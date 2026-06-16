@@ -53,6 +53,8 @@ export interface GoogleLoginSuccessResponse {
 export interface GoogleRequiresProfileResponse {
   requiresProfileCompletion: true;
   partialToken: string;
+  name?: string;
+  lastname?: string;
 }
 
 export type GoogleLoginResponse = GoogleLoginSuccessResponse | GoogleRequiresProfileResponse;
@@ -61,6 +63,7 @@ export interface CompleteGoogleProfileData {
   partialToken: string;
   name: string;
   lastname?: string;
+  phone?: string;
 }
 
 export interface RefreshTokenResponse {
@@ -69,7 +72,22 @@ export interface RefreshTokenResponse {
   refreshToken: string;
 }
 
+export type UserProfile = {
+  id: string;
+  name: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  kind: 'Admin' | 'Empleado' | 'Registrado';
+  photoUrl: string | null;
+};
+
 export const authService = {
+  getProfile: async (): Promise<UserProfile> => {
+    const response = await api.get<UserProfile>('/api/users/me');
+    return response.data;
+  },
+
   register: async (data: RegisterData): Promise<string> => {
     const response = await api.post<{ message: string }>('/auth/register', data);
     return response.data.message;

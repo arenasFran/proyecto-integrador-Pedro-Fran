@@ -1,11 +1,13 @@
+import { AppError } from '../../application/errors/AppError';
+import { EMAIL_REGEX } from '../constants/validation';
+
 export class Email {
   private constructor(private readonly value: string) {}
 
   static create(raw: string): Email {
     const normalized = raw.trim().toLowerCase();
-    const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized);
-    if (!isValid) {
-      throw new Error('Email invalido');
+    if (!EMAIL_REGEX.test(normalized)) {
+      throw new AppError('Email inválido', 400);
     }
     return new Email(normalized);
   }

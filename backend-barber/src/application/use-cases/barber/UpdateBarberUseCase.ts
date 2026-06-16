@@ -31,6 +31,7 @@ export class UpdateBarberUseCase {
       photoUrl?: string | null;
       isActive?: boolean;
       slotDuration?: number;
+      maxAdvanceDays?: number;
       passwordHash?: string;
     } = {};
 
@@ -83,6 +84,10 @@ export class UpdateBarberUseCase {
 
     if (dto.slotDuration !== undefined) {
       update.slotDuration = dto.slotDuration;
+    }
+
+    if (dto.maxAdvanceDays !== undefined) {
+      update.maxAdvanceDays = dto.maxAdvanceDays;
     }
 
     const updated = await this.barberRepository.updateBarber(barberId, update);

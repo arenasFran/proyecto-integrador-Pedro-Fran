@@ -33,6 +33,12 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     if (filters.status) {
       query.status = filters.status;
     }
+    if (filters.clientEmail || filters.clientPhone) {
+      const orConditions: Record<string, unknown>[] = [];
+      if (filters.clientEmail) orConditions.push({ clientEmail: filters.clientEmail });
+      if (filters.clientPhone) orConditions.push({ clientPhone: filters.clientPhone });
+      query.$or = orConditions;
+    }
     if (filters.dateFrom || filters.dateTo) {
       query.date = {};
       if (filters.dateFrom) (query.date as Record<string, unknown>).$gte = filters.dateFrom;
@@ -46,11 +52,13 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
 
-  async findByBarberAndDate(barberId: string, date: string): Promise<Appointment[]> {
-    const docs = await AppointmentModel.find({
+  async findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<Appointment[]> {
+    const query = AppointmentModel.find({
       barberId: new mongoose.Types.ObjectId(barberId),
       date,
-    }).lean();
+    });
+    if (session) query.session(session);
+    const docs = await query.lean();
 
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
@@ -83,15 +91,30 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
   }
 
-  async create(data: CreateAppointmentData): Promise<Appointment> {
+  async findByClientId(clientId: string): Promise<Appointment[]> {
+    const docs = await AppointmentModel.find({
+      clientId: new mongoose.Types.ObjectId(clientId),
+    }).lean();
+    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+  }
+
+  async findByContact(clientEmail: string, clientPhone: string): Promise<Appointment[]> {
+    const docs = await AppointmentModel.find({
+      clientEmail,
+      clientPhone,
+    }).lean();
+    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+  }
+
+  async create(data: CreateAppointmentData, session?: mongoose.ClientSession): Promise<Appointment> {
     try {
-      const doc = await AppointmentModel.create({
+      const [doc] = await AppointmentModel.create([{
         ...data,
         barberId: new mongoose.Types.ObjectId(data.barberId),
         clientId: data.clientId ? new mongoose.Types.ObjectId(data.clientId) : undefined,
-      });
+      }], session ? { session } : {});
 
-      const created = await AppointmentModel.findById(doc._id).lean();
+      const created = await AppointmentModel.findById(doc._id).session(session ?? null).lean();
       if (!created) throw new Error('Error al crear el turno');
 
       return AppointmentMapper.fromDocument(created as any);
@@ -112,6 +135,9 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     if (data.barberId !== undefined) {
       updateData.barberId = new mongoose.Types.ObjectId(data.barberId);
     }
+    if (data.paymentMethod !== undefined) {
+      updateData.paymentMethod = data.paymentMethod;
+    }
 
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
@@ -123,21 +149,42 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     return AppointmentMapper.fromDocument(doc as any);
   }
 
+  async updateClientId(id: string, clientId: string): Promise<Appointment | null> {
+    const doc = await AppointmentModel.findByIdAndUpdate(
+      id,
+      { $set: { clientId: new mongoose.Types.ObjectId(clientId) }, $currentDate: { updatedAt: true } },
+      { returnDocument: 'after', new: true }
+    ).lean();
+    if (!doc) return null;
+    return AppointmentMapper.fromDocument(doc as any);
+  }
+
   async updateStatus(id: string, data: UpdateStatusData): Promise<Appointment | null> {
     const updateData: Record<string, unknown> = {
       status: data.status,
     };
 
+    if (data.paymentStatus !== undefined) {
+      updateData.paymentStatus = data.paymentStatus;
+    }
     if (data.cancelReason !== undefined) {
       updateData.cancelReason = data.cancelReason;
     }
     if (data.cancelledAt !== undefined) {
       updateData.cancelledAt = data.cancelledAt;
     }
+    if (data.cancelledBy !== undefined) {
+      updateData.cancelledBy = data.cancelledBy;
+    }
+
+    const update: Record<string, unknown> = { $set: updateData };
+    if (data.statusHistoryEntry) {
+      update.$push = { statusHistory: data.statusHistoryEntry };
+    }
 
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
-      { $set: updateData },
+      update,
       { returnDocument: 'after', new: true }
     ).lean();
 

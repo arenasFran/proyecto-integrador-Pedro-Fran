@@ -1,22 +1,19 @@
 import { Request, Response } from 'express';
 import { CreateAppointmentUseCase } from '../../../application/use-cases/appointment/CreateAppointmentUseCase';
-import { GetAppointmentsUseCase } from '../../../application/use-cases/appointment/GetAppointmentsUseCase';
-import { GetAppointmentByIdUseCase } from '../../../application/use-cases/appointment/GetAppointmentByIdUseCase';
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
-import { GetAppointmentsAnonymousUseCase } from '../../../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
+import { AppError } from '../../../application/errors/AppError';
 
 export class AppointmentController {
   constructor(
+    private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly createAppointment: CreateAppointmentUseCase,
-    private readonly getAppointments: GetAppointmentsUseCase,
-    private readonly getAppointmentById: GetAppointmentByIdUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
-    private readonly rescheduleAppointment: RescheduleAppointmentUseCase,
-    private readonly getAppointmentsAnonymous: GetAppointmentsAnonymousUseCase
+    private readonly rescheduleAppointment: RescheduleAppointmentUseCase
   ) {}
 
   create = async (req: Request, res: Response) => {
@@ -58,8 +55,8 @@ export class AppointmentController {
       if (req.query.dateFrom) query.dateFrom = req.query.dateFrom as string;
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
 
-      const result = await this.getAppointments.execute(query);
-      return sendSuccess(res, result, 200);
+      const appointments = await this.appointmentRepository.findMany(query);
+      return sendSuccess(res, { appointments: appointments.map((a) => a.toPrimitives()) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }
@@ -68,12 +65,16 @@ export class AppointmentController {
   getById = async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
-      const result = await this.getAppointmentById.execute(
-        id,
-        req.user!._id,
-        req.user!.kind
-      );
-      return sendSuccess(res, result, 200);
+      const appointment = await this.appointmentRepository.findById(id);
+      if (!appointment) {
+        throw new AppError('Turno no encontrado.', 404);
+      }
+      const isOwner = appointment.clientId === req.user!._id;
+      const isAdminOrBarber = req.user!.kind === 'Admin' || req.user!.kind === 'Empleado';
+      if (!isOwner && !isAdminOrBarber) {
+        throw new AppError('No tenés permiso para ver este turno.', 403);
+      }
+      return sendSuccess(res, { appointment: appointment.toPrimitives() }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener el turno');
     }
@@ -113,12 +114,17 @@ export class AppointmentController {
 
   getAnonymous = async (req: Request, res: Response) => {
     try {
-      const result = await this.getAppointmentsAnonymous.execute({
-        clientEmail: req.query.email as string | undefined,
-        clientPhone: req.query.phone as string | undefined,
+      const clientEmail = req.query.email as string | undefined;
+      const clientPhone = req.query.phone as string | undefined;
+      if (!clientEmail && !clientPhone) {
+        throw new AppError('Debe proporcionar email o teléfono.', 400);
+      }
+      const appointments = await this.appointmentRepository.findMany({
+        clientEmail,
+        clientPhone,
         date: req.query.date as string | undefined,
       });
-      return sendSuccess(res, result, 200);
+      return sendSuccess(res, { appointments: appointments.map((a) => a.toPrimitives()) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }

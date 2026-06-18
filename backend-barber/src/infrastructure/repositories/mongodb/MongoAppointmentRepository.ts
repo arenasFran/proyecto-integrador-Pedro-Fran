@@ -8,14 +8,41 @@ import {
   UpdateAppointmentData,
 } from '../../../domain/repositories/IAppointmentRepository';
 import { AppError } from '../../../application/errors/AppError';
-import { AppointmentMapper } from '../../mappers/AppointmentMapper';
 import AppointmentModel from './models/appointment.model';
+
+const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
+  Appointment.create({
+    id: doc._id.toString(),
+    barberId: doc.barberId.toString(),
+    clientId: doc.clientId?.toString(),
+    clientName: doc.clientName,
+    clientLastname: doc.clientLastname,
+    clientPhone: doc.clientPhone,
+    clientEmail: doc.clientEmail,
+    serviceId: doc.serviceId,
+    serviceName: doc.serviceName,
+    servicePrice: doc.servicePrice,
+    serviceDuration: doc.serviceDuration,
+    date: doc.date,
+    startTime: doc.startTime,
+    endTime: doc.endTime,
+    status: doc.status as Appointment['status'],
+    paymentStatus: doc.paymentStatus as Appointment['paymentStatus'],
+    paymentMethod: doc.paymentMethod as Appointment['paymentMethod'],
+    cancelReason: doc.cancelReason,
+    cancelledAt: doc.cancelledAt,
+    cancelledBy: doc.cancelledBy,
+    createdBy: doc.createdBy,
+    statusHistory: (doc.statusHistory || []),
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  });
 
 export class MongoAppointmentRepository implements IAppointmentRepository {
   async findById(id: string): Promise<Appointment | null> {
     const doc = await AppointmentModel.findById(id).lean();
     if (!doc) return null;
-    return AppointmentMapper.fromDocument(doc as any);
+    return toAppointmentEntity(doc);
   }
 
   async findMany(filters: AppointmentFilters): Promise<Appointment[]> {
@@ -49,7 +76,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       .sort({ date: -1, startTime: -1 })
       .lean();
 
-    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<Appointment[]> {
@@ -60,7 +87,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     if (session) query.session(session);
     const docs = await query.lean();
 
-    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async findByClientAndDate(clientId: string, date: string): Promise<Appointment[]> {
@@ -69,7 +96,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       date,
     }).lean();
 
-    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async findByContactAndDate(
@@ -88,14 +115,14 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       $or: orConditions,
     }).lean();
 
-    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async findByClientId(clientId: string): Promise<Appointment[]> {
     const docs = await AppointmentModel.find({
       clientId: new mongoose.Types.ObjectId(clientId),
     }).lean();
-    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async findByContact(clientEmail: string, clientPhone: string): Promise<Appointment[]> {
@@ -103,7 +130,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       clientEmail,
       clientPhone,
     }).lean();
-    return docs.map((doc) => AppointmentMapper.fromDocument(doc as any));
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async create(data: CreateAppointmentData, session?: mongoose.ClientSession): Promise<Appointment> {
@@ -117,7 +144,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       const created = await AppointmentModel.findById(doc._id).session(session ?? null).lean();
       if (!created) throw new Error('Error al crear el turno');
 
-      return AppointmentMapper.fromDocument(created as any);
+      return toAppointmentEntity(created);
     } catch (error: any) {
       if (error?.code === 11000) {
         throw new AppError('El horario ya está ocupado.', 409);
@@ -146,7 +173,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     ).lean();
 
     if (!doc) return null;
-    return AppointmentMapper.fromDocument(doc as any);
+    return toAppointmentEntity(doc);
   }
 
   async updateClientId(id: string, clientId: string): Promise<Appointment | null> {
@@ -156,7 +183,7 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
       { returnDocument: 'after', new: true }
     ).lean();
     if (!doc) return null;
-    return AppointmentMapper.fromDocument(doc as any);
+    return toAppointmentEntity(doc);
   }
 
   async updateStatus(id: string, data: UpdateStatusData): Promise<Appointment | null> {
@@ -189,6 +216,6 @@ export class MongoAppointmentRepository implements IAppointmentRepository {
     ).lean();
 
     if (!doc) return null;
-    return AppointmentMapper.fromDocument(doc as any);
+    return toAppointmentEntity(doc);
   }
 }

@@ -1,6 +1,6 @@
-import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
-import { IBarberRepository } from '../../../domain/repositories/IBarberRepository';
-import { IServiceRepository } from '../../../domain/repositories/IServiceRepository';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { RescheduleAppointmentDTO } from '../../dto/appointment/RescheduleAppointmentDTO';
 import { AppointmentResponseDTO } from '../../dto/appointment/AppointmentResponseDTO';
@@ -18,9 +18,9 @@ import { VALID_TRANSITIONS } from '../../../domain/types/appointment';
 
 export class RescheduleAppointmentUseCase {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository,
-    private readonly barberRepository: IBarberRepository,
-    private readonly serviceRepository: IServiceRepository,
+    private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly barberRepository: MongoBarberRepository,
+    private readonly serviceRepository: StaticServiceRepository,
     private readonly emailService: IEmailService
   ) {}
 
@@ -36,17 +36,17 @@ export class RescheduleAppointmentUseCase {
     }
 
     // RN09 — No se puede reagendar en estado terminal
-    const allowedTransitions = VALID_TRANSITIONS[appointment.status];
+    const allowedTransitions = VALID_TRANSITIONS[appointment.props.status];
     if (!allowedTransitions || allowedTransitions.length === 0) {
       throw new AppError(
-        `No se puede reagendar un turno ${appointment.status}.`, 400
+        `No se puede reagendar un turno ${appointment.props.status}.`, 400
       );
     }
 
     // RN20 — Permission: owner, admin, or assigned barber
-    const isOwner = appointment.clientId === userId;
+    const isOwner = appointment.props.clientId === userId;
     const isAdmin = userKind === 'Admin';
-    const isAssignedBarber = userKind === 'Empleado' && appointment.barberId === userId;
+    const isAssignedBarber = userKind === 'Empleado' && appointment.props.barberId === userId;
     if (!isOwner && !isAdmin && !isAssignedBarber) {
       throw new AppError('No tenés permiso para reagendar este turno.', 403);
     }
@@ -72,7 +72,7 @@ export class RescheduleAppointmentUseCase {
       );
     }
 
-    const service = await this.serviceRepository.findById(appointment.serviceId);
+    const service = await this.serviceRepository.findById(appointment.props.serviceId);
     if (!service) {
       throw new AppError('Servicio no encontrado.', 404);
     }
@@ -113,26 +113,26 @@ export class RescheduleAppointmentUseCase {
       dto.date
     );
     for (const existing of existingAppointments) {
-      if (existing.status === 'Cancelado') continue;
-      if (existing.id === id) continue; // excluirse a sí mismo
-      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
+      if (existing.props.status === 'Cancelado') continue;
+      if (existing.props.id === id) continue; // excluirse a sí mismo
+      if (doesOverlap(dto.startTime, endTime, existing.props.startTime, existing.props.endTime)) {
         throw new AppError('El horario seleccionado ya está ocupado.', 409);
       }
     }
 
     // RN15 — Límite de 1 turno activo total (excluyéndose a sí mismo)
     let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
-    if (appointment.clientId) {
-      activeAppointments = await this.appointmentRepository.findByClientId(appointment.clientId);
-    } else if (appointment.clientEmail && appointment.clientPhone) {
+    if (appointment.props.clientId) {
+      activeAppointments = await this.appointmentRepository.findByClientId(appointment.props.clientId);
+    } else if (appointment.props.clientEmail && appointment.props.clientPhone) {
       activeAppointments = await this.appointmentRepository.findByContact(
-        appointment.clientEmail,
-        appointment.clientPhone
+        appointment.props.clientEmail,
+        appointment.props.clientPhone
       );
     }
-    const filtered = activeAppointments.filter((a) => a.id !== id);
+    const filtered = activeAppointments.filter((a) => a.props.id !== id);
     const hasActive = filtered.some(
-      (a) => a.status === 'Confirmado'
+      (a) => a.props.status === 'Confirmado'
     );
     if (hasActive) {
       throw new AppError(
@@ -153,14 +153,14 @@ export class RescheduleAppointmentUseCase {
     }
 
     // RN17 — Email notification (async)
-    const clientEmail = updated.clientEmail;
+    const clientEmail = updated.props.clientEmail;
     if (clientEmail) {
       this.emailService
         .sendMail({
           to: clientEmail,
           subject: 'Turno reprogramado',
           html: `<p>Tu turno fue reprogramado.</p>
-<p>Nueva fecha: ${updated.date} a las ${updated.startTime}</p>
+<p>Nueva fecha: ${updated.props.date} a las ${updated.props.startTime}</p>
 <p>Barbero: ${barber.name} ${barber.lastname}</p>`,
         })
         .catch((error) => {
@@ -170,7 +170,7 @@ export class RescheduleAppointmentUseCase {
 
     return {
       message: 'Turno reagendado exitosamente',
-      appointment: updated.toPrimitives(),
+      appointment: updated.props,
     };
   }
 }

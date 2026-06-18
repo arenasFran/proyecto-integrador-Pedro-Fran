@@ -1,6 +1,6 @@
 import { User } from '../../../domain/entities/User';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
-import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { Password } from '../../../domain/value-objects/Password';
 import { Phone } from '../../../domain/value-objects/Phone';
@@ -10,9 +10,9 @@ import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
 export class RegisterUserUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: MongoUserRepository,
     private readonly passwordHasher: IPasswordHasher,
-    private readonly appointmentRepository: IAppointmentRepository
+    private readonly appointmentRepository: MongoAppointmentRepository
   ) {}
 
   async execute(dto: RegisterUserDTO): Promise<{ message: string }> {
@@ -63,7 +63,7 @@ export class RegisterUserUseCase {
     try {
       const anonymousAppointments = await this.appointmentRepository.findByContact(email, phone);
       for (const appointment of anonymousAppointments) {
-        await this.appointmentRepository.updateClientId(appointment.id, registeredClientId);
+        await this.appointmentRepository.updateClientId(appointment.props.id, registeredClientId);
       }
     } catch (error) {
       console.error('Error vinculando turnos anónimos:', error);

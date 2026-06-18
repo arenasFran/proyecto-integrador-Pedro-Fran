@@ -56,7 +56,7 @@ export class AppointmentController {
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
 
       const appointments = await this.appointmentRepository.findMany(query);
-      return sendSuccess(res, { appointments: appointments.map((a) => a.toPrimitives()) }, 200);
+      return sendSuccess(res, { appointments: appointments.map((a) => a.props) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }
@@ -69,12 +69,12 @@ export class AppointmentController {
       if (!appointment) {
         throw new AppError('Turno no encontrado.', 404);
       }
-      const isOwner = appointment.clientId === req.user!._id;
+      const isOwner = appointment.props.clientId === req.user!._id;
       const isAdminOrBarber = req.user!.kind === 'Admin' || req.user!.kind === 'Empleado';
       if (!isOwner && !isAdminOrBarber) {
         throw new AppError('No tenés permiso para ver este turno.', 403);
       }
-      return sendSuccess(res, { appointment: appointment.toPrimitives() }, 200);
+      return sendSuccess(res, { appointment: appointment.props }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener el turno');
     }
@@ -124,7 +124,7 @@ export class AppointmentController {
         clientPhone,
         date: req.query.date as string | undefined,
       });
-      return sendSuccess(res, { appointments: appointments.map((a) => a.toPrimitives()) }, 200);
+      return sendSuccess(res, { appointments: appointments.map((a) => a.props) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }

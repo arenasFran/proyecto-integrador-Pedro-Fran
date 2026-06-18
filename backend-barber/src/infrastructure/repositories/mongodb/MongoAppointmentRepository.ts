@@ -1,14 +1,38 @@
 import mongoose from 'mongoose';
-import { Appointment } from '../../../domain/entities/Appointment';
-import {
-  AppointmentFilters,
-  CreateAppointmentData,
-  IAppointmentRepository,
-  UpdateStatusData,
-  UpdateAppointmentData,
-} from '../../../domain/repositories/IAppointmentRepository';
+import { Appointment, AppointmentProps } from '../../../domain/entities/Appointment';
+import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry } from '../../../domain/types/appointment';
 import { AppError } from '../../../application/errors/AppError';
 import AppointmentModel from './models/appointment.model';
+
+export type AppointmentFilters = {
+  barberId?: string;
+  clientId?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  date?: string;
+  status?: AppointmentStatus;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export type CreateAppointmentData = Omit<AppointmentProps, 'id' | 'createdAt' | 'updatedAt'>;
+
+export type UpdateStatusData = {
+  status: AppointmentStatus;
+  paymentStatus?: PaymentStatus;
+  cancelReason?: string;
+  cancelledAt?: Date;
+  cancelledBy?: string;
+  statusHistoryEntry?: StatusHistoryEntry;
+};
+
+export type UpdateAppointmentData = {
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  barberId?: string;
+  paymentMethod?: string;
+};
 
 const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
   Appointment.create({
@@ -26,9 +50,9 @@ const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
     date: doc.date,
     startTime: doc.startTime,
     endTime: doc.endTime,
-    status: doc.status as Appointment['status'],
-    paymentStatus: doc.paymentStatus as Appointment['paymentStatus'],
-    paymentMethod: doc.paymentMethod as Appointment['paymentMethod'],
+    status: doc.status as AppointmentStatus,
+    paymentStatus: doc.paymentStatus as PaymentStatus,
+    paymentMethod: doc.paymentMethod as PaymentMethod,
     cancelReason: doc.cancelReason,
     cancelledAt: doc.cancelledAt,
     cancelledBy: doc.cancelledBy,
@@ -38,7 +62,7 @@ const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
     updatedAt: doc.updatedAt,
   });
 
-export class MongoAppointmentRepository implements IAppointmentRepository {
+export class MongoAppointmentRepository {
   async findById(id: string): Promise<Appointment | null> {
     const doc = await AppointmentModel.findById(id).lean();
     if (!doc) return null;

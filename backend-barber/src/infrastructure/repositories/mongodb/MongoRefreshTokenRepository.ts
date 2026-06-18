@@ -1,8 +1,7 @@
 import { RefreshToken } from '../../../domain/entities/RefreshToken';
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
 import RefreshTokenModel from './models/refreshToken.model';
 
-export class MongoRefreshTokenRepository implements IRefreshTokenRepository {
+export class MongoRefreshTokenRepository {
   async create(tokenHash: string, userId: string, expiresAt: Date): Promise<RefreshToken> {
     const doc = await RefreshTokenModel.create({
       tokenHash,

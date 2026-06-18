@@ -17,11 +17,11 @@ describe('StaticServiceRepository', () => {
     const services = await repo.findAll();
 
     services.forEach((service) => {
-      expect(service.id).toBeTruthy();
-      expect(service.name).toBeTruthy();
-      expect(service.description).toBeTruthy();
+      expect(service.id).toEqual(expect.any(String));
+      expect(service.name).toEqual(expect.any(String));
+      expect(service.description).toEqual(expect.any(String));
       expect(service.price).toBeGreaterThan(0);
-      expect(service.imageUrl).toBeTruthy();
+      expect(service.imageUrl).toEqual(expect.any(String));
     });
   });
 

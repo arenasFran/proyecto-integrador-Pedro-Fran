@@ -1,13 +1,8 @@
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
-import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
-import { IServiceRepository } from '../../../../src/domain/repositories/IServiceRepository';
-import { IClientRepository } from '../../../../src/domain/repositories/IClientRepository';
-import { ITempLockRepository } from '../../../../src/domain/repositories/ITempLockRepository';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
-import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
+import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { Service } from '../../../../src/domain/entities/Service';
 import { Client } from '../../../../src/domain/entities/Client';
 import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockServiceRepository, makeMockClientRepository, makeMockTempLockRepository, makeMockEmailService } from '../../../test-utils/mocks';
@@ -47,8 +42,8 @@ describe('CreateAppointmentUseCase', () => {
     return Barber.create({ ...base, ...overrides });
   };
 
-  const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
-    const base: AppointmentPrimitives = {
+  const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
+    const base: AppointmentProps = {
       id: 'apt-1',
       barberId: 'barber-1',
       clientName: 'Juan',
@@ -92,11 +87,11 @@ describe('CreateAppointmentUseCase', () => {
       kind: 'NoRegistrado',
     });
 
-  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
-  let barberRepository: jest.Mocked<IBarberRepository>;
-  let serviceRepository: jest.Mocked<IServiceRepository>;
-  let clientRepository: jest.Mocked<IClientRepository>;
-  let tempLockRepository: jest.Mocked<ITempLockRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
+  let barberRepository: ReturnType<typeof makeMockBarberRepository>;
+  let serviceRepository: ReturnType<typeof makeMockServiceRepository>;
+  let clientRepository: ReturnType<typeof makeMockClientRepository>;
+  let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let useCase: CreateAppointmentUseCase;
 

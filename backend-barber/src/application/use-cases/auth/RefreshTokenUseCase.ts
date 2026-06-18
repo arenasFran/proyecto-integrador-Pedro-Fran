@@ -1,4 +1,4 @@
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { AppError } from '../../errors/AppError';
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService, TokenPayload } from '../../ports/ITokenService';
@@ -6,7 +6,7 @@ import { ITokenService, TokenPayload } from '../../ports/ITokenService';
 export class RefreshTokenUseCase {
   constructor(
     private readonly tokenService: ITokenService,
-    private readonly refreshTokenRepository: IRefreshTokenRepository,
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository,
     private readonly hashService: IHashService
   ) {}
 

@@ -1,14 +1,11 @@
 import { AuthenticateWithGoogleUseCase } from '../../../../src/application/use-cases/auth/AuthenticateWithGoogleUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IRefreshTokenRepository } from '../../../../src/domain/repositories/IRefreshTokenRepository';
-import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { IGoogleAuthService } from '../../../../src/application/ports/IGoogleAuthService';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { ITokenService } from '../../../../src/application/ports/ITokenService';
 import { IHashService } from '../../../../src/application/ports/IHashService';
-import { IDateTimeProvider } from '../../../../src/application/ports/IDateTimeProvider';
 import { User, UserProps } from '../../../../src/domain/entities/User';
-import { makeMockUserRepository, makeMockTokenService, makeMockGoogleAuthService, makeMockRefreshTokenRepository, makeMockHashService, makeMockDateTimeProvider, makeMockPasswordHasher } from '../../../test-utils/mocks';
+import { makeMockUserRepository, makeMockTokenService, makeMockGoogleAuthService, makeMockRefreshTokenRepository, makeMockHashService, makeMockPasswordHasher } from '../../../test-utils/mocks';
 
 describe('AuthenticateWithGoogleUseCase', () => {
   const now = new Date('2024-01-01T10:00:00.000Z');
@@ -28,12 +25,11 @@ describe('AuthenticateWithGoogleUseCase', () => {
     return overrides ? User.create({ ...user.toPrimitives(), ...overrides }) : user;
   };
 
-  let userRepository: jest.Mocked<IUserRepository>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
   let googleAuthService: jest.Mocked<IGoogleAuthService>;
   let tokenService: jest.Mocked<ITokenService>;
-  let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
+  let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
   let hashService: jest.Mocked<IHashService>;
-  let dateTimeProvider: jest.Mocked<IDateTimeProvider>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
   let useCase: AuthenticateWithGoogleUseCase;
 
@@ -43,7 +39,6 @@ describe('AuthenticateWithGoogleUseCase', () => {
     tokenService = makeMockTokenService();
     refreshTokenRepository = makeMockRefreshTokenRepository();
     hashService = makeMockHashService();
-    dateTimeProvider = makeMockDateTimeProvider();
     passwordHasher = makeMockPasswordHasher();
     useCase = new AuthenticateWithGoogleUseCase(
       userRepository,
@@ -51,7 +46,6 @@ describe('AuthenticateWithGoogleUseCase', () => {
       tokenService,
       refreshTokenRepository,
       hashService,
-      dateTimeProvider,
       passwordHasher
     );
   });
@@ -132,7 +126,7 @@ describe('AuthenticateWithGoogleUseCase', () => {
     tokenService.signAccessToken.mockReturnValue('token');
     tokenService.signRefreshToken.mockReturnValue('refresh-token');
     hashService.sha256.mockReturnValue('hash');
-    dateTimeProvider.now.mockReturnValue(now);
+    jest.useFakeTimers({ now: now });
 
     const result = await useCase.execute({ token: 'ok' });
 
@@ -143,6 +137,7 @@ describe('AuthenticateWithGoogleUseCase', () => {
       token: 'token',
       refreshToken: 'refresh-token',
     });
+    jest.useRealTimers();
   });
 
   it('debe requerir completar perfil sin nombre si Google no lo provee', async () => {

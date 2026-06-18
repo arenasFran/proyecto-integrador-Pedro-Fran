@@ -1,7 +1,18 @@
 import { User } from '../../../domain/entities/User';
-import { IUserRepository, TwoFactorUpdate, UserSecurityUpdate } from '../../../domain/repositories/IUserRepository';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
+
+export type TwoFactorUpdate = {
+  codeHash?: string;
+  expiresAt?: Date;
+};
+
+export type UserSecurityUpdate = {
+  twoFactorFailedAttempts?: number | null;
+  twoFactorLockedUntil?: Date | null;
+  resetFailedAttempts?: number | null;
+  resetLockedUntil?: Date | null;
+};
 
 const userFromBarber = (doc: Record<string, any>): User =>
   User.create({
@@ -62,7 +73,7 @@ const userToRegisteredClientData = (user: User) => ({
   resetLockedUntil: user.resetLockedUntil ?? undefined,
 });
 
-export class MongoUserRepository implements IUserRepository {
+export class MongoUserRepository {
   async findById(id: string): Promise<User | null> {
     const barber = await Barber.findById(id);
     if (barber) {

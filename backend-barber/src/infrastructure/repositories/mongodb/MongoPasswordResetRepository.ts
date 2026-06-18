@@ -1,5 +1,4 @@
 import { PasswordResetToken } from '../../../domain/entities/PasswordResetToken';
-import { IPasswordResetRepository } from '../../../domain/repositories/IPasswordResetRepository';
 import PasswordReset from './models/passwordReset.model';
 
 const toPasswordResetEntity = (doc: Record<string, any>): PasswordResetToken =>
@@ -9,7 +8,7 @@ const toPasswordResetEntity = (doc: Record<string, any>): PasswordResetToken =>
     expiresAt: doc.expiresAt,
   });
 
-export class MongoPasswordResetRepository implements IPasswordResetRepository {
+export class MongoPasswordResetRepository {
   async create(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
     const doc = new PasswordReset({ userId, tokenHash, expiresAt });
     await doc.save();

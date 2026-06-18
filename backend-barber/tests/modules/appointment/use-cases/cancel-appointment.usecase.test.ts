@@ -1,13 +1,12 @@
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
-import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
+import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { makeMockAppointmentRepository, makeMockEmailService } from '../../../test-utils/mocks';
 
 describe('CancelAppointmentUseCase', () => {
-  const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
-    const base: AppointmentPrimitives = {
+  const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
+    const base: AppointmentProps = {
       id: 'apt-1',
       barberId: 'barber-1',
       clientId: 'client-1',
@@ -31,7 +30,7 @@ describe('CancelAppointmentUseCase', () => {
     return Appointment.create({ ...base, ...overrides });
   };
 
-  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let useCase: CancelAppointmentUseCase;
 

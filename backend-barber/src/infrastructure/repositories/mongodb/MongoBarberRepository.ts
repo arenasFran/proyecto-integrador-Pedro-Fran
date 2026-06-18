@@ -1,8 +1,21 @@
 import mongoose from 'mongoose';
 import { Barber, BarberSchedule } from '../../../domain/entities/Barber';
-import { BarberUpdate, IBarberRepository } from '../../../domain/repositories/IBarberRepository';
 import { Barber as BarberModel, Employee } from './models/barber.model';
 import { isBarberRaw } from './guards/barber.guards';
+
+export type BarberUpdate = {
+  email?: string;
+  name?: string;
+  lastname?: string;
+  phone?: string;
+  services?: string[];
+  age?: number | null;
+  photoUrl?: string | null;
+  isActive?: boolean;
+  slotDuration?: number;
+  maxAdvanceDays?: number;
+  passwordHash?: string;
+};
 
 const createEmptyDay = () => ({
   startTime: null,
@@ -58,7 +71,7 @@ const toBarberEmployeeData = (barber: Barber): Record<string, unknown> => ({
   schedule: barber.schedule,
 });
 
-export class MongoBarberRepository implements IBarberRepository {
+export class MongoBarberRepository {
   async findBarberById(id: string): Promise<Barber | null> {
     const doc = await BarberModel.findById(id).lean();
     if (!doc) {

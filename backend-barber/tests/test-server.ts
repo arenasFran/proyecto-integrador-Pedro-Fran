@@ -17,7 +17,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Admin } from '../src/infrastructure/repositories/mongodb/models/barber.model';
 import { FakeEmailService } from '../src/infrastructure/services/FakeEmailService';
 import { buildAuthRouter } from '../src/wiring/auth';
-import { buildBarberRouter } from '../src/wiring/barber';
+import { buildBarberRouter } from '../src/wiring';
 
 const PORT = Number(process.env.TEST_PORT || 3000);
 

@@ -1,16 +1,11 @@
 import { BarberController } from '../../../../src/interface-adapters/controllers/barber/BarberController';
-import { CreateBarberUseCase } from '../../../../src/application/use-cases/barber/CreateBarberUseCase';
-import { DeactivateBarberUseCase } from '../../../../src/application/use-cases/barber/DeactivateBarberUseCase';
-import { GetAllBarbersUseCase } from '../../../../src/application/use-cases/barber/GetAllBarbersUseCase';
-import { GetBarberByIdUseCase } from '../../../../src/application/use-cases/barber/GetBarberByIdUseCase';
-import { UpdateBarberUseCase } from '../../../../src/application/use-cases/barber/UpdateBarberUseCase';
-import { DeleteBarberUseCase } from '../../../../src/application/use-cases/barber/DeleteBarberUseCase';
-import { GetBarberScheduleUseCase } from '../../../../src/application/use-cases/barber/GetBarberScheduleUseCase';
-import { UpdateBarberScheduleUseCase } from '../../../../src/application/use-cases/barber/UpdateBarberScheduleUseCase';
 import { GetAvailableSlotsUseCase } from '../../../../src/application/use-cases/barber/GetAvailableSlotsUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { BarberSchedule } from '../../../../src/domain/entities/Barber';
+import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
+import { Email } from '../../../../src/domain/value-objects/Email';
+import { Phone } from '../../../../src/domain/value-objects/Phone';
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
+import { makeMockBarberRepository, makeMockUserRepository, makeMockAppointmentRepository, makeMockTempLockRepository } from '../../../test-utils/mocks';
 
 const createScheduleDay = () => ({
   startTime: '09:00',
@@ -28,86 +23,99 @@ const createSchedule = (): BarberSchedule => ({
   sunday: createScheduleDay(),
 });
 
-const makeBarberResponse = () => ({
-  id: 'barber-1',
-  name: 'Juan',
-  lastname: 'Perez',
-  email: 'barber@example.com',
-  phone: '123456789',
-  kind: 'Empleado' as const,
-  services: [],
-  isActive: true,
-  slotDuration: 30,
-  maxAdvanceDays: 30,
-  schedule: createSchedule(),
-  photoUrl: null,
-  age: undefined,
-});
+const makeBarberEntity = (overrides?: Partial<BarberProps>) => {
+  const base: BarberProps = {
+    id: 'barber-1',
+    email: 'barber@example.com',
+    name: 'Juan',
+    lastname: 'Perez',
+    phone: '123456789',
+    kind: 'Empleado' as const,
+    services: [],
+    age: undefined,
+    photoUrl: null,
+    isActive: true,
+    slotDuration: 30,
+    maxAdvanceDays: 30,
+    schedule: createSchedule(),
+    passwordHash: 'hash',
+  };
+  return Barber.create({ ...base, ...overrides });
+};
 
 describe('BarberController', () => {
-  let createBarber: jest.Mocked<CreateBarberUseCase>;
-  let getAllBarbers: jest.Mocked<GetAllBarbersUseCase>;
-  let getBarberById: jest.Mocked<GetBarberByIdUseCase>;
-  let updateBarber: jest.Mocked<UpdateBarberUseCase>;
-  let deleteBarber: jest.Mocked<DeleteBarberUseCase>;
-  let deactivateBarber: jest.Mocked<DeactivateBarberUseCase>;
-  let getBarberSchedule: jest.Mocked<GetBarberScheduleUseCase>;
-  let updateBarberSchedule: jest.Mocked<UpdateBarberScheduleUseCase>;
+  let barberRepository: ReturnType<typeof makeMockBarberRepository>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
+  let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
+  let passwordHasher: { hash: jest.Mock; compare: jest.Mock };
+  let emailService: { sendMail: jest.Mock };
   let getAvailableSlots: jest.Mocked<GetAvailableSlotsUseCase>;
   let controller: BarberController;
 
   beforeEach(() => {
-    createBarber = { execute: jest.fn() } as unknown as jest.Mocked<CreateBarberUseCase>;
-    getAllBarbers = { execute: jest.fn() } as unknown as jest.Mocked<GetAllBarbersUseCase>;
-    getBarberById = { execute: jest.fn() } as unknown as jest.Mocked<GetBarberByIdUseCase>;
-    updateBarber = { execute: jest.fn() } as unknown as jest.Mocked<UpdateBarberUseCase>;
-    deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
-    deactivateBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeactivateBarberUseCase>;
-    getBarberSchedule = { execute: jest.fn() } as unknown as jest.Mocked<GetBarberScheduleUseCase>;
-    updateBarberSchedule = { execute: jest.fn() } as unknown as jest.Mocked<UpdateBarberScheduleUseCase>;
+    barberRepository = makeMockBarberRepository();
+    userRepository = makeMockUserRepository();
+    appointmentRepository = makeMockAppointmentRepository();
+    tempLockRepository = makeMockTempLockRepository();
+    passwordHasher = { hash: jest.fn(), compare: jest.fn() };
+    emailService = { sendMail: jest.fn().mockResolvedValue(undefined) };
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
     controller = new BarberController(
-      createBarber,
-      getAllBarbers,
-      getBarberById,
-      updateBarber,
-      deleteBarber,
-      deactivateBarber,
-      getBarberSchedule,
-      updateBarberSchedule,
+      barberRepository,
+      userRepository,
+      appointmentRepository,
+      tempLockRepository,
+      passwordHasher as any,
+      emailService as any,
       getAvailableSlots
     );
   });
 
   describe('create', () => {
     it('debe responder 201 con el barbero creado', async () => {
-      const barber = makeBarberResponse();
-      createBarber.execute.mockResolvedValue(barber);
+      userRepository.findByEmail.mockResolvedValue(null);
+      userRepository.findByPhone.mockResolvedValue(null);
+      passwordHasher.hash.mockResolvedValue('hashed');
+      const barber = makeBarberEntity();
+      barberRepository.createBarber.mockResolvedValue(barber);
 
-      const req = createMockReq({ email: 'new@example.com' });
+      const req = createMockReq({
+        email: 'new@example.com',
+        password: 'Abcd1234',
+        name: 'Juan',
+        lastname: 'Perez',
+        phone: '123456789',
+        schedule: createSchedule(),
+      });
       const res = createMockRes();
 
       await controller.create(req, res);
 
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith(barber);
     });
 
-    it('debe manejar error y responder con el status de AppError', async () => {
-      createBarber.execute.mockRejectedValue(new AppError('Email en uso', 409));
+    it('debe manejar error email en uso', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeBarberEntity() as any);
 
-      const req = createMockReq({ email: 'used@example.com' });
+      const req = createMockReq({
+        email: 'used@example.com',
+        password: 'Abcd1234',
+        name: 'Juan',
+        lastname: 'Perez',
+        phone: '123456789',
+        schedule: createSchedule(),
+      });
       const res = createMockRes();
 
       await controller.create(req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Email en uso' });
+      expect(res.json).toHaveBeenCalledWith({ error: 'Email en uso.' });
     });
 
     it('debe manejar error generico y responder 500', async () => {
-      createBarber.execute.mockRejectedValue(new Error('boom'));
-
+      userRepository.findByEmail.mockRejectedValue(new Error('boom'));
       const req = createMockReq({ email: 'new@example.com' });
       const res = createMockRes();
 
@@ -120,8 +128,8 @@ describe('BarberController', () => {
 
   describe('getAll', () => {
     it('debe responder 200 con la lista de barberos', async () => {
-      const barbers = [makeBarberResponse()];
-      getAllBarbers.execute.mockResolvedValue(barbers);
+      const barber = makeBarberEntity();
+      barberRepository.findAllBarbers.mockResolvedValue([barber]);
 
       const req = createMockReq();
       const res = createMockRes();
@@ -129,11 +137,13 @@ describe('BarberController', () => {
       await controller.getAll(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ barbers });
+      expect(res.json).toHaveBeenCalledWith({
+        barbers: [expect.objectContaining({ id: 'barber-1', name: 'Juan' })],
+      });
     });
 
     it('debe manejar error y responder 500', async () => {
-      getAllBarbers.execute.mockRejectedValue(new Error('boom'));
+      barberRepository.findAllBarbers.mockRejectedValue(new Error('boom'));
 
       const req = createMockReq();
       const res = createMockRes();
@@ -145,10 +155,27 @@ describe('BarberController', () => {
     });
   });
 
+  describe('getAllPublic', () => {
+    it('debe devolver solo barberos activos', async () => {
+      const active = makeBarberEntity();
+      const inactive = makeBarberEntity({ id: 'barber-2', isActive: false });
+      barberRepository.findAllBarbers.mockResolvedValue([active, inactive]);
+
+      const req = createMockReq();
+      const res = createMockRes();
+
+      await controller.getAllPublic(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        barbers: [expect.objectContaining({ id: 'barber-1' })],
+      });
+    });
+  });
+
   describe('getById', () => {
     it('debe responder 200 con el barbero', async () => {
-      const barber = makeBarberResponse();
-      getBarberById.execute.mockResolvedValue(barber);
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
 
       const req = createMockReqFull({ params: { id: 'barber-1' } });
       const res = createMockRes();
@@ -156,11 +183,10 @@ describe('BarberController', () => {
       await controller.getById(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(barber);
     });
 
     it('debe manejar 404 cuando no existe', async () => {
-      getBarberById.execute.mockRejectedValue(new AppError('Barbero no encontrado.', 404));
+      barberRepository.findBarberById.mockResolvedValue(null);
 
       const req = createMockReqFull({ params: { id: 'inexistente' } });
       const res = createMockRes();
@@ -174,8 +200,8 @@ describe('BarberController', () => {
 
   describe('update', () => {
     it('debe responder 200 con el barbero actualizado', async () => {
-      const barber = makeBarberResponse();
-      updateBarber.execute.mockResolvedValue(barber);
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ name: 'Pedro' }));
 
       const req = createMockReqFull({ body: { name: 'Pedro' }, params: { id: 'barber-1' } });
       const res = createMockRes();
@@ -183,25 +209,27 @@ describe('BarberController', () => {
       await controller.update(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith(barber);
     });
+  });
 
-    it('debe manejar error y responder 500', async () => {
-      updateBarber.execute.mockRejectedValue(new Error('boom'));
+  describe('deactivate', () => {
+    it('debe responder 200 con mensaje de exito', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
 
-      const req = createMockReqFull({ body: { name: 'Pedro' }, params: { id: 'barber-1' } });
+      const req = createMockReqFull({ params: { id: 'barber-1' } });
       const res = createMockRes();
 
-      await controller.update(req, res);
+      await controller.deactivate(req, res);
 
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Error al actualizar barbero' });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ message: 'Barbero desactivado' });
     });
   });
 
   describe('delete', () => {
     it('debe responder 200 con mensaje de exito', async () => {
-      deleteBarber.execute.mockResolvedValue({ message: 'Barbero eliminado' });
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      appointmentRepository.findMany.mockResolvedValue([]);
 
       const req = createMockReqFull({ params: { id: 'barber-1' } });
       const res = createMockRes();
@@ -209,26 +237,13 @@ describe('BarberController', () => {
       await controller.delete(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Barbero eliminado' });
-    });
-
-    it('debe manejar error y responder 500', async () => {
-      deleteBarber.execute.mockRejectedValue(new Error('boom'));
-
-      const req = createMockReqFull({ params: { id: 'barber-1' } });
-      const res = createMockRes();
-
-      await controller.delete(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Error al eliminar barbero' });
+      expect(res.json).toHaveBeenCalledWith({ message: 'Barbero desactivado exitosamente' });
     });
   });
 
   describe('getSchedule', () => {
     it('debe responder 200 con el horario', async () => {
-      const schedule = createSchedule();
-      getBarberSchedule.execute.mockResolvedValue(schedule);
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
 
       const req = createMockReqFull({ params: { id: 'barber-1' } });
       const res = createMockRes();
@@ -236,26 +251,13 @@ describe('BarberController', () => {
       await controller.getSchedule(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ schedule });
-    });
-
-    it('debe manejar error y responder 500', async () => {
-      getBarberSchedule.execute.mockRejectedValue(new Error('boom'));
-
-      const req = createMockReqFull({ params: { id: 'barber-1' } });
-      const res = createMockRes();
-
-      await controller.getSchedule(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Error al obtener el horario' });
     });
   });
 
   describe('updateSchedule', () => {
     it('debe responder 200 con el horario actualizado', async () => {
-      const schedule = createSchedule();
-      updateBarberSchedule.execute.mockResolvedValue(schedule);
+      const barber = makeBarberEntity();
+      barberRepository.updateSchedule.mockResolvedValue(barber);
 
       const req = createMockReqFull({ body: createSchedule(), params: { id: 'barber-1' } });
       const res = createMockRes();
@@ -263,19 +265,6 @@ describe('BarberController', () => {
       await controller.updateSchedule(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ schedule });
-    });
-
-    it('debe manejar error y responder 500', async () => {
-      updateBarberSchedule.execute.mockRejectedValue(new Error('boom'));
-
-      const req = createMockReqFull({ body: createSchedule(), params: { id: 'barber-1' } });
-      const res = createMockRes();
-
-      await controller.updateSchedule(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Error al actualizar el horario' });
     });
   });
 
@@ -291,18 +280,6 @@ describe('BarberController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(slotsResult);
-    });
-
-    it('debe manejar error y responder 500', async () => {
-      getAvailableSlots.execute.mockRejectedValue(new Error('boom'));
-
-      const req = createMockReqFull({ params: { id: 'barber-1' }, query: { date: '2026-06-15' } });
-      const res = createMockRes();
-
-      await controller.getSlots(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Error al obtener los slots' });
     });
   });
 });

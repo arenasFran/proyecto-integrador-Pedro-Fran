@@ -1,7 +1,5 @@
 import { RegisterUserUseCase } from '../../../../src/application/use-cases/auth/RegisterUserUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
-import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 import { makeMockUserRepository, makeMockAppointmentRepository, makeMockPasswordHasher } from '../../../test-utils/mocks';
@@ -22,8 +20,8 @@ describe('RegisterUserUseCase', () => {
     return overrides ? User.create({ ...user.toPrimitives(), ...overrides }) : user;
   };
 
-  let userRepository: jest.Mocked<IUserRepository>;
-  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
   let useCase: RegisterUserUseCase;
 

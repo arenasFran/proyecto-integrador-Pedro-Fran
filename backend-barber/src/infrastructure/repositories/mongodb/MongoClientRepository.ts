@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
 import { Client } from '../../../domain/entities/Client';
-import {
-  IClientRepository,
-  UnregisteredClientData,
-} from '../../../domain/repositories/IClientRepository';
 import { UnregisteredClient } from './models/client.model';
+
+export type UnregisteredClientData = {
+  name: string;
+  lastname: string;
+  phone?: string;
+  contactEmail?: string;
+};
 
 const toClientEntity = (doc: Record<string, any>): Client =>
   Client.create({
@@ -16,7 +19,7 @@ const toClientEntity = (doc: Record<string, any>): Client =>
     kind: doc.kind || 'NoRegistrado',
   });
 
-export class MongoClientRepository implements IClientRepository {
+export class MongoClientRepository {
   async findByEmail(email: string): Promise<Client | null> {
     const doc = await UnregisteredClient.findOne({ contactEmail: email }).lean();
     if (!doc) return null;

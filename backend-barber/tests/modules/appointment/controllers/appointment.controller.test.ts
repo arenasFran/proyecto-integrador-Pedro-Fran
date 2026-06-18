@@ -1,40 +1,32 @@
 import { AppointmentController } from '../../../../src/interface-adapters/controllers/appointment/AppointmentController';
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
-import { GetAppointmentsUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsUseCase';
-import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentByIdUseCase';
-import { GetAppointmentsAnonymousUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../../src/application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
+import { makeMockAppointmentRepository } from '../../../test-utils/mocks';
 
 describe('AppointmentController', () => {
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let createAppointment: jest.Mocked<CreateAppointmentUseCase>;
-  let getAppointments: jest.Mocked<GetAppointmentsUseCase>;
-  let getAppointmentById: jest.Mocked<GetAppointmentByIdUseCase>;
-  let getAppointmentsAnonymous: jest.Mocked<GetAppointmentsAnonymousUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
   let rescheduleAppointment: jest.Mocked<RescheduleAppointmentUseCase>;
   let controller: AppointmentController;
 
   beforeEach(() => {
+    appointmentRepository = makeMockAppointmentRepository();
     createAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CreateAppointmentUseCase>;
-    getAppointments = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentsUseCase>;
-    getAppointmentById = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentByIdUseCase>;
-    getAppointmentsAnonymous = { execute: jest.fn() } as unknown as jest.Mocked<GetAppointmentsAnonymousUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
     rescheduleAppointment = { execute: jest.fn() } as unknown as jest.Mocked<RescheduleAppointmentUseCase>;
     controller = new AppointmentController(
+      appointmentRepository,
       createAppointment,
-      getAppointments,
-      getAppointmentById,
       cancelAppointment,
       updateAppointmentStatus,
-      rescheduleAppointment,
-      getAppointmentsAnonymous
+      rescheduleAppointment
     );
   });
 
@@ -92,7 +84,7 @@ describe('AppointmentController', () => {
 
   describe('getAll', () => {
     it('debe listar turnos del cliente autenticado', async () => {
-      getAppointments.execute.mockResolvedValue({ appointments: [] });
+      appointmentRepository.findMany.mockResolvedValue([]);
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).query = {};
@@ -100,14 +92,14 @@ describe('AppointmentController', () => {
 
       await controller.getAll(req, res);
 
-      expect(getAppointments.execute).toHaveBeenCalledWith(
+      expect(appointmentRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ clientId: 'client-1' })
       );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe permitir que admin filtre por barberId', async () => {
-      getAppointments.execute.mockResolvedValue({ appointments: [] });
+      appointmentRepository.findMany.mockResolvedValue([]);
       const req = createMockReq();
       (req as any).user = { _id: 'admin-1', kind: 'Admin' };
       (req as any).query = { barberId: 'barber-1' };
@@ -115,14 +107,14 @@ describe('AppointmentController', () => {
 
       await controller.getAll(req, res);
 
-      expect(getAppointments.execute).toHaveBeenCalledWith(
+      expect(appointmentRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ barberId: 'barber-1' })
       );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe manejar error al listar turnos', async () => {
-      getAppointments.execute.mockRejectedValue(new Error('boom'));
+      appointmentRepository.findMany.mockRejectedValue(new Error('boom'));
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).query = {};
@@ -136,9 +128,9 @@ describe('AppointmentController', () => {
 
   describe('getById', () => {
     it('debe obtener turno por id y responder 200', async () => {
-      getAppointmentById.execute.mockResolvedValue({
-        appointment: { id: 'apt-1' } as any,
-      });
+      appointmentRepository.findById.mockResolvedValue({
+        props: { id: 'apt-1', clientId: 'client-1' },
+      } as any);
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };
@@ -146,16 +138,26 @@ describe('AppointmentController', () => {
 
       await controller.getById(req, res);
 
-      expect(getAppointmentById.execute).toHaveBeenCalledWith(
-        'apt-1', 'client-1', 'Registrado'
-      );
+      expect(appointmentRepository.findById).toHaveBeenCalledWith('apt-1');
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
+    it('debe manejar 404 si no existe', async () => {
+      appointmentRepository.findById.mockResolvedValue(null);
+      const req = createMockReq();
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.getById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
     it('debe manejar error de permiso', async () => {
-      getAppointmentById.execute.mockRejectedValue(
-        new AppError('No tenés permiso para ver este turno.', 403)
-      );
+      appointmentRepository.findById.mockResolvedValue({
+        props: { id: 'apt-1', clientId: 'other-user' },
+      } as any);
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };
@@ -199,7 +201,7 @@ describe('AppointmentController', () => {
   describe('updateStatus', () => {
     it('debe actualizar estado y responder 200', async () => {
       updateAppointmentStatus.execute.mockResolvedValue({ message: 'Estado actualizado' });
-      const req = createMockReq({ status: 'Confirmado' });
+      const req = createMockReq({ status: 'Completado' });
       (req as any).user = { _id: 'admin-1', kind: 'Admin' };
       (req as any).params = { id: 'apt-1' };
       const res = createMockRes();
@@ -207,14 +209,14 @@ describe('AppointmentController', () => {
       await controller.updateStatus(req, res);
 
       expect(updateAppointmentStatus.execute).toHaveBeenCalledWith(
-        'apt-1', { status: 'Confirmado' }, 'admin-1', 'Admin'
+        'apt-1', { status: 'Completado' }, 'admin-1', 'Admin'
       );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe manejar error al actualizar estado', async () => {
       updateAppointmentStatus.execute.mockRejectedValue(new AppError('Turno no encontrado', 404));
-      const req = createMockReq({ status: 'Confirmado' });
+      const req = createMockReq({ status: 'Completado' });
       (req as any).user = { _id: 'admin-1', kind: 'Admin' };
       (req as any).params = { id: 'apt-1' };
       const res = createMockRes();
@@ -270,34 +272,44 @@ describe('AppointmentController', () => {
 
   describe('getAnonymous', () => {
     it('debe devolver turnos del anonimo', async () => {
-      getAppointmentsAnonymous.execute.mockResolvedValue({ appointments: [] });
+      appointmentRepository.findMany.mockResolvedValue([]);
       const req = createMockReq();
       (req as any).query = { email: 'juan@test.com' };
       const res = createMockRes();
 
       await controller.getAnonymous(req, res);
 
-      expect(getAppointmentsAnonymous.execute).toHaveBeenCalledWith(
+      expect(appointmentRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ clientEmail: 'juan@test.com' })
       );
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe pasar date si se proporciona', async () => {
-      getAppointmentsAnonymous.execute.mockResolvedValue({ appointments: [] });
+      appointmentRepository.findMany.mockResolvedValue([]);
       const req = createMockReq();
       (req as any).query = { email: 'juan@test.com', date: '2099-01-01' };
       const res = createMockRes();
 
       await controller.getAnonymous(req, res);
 
-      expect(getAppointmentsAnonymous.execute).toHaveBeenCalledWith(
+      expect(appointmentRepository.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ date: '2099-01-01' })
       );
     });
 
+    it('debe fallar si no hay email ni phone', async () => {
+      const req = createMockReq();
+      (req as any).query = {};
+      const res = createMockRes();
+
+      await controller.getAnonymous(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
     it('debe manejar error', async () => {
-      getAppointmentsAnonymous.execute.mockRejectedValue(new AppError('Error', 400));
+      appointmentRepository.findMany.mockRejectedValue(new AppError('Error', 400));
       const req = createMockReq();
       (req as any).query = { email: 'juan@test.com' };
       const res = createMockRes();

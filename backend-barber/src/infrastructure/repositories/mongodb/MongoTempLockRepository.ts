@@ -1,8 +1,16 @@
 import mongoose, { ClientSession } from 'mongoose';
-import { ITempLockRepository, TempLockData, TempLockWithId } from '../../../domain/repositories/ITempLockRepository';
 import TempLockModel from './models/tempLock.model';
 
-export class MongoTempLockRepository implements ITempLockRepository {
+export type TempLockData = {
+  barberId: string;
+  date: string;
+  startTime: string;
+  clientId?: string;
+};
+
+export type TempLockWithId = TempLockData & { id: string };
+
+export class MongoTempLockRepository {
   async create(data: TempLockData): Promise<string> {
     try {
       const doc = await TempLockModel.create({

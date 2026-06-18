@@ -1,8 +1,7 @@
 import { Service } from '../../../domain/entities/Service';
-import { IServiceRepository } from '../../../domain/repositories/IServiceRepository';
 import { SERVICES } from '../../config/services';
 
-export class StaticServiceRepository implements IServiceRepository {
+export class StaticServiceRepository {
   async findAll(): Promise<Service[]> {
     return SERVICES.map((data) => Service.create(data));
   }

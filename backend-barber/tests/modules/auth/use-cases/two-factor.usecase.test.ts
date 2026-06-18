@@ -1,16 +1,12 @@
 import { SendTwoFactorCodeUseCase } from '../../../../src/application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../../../../src/application/use-cases/auth/VerifyTwoFactorUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IRefreshTokenRepository } from '../../../../src/domain/repositories/IRefreshTokenRepository';
-import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
-import { IRandomGenerator } from '../../../../src/application/ports/IRandomGenerator';
 import { IHashService } from '../../../../src/application/ports/IHashService';
-import { IDateTimeProvider } from '../../../../src/application/ports/IDateTimeProvider';
 import { ITokenService } from '../../../../src/application/ports/ITokenService';
 import { User, UserProps } from '../../../../src/domain/entities/User';
-import { makeMockUserRepository, makeMockPasswordHasher, makeMockEmailService, makeMockRandomGenerator, makeMockHashService, makeMockDateTimeProvider, makeMockTokenService, makeMockRefreshTokenRepository } from '../../../test-utils/mocks';
+import { makeMockUserRepository, makeMockPasswordHasher, makeMockEmailService, makeMockHashService, makeMockTokenService, makeMockRefreshTokenRepository } from '../../../test-utils/mocks';
 
 describe('TwoFactor use cases', () => {
   const now = new Date('2024-01-01T10:00:00.000Z');
@@ -34,22 +30,18 @@ describe('TwoFactor use cases', () => {
     return overrides ? User.create({ ...user.toPrimitives(), ...overrides }) : user;
   };
 
-  let userRepository: jest.Mocked<IUserRepository>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
   let emailService: jest.Mocked<IEmailService>;
-  let randomGenerator: jest.Mocked<IRandomGenerator>;
   let hashService: jest.Mocked<IHashService>;
-  let dateTimeProvider: jest.Mocked<IDateTimeProvider>;
   let tokenService: jest.Mocked<ITokenService>;
-  let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
+  let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
 
   beforeEach(() => {
     userRepository = makeMockUserRepository();
     passwordHasher = makeMockPasswordHasher();
     emailService = makeMockEmailService();
-    randomGenerator = makeMockRandomGenerator();
     hashService = makeMockHashService();
-    dateTimeProvider = makeMockDateTimeProvider();
     tokenService = makeMockTokenService();
     refreshTokenRepository = makeMockRefreshTokenRepository();
   });
@@ -61,9 +53,7 @@ describe('TwoFactor use cases', () => {
         userRepository,
         passwordHasher,
         emailService,
-        randomGenerator,
-        hashService,
-        dateTimeProvider
+        hashService
       );
 
       await expect(
@@ -77,9 +67,7 @@ describe('TwoFactor use cases', () => {
         userRepository,
         passwordHasher,
         emailService,
-        randomGenerator,
-        hashService,
-        dateTimeProvider
+        hashService
       );
 
       await expect(
@@ -94,9 +82,7 @@ describe('TwoFactor use cases', () => {
         userRepository,
         passwordHasher,
         emailService,
-        randomGenerator,
-        hashService,
-        dateTimeProvider
+        hashService
       );
 
       await expect(
@@ -107,17 +93,14 @@ describe('TwoFactor use cases', () => {
     it('debe enviar el codigo y actualizar 2FA', async () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
       passwordHasher.compare.mockResolvedValue(true);
-      randomGenerator.generateNumericCode.mockReturnValue('123456');
       hashService.sha256.mockReturnValue('hash-2fa');
-      dateTimeProvider.now.mockReturnValue(now);
+      jest.useFakeTimers({ now: now });
 
       const useCase = new SendTwoFactorCodeUseCase(
         userRepository,
         passwordHasher,
         emailService,
-        randomGenerator,
-        hashService,
-        dateTimeProvider
+        hashService
       );
 
       const result = await useCase.execute({
@@ -139,6 +122,7 @@ describe('TwoFactor use cases', () => {
         })
       );
       expect(result.message).toMatch(/Código enviado/);
+      jest.useRealTimers();
     });
   });
 
@@ -149,7 +133,6 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider,
         refreshTokenRepository
       );
 
@@ -166,7 +149,6 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider,
         refreshTokenRepository
       );
 
@@ -184,12 +166,11 @@ describe('TwoFactor use cases', () => {
           },
         })
       );
-      dateTimeProvider.now.mockReturnValue(now);
+      jest.useFakeTimers({ now: now });
       const useCase = new VerifyTwoFactorUseCase(
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider,
         refreshTokenRepository
       );
 
@@ -200,29 +181,30 @@ describe('TwoFactor use cases', () => {
         'user-1',
         { codeHash: undefined, expiresAt: undefined }
       );
+      jest.useRealTimers();
     });
 
     it('debe fallar si el codigo es incorrecto', async () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
-      dateTimeProvider.now.mockReturnValue(now);
+      jest.useFakeTimers({ now: now });
       hashService.sha256.mockReturnValue('hash-diferente');
       hashService.constantTimeEqual.mockReturnValue(false);
       const useCase = new VerifyTwoFactorUseCase(
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider,
         refreshTokenRepository
       );
 
       await expect(
         useCase.execute({ email: 'test@example.com', code: '123456' })
       ).rejects.toBeInstanceOf(AppError);
+      jest.useRealTimers();
     });
 
     it('debe devolver token cuando el codigo es correcto', async () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
-      dateTimeProvider.now.mockReturnValue(now);
+      jest.useFakeTimers({ now: now });
       hashService.sha256.mockReturnValue('hash-2fa');
       hashService.constantTimeEqual.mockReturnValue(true);
       tokenService.signAccessToken.mockReturnValue('token');
@@ -231,7 +213,6 @@ describe('TwoFactor use cases', () => {
         userRepository,
         tokenService,
         hashService,
-        dateTimeProvider,
         refreshTokenRepository
       );
 
@@ -243,6 +224,7 @@ describe('TwoFactor use cases', () => {
       );
       expect(userRepository.updateLastLogin).toHaveBeenCalledWith('user-1');
       expect(result).toEqual({ message: 'Login exitoso', token: 'token', refreshToken: 'refresh-token' });
+      jest.useRealTimers();
     });
   });
 });

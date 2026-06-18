@@ -45,12 +45,17 @@ classDiagram
             +isActive: boolean
             +slotDuration: number
             +schedule: BarberSchedule
+            +maxAdvanceDays: number
             +passwordHash: string
             +create(props) Barber
             +toPrimitives() BarberProps
         }
         class Client {
             <<entity>>
+            +id: string
+            +name: string
+            +lastname: string
+            +phone: string
             +contactEmail: string
             +kind: ClientKind
             +create(props) Client
@@ -73,23 +78,30 @@ classDiagram
             +startTime: string
             +endTime: string
             +status: AppointmentStatus
+            +paymentStatus: PaymentStatus
+            +paymentMethod: PaymentMethod
             +cancelReason: string
             +cancelledAt: Date
+            +cancelledBy: string
+            +createdBy: CreatedBy
+            +statusHistory: StatusHistoryEntry[]
             +createdAt: Date
             +updatedAt: Date
             +create(props) Appointment
-            +cancel(reason)
-            +confirm()
-            +complete()
+            +cancel(reason, cancelledBy)
+            +pay(actor)
+            +complete(actor)
+            +markNoShow(actor)
+            +addStatusHistoryEntry(status, actor)
             +toPrimitives() AppointmentPrimitives
         }
         class Service {
             <<entity>>
             +id: string
             +name: string
-            +duration: number
+            +description: string
             +price: number
-            +isActive: boolean
+            +imageUrl: string
         }
         class RefreshToken {
             <<entity>>
@@ -141,14 +153,22 @@ classDiagram
         }
         class AppointmentStatus {
             <<type>>
-            'Pendiente' | 'Confirmado' | 'Cancelado' | 'Completado'
+            'Confirmado' | 'Completado' | 'Cancelado' | 'NoShow'
         }
         class VALID_TRANSITIONS {
             <<const>>
-            Pendiente: ['Confirmado', 'Cancelado']
-            Confirmado: ['Completado', 'Cancelado']
-            Cancelado: []
+            Confirmado: ['Completado', 'Cancelado', 'NoShow']
             Completado: []
+            Cancelado: []
+            NoShow: []
+        }
+        class PaymentStatus {
+            <<type>>
+            'Pendiente' | 'Pagado'
+        }
+        class PaymentMethod {
+            <<type>>
+            'local' | 'online' | 'memberPass'
         }
         class AuthTypes {
             <<type>>
@@ -222,16 +242,14 @@ classDiagram
         }
         class ITempLockRepository {
             <<interface>>
-            +create(data) void
+            +create(data) string
             +deleteMany(filter) void
             +deleteOne(barberId, date, startTime) void
+            +deleteById(id) void
             +findByBarberAndDate(barberId, date) TempLockData[]
+            +findById(id) TempLockWithId
         }
     }
-
-    %% Domain Inheritance
-    Barber --|> User : extends
-    Client --|> User : extends
 
     %% Domain Associations
     Appointment --> Barber : barberId >
@@ -382,7 +400,19 @@ classDiagram
         class CreateTempLockUseCase {
             +execute(dto) void
         }
-        class GetCurrentUserUseCase {
+        class GetAppointmentsAnonymousUseCase {
+            +execute(dto) AppointmentResponseDTO[]
+        }
+        class ReleaseTempLockUseCase {
+            +execute(tempLockId) void
+        }
+        class         GetAppointmentsAnonymousUseCase {
+            +execute(dto) AppointmentResponseDTO[]
+        }
+        ReleaseTempLockUseCase {
+            +execute(tempLockId) void
+        }
+        GetCurrentUserUseCase {
             +execute(userId) User
         }
     }
@@ -521,6 +551,7 @@ classDiagram
         class AuthController {
             +register(req, res) Response
             +refresh(req, res) Response
+            +logout(req, res) Response
         }
         class AuthGoogleController {
             +googleLogin(req, res) Response
@@ -552,12 +583,14 @@ classDiagram
             +cancel(req, res) Response
             +updateStatus(req, res) Response
             +reschedule(req, res) Response
+            +getAnonymous(req, res) Response
         }
         class ServiceController {
             +getAll(req, res) Response
         }
         class TempLockController {
             +create(req, res) Response
+            +release(req, res) Response
         }
         class UserController {
             +getMe(req, res) Response
@@ -696,6 +729,8 @@ classDiagram
     GetAvailableSlotsUseCase --> ITempLockRepository : depends
     GetAllServicesUseCase --> IServiceRepository : depends
     CreateTempLockUseCase --> ITempLockRepository : depends
+    GetAppointmentsAnonymousUseCase --> IAppointmentRepository : depends
+    ReleaseTempLockUseCase --> ITempLockRepository : depends
     GetCurrentUserUseCase --> IUserRepository : depends
 ```
 
@@ -718,12 +753,12 @@ classDiagram
         }
         class MongoBarberRepository {
             -BarberModel: Model
-            +findEmployeeById(id) Barber
-            +findAllEmployees() Barber[]
-            +createEmployee(barber) Barber
-            +updateEmployee(id, update) Barber
-            +deactivateEmployee(id) void
-            +deleteEmployee(id) void
+            +findBarberById(id) Barber
+            +findAllBarbers() Barber[]
+            +createBarber(barber) Barber
+            +updateBarber(id, update) Barber
+            +deactivateBarber(id) void
+            +deleteBarber(id) void
             +updateSchedule(id, schedule) Barber
         }
         class MongoClientRepository {
@@ -868,6 +903,7 @@ classDiagram
         class AuthController {
             +register(req, res) Response
             +refresh(req, res) Response
+            +logout(req, res) Response
         }
         class AuthGoogleController {
             +googleLogin(req, res) Response
@@ -899,12 +935,14 @@ classDiagram
             +cancel(req, res) Response
             +updateStatus(req, res) Response
             +reschedule(req, res) Response
+            +getAnonymous(req, res) Response
         }
         class ServiceController {
             +getAll(req, res) Response
         }
         class TempLockController {
             +create(req, res) Response
+            +release(req, res) Response
         }
         class UserController {
             +getMe(req, res) Response
@@ -960,8 +998,10 @@ classDiagram
     AppointmentController --> CancelAppointmentUseCase : executes
     AppointmentController --> UpdateAppointmentStatusUseCase : executes
     AppointmentController --> RescheduleAppointmentUseCase : executes
+    AppointmentController --> GetAppointmentsAnonymousUseCase : executes
     ServiceController --> GetAllServicesUseCase : executes
     TempLockController --> CreateTempLockUseCase : executes
+    TempLockController --> ReleaseTempLockUseCase : executes
     UserController --> GetCurrentUserUseCase : executes
 
     %% Controller → Presenter
@@ -982,12 +1022,12 @@ classDiagram
 
 El Nivel 4 expone la estructura de clases concreta del backend siguiendo Clean Architecture. Se destacan:
 
-- **Herencia por discriminador:** `Barber` (kind `Admin`|`Empleado`) y `Client` (kind `Registrado`|`NoRegistrado`) extienden `User` mapeado vía Mongoose discriminators a las colecciones `users`, `barbers` y `clients`.
-- **Inversión de dependencias:** Los 26 `UseCases` en `application/` dependen de interfaces definidas en `domain/repositories/` y `application/ports/`. La capa `infrastructure/` las implementa sin que el core de negocio conozca detalles de MongoDB, JWT, bcrypt o Nodemailer.
+- **Entidades standalone:** `Barber` y `Client` son entidades independientes (no heredan de `User`). Comparten campos comunes pero no hay herencia por discriminador. `User` se usa para usuarios del sistema con autenticación; `Barber` y `Client` son tipos separados que se persisten en colecciones distintas.
+- **Inversión de dependencias:** Los 28 `UseCases` en `application/` dependen de interfaces definidas en `domain/repositories/` y `application/ports/`. La capa `infrastructure/` las implementa sin que el core de negocio conozca detalles de MongoDB, JWT, bcrypt o Nodemailer.
 - **Mappers como traducción:** Los repositorios de infraestructura usan `*Mapper` para convertir entre documentos de Mongoose y entidades de dominio, manteniendo el dominio puro (sin acoplamiento a la ODM).
 - **Controllers como orquestadores HTTP:** Los controladores reciben `req/res` de Express, ejecutan un caso de uso y delegan la respuesta en un `Presenter`.
 - **Wiring (no visible en clases):** Los módulos en `wiring/` construyen manualmente cada controlador inyectándole sus dependencias (use cases, repositorios, servicios) sin contenedor IoC.
-- **Domain types:** `appointment.ts` define la máquina de estados `VALİD_TRANSITIONS` que los use cases deben respetar. `auth.ts` define tipos `AuthProvider`, `BarberKind`, `ClientKind` y `AuthKind` (`Admin` | `Empleado` | `Registrado`), que reemplazó a `UserRole` en la entidad `User`.
+- **Domain types:** `appointment.ts` define la máquina de estados `VALID_TRANSITIONS` con estados `Confirmado`, `Completado`, `Cancelado` y `NoShow`, más `PaymentStatus` (`Pendiente`|`Pagado`), `PaymentMethod` (`local`|`online`|`memberPass`) y `StatusHistoryEntry`. `auth.ts` define tipos `AuthProvider`, `BarberKind`, `ClientKind` y `AuthKind` (`Admin` | `Empleado` | `Registrado`), que reemplazó a `UserRole` en la entidad `User`.
 - **Autenticación en 2 pasos (2FA obligatorio):** No hay un endpoint `/login`. El flujo es: `POST /auth/2fa/send` (valida credenciales + envía código) → `POST /auth/2fa/verify` (valida código + emite tokens). Esto está orquestado por `SendTwoFactorCodeUseCase` y `VerifyTwoFactorUseCase`.
 - **Refresh Token Rotation:** `RefreshTokenUseCase` revoca el token anterior al refrescar. Si se reutiliza un token ya revocado, se revocan **todos** los tokens del usuario (detección de robo).
 - **Anti brute-force nativo:** `VerifyTwoFactorUseCase` y `ResetPasswordUseCase` implementan lockout tras 5 intentos fallidos (15 min de bloqueo), persistido en `twoFactorLockedUntil` / `resetLockedUntil` del usuario.

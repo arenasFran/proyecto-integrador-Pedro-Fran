@@ -21,7 +21,7 @@ describe('validate', () => {
     it('debe aceptar un body valido y mutarlo con stripUnknown', async () => {
       req.body = { name: 'Juan', age: 25, extraField: 'debe ser eliminado' };
       await validate({ body: bodySchema })(req, res, next);
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(req.body).toEqual({ name: 'Juan', age: 25 });
       expect(req.body).not.toHaveProperty('extraField');
     });
@@ -53,7 +53,7 @@ describe('validate', () => {
     it('debe conservar req.body cuando no hay schema body', async () => {
       req.body = { name: 'Juan' };
       await validate({})(req, res, next);
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(req.body).toEqual({ name: 'Juan' });
     });
   });
@@ -66,7 +66,7 @@ describe('validate', () => {
     it('debe aceptar params validos y mutarlos', async () => {
       req.params = { id: 'abc-123', extra: 'debe ser eliminado' };
       await validate({ params: paramsSchema })(req, res, next);
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(req.params).toEqual({ id: 'abc-123' });
     });
 
@@ -86,7 +86,7 @@ describe('validate', () => {
     it('debe aceptar query validos y mutarlos', async () => {
       req.query = { date: '2026-06-15', extra: 'eliminado' };
       await validate({ query: querySchema })(req, res, next);
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(req.query).toEqual({ date: '2026-06-15' });
     });
 
@@ -108,7 +108,7 @@ describe('validate', () => {
       req.params = { id: 'abc' };
       req.query = { page: '1' };
       await validate({ body: bodySchema, params: paramsSchema, query: querySchema })(req, res, next);
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
       expect(req.body).toEqual({ name: 'Juan' });
       expect(req.params).toEqual({ id: 'abc' });
       expect(req.query).toEqual({ page: 1 });
@@ -149,7 +149,7 @@ describe('validate', () => {
   describe('no schemas provided', () => {
     it('debe llamar a next directamente si no se pasan schemas', async () => {
       await validate({})(req, res, next);
-      expect(next).toHaveBeenCalled();
+      expect(next).toHaveBeenCalledWith();
     });
   });
 });

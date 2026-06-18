@@ -10,6 +10,7 @@ import { IHashService } from '../../../../src/application/ports/IHashService';
 import { IDateTimeProvider } from '../../../../src/application/ports/IDateTimeProvider';
 import { ITokenService } from '../../../../src/application/ports/ITokenService';
 import { User, UserProps } from '../../../../src/domain/entities/User';
+import { makeMockUserRepository, makeMockPasswordHasher, makeMockEmailService, makeMockRandomGenerator, makeMockHashService, makeMockDateTimeProvider, makeMockTokenService, makeMockRefreshTokenRepository } from '../../../test-utils/mocks';
 
 describe('TwoFactor use cases', () => {
   const now = new Date('2024-01-01T10:00:00.000Z');
@@ -43,57 +44,14 @@ describe('TwoFactor use cases', () => {
   let refreshTokenRepository: jest.Mocked<IRefreshTokenRepository>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findById: jest.fn(),
-      findByPhone: jest.fn(),
-      createRegisteredClient: jest.fn(),
-      updatePassword: jest.fn(),
-      updateTwoFactor: jest.fn(),
-      updateLastLogin: jest.fn(),
-      updateUserSecurity: jest.fn(),
-    };
-
-    passwordHasher = {
-      hash: jest.fn(),
-      compare: jest.fn(),
-    };
-
-    emailService = {
-      sendMail: jest.fn().mockResolvedValue(undefined),
-    };
-
-    randomGenerator = {
-      generateNumericCode: jest.fn(),
-      generateHexToken: jest.fn(),
-    };
-
-    hashService = {
-      sha256: jest.fn(),
-      constantTimeEqual: jest.fn(),
-    };
-
-    dateTimeProvider = {
-      now: jest.fn(),
-    };
-
-    tokenService = {
-      sign: jest.fn(),
-      verify: jest.fn(),
-      signAccessToken: jest.fn(),
-      signRefreshToken: jest.fn(),
-      verifyAccessToken: jest.fn(),
-      verifyRefreshToken: jest.fn(),
-      signPartialToken: jest.fn(),
-      verifyPartialToken: jest.fn(),
-    };
-
-    refreshTokenRepository = {
-      create: jest.fn(),
-      findByTokenHash: jest.fn(),
-      revoke: jest.fn(),
-      revokeAllByUserId: jest.fn(),
-    };
+    userRepository = makeMockUserRepository();
+    passwordHasher = makeMockPasswordHasher();
+    emailService = makeMockEmailService();
+    randomGenerator = makeMockRandomGenerator();
+    hashService = makeMockHashService();
+    dateTimeProvider = makeMockDateTimeProvider();
+    tokenService = makeMockTokenService();
+    refreshTokenRepository = makeMockRefreshTokenRepository();
   });
 
   describe('SendTwoFactorCodeUseCase', () => {
@@ -167,9 +125,20 @@ describe('TwoFactor use cases', () => {
         password: '123456',
       });
 
-      expect(userRepository.updateTwoFactor).toHaveBeenCalled();
-      expect(emailService.sendMail).toHaveBeenCalled();
-      expect(result.message).toBeTruthy();
+      expect(userRepository.updateTwoFactor).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({
+          codeHash: 'hash-2fa',
+          expiresAt: expect.any(Date),
+        })
+      );
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'test@example.com',
+          subject: 'Tu código de verificación',
+        })
+      );
+      expect(result.message).toMatch(/Código enviado/);
     });
   });
 
@@ -227,7 +196,10 @@ describe('TwoFactor use cases', () => {
       await expect(
         useCase.execute({ email: 'test@example.com', code: '123456' })
       ).rejects.toBeInstanceOf(AppError);
-      expect(userRepository.updateTwoFactor).toHaveBeenCalled();
+      expect(userRepository.updateTwoFactor).toHaveBeenCalledWith(
+        'user-1',
+        { codeHash: undefined, expiresAt: undefined }
+      );
     });
 
     it('debe fallar si el codigo es incorrecto', async () => {
@@ -265,9 +237,11 @@ describe('TwoFactor use cases', () => {
 
       const result = await useCase.execute({ email: 'test@example.com', code: '123456' });
 
-      expect(userRepository.updateTwoFactor).toHaveBeenCalled();
-      expect(userRepository.updateLastLogin).toHaveBeenCalled();
-      expect(refreshTokenRepository.create).toHaveBeenCalled();
+      expect(userRepository.updateTwoFactor).toHaveBeenCalledWith(
+        'user-1',
+        { codeHash: undefined, expiresAt: undefined }
+      );
+      expect(userRepository.updateLastLogin).toHaveBeenCalledWith('user-1');
       expect(result).toEqual({ message: 'Login exitoso', token: 'token', refreshToken: 'refresh-token' });
     });
   });

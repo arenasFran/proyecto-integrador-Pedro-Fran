@@ -5,6 +5,7 @@ import {
   createOptionalAuth,
 } from '../../../src/interface-adapters/middlewares/auth.middleware';
 import { ITokenService } from '../../../src/application/ports/ITokenService';
+import { makeMockTokenService } from '../../test-utils/mocks';
 
 describe('createAuthenticate', () => {
   let tokenService: jest.Mocked<ITokenService>;
@@ -13,16 +14,7 @@ describe('createAuthenticate', () => {
   let next: jest.Mock;
 
   beforeEach(() => {
-    tokenService = {
-      verify: jest.fn(),
-      sign: jest.fn(),
-      signAccessToken: jest.fn(),
-      signRefreshToken: jest.fn(),
-      verifyAccessToken: jest.fn(),
-      verifyRefreshToken: jest.fn(),
-      signPartialToken: jest.fn(),
-      verifyPartialToken: jest.fn(),
-    };
+    tokenService = makeMockTokenService();
     req = { headers: {}, user: undefined };
     res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     next = jest.fn();
@@ -66,7 +58,7 @@ describe('createAuthenticate', () => {
     createAuthenticate(tokenService)(req, res, next);
     expect(tokenService.verify).toHaveBeenCalledWith('token-valido');
     expect(req.user).toEqual({ _id: 'user-1', email: 'user@test.com', kind: 'Registrado' });
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 });
 
@@ -99,13 +91,13 @@ describe('authorize', () => {
   it('debe llamar a next si el kind esta incluido', () => {
     req.user = { _id: 'user-1', email: 'admin@test.com', kind: 'Admin' };
     authorize('Admin', 'Empleado')(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 
   it('debe llamar a next si el kind coincide con uno de varios', () => {
     req.user = { _id: 'user-2', email: 'emp@test.com', kind: 'Empleado' };
     authorize('Admin', 'Empleado', 'Registrado')(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 });
 
@@ -140,21 +132,21 @@ describe('authorizeSelfOrKinds', () => {
     req.user = { _id: 'admin-1', email: 'admin@test.com', kind: 'Admin' };
     req.params = { id: 'user-2' };
     authorizeSelfOrKinds('id', 'Admin')(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 
   it('debe llamar a next si el _id coincide con req.params', () => {
     req.user = { _id: 'user-1', email: 'user@test.com', kind: 'Registrado' };
     req.params = { id: 'user-1' };
     authorizeSelfOrKinds('id', 'Admin')(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 
   it('debe usar el paramKey correcto para buscar en params', () => {
     req.user = { _id: 'user-1', email: 'user@test.com', kind: 'Registrado' };
     req.params = { barberId: 'user-1' };
     authorizeSelfOrKinds('barberId', 'Admin')(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 });
 
@@ -165,16 +157,7 @@ describe('createOptionalAuth', () => {
   let next: jest.Mock;
 
   beforeEach(() => {
-    tokenService = {
-      verify: jest.fn(),
-      sign: jest.fn(),
-      signAccessToken: jest.fn(),
-      signRefreshToken: jest.fn(),
-      verifyAccessToken: jest.fn(),
-      verifyRefreshToken: jest.fn(),
-      signPartialToken: jest.fn(),
-      verifyPartialToken: jest.fn(),
-    };
+    tokenService = makeMockTokenService();
     req = { headers: {}, user: undefined };
     res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
     next = jest.fn();
@@ -182,14 +165,14 @@ describe('createOptionalAuth', () => {
 
   it('debe llamar a next si no hay header authorization', () => {
     createOptionalAuth(tokenService)(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
     expect(req.user).toBeUndefined();
   });
 
   it('debe llamar a next si el header no empieza con Bearer', () => {
     req.headers.authorization = 'Basic token123';
     createOptionalAuth(tokenService)(req, res, next);
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
     expect(req.user).toBeUndefined();
   });
 
@@ -198,7 +181,7 @@ describe('createOptionalAuth', () => {
     tokenService.verify.mockReturnValue({ id: 'user-1', email: 'user@test.com', kind: 'Registrado' });
     createOptionalAuth(tokenService)(req, res, next);
     expect(req.user).toEqual({ _id: 'user-1', email: 'user@test.com', kind: 'Registrado' });
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 
   it('debe llamar a next sin asignar req.user si el token es invalido', () => {
@@ -206,6 +189,6 @@ describe('createOptionalAuth', () => {
     tokenService.verify.mockImplementation(() => { throw new Error('Invalid'); });
     createOptionalAuth(tokenService)(req, res, next);
     expect(req.user).toBeUndefined();
-    expect(next).toHaveBeenCalled();
+    expect(next).toHaveBeenCalledWith();
   });
 });

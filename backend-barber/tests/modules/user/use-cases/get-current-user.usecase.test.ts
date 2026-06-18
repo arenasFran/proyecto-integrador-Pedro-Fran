@@ -2,6 +2,7 @@ import { GetCurrentUserUseCase } from '../../../../src/application/use-cases/use
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
 import { User, UserProps } from '../../../../src/domain/entities/User';
+import { makeMockUserRepository } from '../../../test-utils/mocks';
 
 describe('GetCurrentUserUseCase', () => {
   const makeUser = (overrides?: Partial<UserProps>) => {
@@ -21,17 +22,7 @@ describe('GetCurrentUserUseCase', () => {
   let useCase: GetCurrentUserUseCase;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findById: jest.fn(),
-      findByPhone: jest.fn(),
-      createRegisteredClient: jest.fn(),
-      updatePassword: jest.fn(),
-      updateTwoFactor: jest.fn(),
-      updateLastLogin: jest.fn(),
-      updateUserSecurity: jest.fn(),
-    };
-
+    userRepository = makeMockUserRepository();
     useCase = new GetCurrentUserUseCase(userRepository);
   });
 

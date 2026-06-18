@@ -28,12 +28,9 @@ describe('StepIndicator', () => {
     render(<StepIndicator currentStep="service" onStepClick={onStepClick} />);
 
     const stepButtons = screen.getAllByRole('button');
-    const barberButton = stepButtons.find(
-      (btn) => btn.textContent === '1'
-    );
-    if (barberButton) {
-      await user.click(barberButton);
-      expect(onStepClick).toHaveBeenCalledWith('barber');
-    }
+    // Barber step button (index 0) is rendered with a check icon when completed
+    const barberButton = stepButtons[0];
+    await user.click(barberButton);
+    expect(onStepClick).toHaveBeenCalledWith('barber');
   });
 });

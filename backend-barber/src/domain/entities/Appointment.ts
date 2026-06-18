@@ -2,8 +2,6 @@ import { AppError } from '../../application/errors/AppError';
 import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry, VALID_TRANSITIONS } from '../types/appointment';
 import { Email } from '../value-objects/Email';
 import { Phone } from '../value-objects/Phone';
-import { Price } from '../value-objects/Price';
-import { DurationMinutes } from '../value-objects/DurationMinutes';
 
 export type CreatedBy = {
   type: 'staff' | 'registered' | 'anonymous';
@@ -74,8 +72,8 @@ type AppointmentData = {
   clientEmail?: Email;
   serviceId: string;
   serviceName: string;
-  servicePrice: Price;
-  serviceDuration: DurationMinutes;
+  servicePrice: number;
+  serviceDuration: number;
   date: string;
   startTime: string;
   endTime: string;
@@ -109,8 +107,8 @@ export class Appointment {
       clientEmail: props.clientEmail ? Email.create(props.clientEmail) : undefined,
       serviceId: props.serviceId,
       serviceName: props.serviceName,
-      servicePrice: Price.create(props.servicePrice),
-      serviceDuration: DurationMinutes.create(props.serviceDuration),
+      servicePrice: props.servicePrice,
+      serviceDuration: props.serviceDuration,
       date: props.date,
       startTime: props.startTime,
       endTime: props.endTime,
@@ -164,11 +162,11 @@ export class Appointment {
   }
 
   get servicePrice(): number {
-    return this.props.servicePrice.getValue();
+    return this.props.servicePrice;
   }
 
   get serviceDuration(): number {
-    return this.props.serviceDuration.getValue();
+    return this.props.serviceDuration;
   }
 
   get date(): string {
@@ -279,8 +277,8 @@ export class Appointment {
       clientEmail: this.props.clientEmail?.getValue(),
       serviceId: this.props.serviceId,
       serviceName: this.props.serviceName,
-      servicePrice: this.props.servicePrice.getValue(),
-      serviceDuration: this.props.serviceDuration.getValue(),
+      servicePrice: this.props.servicePrice,
+      serviceDuration: this.props.serviceDuration,
       date: this.props.date,
       startTime: this.props.startTime,
       endTime: this.props.endTime,

@@ -10,6 +10,7 @@ import { IDateTimeProvider } from '../../../../src/application/ports/IDateTimePr
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { User } from '../../../../src/domain/entities/User';
 import { PasswordResetToken } from '../../../../src/domain/entities/PasswordResetToken';
+import { makeMockUserRepository, makeMockPasswordResetRepository, makeMockEmailService, makeMockRandomGenerator, makeMockHashService, makeMockDateTimeProvider, makeMockPasswordHasher } from '../../../test-utils/mocks';
 
 describe('Password reset use cases', () => {
   const now = new Date('2024-01-01T10:00:00.000Z');
@@ -36,44 +37,13 @@ describe('Password reset use cases', () => {
   let passwordHasher: jest.Mocked<IPasswordHasher>;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findById: jest.fn(),
-      findByPhone: jest.fn(),
-      createRegisteredClient: jest.fn(),
-      updatePassword: jest.fn(),
-      updateTwoFactor: jest.fn(),
-      updateLastLogin: jest.fn(),
-      updateUserSecurity: jest.fn(),
-    };
-
-    passwordResetRepository = {
-      create: jest.fn(),
-      verifyAndConsume: jest.fn(),
-    };
-
-    emailService = {
-      sendMail: jest.fn().mockResolvedValue(undefined),
-    };
-
-    randomGenerator = {
-      generateNumericCode: jest.fn(),
-      generateHexToken: jest.fn(),
-    };
-
-    hashService = {
-      sha256: jest.fn(),
-      constantTimeEqual: jest.fn(),
-    };
-
-    dateTimeProvider = {
-      now: jest.fn(),
-    };
-
-    passwordHasher = {
-      hash: jest.fn(),
-      compare: jest.fn(),
-    };
+    userRepository = makeMockUserRepository();
+    passwordResetRepository = makeMockPasswordResetRepository();
+    emailService = makeMockEmailService();
+    randomGenerator = makeMockRandomGenerator();
+    hashService = makeMockHashService();
+    dateTimeProvider = makeMockDateTimeProvider();
+    passwordHasher = makeMockPasswordHasher();
   });
 
   describe('RequestPasswordResetUseCase', () => {
@@ -117,8 +87,17 @@ describe('Password reset use cases', () => {
 
       const result = await useCase.execute({ email: 'test@example.com' });
 
-      expect(passwordResetRepository.create).toHaveBeenCalled();
-      expect(emailService.sendMail).toHaveBeenCalled();
+      expect(passwordResetRepository.create).toHaveBeenCalledWith(
+        'user-1',
+        'hash',
+        expect.any(Date)
+      );
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'test@example.com',
+          subject: 'Restablece tu contraseña',
+        })
+      );
       expect(result.message).toMatch(/Si el email existe/);
     });
   });
@@ -168,7 +147,7 @@ describe('Password reset use cases', () => {
       });
 
       expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', 'hash');
-      expect(result.message).toBeTruthy();
+      expect(result.message).toMatch(/Contraseña restablecida/);
     });
   });
 });

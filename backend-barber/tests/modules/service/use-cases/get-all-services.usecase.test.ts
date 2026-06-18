@@ -2,6 +2,7 @@ import { AppError } from '../../../../src/application/errors/AppError';
 import { GetAllServicesUseCase } from '../../../../src/application/use-cases/service/GetAllServicesUseCase';
 import { Service, ServicePrimitives } from '../../../../src/domain/entities/Service';
 import { IServiceRepository } from '../../../../src/domain/repositories/IServiceRepository';
+import { makeMockServiceRepository } from '../../../test-utils/mocks';
 
 describe('GetAllServicesUseCase', () => {
   const makeService = (overrides?: Partial<ServicePrimitives>) => {
@@ -20,11 +21,7 @@ describe('GetAllServicesUseCase', () => {
   let useCase: GetAllServicesUseCase;
 
   beforeEach(() => {
-    serviceRepository = {
-      findAll: jest.fn(),
-      findById: jest.fn(),
-    };
-
+    serviceRepository = makeMockServiceRepository();
     useCase = new GetAllServicesUseCase(serviceRepository);
   });
 
@@ -37,7 +34,7 @@ describe('GetAllServicesUseCase', () => {
 
     const result = await useCase.execute();
 
-    expect(serviceRepository.findAll).toHaveBeenCalled();
+    expect(serviceRepository.findAll).toHaveBeenCalledWith();
     expect(result).toEqual(services.map((service) => service.toPrimitives()));
   });
 

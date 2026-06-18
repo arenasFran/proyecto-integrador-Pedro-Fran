@@ -70,13 +70,14 @@ describe('TempLock routes', () => {
   it('POST debe devolver 429 si se supera el rate limit', async () => {
     createTempLock.execute.mockResolvedValue({ message: 'Slot apartado temporalmente', tempLockId: 'temp-1' });
 
-    const requests = Array.from({ length: 21 }, (_, i) =>
-      request(app)
+    const responses: any[] = [];
+    for (let i = 0; i < 21; i++) {
+      const res = await request(app)
         .post('/api/barbers/barber-1/temp-lock')
-        .send({ barberId: `barber-${i}`, date: '2026-06-20', startTime: '10:00' })
-    );
+        .send({ barberId: `barber-${i}`, date: '2026-06-20', startTime: '10:00' });
+      responses.push(res);
+    }
 
-    const responses = await Promise.all(requests);
     const tooMany = responses.find((r) => r.status === 429);
     expect(tooMany).toBeTruthy();
     expect(tooMany!.body).toEqual({ error: 'Demasiados intentos. Esperá 5 minutos.' });

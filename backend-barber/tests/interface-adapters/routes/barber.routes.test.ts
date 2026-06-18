@@ -16,6 +16,7 @@ import { DeleteBarberUseCase } from '../../../src/application/use-cases/barber/D
 import { GetBarberScheduleUseCase } from '../../../src/application/use-cases/barber/GetBarberScheduleUseCase';
 import { UpdateBarberScheduleUseCase } from '../../../src/application/use-cases/barber/UpdateBarberScheduleUseCase';
 import { GetAvailableSlotsUseCase } from '../../../src/application/use-cases/barber/GetAvailableSlotsUseCase';
+import { AppError } from '../../../src/application/errors/AppError';
 
 const createScheduleDay = () => ({
   startTime: '09:00',
@@ -179,11 +180,11 @@ describe('Barber routes', () => {
   });
 
   it('GET /api/barbers/:id debe devolver 404 si no existe', async () => {
-    getBarberById.execute.mockRejectedValue({ message: 'Barbero no encontrado.', statusCode: 404 });
+    getBarberById.execute.mockRejectedValue(new AppError('Barbero no encontrado.', 404));
 
     const response = await request(app).get('/api/barbers/inexistente');
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(404);
   });
 
   it('PUT /api/barbers/:id debe actualizar un barbero', async () => {

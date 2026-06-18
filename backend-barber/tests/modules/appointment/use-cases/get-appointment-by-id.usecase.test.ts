@@ -2,6 +2,7 @@ import { GetAppointmentByIdUseCase } from '../../../../src/application/use-cases
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
+import { makeMockAppointmentRepository } from '../../../test-utils/mocks';
 
 describe('GetAppointmentByIdUseCase', () => {
   const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
@@ -33,20 +34,7 @@ describe('GetAppointmentByIdUseCase', () => {
   let useCase: GetAppointmentByIdUseCase;
 
   beforeEach(() => {
-    appointmentRepository = {
-      findById: jest.fn(),
-      findMany: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findByClientAndDate: jest.fn(),
-      findByContactAndDate: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateStatus: jest.fn(),
-      findByClientId: jest.fn(),
-      findByContact: jest.fn(),
-      updateClientId: jest.fn(),
-    };
-
+    appointmentRepository = makeMockAppointmentRepository();
     useCase = new GetAppointmentByIdUseCase(appointmentRepository);
   });
 

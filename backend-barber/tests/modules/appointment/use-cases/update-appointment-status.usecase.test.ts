@@ -3,6 +3,7 @@ import { AppError } from '../../../../src/application/errors/AppError';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
+import { makeMockAppointmentRepository, makeMockEmailService } from '../../../test-utils/mocks';
 
 describe('UpdateAppointmentStatusUseCase', () => {
   const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
@@ -33,23 +34,8 @@ describe('UpdateAppointmentStatusUseCase', () => {
   let useCase: UpdateAppointmentStatusUseCase;
 
   beforeEach(() => {
-    appointmentRepository = {
-      findById: jest.fn(),
-      findMany: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findByClientAndDate: jest.fn(),
-      findByContactAndDate: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateStatus: jest.fn(),
-      findByClientId: jest.fn(),
-      findByContact: jest.fn(),
-      updateClientId: jest.fn(),
-    };
-
-    emailService = {
-      sendMail: jest.fn().mockResolvedValue(undefined),
-    };
+    appointmentRepository = makeMockAppointmentRepository();
+    emailService = makeMockEmailService();
 
     useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, emailService, 0);
   });

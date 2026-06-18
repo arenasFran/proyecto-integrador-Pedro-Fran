@@ -58,6 +58,6 @@ describe('BookingCalendar', () => {
     );
     expect(dayButtons.length).toBeGreaterThan(0);
     await user.click(dayButtons[0]);
-    expect(onSelectDate).toHaveBeenCalled();
+    expect(onSelectDate).toHaveBeenCalledWith(expect.any(String));
   });
 });

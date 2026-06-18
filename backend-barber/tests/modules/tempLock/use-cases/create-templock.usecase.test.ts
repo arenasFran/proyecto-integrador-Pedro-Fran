@@ -1,6 +1,7 @@
 import { CreateTempLockUseCase, CreateTempLockDTO } from '../../../../src/application/use-cases/tempLock/CreateTempLockUseCase';
 import { ITempLockRepository } from '../../../../src/domain/repositories/ITempLockRepository';
 import { AppError } from '../../../../src/application/errors/AppError';
+import { makeMockTempLockRepository } from '../../../test-utils/mocks';
 
 describe('CreateTempLockUseCase', () => {
   let tempLockRepository: jest.Mocked<ITempLockRepository>;
@@ -13,14 +14,7 @@ describe('CreateTempLockUseCase', () => {
   };
 
   beforeEach(() => {
-    tempLockRepository = {
-      create: jest.fn(),
-      deleteMany: jest.fn(),
-      deleteOne: jest.fn(),
-      deleteById: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findById: jest.fn(),
-    };
+    tempLockRepository = makeMockTempLockRepository();
     useCase = new CreateTempLockUseCase(tempLockRepository);
   });
 

@@ -1,6 +1,7 @@
 import { GetAppointmentsAnonymousUseCase } from '../../../../src/application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { AppError } from '../../../../src/application/errors/AppError';
+import { makeMockAppointmentRepository } from '../../../test-utils/mocks';
 
 const makeAppointment = (overrides?: Record<string, unknown>) => ({
   id: 'apt-1',
@@ -37,19 +38,7 @@ describe('GetAppointmentsAnonymousUseCase', () => {
   let useCase: GetAppointmentsAnonymousUseCase;
 
   beforeEach(() => {
-    appointmentRepository = {
-      findById: jest.fn(),
-      findMany: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findByClientAndDate: jest.fn(),
-      findByContactAndDate: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateStatus: jest.fn(),
-      findByClientId: jest.fn(),
-      findByContact: jest.fn(),
-      updateClientId: jest.fn(),
-    };
+    appointmentRepository = makeMockAppointmentRepository();
     useCase = new GetAppointmentsAnonymousUseCase(appointmentRepository);
   });
 

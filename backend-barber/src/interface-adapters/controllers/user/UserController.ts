@@ -1,13 +1,17 @@
 import { Request, Response } from 'express';
-import { GetCurrentUserUseCase } from '../../../application/use-cases/user/GetCurrentUserUseCase';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { sendSuccess, sendError } from '../../../common/response';
+import { AppError } from '../../../application/errors/AppError';
 
 export class UserController {
-  constructor(private readonly getCurrentUser: GetCurrentUserUseCase) {}
+  constructor(private readonly userRepository: MongoUserRepository) {}
 
   getMe = async (req: Request, res: Response) => {
     try {
-      const user = await this.getCurrentUser.execute(req.user!._id);
+      const user = await this.userRepository.findById(req.user!._id);
+      if (!user) {
+        throw new AppError('Usuario no encontrado.', 404);
+      }
       return sendSuccess(res, {
         id: user.id,
         name: user.name,

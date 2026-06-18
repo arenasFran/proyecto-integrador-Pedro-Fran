@@ -1,19 +1,21 @@
 import { Request, Response } from 'express';
-import { CreateTempLockUseCase } from '../../../application/use-cases/tempLock/CreateTempLockUseCase';
-import { ReleaseTempLockUseCase } from '../../../application/use-cases/tempLock/ReleaseTempLockUseCase';
+import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { sendSuccess, sendError } from '../../../common/response';
+import { AppError } from '../../../application/errors/AppError';
 
 export class TempLockController {
   constructor(
-    private readonly createTempLock: CreateTempLockUseCase,
-    private readonly releaseTempLock: ReleaseTempLockUseCase
+    private readonly tempLockRepository: MongoTempLockRepository
   ) {}
 
   create = async (req: Request, res: Response) => {
     try {
-      const result = await this.createTempLock.execute(req.body);
-      return sendSuccess(res, result, 201);
-    } catch (error) {
+      const tempLockId = await this.tempLockRepository.create(req.body);
+      return sendSuccess(res, { message: 'Slot apartado temporalmente', tempLockId }, 201);
+    } catch (error: any) {
+      if (error?.message?.includes('ya fue apartado')) {
+        return sendError(res, new AppError('El horario ya fue apartado por otro usuario.', 409), 'Error al apartar el horario');
+      }
       return sendError(res, error, 'Error al apartar el horario');
     }
   };
@@ -21,7 +23,10 @@ export class TempLockController {
   release = async (req: Request, res: Response) => {
     try {
       const tempLockId = req.params.tempLockId as string;
-      await this.releaseTempLock.execute(tempLockId);
+      const lock = await this.tempLockRepository.findById(tempLockId);
+      if (lock) {
+        await this.tempLockRepository.deleteById(tempLockId);
+      }
       return sendSuccess(res, { message: 'TempLock liberado' });
     } catch (error) {
       return sendError(res, error, 'Error al liberar el horario');

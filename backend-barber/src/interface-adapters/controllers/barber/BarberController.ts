@@ -91,12 +91,12 @@ export class BarberController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const result = await this.barberRepository.findAllBarbers();
+      const barbers = await this.barberRepository.findAllBarbers();
       const isAdmin = req.user?.kind === 'Admin';
       const filtered = isAdmin
-        ? result
-        : result.filter((b) => b.kind !== 'Admin' && b.isActive);
-      return sendSuccess(res, { barbers: filtered }, 200);
+        ? barbers
+        : barbers.filter((b) => b.kind !== 'Admin' && b.isActive);
+      return sendSuccess(res, { barbers: filtered.map((b) => toBarberResponse(b)) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener barberos');
     }

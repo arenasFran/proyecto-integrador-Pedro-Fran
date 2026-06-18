@@ -1,8 +1,12 @@
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
-import { TwoFactorVerifyDTO } from '../../dto/auth/TwoFactorVerifyDTO';
 import { AppError } from '../../errors/AppError';
+
+type TwoFactorVerifyDTO = {
+  email: string;
+  code: string;
+};
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
 
@@ -11,10 +15,10 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 export class VerifyTwoFactorUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: MongoUserRepository,
     private readonly tokenService: ITokenService,
     private readonly hashService: IHashService,
-    private readonly refreshTokenRepository: IRefreshTokenRepository
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository
   ) {}
 
   async execute(dto: TwoFactorVerifyDTO): Promise<{ message: string; token: string; refreshToken: string }> {

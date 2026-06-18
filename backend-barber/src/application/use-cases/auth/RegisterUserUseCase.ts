@@ -4,8 +4,16 @@ import { MongoAppointmentRepository } from '../../../infrastructure/repositories
 import { Email } from '../../../domain/value-objects/Email';
 import { Password } from '../../../domain/value-objects/Password';
 import { Phone } from '../../../domain/value-objects/Phone';
-import { RegisterUserDTO } from '../../dto/auth/RegisterUserDTO';
 import { AppError } from '../../errors/AppError';
+
+type RegisterUserDTO = {
+  email: string;
+  password: string;
+  repeatPassword: string;
+  name: string;
+  lastname: string;
+  phone: string;
+};
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
 export class RegisterUserUseCase {

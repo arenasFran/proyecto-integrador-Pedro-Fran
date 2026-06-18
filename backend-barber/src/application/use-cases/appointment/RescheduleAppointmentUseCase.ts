@@ -2,8 +2,13 @@ import { MongoAppointmentRepository } from '../../../infrastructure/repositories
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
 import { IEmailService } from '../../ports/IEmailService';
-import { RescheduleAppointmentDTO } from '../../dto/appointment/RescheduleAppointmentDTO';
-import { AppointmentResponseDTO } from '../../dto/appointment/AppointmentResponseDTO';
+import { AppointmentProps } from '../../../domain/entities/Appointment';
+
+type RescheduleAppointmentDTO = {
+  date: string;
+  startTime: string;
+  barberId: string;
+};
 import { AppError } from '../../errors/AppError';
 import {
   toMinutes,
@@ -29,7 +34,7 @@ export class RescheduleAppointmentUseCase {
     dto: RescheduleAppointmentDTO,
     userId: string,
     userKind: string
-  ): Promise<{ message: string; appointment: AppointmentResponseDTO }> {
+  ): Promise<{ message: string; appointment: AppointmentProps }> {
     const appointment = await this.appointmentRepository.findById(id);
     if (!appointment) {
       throw new AppError('Turno no encontrado.', 404);

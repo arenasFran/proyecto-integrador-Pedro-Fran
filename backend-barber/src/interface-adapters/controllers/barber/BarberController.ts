@@ -10,11 +10,29 @@ import { Barber } from '../../../domain/entities/Barber';
 import { Email } from '../../../domain/value-objects/Email';
 import { Phone } from '../../../domain/value-objects/Phone';
 import { Password } from '../../../domain/value-objects/Password';
-import { toBarberResponse } from '../../../application/dto/barber/BarberResponseDTO';
+import { BarberSchedule } from '../../../domain/entities/Barber';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../application/errors/AppError';
 
 export class BarberController {
+  private toResponse(barber: Barber) {
+    return {
+      id: barber.id,
+      name: barber.name,
+      lastname: barber.lastname,
+      email: barber.email,
+      phone: barber.phone,
+      kind: barber.kind,
+      services: barber.services,
+      age: barber.age,
+      photoUrl: barber.photoUrl ?? null,
+      isActive: barber.isActive,
+      slotDuration: barber.slotDuration,
+      maxAdvanceDays: barber.maxAdvanceDays,
+      schedule: barber.schedule as BarberSchedule,
+    };
+  }
+
   constructor(
     private readonly barberRepository: MongoBarberRepository,
     private readonly userRepository: MongoUserRepository,
@@ -83,7 +101,7 @@ export class BarberController {
       });
 
       const created = await this.barberRepository.createBarber(barber);
-      return sendSuccess(res, toBarberResponse(created), 201);
+      return sendSuccess(res, this.toResponse(created), 201);
     } catch (error) {
       return sendError(res, error, 'Error al crear el barbero');
     }
@@ -96,7 +114,7 @@ export class BarberController {
       const filtered = isAdmin
         ? barbers
         : barbers.filter((b) => b.kind !== 'Admin' && b.isActive);
-      return sendSuccess(res, { barbers: filtered.map((b) => toBarberResponse(b)) }, 200);
+      return sendSuccess(res, { barbers: filtered.map((b) => this.toResponse(b)) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener barberos');
     }
@@ -109,7 +127,7 @@ export class BarberController {
       if (!result) {
         throw new AppError('Barbero no encontrado.', 404);
       }
-      return sendSuccess(res, toBarberResponse(result), 200);
+      return sendSuccess(res, this.toResponse(result), 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener barbero');
     }
@@ -175,7 +193,7 @@ export class BarberController {
         throw new AppError('Barbero no encontrado.', 404);
       }
 
-      return sendSuccess(res, toBarberResponse(updated), 200);
+      return sendSuccess(res, this.toResponse(updated), 200);
     } catch (error) {
       return sendError(res, error, 'Error al actualizar barbero');
     }

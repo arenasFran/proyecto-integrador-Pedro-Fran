@@ -1,8 +1,14 @@
-import { IPasswordResetRepository } from '../../../domain/repositories/IPasswordResetRepository';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { MongoPasswordResetRepository } from '../../../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Password } from '../../../domain/value-objects/Password';
-import { ResetPasswordDTO } from '../../dto/password/ResetPasswordDTO';
 import { AppError } from '../../errors/AppError';
+
+type ResetPasswordDTO = {
+  token: string;
+  password: string;
+  repeatPassword: string;
+  email: string;
+};
 import { IHashService } from '../../ports/IHashService';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
@@ -11,8 +17,8 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 export class ResetPasswordUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly passwordResetRepository: IPasswordResetRepository,
+    private readonly userRepository: MongoUserRepository,
+    private readonly passwordResetRepository: MongoPasswordResetRepository,
     private readonly passwordHasher: IPasswordHasher,
     private readonly hashService: IHashService
   ) {}

@@ -1,8 +1,11 @@
 import { User } from '../../../domain/entities/User';
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
-import { GoogleLoginDTO } from '../../dto/auth/GoogleLoginDTO';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { AppError } from '../../errors/AppError';
+
+type GoogleLoginDTO = {
+  token: string;
+};
 import { IGoogleAuthService } from '../../ports/IGoogleAuthService';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 import { IHashService } from '../../ports/IHashService';
@@ -14,10 +17,10 @@ type GoogleLoginResponse =
 
 export class AuthenticateWithGoogleUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: MongoUserRepository,
     private readonly googleAuthService: IGoogleAuthService,
     private readonly tokenService: ITokenService,
-    private readonly refreshTokenRepository: IRefreshTokenRepository,
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository,
     private readonly hashService: IHashService,
     private readonly passwordHasher: IPasswordHasher
   ) {}

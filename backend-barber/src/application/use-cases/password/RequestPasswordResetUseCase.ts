@@ -1,16 +1,17 @@
 import crypto from 'crypto';
 import { AppError } from '../../../application/errors/AppError';
-import { IPasswordResetRepository } from '../../../domain/repositories/IPasswordResetRepository';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { MongoPasswordResetRepository } from '../../../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
-import { RequestResetDTO } from '../../dto/password/RequestResetDTO';
 import { IEmailService } from '../../ports/IEmailService';
+
+type RequestResetDTO = { email: string };
 import { IHashService } from '../../ports/IHashService';
 
 export class RequestPasswordResetUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
-    private readonly passwordResetRepository: IPasswordResetRepository,
+    private readonly userRepository: MongoUserRepository,
+    private readonly passwordResetRepository: MongoPasswordResetRepository,
     private readonly emailService: IEmailService,
     private readonly hashService: IHashService,
     private readonly frontendUrl: string,

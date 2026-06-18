@@ -1,15 +1,19 @@
 import crypto from 'crypto';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
-import { TwoFactorSendDTO } from '../../dto/auth/TwoFactorSendDTO';
 import { AppError } from '../../errors/AppError';
+
+type TwoFactorSendDTO = {
+  email: string;
+  password: string;
+};
 import { IEmailService } from '../../ports/IEmailService';
 import { IHashService } from '../../ports/IHashService';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
 export class SendTwoFactorCodeUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: MongoUserRepository,
     private readonly passwordHasher: IPasswordHasher,
     private readonly emailService: IEmailService,
     private readonly hashService: IHashService

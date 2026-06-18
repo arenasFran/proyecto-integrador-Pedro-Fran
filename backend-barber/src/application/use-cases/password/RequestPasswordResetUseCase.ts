@@ -1,21 +1,18 @@
+import crypto from 'crypto';
 import { AppError } from '../../../application/errors/AppError';
 import { IPasswordResetRepository } from '../../../domain/repositories/IPasswordResetRepository';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { RequestResetDTO } from '../../dto/password/RequestResetDTO';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { IEmailService } from '../../ports/IEmailService';
 import { IHashService } from '../../ports/IHashService';
-import { IRandomGenerator } from '../../ports/IRandomGenerator';
 
 export class RequestPasswordResetUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly passwordResetRepository: IPasswordResetRepository,
     private readonly emailService: IEmailService,
-    private readonly randomGenerator: IRandomGenerator,
     private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider,
     private readonly frontendUrl: string,
     private readonly expirationMinutes: number
   ) {}
@@ -25,10 +22,10 @@ export class RequestPasswordResetUseCase {
     const user = await this.userRepository.findByEmail(email);
 
     if (user) {
-      const token = this.randomGenerator.generateHexToken(32);
+      const token = crypto.randomBytes(32).toString('hex');
       const tokenHash = this.hashService.sha256(token);
       const expiresAt = new Date(
-        this.dateTimeProvider.now().getTime() + this.expirationMinutes * 60 * 1000
+        new Date().getTime() + this.expirationMinutes * 60 * 1000
       );
 
       const url = `${this.frontendUrl}/reset-password?token=${token}`;

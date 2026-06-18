@@ -4,7 +4,6 @@ import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { Phone } from '../../../domain/value-objects/Phone';
 import { CompleteGoogleProfileDTO } from '../../dto/auth/CompleteGoogleProfileDTO';
 import { AppError } from '../../errors/AppError';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
 
@@ -13,7 +12,6 @@ export class CompleteGoogleProfileUseCase {
     private readonly userRepository: IUserRepository,
     private readonly tokenService: ITokenService,
     private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider,
     private readonly refreshTokenRepository: IRefreshTokenRepository
   ) {}
 
@@ -60,7 +58,7 @@ export class CompleteGoogleProfileUseCase {
     const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
 
     const tokenHash = this.hashService.sha256(refreshToken);
-    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
     await this.refreshTokenRepository.create(tokenHash, created.id, expiresAt);
     await this.userRepository.updateLastLogin(created.id);
 

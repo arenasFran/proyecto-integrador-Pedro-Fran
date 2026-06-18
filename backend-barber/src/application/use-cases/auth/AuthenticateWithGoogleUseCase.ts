@@ -3,7 +3,6 @@ import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTo
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { GoogleLoginDTO } from '../../dto/auth/GoogleLoginDTO';
 import { AppError } from '../../errors/AppError';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { IGoogleAuthService } from '../../ports/IGoogleAuthService';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 import { IHashService } from '../../ports/IHashService';
@@ -20,7 +19,6 @@ export class AuthenticateWithGoogleUseCase {
     private readonly tokenService: ITokenService,
     private readonly refreshTokenRepository: IRefreshTokenRepository,
     private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider,
     private readonly passwordHasher: IPasswordHasher
   ) {}
 
@@ -65,7 +63,7 @@ export class AuthenticateWithGoogleUseCase {
       const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
 
       const tokenHash = this.hashService.sha256(refreshToken);
-      const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+      const expiresAt = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
       await this.refreshTokenRepository.create(tokenHash, existingUser.id, expiresAt);
       await this.userRepository.updateLastLogin(existingUser.id);
 

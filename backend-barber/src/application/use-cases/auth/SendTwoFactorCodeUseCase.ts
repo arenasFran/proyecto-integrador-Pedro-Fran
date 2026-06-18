@@ -1,21 +1,18 @@
+import crypto from 'crypto';
 import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { TwoFactorSendDTO } from '../../dto/auth/TwoFactorSendDTO';
 import { AppError } from '../../errors/AppError';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { IEmailService } from '../../ports/IEmailService';
 import { IHashService } from '../../ports/IHashService';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
-import { IRandomGenerator } from '../../ports/IRandomGenerator';
 
 export class SendTwoFactorCodeUseCase {
   constructor(
     private readonly userRepository: IUserRepository,
     private readonly passwordHasher: IPasswordHasher,
     private readonly emailService: IEmailService,
-    private readonly randomGenerator: IRandomGenerator,
-    private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider
+    private readonly hashService: IHashService
   ) {}
 
   async execute(dto: TwoFactorSendDTO): Promise<{ message: string }> {
@@ -38,9 +35,9 @@ export class SendTwoFactorCodeUseCase {
       throw new AppError('Email y/o contraseña incorrectos.', 401);
     }
 
-    if (user.twoFactorLockedUntil && this.dateTimeProvider.now() < user.twoFactorLockedUntil) {
+    if (user.twoFactorLockedUntil && new Date() < user.twoFactorLockedUntil) {
       const remainingMin = Math.ceil(
-        (user.twoFactorLockedUntil.getTime() - this.dateTimeProvider.now().getTime()) / 60000
+        (user.twoFactorLockedUntil.getTime() - new Date().getTime()) / 60000
       );
       throw new AppError(
         `Demasiados intentos fallidos de verificación. Intentalo de nuevo en ${remainingMin} minutos.`,
@@ -53,8 +50,8 @@ export class SendTwoFactorCodeUseCase {
       twoFactorLockedUntil: null,
     });
 
-    const code = this.randomGenerator.generateNumericCode(6);
-    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 5 * 60 * 1000);
+    const code = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(new Date().getTime() + 5 * 60 * 1000);
     const codeHash = this.hashService.sha256(code);
 
     let lastError: unknown;

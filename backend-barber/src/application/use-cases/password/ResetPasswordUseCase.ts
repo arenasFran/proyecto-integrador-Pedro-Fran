@@ -3,7 +3,6 @@ import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { Password } from '../../../domain/value-objects/Password';
 import { ResetPasswordDTO } from '../../dto/password/ResetPasswordDTO';
 import { AppError } from '../../errors/AppError';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { IHashService } from '../../ports/IHashService';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
@@ -15,8 +14,7 @@ export class ResetPasswordUseCase {
     private readonly userRepository: IUserRepository,
     private readonly passwordResetRepository: IPasswordResetRepository,
     private readonly passwordHasher: IPasswordHasher,
-    private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider
+    private readonly hashService: IHashService
   ) {}
 
   async execute(dto: ResetPasswordDTO): Promise<{ message: string }> {
@@ -30,9 +28,9 @@ export class ResetPasswordUseCase {
     // Buscar al usuario primero para poder incrementar failedAttempts en errores
     const user = await this.userRepository.findByEmail(dto.email);
 
-    if (user && user.resetLockedUntil && this.dateTimeProvider.now() < user.resetLockedUntil) {
+    if (user && user.resetLockedUntil && new Date() < user.resetLockedUntil) {
       const remainingMin = Math.ceil(
-        (user.resetLockedUntil.getTime() - this.dateTimeProvider.now().getTime()) / 60000
+        (user.resetLockedUntil.getTime() - new Date().getTime()) / 60000
       );
       throw new AppError(
         `Demasiados intentos fallidos de restablecimiento. Intentalo de nuevo en ${remainingMin} minutos.`,
@@ -79,7 +77,7 @@ export class ResetPasswordUseCase {
     currentAttempts: number
   ): Promise<void> {
     if (currentAttempts >= MAX_RESET_ATTEMPTS) {
-      const lockedUntil = new Date(this.dateTimeProvider.now().getTime() + LOCKOUT_DURATION_MS);
+      const lockedUntil = new Date(new Date().getTime() + LOCKOUT_DURATION_MS);
       await this.userRepository.updateUserSecurity(user.id, {
         resetFailedAttempts: currentAttempts,
         resetLockedUntil: lockedUntil,

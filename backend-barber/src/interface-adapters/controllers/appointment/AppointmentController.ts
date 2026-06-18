@@ -6,7 +6,7 @@ import { CancelAppointmentUseCase } from '../../../application/use-cases/appoint
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { GetAppointmentsAnonymousUseCase } from '../../../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
-import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 
 export class AppointmentController {
   constructor(
@@ -37,9 +37,9 @@ export class AppointmentController {
       }
 
       const result = await this.createAppointment.execute(body);
-      return AppointmentPresenter.success(res, result, 201);
+      return sendSuccess(res, result, 201);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al crear el turno');
+      return sendError(res, error, 'Error al crear el turno');
     }
   };
 
@@ -59,9 +59,9 @@ export class AppointmentController {
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
 
       const result = await this.getAppointments.execute(query);
-      return AppointmentPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al obtener turnos');
+      return sendError(res, error, 'Error al obtener turnos');
     }
   };
 
@@ -73,9 +73,9 @@ export class AppointmentController {
         req.user!._id,
         req.user!.kind
       );
-      return AppointmentPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al obtener el turno');
+      return sendError(res, error, 'Error al obtener el turno');
     }
   };
 
@@ -90,9 +90,9 @@ export class AppointmentController {
         req.user!.kind,
         reason
       );
-      return AppointmentPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al cancelar el turno');
+      return sendError(res, error, 'Error al cancelar el turno');
     }
   };
 
@@ -105,9 +105,9 @@ export class AppointmentController {
         req.user!._id,
         req.user!.kind
       );
-      return AppointmentPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al actualizar el estado del turno');
+      return sendError(res, error, 'Error al actualizar el estado del turno');
     }
   };
 
@@ -118,9 +118,9 @@ export class AppointmentController {
         clientPhone: req.query.phone as string | undefined,
         date: req.query.date as string | undefined,
       });
-      return AppointmentPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al obtener turnos');
+      return sendError(res, error, 'Error al obtener turnos');
     }
   };
 
@@ -133,9 +133,9 @@ export class AppointmentController {
         req.user!._id,
         req.user!.kind
       );
-      return AppointmentPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AppointmentPresenter.handleError(res, error, 'Error al reagendar el turno');
+      return sendError(res, error, 'Error al reagendar el turno');
     }
   };
 }

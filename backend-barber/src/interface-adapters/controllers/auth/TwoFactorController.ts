@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { SendTwoFactorCodeUseCase } from '../../../application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../../../application/use-cases/auth/VerifyTwoFactorUseCase';
-import { AuthPresenter } from '../../presenters/AuthPresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -30,9 +30,9 @@ export class TwoFactorController {
   sendTwoFactorCode = async (req: Request, res: Response) => {
     try {
       const result = await this.sendTwoFactorCodeUseCase.execute(req.body);
-      return AuthPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error interno del servidor.');
+      return sendError(res, error, 'Error interno del servidor.');
     }
   };
 
@@ -42,9 +42,9 @@ export class TwoFactorController {
       if ('refreshToken' in result) {
         setRefreshCookie(res, (result as { refreshToken: string }).refreshToken);
       }
-      return AuthPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error interno del servidor.');
+      return sendError(res, error, 'Error interno del servidor.');
     }
   };
 }

@@ -8,7 +8,7 @@ import { GetBarberByIdUseCase } from '../../../application/use-cases/barber/GetB
 import { GetBarberScheduleUseCase } from '../../../application/use-cases/barber/GetBarberScheduleUseCase';
 import { UpdateBarberScheduleUseCase } from '../../../application/use-cases/barber/UpdateBarberScheduleUseCase';
 import { UpdateBarberUseCase } from '../../../application/use-cases/barber/UpdateBarberUseCase';
-import { BarberPresenter } from '../../presenters/BarberPresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 
 export class BarberController {
   constructor(
@@ -38,18 +38,18 @@ export class BarberController {
           slotDuration: b.slotDuration,
           maxAdvanceDays: b.maxAdvanceDays,
         }));
-      return BarberPresenter.success(res, { barbers: publicBarbers }, 200);
+      return sendSuccess(res, { barbers: publicBarbers }, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al obtener barberos');
+      return sendError(res, error, 'Error al obtener barberos');
     }
   };
 
   create = async (req: Request, res: Response) => {
     try {
       const result = await this.createBarber.execute(req.body);
-      return BarberPresenter.success(res, result, 201);
+      return sendSuccess(res, result, 201);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al crear el barbero');
+      return sendError(res, error, 'Error al crear el barbero');
     }
   };
 
@@ -60,9 +60,9 @@ export class BarberController {
       const filtered = isAdmin
         ? result
         : result.filter((b) => b.kind !== 'Admin' && b.isActive);
-      return BarberPresenter.success(res, { barbers: filtered }, 200);
+      return sendSuccess(res, { barbers: filtered }, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al obtener barberos');
+      return sendError(res, error, 'Error al obtener barberos');
     }
   };
 
@@ -70,9 +70,9 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const result = await this.getBarberById.execute(id);
-      return BarberPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al obtener barbero');
+      return sendError(res, error, 'Error al obtener barbero');
     }
   };
 
@@ -80,9 +80,9 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const result = await this.updateBarber.execute(id, req.body);
-      return BarberPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al actualizar barbero');
+      return sendError(res, error, 'Error al actualizar barbero');
     }
   };
 
@@ -90,9 +90,9 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const result = await this.deactivateBarber.execute(id);
-      return BarberPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al desactivar barbero');
+      return sendError(res, error, 'Error al desactivar barbero');
     }
   };
 
@@ -100,9 +100,9 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const result = await this.deleteBarber.execute(id);
-      return BarberPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al eliminar barbero');
+      return sendError(res, error, 'Error al eliminar barbero');
     }
   };
 
@@ -110,9 +110,9 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const schedule = await this.getBarberSchedule.execute(id);
-      return BarberPresenter.success(res, { schedule }, 200);
+      return sendSuccess(res, { schedule }, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al obtener el horario');
+      return sendError(res, error, 'Error al obtener el horario');
     }
   };
 
@@ -120,9 +120,9 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const schedule = await this.updateBarberSchedule.execute(id, req.body);
-      return BarberPresenter.success(res, { schedule }, 200);
+      return sendSuccess(res, { schedule }, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al actualizar el horario');
+      return sendError(res, error, 'Error al actualizar el horario');
     }
   };
 
@@ -131,9 +131,9 @@ export class BarberController {
       const id = String(req.params.id);
       const date = String(req.query.date || '');
       const result = await this.getAvailableSlots.execute(id, date);
-      return BarberPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return BarberPresenter.handleError(res, error, 'Error al obtener los slots');
+      return sendError(res, error, 'Error al obtener los slots');
     }
   };
 }

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { GetAllServicesUseCase } from '../../../application/use-cases/service/GetAllServicesUseCase';
-import { ServicePresenter } from '../../presenters/ServicePresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 
 export class ServiceController {
   constructor(private readonly getAllServices: GetAllServicesUseCase) {}
@@ -8,9 +8,9 @@ export class ServiceController {
   getAll = async (req: Request, res: Response) => {
     try {
       const result = await this.getAllServices.execute();
-      return ServicePresenter.success(res, { services: result }, 200);
+      return sendSuccess(res, { services: result }, 200);
     } catch (error) {
-      return ServicePresenter.handleError(res, error, 'Error al obtener servicios');
+      return sendError(res, error, 'Error al obtener servicios');
     }
   };
 }

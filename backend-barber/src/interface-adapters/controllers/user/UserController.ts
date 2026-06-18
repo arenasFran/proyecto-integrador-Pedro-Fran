@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { GetCurrentUserUseCase } from '../../../application/use-cases/user/GetCurrentUserUseCase';
-import { AuthPresenter } from '../../presenters/AuthPresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 
 export class UserController {
   constructor(private readonly getCurrentUser: GetCurrentUserUseCase) {}
@@ -8,7 +8,7 @@ export class UserController {
   getMe = async (req: Request, res: Response) => {
     try {
       const user = await this.getCurrentUser.execute(req.user!._id);
-      return AuthPresenter.success(res, {
+      return sendSuccess(res, {
         id: user.id,
         name: user.name,
         lastname: user.lastname,
@@ -18,7 +18,7 @@ export class UserController {
         photoUrl: null,
       });
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al obtener perfil');
+      return sendError(res, error, 'Error al obtener perfil');
     }
   };
 }

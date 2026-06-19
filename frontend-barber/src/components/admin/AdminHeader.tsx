@@ -1,13 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiBarChart2, FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiLogOut, FiMenu, FiScissors, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';
 import { getAccessToken } from '../../services/api';
 import api from '../../services/api';
 
-export const AdminHeader: React.FC = () => {
+interface AdminHeaderProps {
+  onToggleSidebar?: () => void;
+}
+
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar = () => {} }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -15,6 +19,7 @@ export const AdminHeader: React.FC = () => {
 
   const user = useAppSelector((state) => state.auth.user);
   const tokenUser = getTokenUser(getAccessToken());
+  const tokenKind = tokenUser?.kind;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -38,15 +43,23 @@ export const AdminHeader: React.FC = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#282828] bg-[#121212]">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <button
-          onClick={() => navigate('/admin/profesionales')}
-          className="flex items-center gap-2 text-[14px] font-semibold text-white hover:text-[#FF5C00] transition-colors"
-        >
-          <FiScissors className="text-[#FF5C00]" />
-          Barbería SA
-        </button>
+    <header className="sticky top-0 z-30 border-b border-[#282828] bg-[#121212]">
+      <div className="flex h-14 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onToggleSidebar}
+            className="text-[#8A8A8A] hover:text-white transition-colors lg:hidden"
+          >
+            <FiMenu size={22} />
+          </button>
+          <button
+            onClick={() => navigate('/admin/profesionales')}
+            className="flex items-center gap-2 text-[14px] font-semibold text-white hover:text-[#FF5C00] transition-colors"
+          >
+            <FiScissors className="text-[#FF5C00]" />
+            Barbería SA
+          </button>
+        </div>
 
         <div className="relative" ref={dropdownRef}>
           <button
@@ -64,37 +77,17 @@ export const AdminHeader: React.FC = () => {
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-lg">
-                <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      navigate('/admin/perfil');
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                  >
-                    <FiUser className="text-[#FF5C00]" />
-                    Mi perfil
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      navigate('/admin/dashboard');
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                  >
-                    <FiBarChart2 className="text-[#FF5C00]" />
-                    Dashboard
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDropdownOpen(false);
-                      navigate('/admin/turnos');
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                  >
-                    <FiCalendar className="text-[#FF5C00]" />
-                    Turnos
-                  </button>
-                  <div className="border-t border-[#282828]" />
+              <button
+                onClick={() => {
+                  setDropdownOpen(false);
+                  navigate(tokenKind === 'Admin' ? '/admin/perfil' : '/perfil');
+                }}
+                className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+              >
+                <FiUser className="text-[#FF5C00]" />
+                Mi perfil
+              </button>
+              <div className="border-t border-[#282828]" />
               <button
                 onClick={handleLogout}
                 className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors"

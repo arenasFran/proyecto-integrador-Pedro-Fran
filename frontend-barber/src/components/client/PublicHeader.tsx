@@ -81,6 +81,16 @@ export const PublicHeader: React.FC = () => {
                     <FiCalendar className="text-[#FF5C00]" />
                     Mis turnos
                   </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate('/perfil');
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                  >
+                    <FiUser className="text-[#FF5C00]" />
+                    Mi perfil
+                  </button>
                   <div className="border-t border-[#282828]" />
                   <button
                     onClick={handleLogout}

@@ -40,6 +40,7 @@ const adminUser: Professional = {
   photoUrl: null,
   isActive: true,
   slotDuration: 30,
+  maxAdvanceDays: 30,
   schedule: {
     monday: { startTime: '09:00', endTime: '18:00', breaks: [] },
     tuesday: { startTime: '09:00', endTime: '18:00', breaks: [] },
@@ -118,6 +119,11 @@ describe('AdminHeader', () => {
   it('navigates to /admin/perfil when "Mi perfil" is clicked', async () => {
     const navigate = vi.fn();
     vi.mocked(useNavigate).mockReturnValue(navigate);
+    vi.mocked(getTokenUser).mockReturnValue({
+      id: 'admin1',
+      email: 'admin@test.com',
+      kind: 'Admin',
+    });
 
     const user = userEvent.setup();
     renderWithProviders(<AdminHeader />, {

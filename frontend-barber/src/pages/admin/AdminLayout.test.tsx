@@ -6,6 +6,7 @@ import { AdminLayout } from './AdminLayout';
 
 vi.mock('../../utils/token', () => ({
   getTokenUser: vi.fn(() => null),
+  getTokenKind: vi.fn(() => 'Admin'),
 }));
 
 describe('AdminLayout', () => {
@@ -19,7 +20,8 @@ describe('AdminLayout', () => {
       { initialEntries: ['/admin'] }
     );
 
-    expect(screen.getByText('Barbería SA')).toBeInTheDocument();
+    const brandElements = screen.getAllByText('Barbería SA');
+    expect(brandElements.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders child route content via Outlet', () => {

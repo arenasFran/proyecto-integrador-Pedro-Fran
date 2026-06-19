@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import bcrypt from 'bcrypt';
 import mongoose from 'mongoose';
 import { Admin, Employee } from '../repositories/mongodb/models/barber.model';
@@ -14,7 +15,7 @@ const createWorkDay = (start: string, end: string, breakStart?: string, breakEnd
 const barbersSeedData = [
   {
     email: 'carlos@elitecut.com',
-    password: 'barber123',
+    password: 'Barber123',
     name: 'Carlos',
     lastname: 'Gutiérrez',
     phone: '099111111',
@@ -33,7 +34,7 @@ const barbersSeedData = [
   },
   {
     email: 'martin@elitecut.com',
-    password: 'barber123',
+    password: 'Barber123',
     name: 'Martín',
     lastname: 'López',
     phone: '099222222',
@@ -52,7 +53,7 @@ const barbersSeedData = [
   },
   {
     email: 'lucia@elitecut.com',
-    password: 'barber123',
+    password: 'Barber123',
     name: 'Lucía',
     lastname: 'Fernández',
     phone: '099333333',

@@ -28,6 +28,7 @@ export class UserMapper {
       twoFactorLockedUntil: doc.twoFactorLockedUntil,
       resetFailedAttempts: doc.resetFailedAttempts,
       resetLockedUntil: doc.resetLockedUntil,
+      photoUrl: (doc as IBarberBase & { photoUrl?: string | null }).photoUrl ?? null,
     });
   }
 
@@ -51,6 +52,7 @@ export class UserMapper {
       twoFactorLockedUntil: doc.twoFactorLockedUntil,
       resetFailedAttempts: doc.resetFailedAttempts,
       resetLockedUntil: doc.resetLockedUntil,
+      photoUrl: doc.photoUrl ?? null,
     });
   }
 

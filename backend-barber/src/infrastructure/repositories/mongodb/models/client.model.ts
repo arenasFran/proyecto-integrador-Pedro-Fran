@@ -7,6 +7,7 @@ import {
 
 export interface IClientBase extends Document, IClientBaseInput {
   kind?: 'Registrado' | 'NoRegistrado';
+  photoUrl?: string | null;
 }
 
 export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
@@ -43,6 +44,10 @@ const clientSchema = new Schema<IClientBase>(
       required: false,
       lowercase: true,
       trim: true,
+    },
+    photoUrl: {
+      type: String,
+      default: null,
     },
   },
   {

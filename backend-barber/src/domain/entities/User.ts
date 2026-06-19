@@ -21,6 +21,7 @@ export type UserProps = {
   lastLoginAt?: Date;
   twoFactorFailedAttempts?: number;
   twoFactorLockedUntil?: Date;
+  photoUrl?: string | null;
   resetFailedAttempts?: number;
   resetLockedUntil?: Date;
 };
@@ -94,6 +95,10 @@ export class User {
 
   get resetLockedUntil(): Date | undefined {
     return this.props.resetLockedUntil;
+  }
+
+  get photoUrl(): string | null | undefined {
+    return this.props.photoUrl;
   }
 
   withPasswordHash(passwordHash?: string): User {

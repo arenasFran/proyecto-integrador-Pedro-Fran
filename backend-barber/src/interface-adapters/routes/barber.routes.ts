@@ -8,6 +8,7 @@ import {
   scheduleSchema,
   slotsQuerySchema,
   updateBarberSchema,
+  updateBarberMeSchema,
 } from '../validators/barber.validator';
 
 export const createBarberRouter = (deps: {
@@ -25,6 +26,13 @@ export const createBarberRouter = (deps: {
   );
 
   router.use(deps.authenticate);
+
+  router.put(
+    '/me',
+    authorize('Empleado', 'Admin'),
+    validate({ body: updateBarberMeSchema }),
+    deps.barberController.updateMe
+  );
 
   router.get('/', deps.barberController.getAll);
 

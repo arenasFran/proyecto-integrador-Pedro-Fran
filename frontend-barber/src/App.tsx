@@ -7,6 +7,7 @@ import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import AdminLayout from './pages/admin/AdminLayout';
+import DashboardPage from './pages/admin/DashboardPage';
 import ProfessionalsPage from './pages/admin/ProfessionalsPage';
 import AdminProfilePage from './pages/admin/AdminProfilePage';
 import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
@@ -71,10 +72,11 @@ function App() {
                 </RequireAdminRoute>
               }
             >
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="profesionales" element={<ProfessionalsPage />} />
               <Route path="perfil" element={<AdminProfilePage />} />
               <Route path="turnos" element={<AdminAppointmentsPage />} />
-              <Route index element={<Navigate to="profesionales" replace />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
             <Route
               path="/mis-turnos"

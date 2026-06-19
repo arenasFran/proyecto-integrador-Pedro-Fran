@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiChevronDown, FiLogOut, FiScissors, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';
@@ -73,6 +73,16 @@ export const AdminHeader: React.FC = () => {
                   >
                     <FiUser className="text-[#FF5C00]" />
                     Mi perfil
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate('/admin/dashboard');
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                  >
+                    <FiBarChart2 className="text-[#FF5C00]" />
+                    Dashboard
                   </button>
                   <button
                     onClick={() => {

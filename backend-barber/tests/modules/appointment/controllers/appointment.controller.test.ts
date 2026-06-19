@@ -68,7 +68,7 @@ describe('AppointmentController', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Barbero no encontrado' });
     });
 
-    it('debe asignar clientId si el usuario esta autenticado', async () => {
+    it('debe pasar el actor al use case si el usuario esta autenticado', async () => {
       createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
       const req = createMockReq({
         barberId: 'barber-1',
@@ -84,7 +84,29 @@ describe('AppointmentController', () => {
       await controller.create(req, res);
 
       expect(createAppointment.execute).toHaveBeenCalledWith(
-        expect.objectContaining({ clientId: 'user-1' })
+        req.body,
+        expect.objectContaining({ _id: 'user-1', kind: 'Registrado', email: 'user@test.com' })
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it('debe pasar undefined como actor si no hay usuario autenticado', async () => {
+      createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
+      const req = createMockReq({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      });
+      const res = createMockRes();
+
+      await controller.create(req, res);
+
+      expect(createAppointment.execute).toHaveBeenCalledWith(
+        req.body,
+        undefined
       );
       expect(res.status).toHaveBeenCalledWith(201);
     });

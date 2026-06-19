@@ -362,6 +362,90 @@ describe('CreateAppointmentUseCase', () => {
     ).rejects.toThrow(/anticipación/);
   });
 
+  it('debe asignar clientId y createdBy como registered para usuario Registrado', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute(
+      {
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientEmail: 'juan@test.com',
+      },
+      { _id: 'user-1', kind: 'Registrado', email: 'user@test.com' }
+    );
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientId: 'user-1',
+        createdBy: { type: 'registered', userId: 'user-1' },
+      })
+    );
+  });
+
+  it('debe asignar createdBy como staff para Empleado sin modificar clientId', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute(
+      {
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+      },
+      { _id: 'emp-1', kind: 'Empleado', email: 'emp@test.com' }
+    );
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ clientId: 'emp-1' })
+    );
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createdBy: { type: 'staff', userId: 'emp-1' },
+      })
+    );
+  });
+
+  it('debe asignar createdBy como anonymous si no hay actor', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: 'svc-1',
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        createdBy: { type: 'anonymous' },
+      })
+    );
+  });
+
   it('debe aceptar si la fecha esta dentro del maxAdvanceDays del barbero', async () => {
     const barber = makeBarber({ maxAdvanceDays: 99999 });
     barberRepository.findBarberById.mockResolvedValue(barber);

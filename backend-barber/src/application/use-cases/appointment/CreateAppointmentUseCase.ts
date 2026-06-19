@@ -8,6 +8,7 @@ import { IEmailService } from '../../ports/IEmailService';
 import { CreateAppointmentDTO } from '../../dto/appointment/CreateAppointmentDTO';
 import { AppointmentResponseDTO } from '../../dto/appointment/AppointmentResponseDTO';
 import { AppError } from '../../errors/AppError';
+import { AuthKind } from '../../../domain/types/auth';
 import {
   toMinutes,
   toTimeString,
@@ -28,7 +29,23 @@ export class CreateAppointmentUseCase {
     private readonly tempLockRepository: ITempLockRepository
   ) {}
 
-  async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentResponseDTO }> {
+  async execute(
+    dto: CreateAppointmentDTO,
+    actor?: { _id: string; kind: AuthKind; email: string }
+  ): Promise<{ message: string; appointment: AppointmentResponseDTO }> {
+    if (actor) {
+      if (actor.kind === 'Admin' || actor.kind === 'Empleado') {
+        dto.clientName = dto.clientName || actor.email;
+        dto.createdBy = { type: 'staff', userId: actor._id };
+      } else {
+        dto.clientId = actor._id;
+        dto.clientName = dto.clientName || actor.email;
+        dto.createdBy = { type: 'registered', userId: actor._id };
+      }
+    } else {
+      dto.createdBy = { type: 'anonymous' };
+    }
+
     const nowInTz = getNowInTimezone();
 
     // RN01 — Fecha y hora no pueden estar en el pasado

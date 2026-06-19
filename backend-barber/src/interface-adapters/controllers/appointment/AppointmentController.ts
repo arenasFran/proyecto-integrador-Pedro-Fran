@@ -7,6 +7,7 @@ import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/a
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { GetAppointmentsAnonymousUseCase } from '../../../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { AppointmentPresenter } from '../../presenters/AppointmentPresenter';
+import { AuthKind } from '../../../domain/types/auth';
 
 export class AppointmentController {
   constructor(
@@ -21,22 +22,11 @@ export class AppointmentController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const body = { ...req.body };
+      const actor = req.user
+        ? { _id: req.user._id, kind: req.user.kind as AuthKind, email: req.user.email }
+        : undefined;
 
-      if (req.user) {
-        if (req.user.kind === 'Admin' || req.user.kind === 'Empleado') {
-          body.clientName = body.clientName || req.user.email;
-          body.createdBy = { type: 'staff', userId: req.user._id };
-        } else {
-          body.clientId = req.user._id;
-          body.clientName = body.clientName || req.user.email;
-          body.createdBy = { type: 'registered', userId: req.user._id };
-        }
-      } else {
-        body.createdBy = { type: 'anonymous' };
-      }
-
-      const result = await this.createAppointment.execute(body);
+      const result = await this.createAppointment.execute(req.body, actor);
       return AppointmentPresenter.success(res, result, 201);
     } catch (error) {
       return AppointmentPresenter.handleError(res, error, 'Error al crear el turno');

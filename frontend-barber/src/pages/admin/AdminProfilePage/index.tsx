@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiClock, FiSave, FiScissors, FiShield } from 'react-icons/fi';
+import { FiArrowLeft, FiChevronDown, FiChevronUp, FiSave, FiScissors, FiShield } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, PasswordInput } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { authApi } from '../../../services/authApi';
-import { updateBarber, updateBarberSchedule } from '../../../store/slices/barbersSlice';
+import { fetchBarbers, updateBarber, updateBarberSchedule } from '../../../store/slices/barbersSlice';
 import type { DayKey, Professional, ProfessionalUpdatePayload } from '../../../types/professional';
 import {
   createEmptySchedule,
@@ -19,7 +19,14 @@ import {
 export const AdminProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const user = useAppSelector((state) => state.auth.user) as Professional | null;
+  const authUser = useAppSelector((state) => state.auth.user);
+  const barbers = useAppSelector((state) => state.barbers.list);
+  const barbersLoading = useAppSelector((state) => state.barbers.isLoading);
+
+  const user = useMemo(() => {
+    if (!authUser) return null;
+    return barbers.find((b) => b.id === authUser.id) ?? null;
+  }, [authUser, barbers]);
 
   const [password, setPassword] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
@@ -28,6 +35,14 @@ export const AdminProfilePage: React.FC = () => {
 
   const [editedFields, setEditedFields] = useState<Partial<Pick<Professional, 'name' | 'lastname' | 'email' | 'phone' | 'services' | 'age' | 'photoUrl' | 'slotDuration'>>>({});
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
+  const [scheduleExpanded, setScheduleExpanded] = useState(false);
+  const scheduleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scheduleExpanded && scheduleRef.current) {
+      scheduleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [scheduleExpanded]);
 
   const formData = useMemo<Professional | null>(() => {
     if (!user) return null;
@@ -39,14 +54,33 @@ export const AdminProfilePage: React.FC = () => {
     return editedSchedule ?? mapScheduleToForm(user.schedule);
   }, [user, editedSchedule]);
 
-  const isLoading = !user;
+  const isLoading = !authUser || (barbers.length === 0 && barbersLoading);
+
+  const dayLabels: Record<string, string> = {
+    monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié',
+    thursday: 'Jue', friday: 'Vie', saturday: 'Sáb', sunday: 'Dom',
+  };
+
+  const scheduleSummary = days
+    .filter((d) => schedule[d.key].startTime && schedule[d.key].endTime)
+    .map((d) => {
+      const day = schedule[d.key];
+      return `${dayLabels[d.key]} ${day.startTime}-${day.endTime}`;
+    })
+    .join(' · ');
 
   useEffect(() => {
-    if (!user) {
+    if (!authUser) {
       const promise = dispatch(authApi.endpoints.getProfile.initiate());
       return () => { promise.unsubscribe(); };
     }
-  }, [user, dispatch]);
+  }, [authUser, dispatch]);
+
+  useEffect(() => {
+    if (authUser && barbers.length === 0 && !barbersLoading) {
+      dispatch(fetchBarbers());
+    }
+  }, [dispatch, authUser, barbers.length, barbersLoading]);
 
   const handleFieldChange = (field: keyof Pick<Professional, 'name' | 'lastname' | 'email' | 'phone'>) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,66 +304,90 @@ export const AdminProfilePage: React.FC = () => {
               helperText="Opcional"
             />
 
-            <div className="mt-2 rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
+            <div ref={scheduleRef} className="mt-2 rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h3 className="text-[16px] font-semibold text-white">Calendario</h3>
-                  <p className="text-[12px] text-[#8A8A8A]">Definí horarios y breaks por día.</p>
+                  <p className="text-[12px] text-[#8A8A8A]">
+                    {scheduleExpanded ? 'Definí horarios y breaks por día.' : 'Horario semanal.'}
+                  </p>
                 </div>
-                <div className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#8A8A8A]">
-                  <FiClock className="mr-2 inline-block text-[#FF5C00]" />
-                  Mi horario
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  icon={scheduleExpanded ? FiChevronUp : FiChevronDown}
+                  onClick={() => setScheduleExpanded(!scheduleExpanded)}
+                >
+                  {scheduleExpanded ? 'Colapsar' : 'Expandir'}
+                </Button>
               </div>
 
-              <div className="mt-4 grid gap-4">
-                {days.map((day) => (
-                  <div
-                    key={day.key}
-                    className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-[14px] font-semibold text-white">{day.label}</p>
-                        <p className="text-[11px] text-[#8A8A8A]">Horario y breaks del día</p>
+              {scheduleExpanded ? (
+                <div className="mt-4 grid gap-4">
+                  {days.map((day) => (
+                    <div
+                      key={day.key}
+                      className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <p className="text-[14px] font-semibold text-white">{day.label}</p>
+                          <p className="text-[11px] text-[#8A8A8A]">Horario y breaks del día</p>
+                        </div>
+                        <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">
+                          {day.key}
+                        </span>
                       </div>
-                      <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">
-                        {day.key}
-                      </span>
-                    </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input
-                        label={`Inicio ${day.label}`}
-                        type="time"
-                        value={schedule[day.key].startTime}
-                        onChange={handleDayChange(day.key, 'startTime')}
-                      />
-                      <Input
-                        label={`Fin ${day.label}`}
-                        type="time"
-                        value={schedule[day.key].endTime}
-                        onChange={handleDayChange(day.key, 'endTime')}
-                      />
-                    </div>
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <Input
+                          label={`Inicio ${day.label}`}
+                          type="time"
+                          value={schedule[day.key].startTime}
+                          onChange={handleDayChange(day.key, 'startTime')}
+                        />
+                        <Input
+                          label={`Fin ${day.label}`}
+                          type="time"
+                          value={schedule[day.key].endTime}
+                          onChange={handleDayChange(day.key, 'endTime')}
+                        />
+                      </div>
 
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input
-                        label={`Break inicio ${day.label}`}
-                        type="time"
-                        value={schedule[day.key].breakStart}
-                        onChange={handleDayChange(day.key, 'breakStart')}
-                      />
-                      <Input
-                        label={`Break fin ${day.label}`}
-                        type="time"
-                        value={schedule[day.key].breakEnd}
-                        onChange={handleDayChange(day.key, 'breakEnd')}
-                      />
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <Input
+                          label={`Break inicio ${day.label}`}
+                          type="time"
+                          value={schedule[day.key].breakStart}
+                          onChange={handleDayChange(day.key, 'breakStart')}
+                        />
+                        <Input
+                          label={`Break fin ${day.label}`}
+                          type="time"
+                          value={schedule[day.key].breakEnd}
+                          onChange={handleDayChange(day.key, 'breakEnd')}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4">
+                  {scheduleSummary ? (
+                    <p className="text-[13px] text-[#8A8A8A] leading-relaxed">
+                      {scheduleSummary}
+                    </p>
+                  ) : (
+                    <p className="text-[13px] text-[#8A8A8A] italic">
+                      Sin horarios cargados.
+                    </p>
+                  )}
+                  <p className="mt-2 text-[11px] text-[#555]">
+                    {days.filter((d) => schedule[d.key].startTime).length}/7 días con horario
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-3 pt-2">

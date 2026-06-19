@@ -1,5 +1,5 @@
-import React from 'react';
-import { FiClock, FiPlus, FiSave, FiTrash2 } from 'react-icons/fi';
+import React, { useEffect, useRef, useState } from 'react';
+import { FiChevronDown, FiChevronUp, FiPlus, FiSave, FiTrash2 } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, PasswordInput } from '../../../../components/common';
 import type { DayKey, Professional } from '../../../../types/professional';
 import { days, type ScheduleDayForm } from '../../../admin/utils/schedule-helpers';
@@ -28,6 +28,11 @@ type ProfessionalFormProps = {
   isSaving: boolean;
 };
 
+const dayLabels: Record<string, string> = {
+  monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié',
+  thursday: 'Jue', friday: 'Vie', saturday: 'Sáb', sunday: 'Dom',
+};
+
 export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
   professional,
   form,
@@ -38,6 +43,23 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
   onDelete,
   isSaving,
 }) => {
+  const [scheduleExpanded, setScheduleExpanded] = useState(false);
+  const scheduleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scheduleExpanded && scheduleRef.current) {
+      scheduleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [scheduleExpanded]);
+
+  const scheduleSummary = days
+    .filter((d) => form.schedule[d.key].startTime && form.schedule[d.key].endTime)
+    .map((d) => {
+      const day = form.schedule[d.key];
+      return `${dayLabels[d.key]} ${day.startTime}-${day.endTime}`;
+    })
+    .join(' · ');
+
   return (
     <AnimatedContainer animation="slideInRight" className="rounded-[24px] border border-[#282828] bg-[#121212] p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -142,68 +164,90 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
           helperText="Opcional. Si no hay URL, se guarda null."
         />
 
-        <div className="mt-2 rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
+        <div ref={scheduleRef} className="mt-2 rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h3 className="text-[16px] font-semibold text-white">Calendario</h3>
               <p className="text-[12px] text-[#8A8A8A]">
-                Definí horarios y breaks por día.
+                {scheduleExpanded ? 'Definí horarios y breaks por día.' : 'Horario semanal del profesional.'}
               </p>
             </div>
-            <div className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#8A8A8A]">
-              <FiClock className="mr-2 inline-block text-[#FF5C00]" />
-              {professional ? 'Edición' : 'Nuevo'}
-            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              icon={scheduleExpanded ? FiChevronUp : FiChevronDown}
+              onClick={() => setScheduleExpanded(!scheduleExpanded)}
+            >
+              {scheduleExpanded ? 'Colapsar' : 'Expandir'}
+            </Button>
           </div>
 
-          <div className="mt-4 grid gap-4">
-            {days.map((day) => (
-              <div
-                key={day.key}
-                className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3"
-              >
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-[14px] font-semibold text-white">{day.label}</p>
-                    <p className="text-[11px] text-[#8A8A8A]">Horario y breaks del día</p>
+          {scheduleExpanded ? (
+            <div className="mt-4 grid gap-4">
+              {days.map((day) => (
+                <div
+                  key={day.key}
+                  className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-[14px] font-semibold text-white">{day.label}</p>
+                      <p className="text-[11px] text-[#8A8A8A]">Horario y breaks del día</p>
+                    </div>
+                    <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">
+                      {day.key}
+                    </span>
                   </div>
-                  <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">
-                    {day.key}
-                  </span>
-                </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Input
-                    label={`Inicio ${day.label}`}
-                    type="time"
-                    value={form.schedule[day.key].startTime}
-                    onChange={onDayChange(day.key, 'startTime')}
-                  />
-                  <Input
-                    label={`Fin ${day.label}`}
-                    type="time"
-                    value={form.schedule[day.key].endTime}
-                    onChange={onDayChange(day.key, 'endTime')}
-                  />
-                </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      label={`Inicio ${day.label}`}
+                      type="time"
+                      value={form.schedule[day.key].startTime}
+                      onChange={onDayChange(day.key, 'startTime')}
+                    />
+                    <Input
+                      label={`Fin ${day.label}`}
+                      type="time"
+                      value={form.schedule[day.key].endTime}
+                      onChange={onDayChange(day.key, 'endTime')}
+                    />
+                  </div>
 
-                <div className="grid gap-3 md:grid-cols-2">
-                  <Input
-                    label={`Break inicio ${day.label}`}
-                    type="time"
-                    value={form.schedule[day.key].breakStart}
-                    onChange={onDayChange(day.key, 'breakStart')}
-                  />
-                  <Input
-                    label={`Break fin ${day.label}`}
-                    type="time"
-                    value={form.schedule[day.key].breakEnd}
-                    onChange={onDayChange(day.key, 'breakEnd')}
-                  />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      label={`Break inicio ${day.label}`}
+                      type="time"
+                      value={form.schedule[day.key].breakStart}
+                      onChange={onDayChange(day.key, 'breakStart')}
+                    />
+                    <Input
+                      label={`Break fin ${day.label}`}
+                      type="time"
+                      value={form.schedule[day.key].breakEnd}
+                      onChange={onDayChange(day.key, 'breakEnd')}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4">
+              {scheduleSummary ? (
+                <p className="text-[13px] text-[#8A8A8A] leading-relaxed">
+                  {scheduleSummary}
+                </p>
+              ) : (
+                <p className="text-[13px] text-[#8A8A8A] italic">
+                  Sin horarios cargados.
+                </p>
+              )}
+              <p className="mt-2 text-[11px] text-[#555]">
+                {days.filter((d) => form.schedule[d.key].startTime).length}/7 días con horario
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-wrap gap-3 pt-2">

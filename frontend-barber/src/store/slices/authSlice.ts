@@ -1,6 +1,6 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { authApi } from '../../services/authApi';
-import { setAccessToken } from '../../services/api';
+import { api, setAccessToken } from '../../services/api';
 import type { User } from '../../types/auth';
 
 interface AuthState {
@@ -14,6 +14,26 @@ const initialState: AuthState = {
   user: null,
   isInitializing: true,
 };
+
+export const updateCurrentUser = createAsyncThunk(
+  'auth/updateCurrentUser',
+  async (data: {
+    name?: string;
+    lastname?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    photoUrl?: string | null;
+  }, { rejectWithValue }) => {
+    try {
+      const response = await api.put<User>('/api/users/me', data);
+      return response.data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al actualizar perfil';
+      return rejectWithValue(message);
+    }
+  }
+);
 
 const authSlice = createSlice({
   name: 'auth',
@@ -41,6 +61,9 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(updateCurrentUser.fulfilled, (state, action) => {
+        state.user = action.payload;
+      })
       .addMatcher(authApi.endpoints.verifyTwoFactorCode.matchFulfilled, (state, action) => {
         state.loginToken = action.payload.token;
         setAccessToken(action.payload.token);
@@ -71,7 +94,6 @@ const authSlice = createSlice({
         state.user = action.payload;
       })
       .addMatcher(authApi.endpoints.getProfile.matchRejected, () => {
-        // Don't set error — this is a background fetch
       });
   },
 });

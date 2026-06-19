@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { api } from '../../services/api';
 import { professionalService } from '../../services/professional.service';
 import type {
   BarberSchedule,
@@ -94,6 +95,47 @@ export const updateBarberSchedule = createAsyncThunk(
   }
 );
 
+export const updateBarberMe = createAsyncThunk(
+  'barbers/updateBarberMe',
+  async (data: {
+    name?: string;
+    lastname?: string;
+    email?: string;
+    phone?: string;
+    password?: string;
+    photoUrl?: string | null;
+    services?: string[];
+    age?: number | null;
+    slotDuration?: number;
+    maxAdvanceDays?: number;
+    schedule?: BarberSchedule;
+  }, { rejectWithValue }) => {
+    try {
+      const response = await api.put('/api/barbers/me', data);
+      const raw = response.data as { id: string; _id?: string; [key: string]: unknown };
+      const mapped: Professional = {
+        id: raw.id ?? String(raw._id ?? ''),
+        name: raw.name as string,
+        lastname: raw.lastname as string,
+        email: raw.email as string,
+        phone: raw.phone as string,
+        kind: raw.kind as 'Admin' | 'Empleado',
+        services: raw.services as string[],
+        age: raw.age as number | undefined,
+        photoUrl: raw.photoUrl as string | null | undefined,
+        isActive: raw.isActive as boolean,
+        slotDuration: raw.slotDuration as number,
+        maxAdvanceDays: raw.maxAdvanceDays as number,
+        schedule: raw.schedule as BarberSchedule,
+      };
+      return mapped;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Error al actualizar perfil';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 const barbersSlice = createSlice({
   name: 'barbers',
   initialState,
@@ -128,6 +170,12 @@ const barbersSlice = createSlice({
         const index = state.list.findIndex((p) => p.id === action.payload.id);
         if (index !== -1) {
           state.list[index].schedule = action.payload.schedule;
+        }
+      })
+      .addCase(updateBarberMe.fulfilled, (state, action) => {
+        const index = state.list.findIndex((p) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.list[index] = action.payload;
         }
       });
   },

@@ -16,3 +16,9 @@ export const VALID_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> =
   Cancelado: [],
   NoShow: [],
 };
+
+export const STATUS_CATEGORIES = {
+  countsAsRevenue: ['Completado'] as AppointmentStatus[],
+  countsAsActivity: ['Confirmado', 'Completado', 'Cancelado', 'NoShow'] as AppointmentStatus[],
+  countsAsDuration: ['Confirmado', 'Completado'] as AppointmentStatus[],
+} as const;

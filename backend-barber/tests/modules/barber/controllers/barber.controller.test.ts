@@ -119,7 +119,22 @@ describe('BarberController', () => {
   });
 
   describe('getAll', () => {
-    it('debe responder 200 con la lista de barberos', async () => {
+    it('debe pasar el kind del usuario al use case', async () => {
+      const barbers = [makeBarberResponse()];
+      getAllBarbers.execute.mockResolvedValue(barbers);
+
+      const req = createMockReq();
+      (req as any).user = { kind: 'Empleado' };
+      const res = createMockRes();
+
+      await controller.getAll(req, res);
+
+      expect(getAllBarbers.execute).toHaveBeenCalledWith('Empleado');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ barbers });
+    });
+
+    it('debe llamar al use case sin kind si no hay usuario', async () => {
       const barbers = [makeBarberResponse()];
       getAllBarbers.execute.mockResolvedValue(barbers);
 
@@ -128,8 +143,8 @@ describe('BarberController', () => {
 
       await controller.getAll(req, res);
 
+      expect(getAllBarbers.execute).toHaveBeenCalledWith(undefined);
       expect(res.status).toHaveBeenCalledWith(200);
-      expect(res.json).toHaveBeenCalledWith({ barbers });
     });
 
     it('debe manejar error y responder 500', async () => {

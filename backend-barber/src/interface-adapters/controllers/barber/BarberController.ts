@@ -9,6 +9,7 @@ import { GetBarberScheduleUseCase } from '../../../application/use-cases/barber/
 import { UpdateBarberScheduleUseCase } from '../../../application/use-cases/barber/UpdateBarberScheduleUseCase';
 import { UpdateBarberUseCase } from '../../../application/use-cases/barber/UpdateBarberUseCase';
 import { BarberPresenter } from '../../presenters/BarberPresenter';
+import { AuthKind } from '../../../domain/types/auth';
 
 export class BarberController {
   constructor(
@@ -55,12 +56,8 @@ export class BarberController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const result = await this.getAllBarbers.execute();
-      const isAdmin = req.user?.kind === 'Admin';
-      const filtered = isAdmin
-        ? result
-        : result.filter((b) => b.kind !== 'Admin' && b.isActive);
-      return BarberPresenter.success(res, { barbers: filtered }, 200);
+      const result = await this.getAllBarbers.execute(req.user?.kind as AuthKind | undefined);
+      return BarberPresenter.success(res, { barbers: result }, 200);
     } catch (error) {
       return BarberPresenter.handleError(res, error, 'Error al obtener barberos');
     }
@@ -123,6 +120,23 @@ export class BarberController {
       return BarberPresenter.success(res, { schedule }, 200);
     } catch (error) {
       return BarberPresenter.handleError(res, error, 'Error al actualizar el horario');
+    }
+  };
+
+  updateMe = async (req: Request, res: Response) => {
+    try {
+      const id = req.user!._id;
+      const { schedule: scheduleData, ...profileData } = req.body;
+
+      const updated = await this.updateBarber.execute(id, profileData);
+
+      if (scheduleData) {
+        await this.updateBarberSchedule.execute(id, scheduleData);
+      }
+
+      return BarberPresenter.success(res, updated, 200);
+    } catch (error) {
+      return BarberPresenter.handleError(res, error, 'Error al actualizar perfil');
     }
   };
 

@@ -107,20 +107,21 @@ describe('Barber routes', () => {
 
     const response = await request(app).get('/api/barbers');
 
+    expect(getAllBarbers.execute).toHaveBeenCalledWith('Admin');
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ barbers: [admin, inactive, active] });
   });
 
-  it('GET /api/barbers como Empleado debe filtrar Admins e inactivos', async () => {
+  it('GET /api/barbers como Empleado debe pasar kind al use case y ver activos incluso Admin', async () => {
     const admin = { ...makeBarberResponse(), id: 'admin-1', kind: 'Admin' as const };
-    const inactive = { ...makeBarberResponse(), id: 'inactive-1', isActive: false };
     const active = makeBarberResponse();
-    getAllBarbers.execute.mockResolvedValue([admin, inactive, active]);
+    getAllBarbers.execute.mockResolvedValue([admin, active]);
 
     const response = await request(app).get('/api/barbers');
 
+    expect(getAllBarbers.execute).toHaveBeenCalledWith('Empleado');
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({ barbers: [active] });
+    expect(response.body).toEqual({ barbers: [admin, active] });
   });
 
   it('GET /api/barbers debe devolver la lista de barberos (default Empleado)', async () => {
@@ -128,6 +129,7 @@ describe('Barber routes', () => {
 
     const response = await request(app).get('/api/barbers');
 
+    expect(getAllBarbers.execute).toHaveBeenCalledWith('Empleado');
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ barbers: [makeBarberResponse()] });
   });

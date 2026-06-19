@@ -107,7 +107,7 @@ export class AnalyticsController {
 
       const result = await this.getHeatmap.execute({
         anio: anio ? parseInt(anio, 10) : undefined,
-        ultimoAnio: ultimoAnio === 'true' ? true : undefined,
+        ultimoAnio: ultimoAnio === true || ultimoAnio === 'true' ? true : undefined,
       });
 
       return AnalyticsPresenter.success(res, result);

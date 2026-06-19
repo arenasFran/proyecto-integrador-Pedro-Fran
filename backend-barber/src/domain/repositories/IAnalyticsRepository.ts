@@ -35,7 +35,7 @@ export type ReservasGananciasFilters = {
 
 export interface IAnalyticsRepository {
   getOverview(desde: string, hasta: string): Promise<OverviewResult>;
-  getHeatmap(param: { anio?: number; ultimoAnio?: boolean }): Promise<HeatmapEntry[]>;
+  getHeatmap(param: { anio?: number; ultimoAño?: boolean }): Promise<HeatmapEntry[]>;
   getDistribucion(desde: string, hasta: string): Promise<DistribucionEntry[]>;
   getReservasGanancias(filters: ReservasGananciasFilters): Promise<ReservasGananciasEntry[]>;
 }

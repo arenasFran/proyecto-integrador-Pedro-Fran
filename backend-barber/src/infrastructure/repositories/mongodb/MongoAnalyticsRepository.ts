@@ -76,11 +76,11 @@ export class MongoAnalyticsRepository implements IAnalyticsRepository {
     };
   }
 
-  async getHeatmap(param: { anio?: number; ultimoAnio?: boolean }): Promise<HeatmapEntry[]> {
+  async getHeatmap(param: { anio?: number; ultimoAño?: boolean }): Promise<HeatmapEntry[]> {
     let gte: Date;
     let lte: Date;
 
-    if (param.ultimoAnio) {
+    if (param.ultimoAño) {
       const now = new Date();
       lte = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       gte = new Date(lte);

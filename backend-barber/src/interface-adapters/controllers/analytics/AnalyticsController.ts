@@ -103,11 +103,11 @@ export class AnalyticsController {
 
   getHeatmapHandler = async (req: Request, res: Response) => {
     try {
-      const { anio, ultimoAnio } = req.query as Record<string, string | undefined>;
+      const { anio, ultimoAño } = req.query as Record<string, string | undefined>;
 
       const result = await this.getHeatmap.execute({
         anio: anio ? parseInt(anio, 10) : undefined,
-        ultimoAnio: ultimoAnio === true || ultimoAnio === 'true' ? true : undefined,
+        ultimoAño: ultimoAño === true || ultimoAño === 'true' ? true : undefined,
       });
 
       return AnalyticsPresenter.success(res, result);

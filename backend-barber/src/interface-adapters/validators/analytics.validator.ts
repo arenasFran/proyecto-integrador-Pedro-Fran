@@ -66,13 +66,13 @@ const CURRENT_YEAR = new Date().getFullYear();
 
 export const heatmapQuerySchema = Joi.object({
   anio: Joi.number().integer().min(2020).max(CURRENT_YEAR + 1),
-  ultimoAnio: Joi.boolean(),
+  ultimoAño: Joi.boolean(),
 }).custom((value, helpers) => {
-  if (!value.ultimoAnio && !value.anio) {
-    return helpers.message({ custom: 'Debe proporcionar "anio" o "ultimoAnio".' });
+  if (!value.ultimoAño && !value.anio) {
+    return helpers.message({ custom: 'Debe proporcionar "anio" o "ultimoAño".' });
   }
-  if (value.ultimoAnio && value.anio) {
-    return helpers.message({ custom: 'No combine "anio" con "ultimoAnio".' });
+  if (value.ultimoAño && value.anio) {
+    return helpers.message({ custom: 'No combine "anio" con "ultimoAño".' });
   }
   return value;
 });

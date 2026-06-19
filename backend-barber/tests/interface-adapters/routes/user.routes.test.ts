@@ -3,6 +3,7 @@ import express from 'express';
 import { createUserRouter } from '../../../src/interface-adapters/routes/user.routes';
 import { UserController } from '../../../src/interface-adapters/controllers/user/UserController';
 import { GetCurrentUserUseCase } from '../../../src/application/use-cases/user/GetCurrentUserUseCase';
+import { UpdateUserUseCase } from '../../../src/application/use-cases/user/UpdateUserUseCase';
 import { AppError } from '../../../src/application/errors/AppError';
 import { User, UserProps } from '../../../src/domain/entities/User';
 
@@ -22,6 +23,7 @@ describe('User routes', () => {
 
   let app: express.Application;
   let getCurrentUser: jest.Mocked<GetCurrentUserUseCase>;
+  let updateUser: jest.Mocked<UpdateUserUseCase>;
 
   const authenticate: express.RequestHandler = (req, _res, next) => {
     (req as any).user = { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' };
@@ -30,8 +32,9 @@ describe('User routes', () => {
 
   beforeEach(() => {
     getCurrentUser = { execute: jest.fn() } as unknown as jest.Mocked<GetCurrentUserUseCase>;
+    updateUser = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUseCase>;
 
-    const controller = new UserController(getCurrentUser);
+    const controller = new UserController(getCurrentUser, updateUser);
 
     app = express();
     app.use(express.json());

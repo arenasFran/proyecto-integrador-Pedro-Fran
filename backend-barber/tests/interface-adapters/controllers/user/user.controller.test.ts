@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { UserController } from '../../../../src/interface-adapters/controllers/user/UserController';
 import { GetCurrentUserUseCase } from '../../../../src/application/use-cases/user/GetCurrentUserUseCase';
+import { UpdateUserUseCase } from '../../../../src/application/use-cases/user/UpdateUserUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 
@@ -19,11 +20,13 @@ describe('UserController', () => {
   };
 
   let getCurrentUser: jest.Mocked<GetCurrentUserUseCase>;
+  let updateUser: jest.Mocked<UpdateUserUseCase>;
   let controller: UserController;
 
   beforeEach(() => {
     getCurrentUser = { execute: jest.fn() } as unknown as jest.Mocked<GetCurrentUserUseCase>;
-    controller = new UserController(getCurrentUser);
+    updateUser = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUseCase>;
+    controller = new UserController(getCurrentUser, updateUser);
   });
 
   it('debe retornar el perfil del usuario autenticado', async () => {

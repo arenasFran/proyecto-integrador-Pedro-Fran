@@ -34,10 +34,43 @@ export type AppointmentProps = {
 };
 
 export class Appointment {
-  constructor(public readonly props: AppointmentProps) {}
+  private props: AppointmentProps;
+
+  private constructor(props: AppointmentProps) {
+    this.props = { ...props };
+  }
 
   static create(props: AppointmentProps): Appointment {
     return new Appointment(props);
+  }
+
+  get id(): string { return this.props.id; }
+  get barberId(): string { return this.props.barberId; }
+  get clientId(): string | undefined { return this.props.clientId; }
+  get clientName(): string { return this.props.clientName; }
+  get clientLastname(): string { return this.props.clientLastname; }
+  get clientPhone(): string | undefined { return this.props.clientPhone; }
+  get clientEmail(): string | undefined { return this.props.clientEmail; }
+  get serviceId(): string { return this.props.serviceId; }
+  get serviceName(): string { return this.props.serviceName; }
+  get servicePrice(): number { return this.props.servicePrice; }
+  get serviceDuration(): number { return this.props.serviceDuration; }
+  get date(): string { return this.props.date; }
+  get startTime(): string { return this.props.startTime; }
+  get endTime(): string { return this.props.endTime; }
+  get status(): AppointmentStatus { return this.props.status; }
+  get paymentStatus(): PaymentStatus { return this.props.paymentStatus; }
+  get paymentMethod(): PaymentMethod { return this.props.paymentMethod; }
+  get cancelReason(): string | undefined { return this.props.cancelReason; }
+  get cancelledAt(): Date | undefined { return this.props.cancelledAt ? new Date(this.props.cancelledAt.getTime()) : undefined; }
+  get cancelledBy(): string | undefined { return this.props.cancelledBy; }
+  get createdBy(): CreatedBy | undefined { return this.props.createdBy ? { ...this.props.createdBy } : undefined; }
+  get statusHistory(): StatusHistoryEntry[] { return [...this.props.statusHistory]; }
+  get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
+  get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
+
+  toPrimitives(): AppointmentProps {
+    return { ...this.props };
   }
 
   addStatusHistoryEntry(status: AppointmentStatus, actor: string): void {

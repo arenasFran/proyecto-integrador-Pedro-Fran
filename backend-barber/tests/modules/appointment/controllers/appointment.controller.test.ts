@@ -1,3 +1,4 @@
+import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { AppointmentController } from '../../../../src/interface-adapters/controllers/appointment/AppointmentController';
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
@@ -128,9 +129,29 @@ describe('AppointmentController', () => {
 
   describe('getById', () => {
     it('debe obtener turno por id y responder 200', async () => {
-      appointmentRepository.findById.mockResolvedValue({
-        props: { id: 'apt-1', clientId: 'client-1' },
-      } as any);
+      const now = new Date();
+      appointmentRepository.findById.mockResolvedValue(
+        Appointment.create({
+          id: 'apt-1',
+          barberId: 'barber-1',
+          clientId: 'client-1',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          serviceId: 'svc-1',
+          serviceName: 'Corte',
+          servicePrice: 490,
+          serviceDuration: 30,
+          date: '2099-01-01',
+          startTime: '10:00',
+          endTime: '10:30',
+          status: 'Confirmado',
+          paymentStatus: 'Pendiente',
+          paymentMethod: 'local',
+          statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+          createdAt: now,
+          updatedAt: now,
+        })
+      );
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };
@@ -155,9 +176,29 @@ describe('AppointmentController', () => {
     });
 
     it('debe manejar error de permiso', async () => {
-      appointmentRepository.findById.mockResolvedValue({
-        props: { id: 'apt-1', clientId: 'other-user' },
-      } as any);
+      const now = new Date();
+      appointmentRepository.findById.mockResolvedValue(
+        Appointment.create({
+          id: 'apt-1',
+          barberId: 'barber-1',
+          clientId: 'other-user',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          serviceId: 'svc-1',
+          serviceName: 'Corte',
+          servicePrice: 490,
+          serviceDuration: 30,
+          date: '2099-01-01',
+          startTime: '10:00',
+          endTime: '10:30',
+          status: 'Confirmado',
+          paymentStatus: 'Pendiente',
+          paymentMethod: 'local',
+          statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+          createdAt: now,
+          updatedAt: now,
+        })
+      );
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };

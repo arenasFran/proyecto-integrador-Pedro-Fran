@@ -1,5 +1,6 @@
 import { GetAvailableSlotsUseCase } from '../../../../src/application/use-cases/barber/GetAvailableSlotsUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
+import { Appointment } from '../../../../src/domain/entities/Appointment';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { SlotService } from '../../../../src/domain/services/SlotService';
 import { makeMockBarberRepository, makeMockAppointmentRepository, makeMockTempLockRepository } from '../../../test-utils/mocks';
@@ -41,8 +42,8 @@ describe('GetAvailableSlotsUseCase', () => {
     return Barber.create({ ...base, ...overrides });
   };
 
-  const makeAppointment = (overrides?: { startTime?: string; endTime?: string; status?: string }) => ({
-    props: {
+  const makeAppointment = (overrides?: { startTime?: string; endTime?: string; status?: string }) =>
+    Appointment.create({
       id: 'apt-1',
       barberId: 'barber-1',
       clientName: 'Juan',
@@ -54,15 +55,13 @@ describe('GetAvailableSlotsUseCase', () => {
       date: '2099-01-01',
       startTime: overrides?.startTime ?? '09:00',
       endTime: overrides?.endTime ?? '09:50',
-      status: overrides?.status ?? 'Confirmado',
+      status: (overrides?.status ?? 'Confirmado') as Appointment['status'],
       paymentStatus: 'Pendiente',
       paymentMethod: 'local',
-      cancelReason: undefined,
-      cancelledAt: undefined,
+      statusHistory: [],
       createdAt: new Date(),
       updatedAt: new Date(),
-    },
-  });
+    });
 
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
@@ -106,7 +105,7 @@ describe('GetAvailableSlotsUseCase', () => {
   it('debe excluir slots ocupados por turnos existentes', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
-      makeAppointment({ startTime: '09:00', endTime: '09:50' }) as any,
+      makeAppointment({ startTime: '09:00', endTime: '09:50' }),
     ]);
 
     const result = await useCase.execute('barber-1', '2099-01-05');
@@ -119,7 +118,7 @@ describe('GetAvailableSlotsUseCase', () => {
   it('debe ignorar turnos cancelados al calcular disponibilidad', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
-      makeAppointment({ startTime: '09:00', endTime: '09:50', status: 'Cancelado' }) as any,
+      makeAppointment({ startTime: '09:00', endTime: '09:50', status: 'Cancelado' }),
     ]);
 
     const result = await useCase.execute('barber-1', '2099-01-05');

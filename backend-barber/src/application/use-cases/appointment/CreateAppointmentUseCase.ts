@@ -140,8 +140,8 @@ export class CreateAppointmentUseCase {
     );
 
     for (const existing of existingAppointments) {
-      if (existing.props.status === 'Cancelado') continue;
-      if (doesOverlap(dto.startTime, endTime, existing.props.startTime, existing.props.endTime)) {
+      if (existing.status === 'Cancelado') continue;
+      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
         throw new AppError('El horario seleccionado ya está ocupado.', 409);
       }
     }
@@ -160,7 +160,7 @@ export class CreateAppointmentUseCase {
     // Crear el turno
     let created;
     try {
-      created = await this.appointmentRepository.create(appointment.props);
+      created = await this.appointmentRepository.create(appointment.toPrimitives());
     } catch (error: any) {
       if (error?.code === 11000) {
         throw new AppError('El horario ya está ocupado.', 409);
@@ -178,7 +178,7 @@ export class CreateAppointmentUseCase {
 
     return {
       message: 'Turno creado exitosamente',
-      appointment: created.props,
+      appointment: created.toPrimitives(),
     };
   }
 
@@ -217,11 +217,11 @@ export class CreateAppointmentUseCase {
     }
 
     const filtered = excludeAppointmentId
-      ? activeAppointments.filter((a) => a.props.id !== excludeAppointmentId)
+      ? activeAppointments.filter((a) => a.id !== excludeAppointmentId)
       : activeAppointments;
 
     const hasActive = filtered.some(
-      (a) => a.props.status === 'Confirmado'
+      (a) => a.status === 'Confirmado'
     );
 
     if (hasActive) {
@@ -244,17 +244,17 @@ export class CreateAppointmentUseCase {
     barberName: string,
     barberLastname: string
   ): void {
-    const clientEmail = appointment.props.clientEmail;
+    const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
       this.emailService
         .sendMail({
           to: clientEmail,
           subject: 'Turno agendado',
-          html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.props.date} a las ${appointment.props.startTime} fue agendado exitosamente.</p>
-<p>Servicio: ${appointment.props.serviceName}</p>
-<p>Precio: $${appointment.props.servicePrice}</p>
-<p>Estado de pago: ${appointment.props.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
+          html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
+<p>Servicio: ${appointment.serviceName}</p>
+<p>Precio: $${appointment.servicePrice}</p>
+<p>Estado de pago: ${appointment.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
       })
       .catch((error) => {
         console.error('Error enviando email de creación:', error);

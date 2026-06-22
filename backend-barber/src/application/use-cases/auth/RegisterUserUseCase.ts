@@ -71,7 +71,7 @@ export class RegisterUserUseCase {
     try {
       const anonymousAppointments = await this.appointmentRepository.findByContact(email, phone);
       for (const appointment of anonymousAppointments) {
-        await this.appointmentRepository.updateClientId(appointment.props.id, registeredClientId);
+        await this.appointmentRepository.updateClientId(appointment.id, registeredClientId);
       }
     } catch (error) {
       console.error('Error vinculando turnos anónimos:', error);

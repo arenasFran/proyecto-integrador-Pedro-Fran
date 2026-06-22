@@ -230,20 +230,20 @@ export class BarberController {
       });
 
       for (const apt of futureAppointments) {
-        if (apt.props.status === 'Confirmado') {
-          await this.appointmentRepository.updateStatus(apt.props.id, {
+        if (apt.status === 'Confirmado') {
+          await this.appointmentRepository.updateStatus(apt.id, {
             status: 'Cancelado',
             cancelReason: 'Barbero dado de baja',
             cancelledAt: new Date(),
           });
 
-          const clientEmail = apt.props.clientEmail;
+          const clientEmail = apt.clientEmail;
           if (clientEmail) {
             this.emailService
               .sendMail({
                 to: clientEmail,
                 subject: 'Cancelación por baja de barbero',
-                html: `<p>Tu turno del ${apt.props.date} a las ${apt.props.startTime} fue cancelado porque el barbero ${barber.name} ${barber.lastname} ya no está disponible.</p>`,
+                html: `<p>Tu turno del ${apt.date} a las ${apt.startTime} fue cancelado porque el barbero ${barber.name} ${barber.lastname} ya no está disponible.</p>`,
               })
               .catch((error: unknown) => {
                 console.error('Error enviando email de baja:', error);

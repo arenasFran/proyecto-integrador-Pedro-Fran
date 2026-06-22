@@ -33,9 +33,9 @@ export class GetAvailableSlotsUseCase {
 
     const occupiedSlots: OccupiedSlot[] = [
       ...appointments.map((apt) => ({
-        startTime: apt.props.startTime,
-        endTime: apt.props.endTime,
-        status: apt.props.status,
+        startTime: apt.startTime,
+        endTime: apt.endTime,
+        status: apt.status,
       })),
       ...tempLocks.map((tl) => {
         const startMin = toMinutes(tl.startTime);

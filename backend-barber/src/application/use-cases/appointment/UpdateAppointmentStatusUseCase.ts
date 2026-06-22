@@ -28,7 +28,7 @@ export class UpdateAppointmentStatusUseCase {
     }
 
     // Idempotent: Cancelado → Cancelado es 200 sin mutación
-    if (appointment.props.status === 'Cancelado' && dto.status === 'Cancelado') {
+    if (appointment.status === 'Cancelado' && dto.status === 'Cancelado') {
       return { message: 'El turno ya se encontraba cancelado' };
     }
 
@@ -38,9 +38,9 @@ export class UpdateAppointmentStatusUseCase {
     // Application-level rules before entity mutation
     if (dto.status === 'Cancelado') {
       const nowInTz = getNowInTimezone();
-      const aptStartMinutes = toMinutes(appointment.props.startTime);
+      const aptStartMinutes = toMinutes(appointment.startTime);
       if (aptStartMinutes !== null) {
-        const [y, m, d] = appointment.props.date.split('-').map(Number);
+        const [y, m, d] = appointment.date.split('-').map(Number);
         const [ny, nm, nd] = nowInTz.date.split('-').map(Number);
         const aptEpochDays = Math.floor(Date.UTC(y, m - 1, d) / (1000 * 60 * 60 * 24));
         const nowEpochDays = Math.floor(Date.UTC(ny, nm - 1, nd) / (1000 * 60 * 60 * 24));
@@ -55,9 +55,9 @@ export class UpdateAppointmentStatusUseCase {
 
     if (dto.status === 'NoShow') {
       const nowInTz = getNowInTimezone();
-      const aptStartMinutes = toMinutes(appointment.props.startTime);
+      const aptStartMinutes = toMinutes(appointment.startTime);
       if (aptStartMinutes !== null) {
-        const [y, m, d] = appointment.props.date.split('-').map(Number);
+        const [y, m, d] = appointment.date.split('-').map(Number);
         const [ny, nm, nd] = nowInTz.date.split('-').map(Number);
         const aptEpochDays = Math.floor(Date.UTC(y, m - 1, d) / (1000 * 60 * 60 * 24));
         const nowEpochDays = Math.floor(Date.UTC(ny, nm - 1, nd) / (1000 * 60 * 60 * 24));
@@ -83,41 +83,41 @@ export class UpdateAppointmentStatusUseCase {
       }
     } catch (error) {
       throw new AppError(
-        `No se puede cambiar de ${appointment.props.status} a ${dto.status}.`, 400
+        `No se puede cambiar de ${appointment.status} a ${dto.status}.`, 400
       );
     }
 
-    const lastEntry = appointment.props.statusHistory[appointment.props.statusHistory.length - 1];
+    const lastEntry = appointment.statusHistory[appointment.statusHistory.length - 1];
 
     const updateData: UpdateStatusData = {
-      status: appointment.props.status,
+      status: appointment.status,
       statusHistoryEntry: lastEntry,
     };
 
     if (dto.status === 'Completado') {
       updateData.paymentStatus = 'Pagado';
     }
-    if (appointment.props.cancelReason) {
-      updateData.cancelReason = appointment.props.cancelReason;
+    if (appointment.cancelReason) {
+      updateData.cancelReason = appointment.cancelReason;
     }
-    if (appointment.props.cancelledAt) {
-      updateData.cancelledAt = appointment.props.cancelledAt;
+    if (appointment.cancelledAt) {
+      updateData.cancelledAt = appointment.cancelledAt;
     }
-    if (appointment.props.cancelledBy) {
-      updateData.cancelledBy = appointment.props.cancelledBy;
+    if (appointment.cancelledBy) {
+      updateData.cancelledBy = appointment.cancelledBy;
     }
 
     await this.appointmentRepository.updateStatus(id, updateData);
 
     // RN17 — Email notification (async, non-blocking)
-    const clientEmail = appointment.props.clientEmail;
+    const clientEmail = appointment.clientEmail;
     if (clientEmail) {
       if (dto.status === 'Completado') {
         this.emailService
           .sendMail({
             to: clientEmail,
             subject: 'Turno completado',
-            html: `<p>Tu turno del ${appointment.props.date} a las ${appointment.props.startTime} fue marcado como completado. ¡Gracias por visitarnos!</p>`,
+            html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue marcado como completado. ¡Gracias por visitarnos!</p>`,
           })
           .catch((error) => {
             console.error('Error enviando email de completado:', error);
@@ -127,7 +127,7 @@ export class UpdateAppointmentStatusUseCase {
           .sendMail({
             to: clientEmail,
             subject: 'Turno no concretado (NoShow)',
-            html: `<p>Tu turno del ${appointment.props.date} a las ${appointment.props.startTime} fue marcado como no concretado por inasistencia.</p>`,
+            html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue marcado como no concretado por inasistencia.</p>`,
           })
           .catch((error) => {
             console.error('Error enviando email de NoShow:', error);

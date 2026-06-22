@@ -98,7 +98,7 @@ export class Barber {
   }
 
   get services(): string[] {
-    return this.props.services;
+    return [...this.props.services];
   }
 
   get age(): number | undefined {
@@ -118,7 +118,20 @@ export class Barber {
   }
 
   get schedule(): BarberSchedule {
-    return this.props.schedule;
+    const cloneDay = (d: BarberScheduleDay): BarberScheduleDay => ({
+      startTime: d.startTime,
+      endTime: d.endTime,
+      breaks: d.breaks.map(b => ({ ...b })),
+    });
+    return {
+      monday: cloneDay(this.props.schedule.monday),
+      tuesday: cloneDay(this.props.schedule.tuesday),
+      wednesday: cloneDay(this.props.schedule.wednesday),
+      thursday: cloneDay(this.props.schedule.thursday),
+      friday: cloneDay(this.props.schedule.friday),
+      saturday: cloneDay(this.props.schedule.saturday),
+      sunday: cloneDay(this.props.schedule.sunday),
+    };
   }
 
   get maxAdvanceDays(): number {

@@ -24,6 +24,6 @@ export class PasswordResetToken {
   }
 
   get expiresAt(): Date {
-    return this.props.expiresAt;
+    return new Date(this.props.expiresAt.getTime());
   }
 }

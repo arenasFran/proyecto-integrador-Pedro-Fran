@@ -34,6 +34,7 @@ const userFromBarber = (doc: Record<string, any>): User =>
     kind: doc.kind || 'Empleado',
     authProvider: 'local',
     passwordHash: doc.password,
+    photoUrl: doc.photoUrl ?? null,
     twoFactor: {
       codeHash: doc.twoFactorCode,
       expiresAt: doc.twoFactorExpires,
@@ -56,6 +57,7 @@ const userFromRegisteredClient = (doc: Record<string, any>): User =>
     authProvider: doc.authProvider || 'local',
     passwordHash: doc.password,
     googleId: doc.googleId,
+    photoUrl: doc.photoUrl ?? null,
     twoFactor: {
       codeHash: doc.twoFactorCode,
       expiresAt: doc.twoFactorExpires,
@@ -75,6 +77,7 @@ const userToRegisteredClientData = (user: User) => ({
   phone: user.phone,
   authProvider: user.authProvider,
   googleId: user.googleId,
+  photoUrl: user.photoUrl,
   twoFactorCode: user.twoFactor?.codeHash,
   twoFactorExpires: user.twoFactor?.expiresAt,
   twoFactorFailedAttempts: user.twoFactorFailedAttempts ?? undefined,

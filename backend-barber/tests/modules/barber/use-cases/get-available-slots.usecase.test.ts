@@ -1,10 +1,9 @@
 import { GetAvailableSlotsUseCase } from '../../../../src/application/use-cases/barber/GetAvailableSlotsUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
+import { Appointment } from '../../../../src/domain/entities/Appointment';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
-import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
-import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
-import { ITempLockRepository } from '../../../../src/domain/repositories/ITempLockRepository';
-import { SlotService, SlotsResult } from '../../../../src/domain/services/SlotService';
+import { SlotService } from '../../../../src/domain/services/SlotService';
+import { makeMockBarberRepository, makeMockAppointmentRepository, makeMockTempLockRepository } from '../../../test-utils/mocks';
 
 describe('GetAvailableSlotsUseCase', () => {
   const createScheduleDay = (overrides?: Partial<BarberSchedule['monday']>) => ({
@@ -43,67 +42,38 @@ describe('GetAvailableSlotsUseCase', () => {
     return Barber.create({ ...base, ...overrides });
   };
 
-  const makeAppointment = (overrides?: { startTime?: string; endTime?: string; status?: string }) => ({
-    id: 'apt-1',
-    barberId: 'barber-1',
-    clientName: 'Juan',
-    clientLastname: 'Perez',
-    serviceId: 'svc-1',
-    serviceName: 'Corte',
-    servicePrice: 490,
-    serviceDuration: 50,
-    date: '2099-01-01',
-    startTime: overrides?.startTime ?? '09:00',
-    endTime: overrides?.endTime ?? '09:50',
-    status: overrides?.status ?? 'Confirmado',
-    paymentStatus: 'Pendiente',
-    paymentMethod: 'local',
-    cancelReason: undefined,
-    cancelledAt: undefined,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  });
+  const makeAppointment = (overrides?: { startTime?: string; endTime?: string; status?: string }) =>
+    Appointment.create({
+      id: 'apt-1',
+      barberId: 'barber-1',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      serviceId: 'svc-1',
+      serviceName: 'Corte',
+      servicePrice: 490,
+      serviceDuration: 50,
+      date: '2099-01-01',
+      startTime: overrides?.startTime ?? '09:00',
+      endTime: overrides?.endTime ?? '09:50',
+      status: (overrides?.status ?? 'Confirmado') as Appointment['status'],
+      paymentStatus: 'Pendiente',
+      paymentMethod: 'local',
+      statusHistory: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
 
-  let barberRepository: jest.Mocked<IBarberRepository>;
-  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
-  let tempLockRepository: jest.Mocked<ITempLockRepository>;
+  let barberRepository: ReturnType<typeof makeMockBarberRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
+  let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
   let slotService: SlotService;
   let useCase: GetAvailableSlotsUseCase;
 
   beforeEach(() => {
-    barberRepository = {
-      findBarberById: jest.fn(),
-      findAllBarbers: jest.fn(),
-      createBarber: jest.fn(),
-      updateBarber: jest.fn(),
-      deactivateBarber: jest.fn(),
-      deleteBarber: jest.fn(),
-      updateSchedule: jest.fn(),
-    };
-
-    appointmentRepository = {
-      findById: jest.fn(),
-      findMany: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findByClientAndDate: jest.fn(),
-      findByContactAndDate: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateStatus: jest.fn(),
-      findByClientId: jest.fn(),
-      findByContact: jest.fn(),
-      updateClientId: jest.fn(),
-    };
-
-    tempLockRepository = {
-      create: jest.fn(),
-      deleteMany: jest.fn(),
-      deleteOne: jest.fn(),
-      deleteById: jest.fn(),
-      findByBarberAndDate: jest.fn().mockResolvedValue([]),
-      findById: jest.fn(),
-    };
-
+    barberRepository = makeMockBarberRepository();
+    appointmentRepository = makeMockAppointmentRepository();
+    tempLockRepository = makeMockTempLockRepository();
+    tempLockRepository.findByBarberAndDate.mockResolvedValue([]);
     slotService = new SlotService();
     useCase = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository);
   });
@@ -135,7 +105,7 @@ describe('GetAvailableSlotsUseCase', () => {
   it('debe excluir slots ocupados por turnos existentes', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
-      makeAppointment({ startTime: '09:00', endTime: '09:50' }) as any,
+      makeAppointment({ startTime: '09:00', endTime: '09:50' }),
     ]);
 
     const result = await useCase.execute('barber-1', '2099-01-05');
@@ -148,7 +118,7 @@ describe('GetAvailableSlotsUseCase', () => {
   it('debe ignorar turnos cancelados al calcular disponibilidad', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([
-      makeAppointment({ startTime: '09:00', endTime: '09:50', status: 'Cancelado' }) as any,
+      makeAppointment({ startTime: '09:00', endTime: '09:50', status: 'Cancelado' }),
     ]);
 
     const result = await useCase.execute('barber-1', '2099-01-05');

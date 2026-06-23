@@ -1,6 +1,6 @@
-import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
-import { IBarberRepository } from '../../../domain/repositories/IBarberRepository';
-import { ITempLockRepository } from '../../../domain/repositories/ITempLockRepository';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { AppError } from '../../errors/AppError';
 import { OccupiedSlot, SlotService, SlotsResult } from '../../../domain/services/SlotService';
 import { toMinutes, toTimeString } from '../../../domain/utils/time';
@@ -9,10 +9,10 @@ export { SlotsResult };
 
 export class GetAvailableSlotsUseCase {
   constructor(
-    private readonly barberRepository: IBarberRepository,
+    private readonly barberRepository: MongoBarberRepository,
     private readonly slotService: SlotService,
-    private readonly appointmentRepository: IAppointmentRepository,
-    private readonly tempLockRepository: ITempLockRepository
+    private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly tempLockRepository: MongoTempLockRepository
   ) {}
 
   async execute(barberId: string, date: string): Promise<SlotsResult> {

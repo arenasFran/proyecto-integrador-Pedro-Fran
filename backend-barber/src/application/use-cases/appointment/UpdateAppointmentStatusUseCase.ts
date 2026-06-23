@@ -1,4 +1,4 @@
-import { IAppointmentRepository, UpdateStatusData } from '../../../domain/repositories/IAppointmentRepository';
+import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../errors/AppError';
@@ -11,7 +11,7 @@ export type UpdateAppointmentStatusDTO = {
 
 export class UpdateAppointmentStatusUseCase {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository,
+    private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly emailService: IEmailService,
     private readonly cancelMinHoursBefore: number
   ) {}
@@ -87,25 +87,24 @@ export class UpdateAppointmentStatusUseCase {
       );
     }
 
-    const primitives = appointment.toPrimitives();
-    const lastEntry = primitives.statusHistory[primitives.statusHistory.length - 1];
+    const lastEntry = appointment.statusHistory[appointment.statusHistory.length - 1];
 
     const updateData: UpdateStatusData = {
-      status: primitives.status,
+      status: appointment.status,
       statusHistoryEntry: lastEntry,
     };
 
     if (dto.status === 'Completado') {
       updateData.paymentStatus = 'Pagado';
     }
-    if (primitives.cancelReason) {
-      updateData.cancelReason = primitives.cancelReason;
+    if (appointment.cancelReason) {
+      updateData.cancelReason = appointment.cancelReason;
     }
-    if (primitives.cancelledAt) {
-      updateData.cancelledAt = primitives.cancelledAt;
+    if (appointment.cancelledAt) {
+      updateData.cancelledAt = appointment.cancelledAt;
     }
-    if (primitives.cancelledBy) {
-      updateData.cancelledBy = primitives.cancelledBy;
+    if (appointment.cancelledBy) {
+      updateData.cancelledBy = appointment.cancelledBy;
     }
 
     await this.appointmentRepository.updateStatus(id, updateData);

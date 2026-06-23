@@ -1,5 +1,4 @@
 import { BarberKind } from '../types/auth';
-import { DurationMinutes } from '../value-objects/DurationMinutes';
 import { Email } from '../value-objects/Email';
 import { Phone } from '../value-objects/Phone';
 
@@ -52,7 +51,7 @@ type BarberInternalProps = {
   age?: number;
   photoUrl?: string | null;
   isActive: boolean;
-  slotDuration: DurationMinutes;
+  slotDuration: number;
   schedule: BarberSchedule;
   maxAdvanceDays: number;
   passwordHash?: string;
@@ -70,7 +69,6 @@ export class Barber {
       ...props,
       email: Email.create(props.email),
       phone: Phone.create(props.phone),
-      slotDuration: DurationMinutes.create(props.slotDuration),
       maxAdvanceDays: props.maxAdvanceDays ?? 30,
     });
   }
@@ -100,7 +98,7 @@ export class Barber {
   }
 
   get services(): string[] {
-    return this.props.services;
+    return [...this.props.services];
   }
 
   get age(): number | undefined {
@@ -116,11 +114,24 @@ export class Barber {
   }
 
   get slotDuration(): number {
-    return this.props.slotDuration.getValue();
+    return this.props.slotDuration;
   }
 
   get schedule(): BarberSchedule {
-    return this.props.schedule;
+    const cloneDay = (d: BarberScheduleDay): BarberScheduleDay => ({
+      startTime: d.startTime,
+      endTime: d.endTime,
+      breaks: d.breaks.map(b => ({ ...b })),
+    });
+    return {
+      monday: cloneDay(this.props.schedule.monday),
+      tuesday: cloneDay(this.props.schedule.tuesday),
+      wednesday: cloneDay(this.props.schedule.wednesday),
+      thursday: cloneDay(this.props.schedule.thursday),
+      friday: cloneDay(this.props.schedule.friday),
+      saturday: cloneDay(this.props.schedule.saturday),
+      sunday: cloneDay(this.props.schedule.sunday),
+    };
   }
 
   get maxAdvanceDays(): number {
@@ -143,7 +154,7 @@ export class Barber {
       age: this.props.age,
       photoUrl: this.props.photoUrl ?? null,
       isActive: this.props.isActive,
-      slotDuration: this.props.slotDuration.getValue(),
+      slotDuration: this.props.slotDuration,
       schedule: { ...this.props.schedule },
       maxAdvanceDays: this.props.maxAdvanceDays,
       passwordHash: this.props.passwordHash,

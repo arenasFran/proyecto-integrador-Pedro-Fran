@@ -1,9 +1,8 @@
 import { RegisterUserUseCase } from '../../../../src/application/use-cases/auth/RegisterUserUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IUserRepository } from '../../../../src/domain/repositories/IUserRepository';
-import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { User, UserProps } from '../../../../src/domain/entities/User';
+import { makeMockUserRepository, makeMockAppointmentRepository, makeMockPasswordHasher } from '../../../test-utils/mocks';
 
 describe('RegisterUserUseCase', () => {
   const makeUser = (overrides?: Partial<UserProps>) => {
@@ -21,42 +20,15 @@ describe('RegisterUserUseCase', () => {
     return overrides ? User.create({ ...user.toPrimitives(), ...overrides }) : user;
   };
 
-  let userRepository: jest.Mocked<IUserRepository>;
-  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
   let useCase: RegisterUserUseCase;
 
   beforeEach(() => {
-    userRepository = {
-      findByEmail: jest.fn(),
-      findById: jest.fn(),
-      findByPhone: jest.fn(),
-      createRegisteredClient: jest.fn(),
-      updatePassword: jest.fn(),
-      updateTwoFactor: jest.fn(),
-      updateLastLogin: jest.fn(),
-      updateUserSecurity: jest.fn(),
-    };
-
-    appointmentRepository = {
-      findById: jest.fn(),
-      findMany: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findByClientAndDate: jest.fn(),
-      findByContactAndDate: jest.fn(),
-      findByClientId: jest.fn(),
-      findByContact: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateClientId: jest.fn(),
-      updateStatus: jest.fn(),
-    };
-
-    passwordHasher = {
-      hash: jest.fn(),
-      compare: jest.fn(),
-    };
-
+    userRepository = makeMockUserRepository();
+    appointmentRepository = makeMockAppointmentRepository();
+    passwordHasher = makeMockPasswordHasher();
     useCase = new RegisterUserUseCase(userRepository, passwordHasher, appointmentRepository);
   });
 
@@ -121,7 +93,14 @@ describe('RegisterUserUseCase', () => {
     });
 
     expect(passwordHasher.hash).toHaveBeenCalledWith('Abcd1234');
-    expect(userRepository.createRegisteredClient).toHaveBeenCalled();
+    expect(userRepository.createRegisteredClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: 'nuevo@example.com',
+        name: 'Juan',
+        lastname: 'Perez',
+        phone: '123456789',
+      })
+    );
     expect(result.message).toMatch(/Usuario registrado/);
   });
 });

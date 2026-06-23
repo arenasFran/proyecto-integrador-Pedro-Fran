@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthenticateWithGoogleUseCase } from '../../../application/use-cases/auth/AuthenticateWithGoogleUseCase';
 import { CompleteGoogleProfileUseCase } from '../../../application/use-cases/auth/CompleteGoogleProfileUseCase';
-import { AuthPresenter } from '../../presenters/AuthPresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 import { setRefreshCookie } from './TwoFactorController';
 
 export class AuthGoogleController {
@@ -16,9 +16,9 @@ export class AuthGoogleController {
       if ('refreshToken' in result) {
         setRefreshCookie(res, result.refreshToken);
       }
-      return AuthPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al autenticar con Google');
+      return sendError(res, error, 'Error al autenticar con Google');
     }
   };
 
@@ -28,9 +28,9 @@ export class AuthGoogleController {
       if ('refreshToken' in result) {
         setRefreshCookie(res, result.refreshToken);
       }
-      return AuthPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al completar el perfil');
+      return sendError(res, error, 'Error al completar el perfil');
     }
   };
 }

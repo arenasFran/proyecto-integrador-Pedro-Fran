@@ -11,13 +11,11 @@ import { MongoPasswordResetRepository } from '../infrastructure/repositories/mon
 import { MongoRefreshTokenRepository } from '../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
-import { DateTimeProvider } from '../infrastructure/services/DateTimeProvider';
 import { GoogleAuthService } from '../infrastructure/services/GoogleAuthService';
 import { HashService } from '../infrastructure/services/HashService';
 import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
 import { IEmailService } from '../application/ports/IEmailService';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
-import { RandomGenerator } from '../infrastructure/services/RandomGenerator';
 import { AuthController } from '../interface-adapters/controllers/auth/AuthController';
 import { AuthGoogleController } from '../interface-adapters/controllers/auth/AuthGoogleController';
 import { PasswordRecoveryController } from '../interface-adapters/controllers/auth/PasswordRecoveryController';
@@ -42,9 +40,7 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
   });
   const emailService = options?.emailService ?? new NodemailerEmailService();
   const googleAuthService = new GoogleAuthService(config.googleClientId!);
-  const randomGenerator = new RandomGenerator();
   const hashService = new HashService();
-  const dateTimeProvider = new DateTimeProvider();
 
   const appointmentRepository = new MongoAppointmentRepository();
   const registerUser = new RegisterUserUseCase(userRepository, passwordHasher, appointmentRepository);
@@ -54,53 +50,44 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     tokenService,
     refreshTokenRepository,
     hashService,
-    dateTimeProvider,
     passwordHasher
   );
   const sendTwoFactorCode = new SendTwoFactorCodeUseCase(
     userRepository,
     passwordHasher,
     emailService,
-    randomGenerator,
-    hashService,
-    dateTimeProvider
+    hashService
   );
   const verifyTwoFactor = new VerifyTwoFactorUseCase(
     userRepository,
     tokenService,
     hashService,
-    dateTimeProvider,
     refreshTokenRepository
   );
   const requestPasswordReset = new RequestPasswordResetUseCase(
     userRepository,
     passwordResetRepository,
     emailService,
-    randomGenerator,
     hashService,
-    dateTimeProvider,
     config.frontendUrl,
     config.resetTokenExpirationMin
   );
   const refreshTokenUseCase = new RefreshTokenUseCase(
     tokenService,
     refreshTokenRepository,
-    hashService,
-    dateTimeProvider
+    hashService
   );
   const completeGoogleProfile = new CompleteGoogleProfileUseCase(
     userRepository,
     tokenService,
     hashService,
-    dateTimeProvider,
     refreshTokenRepository
   );
   const resetPassword = new ResetPasswordUseCase(
     userRepository,
     passwordResetRepository,
     passwordHasher,
-    hashService,
-    dateTimeProvider
+    hashService
   );
 
   const authController = new AuthController(registerUser, refreshTokenUseCase);

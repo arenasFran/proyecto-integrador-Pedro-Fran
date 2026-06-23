@@ -1,20 +1,24 @@
 import { User } from '../../../domain/entities/User';
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Phone } from '../../../domain/value-objects/Phone';
-import { CompleteGoogleProfileDTO } from '../../dto/auth/CompleteGoogleProfileDTO';
 import { AppError } from '../../errors/AppError';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
+
+interface CompleteGoogleProfileDTO {
+  partialToken: string;
+  name: string;
+  lastname?: string;
+  phone?: string;
+}
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
 
 export class CompleteGoogleProfileUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: MongoUserRepository,
     private readonly tokenService: ITokenService,
     private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider,
-    private readonly refreshTokenRepository: IRefreshTokenRepository
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository
   ) {}
 
   async execute(dto: CompleteGoogleProfileDTO): Promise<{ message: string; token: string; refreshToken: string; user: { id: string; name: string; lastname: string; email: string; phone: string; kind: string; photoUrl: string | null } }> {
@@ -60,7 +64,7 @@ export class CompleteGoogleProfileUseCase {
     const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
 
     const tokenHash = this.hashService.sha256(refreshToken);
-    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
     await this.refreshTokenRepository.create(tokenHash, created.id, expiresAt);
     await this.userRepository.updateLastLogin(created.id);
 

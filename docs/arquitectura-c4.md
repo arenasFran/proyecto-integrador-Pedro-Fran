@@ -91,7 +91,7 @@ graph TD
 
     subgraph "application"
         direction TB
-        UC["Use Cases<br/>(26 casos: auth 6, barber 9,<br/>appointment 6, password 2,<br/>service 1, tempLock 1, user 1)"]
+        UC["Use Cases<br/>(28 casos: auth 6, barber 9,<br/>appointment 7, password 2,<br/>service 1, tempLock 2, user 1)"]
         PORTS["Ports / Interfaces<br/>(IEmailService, ITokenService,<br/>IHashService, IPasswordHasher,<br/>IGoogleAuthService,<br/>IDateTimeProvider,<br/>IRandomGenerator)"]
         DTO["DTOs<br/>(auth, barber, appointment,<br/>password, service)"]
         ERR["AppError<br/>(message + statusCode)"]
@@ -173,7 +173,7 @@ graph TD
     style security fill:#f9e79f,color:#000
 ```
 
-La API sigue Clean Architecture estricta con dependencias apuntando hacia adentro (dominio no conoce infraestructura). La capa `wiring` ensambla manualmente todas las dependencias (DI sin contenedor). Los 26 casos de uso orquestan la lógica de negocio; el dominio contiene reglas puras (entities, value objects, tipos con máquina de estados para Appointment) y el servicio de dominio `SlotService` para cálculo de disponibilidad horaria. La infraestructura implementa repositorios MongoDB con mappers que traducen entre modelos de Mongoose y entidades de dominio.
+La API sigue Clean Architecture estricta con dependencias apuntando hacia adentro (dominio no conoce infraestructura). La capa `wiring` ensambla manualmente todas las dependencias (DI sin contenedor). Los 28 casos de uso orquestan la lógica de negocio; el dominio contiene reglas puras (entities, value objects, tipos con máquina de estados para Appointment) y el servicio de dominio `SlotService` para cálculo de disponibilidad horaria. La infraestructura implementa repositorios MongoDB con mappers que traducen entre modelos de Mongoose y entidades de dominio.
 
 ### Mecanismos de seguridad reales
 
@@ -181,7 +181,7 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 |---|---|---|
 | **Helmet** | Global (`app.use(helmet(...))`) | `src/app.ts:16-19` |
 | **CORS** | Global con whitelist | `src/app.ts:22-29` |
-| **Rate limiting** | 7 limiters: register (10/15min), reset (3/15min), 2FA (5/15min), google (5/15min), refresh (10/15min), tempLock (20/5min), login (5/15min, definido no usado) | `src/app.ts:31-85`, `tempLock.routes.ts:17-21` |
+| **Rate limiting** | 7 limiters: register (10/15min), reset (3/15min), twoFA (5/15min, ruta /2fa/send), google (5/15min), refresh (10/15min), tempLock (20/5min), login (5/15min, ruta /2fa/send) | `src/app.ts:31-85`, `auth.routes.ts:29-35,57` |
 | **Anti brute-force** | Lockout tras 5 intentos fallidos en 2FA y reset, 15 min de bloqueo | `VerifyTwoFactorUseCase.ts`, `ResetPasswordUseCase.ts` |
 | **Retry + exp. backoff** | Envío de email: 3 intentos, backoff 500ms→1000ms | `SendTwoFactorCodeUseCase.ts:62-83`, `RequestPasswordResetUseCase.ts:40-57` |
 | **Refresh token rotation** | Al refrescar: revoca el anterior; si se reusa uno revocado: revoca TODOS | `RefreshTokenUseCase.ts:30-33` |
@@ -210,7 +210,7 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 - ❌ No existe circuit breaker
 - ❌ No existe caché (Redis o en memoria)
 - ❌ No existen colas / workers
-- ❌ No existe TTL index en refresh_tokens ni passwordresets
+- ❌ No existe TTL index en passwordresets
 - ❌ No existe auditoría de operaciones
 
 ---
@@ -236,10 +236,10 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 | Cambio | Evidencia | Justificación |
 |---|---|---|
 | Se agregó endpoint `GET /api/users/me` con UserController, GetCurrentUserUseCase y wiring | `interface-adapters/routes/user.routes.ts`, `controllers/user/UserController.ts`, `application/use-cases/user/GetCurrentUserUseCase.ts`, `wiring/user.ts` | Issue #5: endpoint para que el frontend obtenga el perfil del usuario autenticado |
-| Se actualizó conteo de Use Cases: 25 → 26 | Se agregó `GetCurrentUserUseCase` | Nuevo caso de uso para obtener perfil de usuario |
-| Se agregaron los 7 rate limiters como subcomponente de seguridad | `app.ts:31-85`, `tempLock.routes.ts:17-21` | Eran 6 definiciones en app.ts + 1 en tempLock (loginLimiter definido pero no usado) |
+| Se actualizó conteo de Use Cases: 25 → 28 | Se agregaron `GetCurrentUserUseCase`, `GetAppointmentsAnonymousUseCase`, `ReleaseTempLockUseCase` | Nuevos casos de uso |
+| Se agregaron los 7 rate limiters como subcomponente de seguridad | `app.ts:31-85`, `auth.routes.ts:29-35,57` | 7 limiters configurados (loginLimiter usado en /2fa/send) |
 | Se agregó bloque "security" con Helmet, CORS, AntiBF, Retry, Token Rotation, Constant-Time | Código fuente verificado en cada caso | Existían pero no se documentaban en ningún nivel |
-| Se corrigió conteo de Use Cases: de 26 → 25 | Conteo real de archivos en `src/application/use-cases/` | El número anterior era incorrecto |
+| Se corrigió conteo de Use Cases: de 25 → 28 | Conteo real de archivos en `src/application/use-cases/` | El número anterior era incorrecto |
 | Se agregaron controllers faltantes: AuthGoogle, TwoFactor, PasswordRecovery, Service, TempLock | `interface-adapters/controllers/` | Existían 8 controllers, no 3 |
 | Se agregaron middlewares faltantes: authorizeSelfOrKinds, createOptionalAuth | `auth.middleware.ts` | Eran 4 factories exportadas, no 3 |
 | Se agregó StaticServiceRepository | `infrastructure/repositories/static/` | Repositorio existente no documentado |
@@ -263,11 +263,12 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 
 | Cambio | Evidencia | Justificación |
 |---|---|---|
-| Se agregó GetCurrentUserUseCase | `application/use-cases/user/GetCurrentUserUseCase.ts` | Issue #5: nuevo caso de uso para obtener perfil del usuario autenticado |
+| Se agregó GetCurrentUserUseCase, GetAppointmentsAnonymousUseCase, ReleaseTempLockUseCase | `application/use-cases/` | 3 nuevos casos de uso (total 28) |
 | Se agregó UserController con método getMe | `interface-adapters/controllers/user/UserController.ts` | Controller para GET /api/users/me |
+| Se agregó AppointmentController.getAnonymous y TempLockController.release | `interface-adapters/controllers/` | Métodos para consulta anónima y liberación de tempLock |
+| Se agregó AuthController.logout | `interface-adapters/controllers/auth/AuthController.ts` | Endpoint POST /auth/logout |
 | Se agregó user.routes.ts | `interface-adapters/routes/user.routes.ts` | Ruta protegida /api/users/me |
-| Se agregó wiring/user.ts | `wiring/user.ts` | Ensamblaje de dependencias para módulo user |
-| Se agregó `findById` a IUserRepository y MongoUserRepository | `domain/repositories/IUserRepository.ts`, `infrastructure/repositories/mongodb/MongoUserRepository.ts` | Necesario para GetCurrentUserUseCase |
+| Se corrigió herencia de Barber y Client: son standalone, no extienden User | `domain/entities/Barber.ts`, `domain/entities/Client.ts` | Entidades independientes, sin discriminadores |
 | Se agregaron `findByClientId`, `findByContact`, `updateClientId` a IAppointmentRepository y MongoAppointmentRepository | `domain/repositories/IAppointmentRepository.ts`, `infrastructure/repositories/mongodb/MongoAppointmentRepository.ts` | Métodos para buscar y actualizar turnos por cliente |
 | Se cambió tipo `kind` de UserEntity de `UserRole` a `AuthKind` | `domain/entities/User.ts`, `domain/types/auth.ts` | Type alignment: UserRole eliminado, AuthKind agrupa Admin, Empleado y Registrado |
 | Se limpió AuthKind: eliminado `NoRegistrado` | `domain/types/auth.ts` | NoRegistrado ya no es un auth kind; ClientKind conserva 'Registrado' y 'NoRegistrado' para Client entity |
@@ -282,7 +283,13 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 | Se agregó authorizeSelfOrKinds middleware | `auth.middleware.ts` | Factory existente no documentada |
 | Se corrigieron métodos de repositorios | `domain/repositories/` | Las firmas anteriores no coincidían con la realidad |
 | Se corrigieron propiedades de entidades | `domain/entities/` | Faltaban campos como twoFactorFailedAttempts, authProvider, etc. |
-| Se corrigió Appointment para incluir clientName, serviceName, endTime, etc. | `domain/entities/Appointment.ts` | La entidad tenía campos incorrectos / incompletos |
+| Se corrigió Appointment para incluir paymentStatus, paymentMethod, createdBy, statusHistory, cancelledBy, etc. | `domain/entities/Appointment.ts` | La entidad tenía campos incorrectos / incompletos |
+| Se corrigió Service: ahora tiene description e imageUrl (no duration/isActive) | `domain/entities/Service.ts` | La entidad Service real tiene campos distintos |
+| Se corrigió Client: ahora tiene id, name, lastname, phone (opcional) | `domain/entities/Client.ts` | La entidad Client real tiene más campos |
+| Se corrigió Barber: ahora tiene maxAdvanceDays | `domain/entities/Barber.ts` | Campo faltante |
+| Se actualizó AppointmentStatus: 'NoShow' agregado, 'Pendiente' eliminado | `domain/types/appointment.ts` | Estados reales de la máquina de estados |
+| Se actualizó VALID_TRANSITIONS: Confirmado permite Completado/Cancelado/NoShow | `domain/types/appointment.ts` | Transiciones reales |
+| Se corrigió TTL index en refresh_tokens: SÍ existe | `refreshToken.model.ts:20` | La doc anterior afirmaba incorrectamente que no existía |
 | Se agregó StaticServiceRepository | `infrastructure/repositories/static/` | Implementación existente |
 | Se agregó FakeEmailService | `infrastructure/services/FakeEmailService.ts` | Implementación existente para testing |
 | Se agregaron tipos de dominio: AppointmentStatus, VALID_TRANSITIONS, AuthTypes | `domain/types/` | Tipos existentes |
@@ -297,9 +304,9 @@ La API sigue Clean Architecture estricta con dependencias apuntando hacia adentr
 
 ## Inconsistencias detectadas
 
-1. **loginLimiter definido pero no usado** (`app.ts:31-37`): Se instancia un rate limiter para login pero nunca se aplica a ninguna ruta. No existe un endpoint `/login` tradicional (el login es 2-step con 2FA), por lo que este limiter es código muerto.
+1. **loginLimiter usado en /2fa/send** (`auth.routes.ts:29-35,57`): Aunque llamado `loginLimiter`, se aplica sobre el endpoint `/2fa/send` (5 intentos/15min). No es código muerto; cumple la función de limitar intentos de autenticación.
 
-2. **Sin TTL index en refresh_tokens ni passwordresets**: Las colecciones `refresh_tokens` y `passwordresets` acumulan documentos expirados indefinidamente. `refreshToken.model.ts` no tiene `expireAfterSeconds`, y `passwordReset.model.ts` tampoco. Esto genera crecimiento infinito de almacenamiento.
+2. **Sin TTL index en passwordresets**: La colección `passwordresets` acumula documentos expirados indefinidamente. `refreshToken.model.ts` sí tiene `expireAfterSeconds: 0`. Solo queda pendiente agregar TTL a passwordresets.
 
 3. **Barber schema sin `timestamps: true`**: A diferencia de Appointment y TempLock, el modelo Barber no tiene timestamps automáticos. Esto es inconsistente.
 

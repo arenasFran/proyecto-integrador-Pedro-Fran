@@ -1,16 +1,20 @@
 import { Request, Response } from 'express';
-import { GetAllServicesUseCase } from '../../../application/use-cases/service/GetAllServicesUseCase';
-import { ServicePresenter } from '../../presenters/ServicePresenter';
+import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
+import { sendSuccess, sendError } from '../../../common/response';
+import { AppError } from '../../../application/errors/AppError';
 
 export class ServiceController {
-  constructor(private readonly getAllServices: GetAllServicesUseCase) {}
+  constructor(private readonly serviceRepository: StaticServiceRepository) {}
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const result = await this.getAllServices.execute();
-      return ServicePresenter.success(res, { services: result }, 200);
+      const services = await this.serviceRepository.findAll();
+      if (services.length === 0) {
+        throw new AppError('No hay servicios disponibles', 404);
+      }
+      return sendSuccess(res, { services: services.map((s) => s.toPrimitives()) }, 200);
     } catch (error) {
-      return ServicePresenter.handleError(res, error, 'Error al obtener servicios');
+      return sendError(res, error, 'Error al obtener servicios');
     }
   };
 }

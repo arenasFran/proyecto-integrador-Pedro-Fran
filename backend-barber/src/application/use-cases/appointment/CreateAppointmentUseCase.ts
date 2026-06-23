@@ -1,12 +1,25 @@
 import { Appointment } from '../../../domain/entities/Appointment';
-import { IAppointmentRepository } from '../../../domain/repositories/IAppointmentRepository';
-import { IBarberRepository } from '../../../domain/repositories/IBarberRepository';
-import { IServiceRepository } from '../../../domain/repositories/IServiceRepository';
-import { IClientRepository } from '../../../domain/repositories/IClientRepository';
-import { ITempLockRepository } from '../../../domain/repositories/ITempLockRepository';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
+import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
+import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { IEmailService } from '../../ports/IEmailService';
-import { CreateAppointmentDTO } from '../../dto/appointment/CreateAppointmentDTO';
-import { AppointmentResponseDTO } from '../../dto/appointment/AppointmentResponseDTO';
+import { AppointmentProps } from '../../../domain/entities/Appointment';
+
+type CreateAppointmentDTO = {
+  barberId: string;
+  serviceId: string;
+  date: string;
+  startTime: string;
+  clientId?: string;
+  clientName: string;
+  clientLastname: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  tempLockId?: string;
+  createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
+};
 import { AppError } from '../../errors/AppError';
 import {
   toMinutes,
@@ -20,15 +33,15 @@ import {
 
 export class CreateAppointmentUseCase {
   constructor(
-    private readonly appointmentRepository: IAppointmentRepository,
-    private readonly barberRepository: IBarberRepository,
-    private readonly serviceRepository: IServiceRepository,
-    private readonly clientRepository: IClientRepository,
+    private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly barberRepository: MongoBarberRepository,
+    private readonly serviceRepository: StaticServiceRepository,
+    private readonly clientRepository: MongoClientRepository,
     private readonly emailService: IEmailService,
-    private readonly tempLockRepository: ITempLockRepository
+    private readonly tempLockRepository: MongoTempLockRepository
   ) {}
 
-  async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentResponseDTO }> {
+  async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
     const nowInTz = getNowInTimezone();
 
     // RN01 — Fecha y hora no pueden estar en el pasado
@@ -163,10 +176,9 @@ export class CreateAppointmentUseCase {
     // RN17 — Notificar por email (asíncrono, no bloqueante)
     this.sendCreationEmail(created, barber.name, barber.lastname);
 
-    const primitives = created.toPrimitives();
     return {
       message: 'Turno creado exitosamente',
-      appointment: primitives,
+      appointment: created.toPrimitives(),
     };
   }
 

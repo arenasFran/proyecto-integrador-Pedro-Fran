@@ -18,6 +18,7 @@ flowchart TB
     Landing -->|Click Login| Login[LoginPage /login]
     Landing -->|Click Registrarse| Register[RegisterPage /register]
     Landing -->|Click Reservar| Booking[BookingPage /reservar]
+    Landing -->|Click Mis Turnos (sin login)| AnonymousLookup[Consulta Anónima /mis-turnos]
 
     Login -->|Email + Password| Send2FA[sendTwoFactorCode]
     Send2FA -->|Código 2FA| Verify2FA[verifyTwoFactorCode]
@@ -33,6 +34,12 @@ flowchart TB
     Landing -->|Click Olvidé contraseña| Recovery[RecoveryPage /recovery]
     Recovery --> RequestReset[requestReset] --> ResetPassword[resetPassword]
 
+    AnonymousLookup --> InputContact[Ingresar Email o Teléfono]
+    InputContact --> FetchAnonymous[getAppointmentsAnonymous]
+    FetchAnonymous --> ListAnonAppts[Listar Turnos]
+    ListAnonAppts --> AnonCancel[Cancelar Turno (anónimo)]
+    AnonCancel --> FetchAnonymous
+
     Register --> RegisterThunk[registerThunk] --> Login
   end
 
@@ -43,12 +50,17 @@ flowchart TB
   StepBarber --> StepService[Paso 2: Seleccionar Servicio]
   StepService --> StepDateTime[Paso 3: Fecha + Hora]
   StepDateTime -->|fetchAvailableSlots| SlotSelection[Seleccionar Turno]
-  SlotSelection --> ConfirmModal[Modal Confirmación]
+  SlotSelection -->|createTempLock| ConfirmModal[Modal Confirmación]
   ConfirmModal -->|submitAppointment| SuccessModal[Turno Creado ✓]
+  ConfirmModal -->|Cancelar / Cerrar| ReleaseLock[releaseTempLock]
+  SuccessModal -->|Navegar a otra página| ReleaseLock
 
   %% ─── CLIENTE AUTENTICADO ───
   subgraph Cliente[Cliente Autenticado - kind: Cliente]
     Dashboard[Cualquier página] -->|Header dropdown| MyAppts[MyAppointmentsPage /mis-turnos]
+    Dashboard -->|Header dropdown| LogoutAction[Cerrar Sesión]
+
+    LogoutAction -->|logout| Login
 
     MyAppts --> ListApptsClient[Listar Turnos Propios]
     ListApptsClient -->|Confirmado| CancelClient[Cancelar Turno]
@@ -75,6 +87,8 @@ flowchart TB
     AdminLayout --> NavProfesionales[→ /admin/profesionales]
     AdminLayout --> NavTurnos[→ /admin/turnos]
     AdminLayout --> NavPerfil[→ /admin/perfil]
+    AdminLayout --> LogoutAdmin[Cerrar Sesión]
+    LogoutAdmin -->|logout| Login
 
     %% Profesionales
     NavProfesionales --> ProfPage[ProfessionalsPage]
@@ -114,13 +128,17 @@ flowchart TB
   NotFound -->|Click Volver al inicio| Landing
 
   %% ─── API ───
-  subgraph Backend[API Endpoints - /api/appointments]
-    EP_CREATE[POST / → create]:::gateway
-    EP_LIST[GET / → getAll]:::gateway
-    EP_BYID[GET /:id → getById]:::gateway
-    EP_CANCEL[PATCH /:id/cancel → cancel]:::gateway
-    EP_STATUS[PATCH /:id/status → updateStatus - require Admin/Empleado]:::gateway
-    EP_RESCHEDULE[PATCH /:id/reschedule → reschedule]:::gateway
+  subgraph Backend[API Endpoints]
+    EP_CREATE[POST /api/appointments → create]:::gateway
+    EP_LIST[GET /api/appointments → getAll]:::gateway
+    EP_BYID[GET /api/appointments/:id → getById]:::gateway
+    EP_CANCEL[PATCH /api/appointments/:id/cancel → cancel]:::gateway
+    EP_STATUS[PATCH /api/appointments/:id/status → updateStatus]:::gateway
+    EP_RESCHEDULE[PATCH /api/appointments/:id/reschedule → reschedule]:::gateway
+    EP_ANONYMOUS[GET /api/appointments/anonymous → getAnonymous]:::gateway
+    EP_TEMPLOCK[POST /api/appointments/temp-lock → createTempLock]:::gateway
+    EP_RELEASE[DELETE /api/appointments/temp-lock/:tempLockId → releaseTempLock]:::gateway
+    EP_LOGOUT[POST /auth/logout → logout]:::gateway
   end
 
   %% ─── CONEXIONES A BACKEND ───
@@ -133,11 +151,16 @@ flowchart TB
   RescheduleAppt -.-> EP_RESCHEDULE
   ListApptsClient -.-> EP_LIST
   FilterAppts -.-> EP_LIST
+  FetchAnonymous -.-> EP_ANONYMOUS
+  SlotSelection -.-> EP_TEMPLOCK
+  ReleaseLock -.-> EP_RELEASE
+  LogoutAction -.-> EP_LOGOUT
+  LogoutAdmin -.-> EP_LOGOUT
 
   %% ─── COLORES POR ROL ───
-  class Anon,Landing,Login,Register,Recovery,Booking,StepBarber,StepService,StepDateTime,SlotSelection,ConfirmModal,SuccessModal anon
-  class Cliente,Dashboard,MyAppts,ListApptsClient,CancelClient,RescheduleClient,PastAppts,EmptyState client
+  class Anon,Landing,Login,Register,Recovery,Booking,StepBarber,StepService,StepDateTime,SlotSelection,ConfirmModal,SuccessModal,AnonymousLookup,InputContact,FetchAnonymous,ListAnonAppts,AnonCancel,ReleaseLock anon
+  class Cliente,Dashboard,MyAppts,ListApptsClient,CancelClient,RescheduleClient,PastAppts,EmptyState,LogoutAction client
   class EmpleadoRol,NoteEmpleado empleado
-  class AdminRol,AdminRedirect,AdminLayout,NavProfesionales,NavTurnos,NavPerfil,ProfPage,ListProf,CreateProf,EditProf,DeleteProf,ScheduleProf,SlotsProf,ApptsPage,FilterAppts,StatsTurnos,TableAppts,CompleteAppt,NoShowAppt,CancelAppt,RescheduleAppt,ProfilePage,EditDatos,EditSchedule,ChangePassword admin
+  class AdminRol,AdminRedirect,AdminLayout,NavProfesionales,NavTurnos,NavPerfil,ProfPage,ListProf,CreateProf,EditProf,DeleteProf,ScheduleProf,SlotsProf,ApptsPage,FilterAppts,StatsTurnos,TableAppts,CompleteAppt,NoShowAppt,CancelAppt,RescheduleAppt,ProfilePage,EditDatos,EditSchedule,ChangePassword,LogoutAdmin admin
   class Guards,RequireAdmin,RequireAuth,NotFound publicPg
 ```

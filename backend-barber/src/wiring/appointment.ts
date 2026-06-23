@@ -1,7 +1,4 @@
 import { CreateAppointmentUseCase } from '../application/use-cases/appointment/CreateAppointmentUseCase';
-import { GetAppointmentsUseCase } from '../application/use-cases/appointment/GetAppointmentsUseCase';
-import { GetAppointmentByIdUseCase } from '../application/use-cases/appointment/GetAppointmentByIdUseCase';
-import { GetAppointmentsAnonymousUseCase } from '../application/use-cases/appointment/GetAppointmentsAnonymousUseCase';
 import { CancelAppointmentUseCase } from '../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../application/use-cases/appointment/RescheduleAppointmentUseCase';
@@ -33,9 +30,6 @@ export const buildAppointmentRouter = () => {
     emailService,
     tempLockRepository
   );
-  const getAppointments = new GetAppointmentsUseCase(appointmentRepository);
-  const getAppointmentById = new GetAppointmentByIdUseCase(appointmentRepository);
-  const getAppointmentsAnonymous = new GetAppointmentsAnonymousUseCase(appointmentRepository);
   const cancelMinHoursBefore = Number(process.env.CANCEL_MIN_HOURS_BEFORE) || 2;
 
   const cancelAppointment = new CancelAppointmentUseCase(
@@ -52,13 +46,11 @@ export const buildAppointmentRouter = () => {
   );
 
   const appointmentController = new AppointmentController(
+    appointmentRepository,
     createAppointment,
-    getAppointments,
-    getAppointmentById,
     cancelAppointment,
     updateAppointmentStatus,
-    rescheduleAppointment,
-    getAppointmentsAnonymous
+    rescheduleAppointment
   );
 
   const authenticate = createAuthenticate(tokenService);

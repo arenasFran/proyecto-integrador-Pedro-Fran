@@ -1,5 +1,6 @@
 import { DateRangeProvider, useDateRange } from '../../../context/DateRangeContext';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
+import { AnimatedContainer } from '../../../components/common';
 import type { OverviewData } from '../../../types/analytics';
 import DateFilterBar from './components/DateFilterBar';
 import KpiCards from './components/KpiCards';
@@ -25,30 +26,40 @@ function DashboardContent() {
 
   return (
     <div className="p-4 lg:p-6 max-w-7xl mx-auto flex flex-col gap-5">
-      <div className="flex flex-col gap-3">
-        <h1 className="text-white text-2xl lg:text-3xl font-bold">Dashboard</h1>
-        <DateFilterBar />
-      </div>
-
-      <KpiCards data={overview} loading={loading} error={error} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
-          <HeatmapChart />
+      <AnimatedContainer animation="fadeInDown">
+        <div className="flex flex-col gap-3">
+          <h1 className="text-white text-2xl lg:text-3xl font-bold">Dashboard</h1>
+          <DateFilterBar />
         </div>
-        <StatusBreakdown
-          data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
-          loading={loading}
-          error={error}
-        />
-      </div>
+      </AnimatedContainer>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <ReservasChart />
-        <GananciasChart />
-      </div>
+      <AnimatedContainer animation="fadeInUp" delay={0.1}>
+        <KpiCards data={overview} loading={loading} error={error} />
+      </AnimatedContainer>
 
-      <DistribucionDonut />
+      <AnimatedContainer animation="fadeInUp" delay={0.2}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2">
+            <HeatmapChart />
+          </div>
+          <StatusBreakdown
+            data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
+            loading={loading}
+            error={error}
+          />
+        </div>
+      </AnimatedContainer>
+
+      <AnimatedContainer animation="fadeInUp" delay={0.3}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <ReservasChart />
+          <GananciasChart />
+        </div>
+      </AnimatedContainer>
+
+      <AnimatedContainer animation="fadeInUp" delay={0.4}>
+        <DistribucionDonut />
+      </AnimatedContainer>
     </div>
   );
 }

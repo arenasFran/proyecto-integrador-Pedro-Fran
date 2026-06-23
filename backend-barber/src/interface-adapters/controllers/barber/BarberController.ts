@@ -1,11 +1,9 @@
 import { Request, Response } from 'express';
 import { GetAvailableSlotsUseCase } from '../../../application/use-cases/barber/GetAvailableSlotsUseCase';
+import { DeleteBarberUseCase } from '../../../application/use-cases/barber/DeleteBarberUseCase';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
-import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
-import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { BcryptPasswordHasher } from '../../../infrastructure/services/BcryptPasswordHasher';
-import { NodemailerEmailService } from '../../../infrastructure/services/NodemailerEmailService';
 import { Barber } from '../../../domain/entities/Barber';
 import { Email } from '../../../domain/value-objects/Email';
 import { Phone } from '../../../domain/value-objects/Phone';
@@ -36,11 +34,9 @@ export class BarberController {
   constructor(
     private readonly barberRepository: MongoBarberRepository,
     private readonly userRepository: MongoUserRepository,
-    private readonly appointmentRepository: MongoAppointmentRepository,
-    private readonly tempLockRepository: MongoTempLockRepository,
     private readonly passwordHasher: BcryptPasswordHasher,
-    private readonly emailService: NodemailerEmailService,
-    private readonly getAvailableSlots: GetAvailableSlotsUseCase
+    private readonly getAvailableSlots: GetAvailableSlotsUseCase,
+    private readonly deleteBarber: DeleteBarberUseCase
   ) {}
 
   getAllPublic = async (_req: Request, res: Response) => {
@@ -216,43 +212,8 @@ export class BarberController {
   delete = async (req: Request, res: Response) => {
     try {
       const barberId = String(req.params.id);
-      const barber = await this.barberRepository.findBarberById(barberId);
-      if (!barber) {
-        throw new AppError('Barbero no encontrado.', 404);
-      }
-
-      await this.barberRepository.deactivateBarber(barberId);
-      await this.tempLockRepository.deleteMany({ barberId });
-
-      const futureAppointments = await this.appointmentRepository.findMany({
-        barberId,
-        dateFrom: new Date().toISOString().split('T')[0],
-      });
-
-      for (const apt of futureAppointments) {
-        if (apt.status === 'Confirmado') {
-          await this.appointmentRepository.updateStatus(apt.id, {
-            status: 'Cancelado',
-            cancelReason: 'Barbero dado de baja',
-            cancelledAt: new Date(),
-          });
-
-          const clientEmail = apt.clientEmail;
-          if (clientEmail) {
-            this.emailService
-              .sendMail({
-                to: clientEmail,
-                subject: 'Cancelación por baja de barbero',
-                html: `<p>Tu turno del ${apt.date} a las ${apt.startTime} fue cancelado porque el barbero ${barber.name} ${barber.lastname} ya no está disponible.</p>`,
-              })
-              .catch((error: unknown) => {
-                console.error('Error enviando email de baja:', error);
-              });
-          }
-        }
-      }
-
-      return sendSuccess(res, { message: 'Barbero desactivado exitosamente' }, 200);
+      const result = await this.deleteBarber.execute(barberId);
+      return sendSuccess(res, result, 200);
     } catch (error) {
       return sendError(res, error, 'Error al eliminar barbero');
     }

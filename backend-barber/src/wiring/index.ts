@@ -1,5 +1,6 @@
 import { SlotService } from '../domain/services/SlotService';
 import { GetAvailableSlotsUseCase } from '../application/use-cases/barber/GetAvailableSlotsUseCase';
+import { DeleteBarberUseCase } from '../application/use-cases/barber/DeleteBarberUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
@@ -31,15 +32,14 @@ export const buildBarberRouter = () => {
 
   const slotService = new SlotService();
   const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository);
+  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, emailService);
 
   const barberController = new BarberController(
     barberRepository,
     userRepository,
-    appointmentRepository,
-    tempLockRepository,
     passwordHasher,
-    emailService,
-    getAvailableSlots
+    getAvailableSlots,
+    deleteBarber
   );
 
   const authenticate = createAuthenticate(tokenService);

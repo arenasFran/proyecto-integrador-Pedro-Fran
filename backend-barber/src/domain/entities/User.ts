@@ -74,11 +74,15 @@ export class User {
   }
 
   get twoFactor(): TwoFactorState | undefined {
-    return this.props.twoFactor;
+    if (!this.props.twoFactor) return undefined;
+    return {
+      codeHash: this.props.twoFactor.codeHash,
+      expiresAt: this.props.twoFactor.expiresAt ? new Date(this.props.twoFactor.expiresAt.getTime()) : undefined,
+    };
   }
 
   get lastLoginAt(): Date | undefined {
-    return this.props.lastLoginAt;
+    return this.props.lastLoginAt ? new Date(this.props.lastLoginAt.getTime()) : undefined;
   }
 
   get twoFactorFailedAttempts(): number | undefined {
@@ -86,7 +90,7 @@ export class User {
   }
 
   get twoFactorLockedUntil(): Date | undefined {
-    return this.props.twoFactorLockedUntil;
+    return this.props.twoFactorLockedUntil ? new Date(this.props.twoFactorLockedUntil.getTime()) : undefined;
   }
 
   get resetFailedAttempts(): number | undefined {
@@ -94,7 +98,7 @@ export class User {
   }
 
   get resetLockedUntil(): Date | undefined {
-    return this.props.resetLockedUntil;
+    return this.props.resetLockedUntil ? new Date(this.props.resetLockedUntil.getTime()) : undefined;
   }
 
   get photoUrl(): string | null | undefined {

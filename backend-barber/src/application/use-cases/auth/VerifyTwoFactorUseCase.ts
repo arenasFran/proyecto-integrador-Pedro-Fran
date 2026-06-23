@@ -1,9 +1,12 @@
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
-import { IUserRepository } from '../../../domain/repositories/IUserRepository';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
-import { TwoFactorVerifyDTO } from '../../dto/auth/TwoFactorVerifyDTO';
 import { AppError } from '../../errors/AppError';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
+
+type TwoFactorVerifyDTO = {
+  email: string;
+  code: string;
+};
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
 
@@ -12,11 +15,10 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 export class VerifyTwoFactorUseCase {
   constructor(
-    private readonly userRepository: IUserRepository,
+    private readonly userRepository: MongoUserRepository,
     private readonly tokenService: ITokenService,
     private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider,
-    private readonly refreshTokenRepository: IRefreshTokenRepository
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository
   ) {}
 
   async execute(dto: TwoFactorVerifyDTO): Promise<{ message: string; token: string; refreshToken: string }> {
@@ -27,9 +29,9 @@ export class VerifyTwoFactorUseCase {
       throw new AppError('Usuario no encontrado.', 401);
     }
 
-    if (user.twoFactorLockedUntil && this.dateTimeProvider.now() < user.twoFactorLockedUntil) {
+    if (user.twoFactorLockedUntil && new Date() < user.twoFactorLockedUntil) {
       const remainingMin = Math.ceil(
-        (user.twoFactorLockedUntil.getTime() - this.dateTimeProvider.now().getTime()) / 60000
+        (user.twoFactorLockedUntil.getTime() - new Date().getTime()) / 60000
       );
       throw new AppError(`Demasiados intentos fallidos. Intentalo de nuevo en ${remainingMin} minutos.`, 429);
     }
@@ -38,7 +40,7 @@ export class VerifyTwoFactorUseCase {
       throw new AppError('No hay código activo.', 401);
     }
 
-    if (this.dateTimeProvider.now() > user.twoFactor.expiresAt) {
+    if (new Date() > user.twoFactor.expiresAt) {
       await this.userRepository.updateTwoFactor(user.id, {
         codeHash: undefined,
         expiresAt: undefined,
@@ -49,7 +51,7 @@ export class VerifyTwoFactorUseCase {
     if (!this.hashService.constantTimeEqual(user.twoFactor.codeHash, this.hashService.sha256(dto.code))) {
       const currentAttempts = (user.twoFactorFailedAttempts || 0) + 1;
       if (currentAttempts >= MAX_2FA_ATTEMPTS) {
-        const lockedUntil = new Date(this.dateTimeProvider.now().getTime() + LOCKOUT_DURATION_MS);
+        const lockedUntil = new Date(new Date().getTime() + LOCKOUT_DURATION_MS);
         await this.userRepository.updateUserSecurity(user.id, {
           twoFactorFailedAttempts: currentAttempts,
           twoFactorLockedUntil: lockedUntil,
@@ -80,7 +82,7 @@ export class VerifyTwoFactorUseCase {
     const refreshToken = this.tokenService.signRefreshToken(tokenPayload);
 
     const tokenHash = this.hashService.sha256(refreshToken);
-    const expiresAt = new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000);
     await this.refreshTokenRepository.create(tokenHash, user.id, expiresAt);
     await this.userRepository.updateLastLogin(user.id);
 

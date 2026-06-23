@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { RefreshTokenUseCase } from '../../../application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../../../application/use-cases/auth/RegisterUserUseCase';
-import { AuthPresenter } from '../../presenters/AuthPresenter';
+import { sendSuccess, sendError } from '../../../common/response';
 import { setRefreshCookie, clearRefreshCookie } from './TwoFactorController';
 
 function getRefreshTokenFromReq(req: Request): string | null {
@@ -22,9 +22,9 @@ export class AuthController {
   register = async (req: Request, res: Response) => {
     try {
       const result = await this.registerUser.execute(req.body);
-      return AuthPresenter.success(res, result, 201);
+      return sendSuccess(res, result, 201);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al registrar al usuario');
+      return sendError(res, error, 'Error al registrar al usuario');
     }
   };
 
@@ -38,14 +38,14 @@ export class AuthController {
       if ('refreshToken' in result) {
         setRefreshCookie(res, (result as { refreshToken: string }).refreshToken);
       }
-      return AuthPresenter.success(res, result, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
-      return AuthPresenter.handleError(res, error, 'Error al renovar el token');
+      return sendError(res, error, 'Error al renovar el token');
     }
   };
 
   logout = async (_req: Request, res: Response) => {
     clearRefreshCookie(res);
-    return AuthPresenter.success(res, { message: 'Sesión cerrada exitosamente' }, 200);
+    return sendSuccess(res, { message: 'Sesión cerrada exitosamente' }, 200);
   };
 }

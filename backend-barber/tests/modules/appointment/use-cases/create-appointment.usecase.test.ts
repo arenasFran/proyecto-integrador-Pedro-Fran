@@ -1,19 +1,11 @@
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
-import { IBarberRepository } from '../../../../src/domain/repositories/IBarberRepository';
-import { IAppointmentRepository } from '../../../../src/domain/repositories/IAppointmentRepository';
-import { IServiceRepository } from '../../../../src/domain/repositories/IServiceRepository';
-import { IClientRepository } from '../../../../src/domain/repositories/IClientRepository';
-import { ITempLockRepository } from '../../../../src/domain/repositories/ITempLockRepository';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
-import {
-  Barber,
-  BarberProps,
-  BarberSchedule,
-} from '../../../../src/domain/entities/Barber';
-import { Appointment, AppointmentPrimitives } from '../../../../src/domain/entities/Appointment';
+import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
+import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { Service } from '../../../../src/domain/entities/Service';
 import { Client } from '../../../../src/domain/entities/Client';
+import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockServiceRepository, makeMockClientRepository, makeMockTempLockRepository, makeMockEmailService } from '../../../test-utils/mocks';
 
 describe('CreateAppointmentUseCase', () => {
   const createScheduleDay = () => ({
@@ -50,8 +42,8 @@ describe('CreateAppointmentUseCase', () => {
     return Barber.create({ ...base, ...overrides });
   };
 
-  const makeAppointment = (overrides?: Partial<AppointmentPrimitives>) => {
-    const base: AppointmentPrimitives = {
+  const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
+    const base: AppointmentProps = {
       id: 'apt-1',
       barberId: 'barber-1',
       clientName: 'Juan',
@@ -95,62 +87,25 @@ describe('CreateAppointmentUseCase', () => {
       kind: 'NoRegistrado',
     });
 
-  let appointmentRepository: jest.Mocked<IAppointmentRepository>;
-  let barberRepository: jest.Mocked<IBarberRepository>;
-  let serviceRepository: jest.Mocked<IServiceRepository>;
-  let clientRepository: jest.Mocked<IClientRepository>;
-  let tempLockRepository: jest.Mocked<ITempLockRepository>;
+  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
+  let barberRepository: ReturnType<typeof makeMockBarberRepository>;
+  let serviceRepository: ReturnType<typeof makeMockServiceRepository>;
+  let clientRepository: ReturnType<typeof makeMockClientRepository>;
+  let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let useCase: CreateAppointmentUseCase;
 
   beforeEach(() => {
-    appointmentRepository = {
-      findById: jest.fn(),
-      findMany: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findByClientAndDate: jest.fn(),
-      findByContactAndDate: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      updateStatus: jest.fn(),
-      findByClientId: jest.fn().mockResolvedValue([]),
-      findByContact: jest.fn().mockResolvedValue([]),
-      updateClientId: jest.fn(),
-    };
+    appointmentRepository = makeMockAppointmentRepository();
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    appointmentRepository.findByContact.mockResolvedValue([]);
 
-    barberRepository = {
-      findBarberById: jest.fn(),
-      findAllBarbers: jest.fn(),
-      createBarber: jest.fn(),
-      updateBarber: jest.fn(),
-      deactivateBarber: jest.fn(),
-      deleteBarber: jest.fn(),
-      updateSchedule: jest.fn(),
-    };
-
-    serviceRepository = {
-      findAll: jest.fn(),
-      findById: jest.fn(),
-    };
-
-    clientRepository = {
-      findByEmail: jest.fn(),
-      findByPhone: jest.fn(),
-      createUnregistered: jest.fn().mockResolvedValue({ id: 'client-1' } as any),
-    };
-
-    tempLockRepository = {
-      create: jest.fn(),
-      deleteMany: jest.fn(),
-      deleteOne: jest.fn(),
-      deleteById: jest.fn(),
-      findByBarberAndDate: jest.fn(),
-      findById: jest.fn(),
-    };
-
-    emailService = {
-      sendMail: jest.fn().mockResolvedValue(undefined),
-    };
+    barberRepository = makeMockBarberRepository();
+    serviceRepository = makeMockServiceRepository();
+    clientRepository = makeMockClientRepository();
+    clientRepository.createUnregistered.mockResolvedValue({ id: 'client-1' } as any);
+    tempLockRepository = makeMockTempLockRepository();
+    emailService = makeMockEmailService();
 
     useCase = new CreateAppointmentUseCase(
       appointmentRepository,
@@ -246,9 +201,26 @@ describe('CreateAppointmentUseCase', () => {
       clientEmail: 'juan@test.com',
     });
 
-    expect(appointmentRepository.create).toHaveBeenCalled();
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        endTime: '10:30',
+        clientName: 'Juan',
+      })
+    );
     expect(result.message).toMatch(/Turno creado/);
-    expect(result.appointment).toBeDefined();
+    expect(result.appointment).toEqual(
+      expect.objectContaining({
+        barberId: 'barber-1',
+        serviceId: 'svc-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        status: 'Confirmado',
+      })
+    );
   });
 
   it('debe crear turno correctamente con cualquier slot del barbero', async () => {
@@ -269,7 +241,14 @@ describe('CreateAppointmentUseCase', () => {
       clientLastname: 'Perez',
     });
 
-    expect(appointmentRepository.create).toHaveBeenCalled();
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        barberId: 'barber-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        endTime: '10:45',
+      })
+    );
     expect(result.message).toMatch(/Turno creado/);
   });
 
@@ -341,7 +320,14 @@ describe('CreateAppointmentUseCase', () => {
       clientEmail: 'juan@test.com',
     });
 
-    expect(appointmentRepository.create).toHaveBeenCalled();
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        barberId: 'barber-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        endTime: '10:30',
+      })
+    );
     expect(result.message).toMatch(/Turno creado/);
   });
 

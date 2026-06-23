@@ -1,15 +1,13 @@
-import { IRefreshTokenRepository } from '../../../domain/repositories/IRefreshTokenRepository';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { AppError } from '../../errors/AppError';
 import { IHashService } from '../../ports/IHashService';
-import { IDateTimeProvider } from '../../ports/IDateTimeProvider';
 import { ITokenService, TokenPayload } from '../../ports/ITokenService';
 
 export class RefreshTokenUseCase {
   constructor(
     private readonly tokenService: ITokenService,
-    private readonly refreshTokenRepository: IRefreshTokenRepository,
-    private readonly hashService: IHashService,
-    private readonly dateTimeProvider: IDateTimeProvider
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository,
+    private readonly hashService: IHashService
   ) {}
 
   async execute(refreshToken: string): Promise<{ message: string; token: string; refreshToken: string }> {
@@ -32,7 +30,7 @@ export class RefreshTokenUseCase {
       throw new AppError('Refresh token ya utilizado. Su sesión ha sido invalidada por seguridad.', 401);
     }
 
-    if (storedToken.isExpired(this.dateTimeProvider.now())) {
+    if (storedToken.isExpired(new Date())) {
       throw new AppError('Refresh token expirado.', 401);
     }
 
@@ -45,7 +43,7 @@ export class RefreshTokenUseCase {
     await this.refreshTokenRepository.create(
       newTokenHash,
       payload.id,
-      new Date(this.dateTimeProvider.now().getTime() + 7 * 24 * 60 * 60 * 1000)
+      new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000)
     );
 
     return { message: 'Token renovado', token: newAccessToken, refreshToken: newRefreshToken };

@@ -1,5 +1,3 @@
-import { Price } from '../value-objects/Price';
-
 export type ServiceCreateProps = {
   id: string;
   name: string;
@@ -20,7 +18,7 @@ type ServiceProps = {
   id: string;
   name: string;
   description: string;
-  price: Price;
+  price: number;
   imageUrl: string;
 };
 
@@ -32,10 +30,7 @@ export class Service {
   }
 
   static create(props: ServiceCreateProps): Service {
-    return new Service({
-      ...props,
-      price: Price.create(props.price),
-    });
+    return new Service({ ...props });
   }
 
   get id(): string {
@@ -51,7 +46,7 @@ export class Service {
   }
 
   get price(): number {
-    return this.props.price.getValue();
+    return this.props.price;
   }
 
   get imageUrl(): string {

@@ -60,7 +60,9 @@ describe('ClientDataOverlay', () => {
 
     const input = screen.getByPlaceholderText('Nombre *');
     await user.type(input, 'x');
-    expect(onChange).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Carlosx' })
+    );
   });
 
   it('debe mostrar "Tus datos" cuando isLoggedIn es true', () => {

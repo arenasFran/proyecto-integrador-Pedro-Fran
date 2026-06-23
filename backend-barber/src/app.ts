@@ -4,10 +4,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
-import { buildBarberRouter } from "./wiring/barber";
-import { buildServiceRouter } from "./wiring/service";
-import { buildTempLockRouter } from "./wiring/tempLock";
-import { buildUserRouter } from "./wiring/user";
+import { buildBarberRouter, buildServiceRouter, buildTempLockRouter, buildUserRouter } from "./wiring";
 import { buildAnalyticsRouter } from "./wiring/analytics";
 import { getConfig } from "./infrastructure/config/env";
 

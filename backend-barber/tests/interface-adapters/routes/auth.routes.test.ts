@@ -12,6 +12,7 @@ jest.mock('../../../src/infrastructure/services/GoogleAuthService', () => ({
   })),
 }));
 
+import mongoose from 'mongoose';
 import request from 'supertest';
 import bcrypt from 'bcrypt';
 import app from '../../../src/app';
@@ -28,6 +29,13 @@ describeIfMongo('Auth routes', () => {
     verifyIdTokenMock.mockReset();
   });
 
+  afterEach(async () => {
+    const collections = mongoose.connection.collections;
+    for (const key in collections) {
+      await collections[key].deleteMany({});
+    }
+  });
+
   it('debe registrar un usuario', async () => {
     const response = await request(app).post('/auth/register').send({
       email: 'register@example.com',
@@ -39,7 +47,7 @@ describeIfMongo('Auth routes', () => {
     });
 
     expect(response.status).toBe(201);
-    expect(response.body.message).toBeTruthy();
+    expect(response.body.message).toMatch(/Usuario registrado/);
   });
 
   it('debe enviar codigo 2FA', async () => {
@@ -83,7 +91,7 @@ describeIfMongo('Auth routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body.token).toBeTruthy();
+    expect(response.body.token).toEqual(expect.any(String));
   });
 
   it('debe solicitar reset de password', async () => {
@@ -150,7 +158,7 @@ describeIfMongo('Auth routes', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.requiresProfileCompletion).toBe(true);
-    expect(response.body.partialToken).toBeTruthy();
+    expect(response.body.partialToken).toEqual(expect.any(String));
   });
 
   it('debe autenticar con Google (usuario existente → token)', async () => {
@@ -177,6 +185,6 @@ describeIfMongo('Auth routes', () => {
     const response = await request(app).post('/auth/google').send({ token: 'google-token' });
 
     expect(response.status).toBe(200);
-    expect(response.body.token).toBeTruthy();
+    expect(response.body.token).toEqual(expect.any(String));
   });
 });

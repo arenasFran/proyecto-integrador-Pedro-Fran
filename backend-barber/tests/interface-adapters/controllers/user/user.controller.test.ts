@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
 import { UserController } from '../../../../src/interface-adapters/controllers/user/UserController';
-import { GetCurrentUserUseCase } from '../../../../src/application/use-cases/user/GetCurrentUserUseCase';
-import { UpdateUserUseCase } from '../../../../src/application/use-cases/user/UpdateUserUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { User, UserProps } from '../../../../src/domain/entities/User';
+import { makeMockUserRepository } from '../../../test-utils/mocks';
 
 describe('UserController', () => {
   const makeUser = (overrides?: Partial<UserProps>) => {
@@ -19,26 +18,24 @@ describe('UserController', () => {
     return User.create({ ...base, ...overrides });
   };
 
-  let getCurrentUser: jest.Mocked<GetCurrentUserUseCase>;
-  let updateUser: jest.Mocked<UpdateUserUseCase>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
   let controller: UserController;
 
   beforeEach(() => {
-    getCurrentUser = { execute: jest.fn() } as unknown as jest.Mocked<GetCurrentUserUseCase>;
-    updateUser = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUseCase>;
-    controller = new UserController(getCurrentUser, updateUser);
+    userRepository = makeMockUserRepository();
+    controller = new UserController(userRepository);
   });
 
   it('debe retornar el perfil del usuario autenticado', async () => {
     const user = makeUser();
-    getCurrentUser.execute.mockResolvedValue(user);
+    userRepository.findById.mockResolvedValue(user);
 
     const req = { user: { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' as const } } as unknown as Request;
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;
 
     await controller.getMe(req, res);
 
-    expect(getCurrentUser.execute).toHaveBeenCalledWith('user-1');
+    expect(userRepository.findById).toHaveBeenCalledWith('user-1');
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({
       id: 'user-1',
@@ -53,7 +50,7 @@ describe('UserController', () => {
 
   it('debe retornar el telefono si el usuario tiene', async () => {
     const user = makeUser({ phone: '123456789' });
-    getCurrentUser.execute.mockResolvedValue(user);
+    userRepository.findById.mockResolvedValue(user);
 
     const req = { user: { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' as const } } as unknown as Request;
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;
@@ -65,8 +62,8 @@ describe('UserController', () => {
     );
   });
 
-  it('debe manejar error AppError y retornar su statusCode', async () => {
-    getCurrentUser.execute.mockRejectedValue(new AppError('Usuario no encontrado.', 404));
+  it('debe manejar error usuario no encontrado', async () => {
+    userRepository.findById.mockResolvedValue(null);
 
     const req = { user: { _id: 'user-inexistente', email: 'test@test.com', kind: 'Registrado' as const } } as unknown as Request;
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;
@@ -78,7 +75,7 @@ describe('UserController', () => {
   });
 
   it('debe retornar 500 para errores desconocidos', async () => {
-    getCurrentUser.execute.mockRejectedValue(new Error('error inesperado'));
+    userRepository.findById.mockRejectedValue(new Error('error inesperado'));
 
     const req = { user: { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' as const } } as unknown as Request;
     const res = { status: jest.fn().mockReturnThis(), json: jest.fn() } as unknown as Response;

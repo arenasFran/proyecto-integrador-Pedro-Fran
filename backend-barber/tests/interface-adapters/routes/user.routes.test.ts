@@ -2,10 +2,8 @@ import request from 'supertest';
 import express from 'express';
 import { createUserRouter } from '../../../src/interface-adapters/routes/user.routes';
 import { UserController } from '../../../src/interface-adapters/controllers/user/UserController';
-import { GetCurrentUserUseCase } from '../../../src/application/use-cases/user/GetCurrentUserUseCase';
-import { UpdateUserUseCase } from '../../../src/application/use-cases/user/UpdateUserUseCase';
-import { AppError } from '../../../src/application/errors/AppError';
 import { User, UserProps } from '../../../src/domain/entities/User';
+import { makeMockUserRepository } from '../../test-utils/mocks';
 
 describe('User routes', () => {
   const makeUser = (overrides?: Partial<UserProps>) => {
@@ -22,8 +20,7 @@ describe('User routes', () => {
   };
 
   let app: express.Application;
-  let getCurrentUser: jest.Mocked<GetCurrentUserUseCase>;
-  let updateUser: jest.Mocked<UpdateUserUseCase>;
+  let userRepository: ReturnType<typeof makeMockUserRepository>;
 
   const authenticate: express.RequestHandler = (req, _res, next) => {
     (req as any).user = { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' };
@@ -31,10 +28,8 @@ describe('User routes', () => {
   };
 
   beforeEach(() => {
-    getCurrentUser = { execute: jest.fn() } as unknown as jest.Mocked<GetCurrentUserUseCase>;
-    updateUser = { execute: jest.fn() } as unknown as jest.Mocked<UpdateUserUseCase>;
-
-    const controller = new UserController(getCurrentUser, updateUser);
+    userRepository = makeMockUserRepository();
+    const controller = new UserController(userRepository);
 
     app = express();
     app.use(express.json());
@@ -42,7 +37,7 @@ describe('User routes', () => {
   });
 
   it('GET /api/user/me debe retornar el perfil del usuario autenticado', async () => {
-    getCurrentUser.execute.mockResolvedValue(makeUser());
+    userRepository.findById.mockResolvedValue(makeUser());
 
     const response = await request(app).get('/api/user/me');
 
@@ -59,7 +54,7 @@ describe('User routes', () => {
   });
 
   it('GET /api/user/me debe retornar 404 si el usuario no existe', async () => {
-    getCurrentUser.execute.mockRejectedValue(new AppError('Usuario no encontrado.', 404));
+    userRepository.findById.mockResolvedValue(null);
 
     const response = await request(app).get('/api/user/me');
 
@@ -67,8 +62,8 @@ describe('User routes', () => {
     expect(response.body).toEqual({ error: 'Usuario no encontrado.' });
   });
 
-  it('GET /api/user/me debe retornar 500 si el caso de uso falla', async () => {
-    getCurrentUser.execute.mockRejectedValue(new Error('error inesperado'));
+  it('GET /api/user/me debe retornar 500 si falla', async () => {
+    userRepository.findById.mockRejectedValue(new Error('error inesperado'));
 
     const response = await request(app).get('/api/user/me');
 

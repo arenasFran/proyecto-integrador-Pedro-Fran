@@ -5,7 +5,9 @@ import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
 import { buildBarberRouter, buildServiceRouter, buildTempLockRouter, buildUserRouter } from "./wiring";
-import { buildAnalyticsRouter } from "./wiring/analytics";
+import { createAnalyticsRouter } from "./interface-adapters/routes/analytics.routes";
+import { createAuthenticate } from "./interface-adapters/middlewares/auth.middleware";
+import { buildTokenService } from "./wiring/auth";
 import { getConfig } from "./infrastructure/config/env";
 
 const app = express();
@@ -82,7 +84,9 @@ app.use("/api/services", buildServiceRouter());
 app.use("/api/appointments", buildAppointmentRouter());
 app.use("/api/appointments/temp-lock", buildTempLockRouter());
 app.use("/api/users", buildUserRouter());
-app.use("/api/analytics", buildAnalyticsRouter());
+const tokenService = buildTokenService();
+const analyticsAuth = createAuthenticate(tokenService);
+app.use("/api/analytics", createAnalyticsRouter(analyticsAuth));
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });

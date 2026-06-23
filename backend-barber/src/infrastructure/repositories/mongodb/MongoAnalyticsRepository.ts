@@ -1,7 +1,41 @@
 import mongoose from 'mongoose';
-import { IAnalyticsRepository, OverviewResult, HeatmapEntry, DistribucionEntry, ReservasGananciasEntry, ReservasGananciasFilters } from '../../../domain/repositories/IAnalyticsRepository';
 import { STATUS_CATEGORIES, VALID_TRANSITIONS } from '../../../domain/types/appointment';
 import AppointmentModel from './models/appointment.model';
+
+export type OverviewResult = {
+  totalReservas: number;
+  duracionTotalMinutos: number;
+  ingresosTotales: number;
+  nuevosClientes: number;
+  estadisticasPorEstado: Record<string, number>;
+};
+
+export type HeatmapEntry = {
+  fecha: string;
+  cantidad: number;
+};
+
+export type DistribucionEntry = {
+  barberId: string;
+  nombre: string;
+  cantidad: number;
+  ingresos: number;
+};
+
+export type ReservasGananciasEntry = {
+  periodo: string;
+  cantidadReservas: number;
+  ganancias: number;
+};
+
+export type ReservasGananciasFilters = {
+  desde: string;
+  hasta: string;
+  granularidad: 'diario' | 'semanal' | 'mensual' | 'anual';
+  barberId?: string;
+  serviceId?: string;
+  status?: string;
+};
 
 const DATE_FORMATS: Record<string, string> = {
   diario: '%Y-%m-%d',
@@ -12,7 +46,7 @@ const DATE_FORMATS: Record<string, string> = {
 
 const DATE_CONVERSION_STAGE = { $addFields: { dateObj: { $toDate: '$date' } } };
 
-export class MongoAnalyticsRepository implements IAnalyticsRepository {
+export class MongoAnalyticsRepository {
   async getOverview(desde: string, hasta: string): Promise<OverviewResult> {
     const desdeDate = new Date(desde);
     const hastaDate = new Date(hasta);

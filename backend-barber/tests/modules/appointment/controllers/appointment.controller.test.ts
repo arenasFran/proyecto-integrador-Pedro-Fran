@@ -61,46 +61,49 @@ describe('AppointmentController', () => {
       expect(res.json).toHaveBeenCalledWith({ error: 'Barbero no encontrado' });
     });
 
-    it('debe pasar el actor al use case si el usuario esta autenticado', async () => {
+    it('debe asignar clientId y createdBy cuando usuario autenticado es Registrado', async () => {
       createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
-      const req = createMockReq({
+      const body = {
         barberId: 'barber-1',
         serviceId: 'svc-1',
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
-      });
+      };
+      const req = createMockReq(body);
       (req as any).user = { _id: 'user-1', email: 'user@test.com', kind: 'Registrado' };
       const res = createMockRes();
 
       await controller.create(req, res);
 
-      expect(createAppointment.execute).toHaveBeenCalledWith(
-        req.body,
-        expect.objectContaining({ _id: 'user-1', kind: 'Registrado', email: 'user@test.com' })
-      );
+      expect(createAppointment.execute).toHaveBeenCalledWith({
+        ...body,
+        clientId: 'user-1',
+        createdBy: { type: 'registered', userId: 'user-1' },
+      });
       expect(res.status).toHaveBeenCalledWith(201);
     });
 
-    it('debe pasar undefined como actor si no hay usuario autenticado', async () => {
+    it('debe asignar createdBy anonymous si no hay usuario autenticado', async () => {
       createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
-      const req = createMockReq({
+      const body = {
         barberId: 'barber-1',
         serviceId: 'svc-1',
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
-      });
+      };
+      const req = createMockReq(body);
       const res = createMockRes();
 
       await controller.create(req, res);
 
-      expect(createAppointment.execute).toHaveBeenCalledWith(
-        req.body,
-        undefined
-      );
+      expect(createAppointment.execute).toHaveBeenCalledWith({
+        ...body,
+        createdBy: { type: 'anonymous' },
+      });
       expect(res.status).toHaveBeenCalledWith(201);
     });
   });

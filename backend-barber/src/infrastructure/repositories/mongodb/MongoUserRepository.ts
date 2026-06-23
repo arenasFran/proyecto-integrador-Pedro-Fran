@@ -7,6 +7,16 @@ export type TwoFactorUpdate = {
   expiresAt?: Date;
 };
 
+export type UserUpdate = {
+  name?: string;
+  lastname?: string;
+  phone?: string;
+  email?: string;
+  contactEmail?: string;
+  passwordHash?: string;
+  photoUrl?: string | null;
+};
+
 export type UserSecurityUpdate = {
   twoFactorFailedAttempts?: number | null;
   twoFactorLockedUntil?: Date | null;
@@ -122,7 +132,7 @@ export class MongoUserRepository {
     return userFromRegisteredClient(doc);
   }
 
-  async update(userId: string, data: import('../../../domain/repositories/IUserRepository').UserUpdate): Promise<User | null> {
+  async update(userId: string, data: UserUpdate): Promise<User | null> {
     const mongoData: Record<string, unknown> = {};
 
     if (data.name !== undefined) mongoData.name = data.name;
@@ -142,7 +152,7 @@ export class MongoUserRepository {
       { returnDocument: 'after', strict: false }
     );
     if (barber) {
-      return UserMapper.fromBarber(barber);
+      return userFromBarber(barber);
     }
 
     const client = await RegisteredClient.findByIdAndUpdate(
@@ -151,7 +161,7 @@ export class MongoUserRepository {
       { returnDocument: 'after', strict: false }
     );
     if (client) {
-      return UserMapper.fromRegisteredClient(client);
+      return userFromRegisteredClient(client);
     }
 
     return null;

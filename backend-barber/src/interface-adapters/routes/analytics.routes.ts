@@ -1,45 +1,44 @@
 import express from 'express';
 import { AnalyticsController } from '../controllers/analytics/AnalyticsController';
+import { MongoAnalyticsRepository } from '../../infrastructure/repositories/mongodb/MongoAnalyticsRepository';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { overviewQuerySchema, heatmapQuerySchema, distribucionQuerySchema, reservasGananciasQuerySchema } from '../validators/analytics.validator';
 
-export const createAnalyticsRouter = (deps: {
-  analyticsController: AnalyticsController;
-  authenticate: express.RequestHandler;
-}) => {
+export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
+  const controller = new AnalyticsController(new MongoAnalyticsRepository());
   const router = express.Router();
 
   router.get(
     '/overview',
-    deps.authenticate,
+    authenticate,
     authorize('Admin'),
     validate({ query: overviewQuerySchema }),
-    deps.analyticsController.getOverviewHandler,
+    controller.getOverviewHandler,
   );
 
   router.get(
     '/heatmap',
-    deps.authenticate,
+    authenticate,
     authorize('Admin'),
     validate({ query: heatmapQuerySchema }),
-    deps.analyticsController.getHeatmapHandler,
+    controller.getHeatmapHandler,
   );
 
   router.get(
     '/charts/distribucion',
-    deps.authenticate,
+    authenticate,
     authorize('Admin'),
     validate({ query: distribucionQuerySchema }),
-    deps.analyticsController.getDistribucionHandler,
+    controller.getDistribucionHandler,
   );
 
   router.get(
     '/charts/reservas-ganancias',
-    deps.authenticate,
+    authenticate,
     authorize('Admin'),
     validate({ query: reservasGananciasQuerySchema }),
-    deps.analyticsController.getReservasGananciasHandler,
+    controller.getReservasGananciasHandler,
   );
 
   return router;

@@ -3,6 +3,7 @@ export const makeMockUserRepository = () => ({
   findById: jest.fn(),
   findByPhone: jest.fn(),
   createRegisteredClient: jest.fn(),
+  update: jest.fn(),
   updatePassword: jest.fn(),
   updateTwoFactor: jest.fn(),
   updateLastLogin: jest.fn(),

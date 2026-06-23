@@ -1,11 +1,6 @@
 import { Request, Response } from 'express';
-import { GetOverviewUseCase } from '../../../application/use-cases/analytics/GetOverviewUseCase';
-import { GetHeatmapUseCase } from '../../../application/use-cases/analytics/GetHeatmapUseCase';
-import { GetDistribucionUseCase } from '../../../application/use-cases/analytics/GetDistribucionUseCase';
-import { GetReservasGananciasUseCase } from '../../../application/use-cases/analytics/GetReservasGananciasUseCase';
-import type { ReservasGananciasFilters } from '../../../domain/repositories/IAnalyticsRepository';
-import { AnalyticsPresenter } from '../../presenters/AnalyticsPresenter';
-import { AppError } from '../../../application/errors/AppError';
+import { MongoAnalyticsRepository } from '../../../infrastructure/repositories/mongodb/MongoAnalyticsRepository';
+import { sendSuccess, sendError } from '../../../common/response';
 
 function toISODate(date: Date): string {
   const y = date.getFullYear();
@@ -54,17 +49,12 @@ function resolvePreset(preset: string): { desde: string; hasta: string } {
       return { desde: startOfDay(inicioAnio), hasta: endOfDay(finAnio) };
     }
     default:
-      throw new AppError('Preset de fecha inválido.', 400);
+      return { desde: '', hasta: '' };
   }
 }
 
 export class AnalyticsController {
-  constructor(
-    private readonly getOverview: GetOverviewUseCase,
-    private readonly getHeatmap: GetHeatmapUseCase,
-    private readonly getDistribucion: GetDistribucionUseCase,
-    private readonly getReservasGanancias: GetReservasGananciasUseCase,
-  ) {}
+  constructor(private readonly repository: MongoAnalyticsRepository) {}
 
   getOverviewHandler = async (req: Request, res: Response) => {
     try {
@@ -77,27 +67,13 @@ export class AnalyticsController {
       }
 
       if (!desde || !hasta) {
-        return AnalyticsPresenter.handleError(
-          res,
-          new AppError('Debe proporcionar preset o desde/hasta.', 400),
-          'Parámetros de fecha inválidos',
-        );
+        return sendError(res, new Error('Debe proporcionar preset o desde/hasta.'), 'Parámetros de fecha inválidos');
       }
 
-      const diffMs = new Date(hasta).getTime() - new Date(desde).getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      if (diffDays > 731) {
-        return AnalyticsPresenter.handleError(
-          res,
-          new AppError('El rango máximo permitido es de 2 años.', 400),
-          'Rango inválido',
-        );
-      }
-
-      const result = await this.getOverview.execute(desde, hasta);
-      return AnalyticsPresenter.success(res, result);
+      const result = await this.repository.getOverview(desde, hasta);
+      return sendSuccess(res, result);
     } catch (error) {
-      return AnalyticsPresenter.handleError(res, error, 'Error al obtener overview');
+      return sendError(res, error, 'Error al obtener overview');
     }
   };
 
@@ -105,14 +81,18 @@ export class AnalyticsController {
     try {
       const { anio, ultimoAño } = req.query as Record<string, string | undefined>;
 
-      const result = await this.getHeatmap.execute({
+      if (!ultimoAño && !anio) {
+        return sendError(res, new Error('Debe proporcionar "anio" o "ultimoAño".'), 'Error al obtener heatmap');
+      }
+
+      const result = await this.repository.getHeatmap({
         anio: anio ? parseInt(anio, 10) : undefined,
         ultimoAño: ultimoAño === 'true' ? true : undefined,
       });
 
-      return AnalyticsPresenter.success(res, result);
+      return sendSuccess(res, result);
     } catch (error) {
-      return AnalyticsPresenter.handleError(res, error, 'Error al obtener heatmap');
+      return sendError(res, error, 'Error al obtener heatmap');
     }
   };
 
@@ -121,27 +101,13 @@ export class AnalyticsController {
       const { desde, hasta } = req.query as Record<string, string | undefined>;
 
       if (!desde || !hasta) {
-        return AnalyticsPresenter.handleError(
-          res,
-          new AppError('Debe proporcionar "desde" y "hasta".', 400),
-          'Parámetros de fecha inválidos',
-        );
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
       }
 
-      const diffMs = new Date(hasta).getTime() - new Date(desde).getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      if (diffDays > 731) {
-        return AnalyticsPresenter.handleError(
-          res,
-          new AppError('El rango máximo permitido es de 2 años.', 400),
-          'Rango inválido',
-        );
-      }
-
-      const result = await this.getDistribucion.execute(desde, hasta);
-      return AnalyticsPresenter.success(res, result);
+      const porBarbero = await this.repository.getDistribucion(desde, hasta);
+      return sendSuccess(res, { porBarbero });
     } catch (error) {
-      return AnalyticsPresenter.handleError(res, error, 'Error al obtener distribución');
+      return sendError(res, error, 'Error al obtener distribución');
     }
   };
 
@@ -150,35 +116,21 @@ export class AnalyticsController {
       const { desde, hasta, granularidad, barberId, serviceId, status } = req.query as Record<string, string | undefined>;
 
       if (!desde || !hasta) {
-        return AnalyticsPresenter.handleError(
-          res,
-          new AppError('Debe proporcionar "desde" y "hasta".', 400),
-          'Parámetros de fecha inválidos',
-        );
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
       }
 
-      const diffMs = new Date(hasta).getTime() - new Date(desde).getTime();
-      const diffDays = diffMs / (1000 * 60 * 60 * 24);
-      if (diffDays > 731) {
-        return AnalyticsPresenter.handleError(
-          res,
-          new AppError('El rango máximo permitido es de 2 años.', 400),
-          'Rango inválido',
-        );
-      }
-
-      const result = await this.getReservasGanancias.execute({
+      const result = await this.repository.getReservasGanancias({
         desde,
         hasta,
-        granularidad: (granularidad as ReservasGananciasFilters['granularidad']) ?? 'diario',
+        granularidad: (granularidad as 'diario' | 'semanal' | 'mensual' | 'anual') ?? 'diario',
         barberId,
         serviceId,
         status,
       });
 
-      return AnalyticsPresenter.success(res, result);
+      return sendSuccess(res, result);
     } catch (error) {
-      return AnalyticsPresenter.handleError(res, error, 'Error al obtener reservas y ganancias');
+      return sendError(res, error, 'Error al obtener reservas y ganancias');
     }
   };
 }

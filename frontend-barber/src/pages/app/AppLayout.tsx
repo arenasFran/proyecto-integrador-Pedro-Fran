@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { AdminHeader } from '../../components/admin/AdminHeader';
+import { AppHeader } from '../../components/common';
 import { AppSidebar } from '../../components/sidebar/AppSidebar';
 import { getAccessToken } from '../../services/api';
 import { getTokenKind } from '../../utils/token';
@@ -22,7 +22,7 @@ export const AppLayout: React.FC = () => {
       />
 
       <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
-        <AdminHeader onToggleSidebar={() => setSidebarOpen(true)} />
+        <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
         <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>

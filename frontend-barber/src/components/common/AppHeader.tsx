@@ -7,11 +7,11 @@ import { getTokenUser } from '../../utils/token';
 import { getAccessToken } from '../../services/api';
 import api from '../../services/api';
 
-interface AdminHeaderProps {
+interface AppHeaderProps {
   onToggleSidebar?: () => void;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar = () => {} }) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {} }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -53,7 +53,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar = () =
             <FiMenu size={22} />
           </button>
           <button
-            onClick={() => navigate('/admin/profesionales')}
+            onClick={() => {
+              if (tokenKind === 'Admin') navigate('/admin/dashboard');
+              else navigate('/reservar');
+            }}
             className="flex items-center gap-2 text-[14px] font-semibold text-white hover:text-[#FF5C00] transition-colors"
           >
             <FiScissors className="text-[#FF5C00]" />

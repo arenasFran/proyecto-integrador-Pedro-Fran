@@ -42,6 +42,10 @@ export const analyticsApi = createApi({
         params,
       }),
     }),
+
+    getAvailableYears: builder.query<number[], void>({
+      query: () => ({ url: '/api/analytics/years' }),
+    }),
   }),
 });
 
@@ -50,4 +54,5 @@ export const {
   useGetHeatmapQuery,
   useGetReservasGananciasQuery,
   useGetDistribucionQuery,
+  useGetAvailableYearsQuery,
 } = analyticsApi;

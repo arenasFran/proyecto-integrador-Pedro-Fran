@@ -1,14 +1,7 @@
-import { useState, useMemo } from 'react';
-import { useGetHeatmapQuery } from '../../../../services/analyticsApi';
+import { useState, useMemo, useEffect } from 'react';
+import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
 
-const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = [
-  { label: 'Último año', value: undefined },
-  ...Array.from({ length: CURRENT_YEAR - 2021 + 1 }, (_, i) => ({
-    label: String(2022 + i),
-    value: 2022 + i,
-  })),
-];
+const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
 function generateYearGrid(year: number): { date: string; dayOfWeek: number }[] {
   const days: { date: string; dayOfWeek: number }[] = [];
@@ -26,32 +19,49 @@ function generateYearGrid(year: number): { date: string; dayOfWeek: number }[] {
 }
 
 function getIntensity(cantidad: number, max: number): string {
-  if (cantidad === 0) return 'bg-[#1A1A1A]';
+  if (cantidad === 0) return 'bg-[#161616]';
   const ratio = cantidad / max;
-  if (ratio <= 0.25) return 'bg-[#FF5C00]/30';
-  if (ratio <= 0.5) return 'bg-[#FF5C00]/50';
-  if (ratio <= 0.75) return 'bg-[#FF5C00]/70';
+  if (ratio <= 0.25) return 'bg-[#3D1A00]';
+  if (ratio <= 0.5) return 'bg-[#7A3B00]';
+  if (ratio <= 0.75) return 'bg-[#C25E00]';
   return 'bg-[#FF5C00]';
 }
 
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
 export default function HeatmapChart() {
-  const [selectedYear, setSelectedYear] = useState<number | undefined>(CURRENT_YEAR);
+  const [selectedYear, setSelectedYear] = useState<number | undefined>();
   const [tooltip, setTooltip] = useState<{ fecha: string; cantidad: number; x: number; y: number } | null>(null);
 
-  const isUltimoAnio = selectedYear === undefined;
-  const effectiveYear = selectedYear ?? CURRENT_YEAR;
+  const { data: availableYears = [], isLoading: yearsLoading } = useGetAvailableYearsQuery();
+  const mostRecentYear = availableYears[0];
 
-  const params = isUltimoAnio ? { ultimoAnio: true as const } : { anio: selectedYear! };
-  const { data = [], isLoading, error: rtkError } = useGetHeatmapQuery(params);
+  useEffect(() => {
+    if (mostRecentYear !== undefined && selectedYear === undefined) {
+      setSelectedYear(mostRecentYear);
+    }
+  }, [mostRecentYear, selectedYear]);
+
+  const params = selectedYear ? { anio: selectedYear } : { ultimoAnio: true as const };
+  const { data = [], isLoading, error: rtkError } = useGetHeatmapQuery(params, {
+    skip: selectedYear === undefined,
+  });
 
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError
       ? String(rtkError.data)
       : 'Error al carrar heatmap'
     : null;
-  const loading = isLoading;
+  const loading = isLoading || yearsLoading;
 
-  const yearGrid = useMemo(() => generateYearGrid(effectiveYear), [effectiveYear]);
+  const yearGrid = useMemo(() => {
+    if (selectedYear === undefined) return [];
+    return generateYearGrid(selectedYear);
+  }, [selectedYear]);
+
   const maxCantidad = useMemo(() => Math.max(...data.map((d) => d.cantidad), 1), [data]);
   const dataMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -62,6 +72,8 @@ export default function HeatmapChart() {
   }, [data]);
 
   const weeks = useMemo(() => {
+    if (yearGrid.length === 0) return [];
+
     const w: { date: string; dayOfWeek: number; cantidad: number }[][] = [];
     let currentWeek: { date: string; dayOfWeek: number; cantidad: number }[] = [];
 
@@ -77,9 +89,14 @@ export default function HeatmapChart() {
         currentWeek = [];
       }
     }
+
+    while (currentWeek.length < 7) {
+      currentWeek.push({ date: '', dayOfWeek: currentWeek.length, cantidad: 0 });
+    }
     if (currentWeek.length > 0) {
       w.push(currentWeek);
     }
+
     return w;
   }, [yearGrid, dataMap]);
 
@@ -88,39 +105,66 @@ export default function HeatmapChart() {
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white text-base font-bold">Heatmap</h3>
         <select
-          value={isUltimoAnio ? '' : selectedYear}
+          value={selectedYear ?? ''}
           onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
           className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF5C00]"
         >
-          {YEAR_OPTIONS.map((opt) => (
-            <option key={opt.label} value={opt.value ?? ''}>
-              {opt.label}
-            </option>
+          {availableYears.length === 0 && <option value="">Sin datos</option>}
+          {availableYears.map((y) => (
+            <option key={y} value={y}>{y}</option>
           ))}
         </select>
       </div>
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
-      <div className="relative overflow-x-auto">
-        {loading ? (
-          <div className="flex gap-1">
-            {Array.from({ length: 20 }).map((_, wi) => (
-              <div key={wi} className="flex flex-col gap-1">
-                {Array.from({ length: 7 }).map((_, di) => (
-                  <div key={di} className="w-3 h-3 rounded-sm bg-[#242424] animate-pulse" />
-                ))}
-              </div>
-            ))}
+      {loading ? (
+        <div className="flex gap-[3px]">
+          {Array.from({ length: 20 }).map((_, wi) => (
+            <div key={wi} className="flex flex-col gap-[3px] flex-1">
+              {Array.from({ length: 7 }).map((_, di) => (
+                <div key={di} className="w-full aspect-square rounded-sm bg-[#242424] animate-pulse" />
+              ))}
+            </div>
+          ))}
+        </div>
+      ) : selectedYear === undefined ? (
+        <div className="flex items-center justify-center h-40">
+          <p className="text-[#8A8A8A] text-sm">No hay datos disponibles</p>
+        </div>
+      ) : (
+        <div className="pt-[14px] overflow-hidden">
+          <div className="flex gap-[3px]">
+            <div className="w-8 shrink-0" />
+            {weeks.map((week, wi) => {
+              const firstReal = week.find(d => d.date !== '');
+              if (!firstReal) return <div key={wi} className="flex-1" />;
+              const month = new Date(firstReal.date + 'T00:00:00').getMonth();
+              const prevWeek = wi > 0 ? weeks[wi - 1].find(d => d.date !== '') : null;
+              const prevMonth = prevWeek ? new Date(prevWeek.date + 'T00:00:00').getMonth() : -1;
+              return (
+                <div key={wi} className="flex-1 text-[10px] text-[#8A8A8A] leading-none whitespace-nowrap pointer-events-none select-none">
+                  {month !== prevMonth ? MONTHS_SHORT[month] : ''}
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <div className="flex gap-0.5">
+
+          <div className="flex gap-[3px]">
+            <div className="flex flex-col gap-[3px] w-8 shrink-0">
+              {Array.from({ length: 7 }, (_, i) => (
+                <div key={i} className="flex-1 flex items-center justify-end pr-1 text-[10px] text-[#8A8A8A] leading-none">
+                  {i === 1 ? 'Lun' : i === 3 ? 'Mié' : i === 5 ? 'Vie' : ''}
+                </div>
+              ))}
+            </div>
+
             {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-0.5">
+              <div key={wi} className="flex flex-col gap-[3px] flex-1 min-w-0">
                 {week.map((day, di) => (
                   <div
                     key={`${wi}-${di}`}
-                    className={`w-3 h-3 rounded-sm ${day.date ? getIntensity(day.cantidad, maxCantidad) : 'transparent'} cursor-pointer relative`}
+                    className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, maxCantidad) : 'transparent'} cursor-pointer relative`}
                     onMouseEnter={(e) => {
                       if (day.date) {
                         const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -133,24 +177,25 @@ export default function HeatmapChart() {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {tooltip && (
         <div
-          className="fixed bg-[#242424] text-white text-xs px-2 py-1 rounded-lg border border-[#282828] pointer-events-none z-50"
+          className="fixed bg-[#242424] text-white text-xs px-3 py-1.5 rounded-lg border border-[#282828] pointer-events-none z-50 leading-relaxed"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
-          {tooltip.fecha}: {tooltip.cantidad} turno{tooltip.cantidad !== 1 ? 's' : ''}
+          <p className="font-medium text-white">{formatDate(tooltip.fecha)}</p>
+          <p className="text-[#FF5C00]">{tooltip.cantidad} reserva{tooltip.cantidad !== 1 ? 's' : ''}</p>
         </div>
       )}
 
       <div className="flex items-center justify-end gap-1 mt-3">
         <span className="text-[#8A8A8A] text-xs">Menos</span>
-        <div className="w-3 h-3 rounded-sm bg-[#1A1A1A]" />
-        <div className="w-3 h-3 rounded-sm bg-[#FF5C00]/30" />
-        <div className="w-3 h-3 rounded-sm bg-[#FF5C00]/50" />
-        <div className="w-3 h-3 rounded-sm bg-[#FF5C00]/70" />
+        <div className="w-3 h-3 rounded-sm bg-[#161616]" />
+        <div className="w-3 h-3 rounded-sm bg-[#3D1A00]" />
+        <div className="w-3 h-3 rounded-sm bg-[#7A3B00]" />
+        <div className="w-3 h-3 rounded-sm bg-[#C25E00]" />
         <div className="w-3 h-3 rounded-sm bg-[#FF5C00]" />
         <span className="text-[#8A8A8A] text-xs">Más</span>
       </div>

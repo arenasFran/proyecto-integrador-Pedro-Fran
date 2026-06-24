@@ -34,6 +34,13 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
   );
 
   router.get(
+    '/years',
+    authenticate,
+    authorize('Admin'),
+    controller.getYearsHandler,
+  );
+
+  router.get(
     '/charts/reservas-ganancias',
     authenticate,
     authorize('Admin'),

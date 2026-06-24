@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import { STATUS_CATEGORIES, VALID_TRANSITIONS } from '../../../domain/types/appointment';
 import AppointmentModel from './models/appointment.model';
 
+const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
+  Object.keys(VALID_TRANSITIONS).map(s => [s.toLowerCase(), s])
+);
+
 export type OverviewResult = {
   totalReservas: number;
   duracionTotalMinutos: number;
@@ -198,6 +202,15 @@ export class MongoAnalyticsRepository {
     return AppointmentModel.aggregate(pipeline);
   }
 
+  async getAvailableYears(): Promise<number[]> {
+    const result = await AppointmentModel.aggregate([
+      { $group: { _id: { $year: { $toDate: '$date' } } } },
+      { $sort: { _id: -1 } },
+      { $project: { _id: 0, year: '$_id' } },
+    ]);
+    return result.map(r => r.year);
+  }
+
   async getReservasGanancias(filters: ReservasGananciasFilters): Promise<ReservasGananciasEntry[]> {
     const desdeDate = new Date(filters.desde);
     const hastaDate = new Date(filters.hasta);
@@ -208,7 +221,10 @@ export class MongoAnalyticsRepository {
     };
     if (filters.barberId) matchStage.barberId = new mongoose.Types.ObjectId(filters.barberId);
     if (filters.serviceId) matchStage.serviceId = filters.serviceId;
-    if (filters.status) matchStage.status = filters.status;
+    if (filters.status) {
+      const normalized = STATUS_NORMALIZE[filters.status.toLowerCase()];
+      if (normalized) matchStage.status = normalized;
+    }
 
     const pipeline = [
       DATE_CONVERSION_STAGE,

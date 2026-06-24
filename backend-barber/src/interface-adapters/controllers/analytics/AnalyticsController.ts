@@ -17,7 +17,7 @@ function endOfDay(date: Date): string {
   return toISODate(date);
 }
 
-function resolvePreset(preset: string): { desde: string; hasta: string } {
+export function resolvePreset(preset: string): { desde: string; hasta: string } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -108,6 +108,15 @@ export class AnalyticsController {
       return sendSuccess(res, { porBarbero });
     } catch (error) {
       return sendError(res, error, 'Error al obtener distribución');
+    }
+  };
+
+  getYearsHandler = async (_req: Request, res: Response) => {
+    try {
+      const years = await this.repository.getAvailableYears();
+      return sendSuccess(res, years);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener años disponibles');
     }
   };
 

@@ -28,7 +28,7 @@ const STATUS_OPTS = [
   { value: 'confirmado', label: 'Confirmado' },
   { value: 'completado', label: 'Completado' },
   { value: 'cancelado', label: 'Cancelado' },
-  { value: 'noshow', label: 'No Show' },
+  { value: 'noshow', label: 'No asistió' },
 ];
 
 export default function ChartFilters({

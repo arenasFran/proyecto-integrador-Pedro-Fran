@@ -10,7 +10,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   confirmado: { label: 'Confirmado', color: 'bg-blue-500' },
   completado: { label: 'Completado', color: 'bg-green-500' },
   cancelado: { label: 'Cancelado', color: 'bg-red-500' },
-  noshow: { label: 'No Show', color: 'bg-yellow-500' },
+  noshow: { label: 'No asistió', color: 'bg-yellow-500' },
 };
 
 export default function StatusBreakdown({ data, loading, error }: StatusBreakdownProps) {

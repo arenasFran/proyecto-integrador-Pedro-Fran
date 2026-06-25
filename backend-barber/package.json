@@ -10,7 +10,9 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:ci": "jest --runInBand",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "seed:analytics": "ts-node src/infrastructure/scripts/seed-analytics.ts cleanup && ts-node src/infrastructure/scripts/seed-analytics.ts",
+    "seed:analytics:clean": "ts-node src/infrastructure/scripts/seed-analytics.ts cleanup"
   },
   "keywords": [],
   "author": "",

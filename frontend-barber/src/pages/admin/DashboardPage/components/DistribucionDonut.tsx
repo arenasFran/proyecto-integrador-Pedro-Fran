@@ -24,7 +24,7 @@ export default function DistribucionDonut() {
 
   return (
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5">
-      <h3 className="text-white text-base font-bold mb-4">Distribución por Barbero</h3>
+      <h3 className="text-white text-base font-bold mb-4">Distribución de reservas por barbero</h3>
 
       <div className="mb-2">
         <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
@@ -76,8 +76,7 @@ export default function DistribucionDonut() {
                 <div key={entry.barberId} className="flex items-center gap-2 text-sm">
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="text-white">{entry.nombre}</span>
-                  <span className="text-[#8A8A8A]">{entry.cantidad} turnos</span>
-                  <span className="text-[#FF5C00] font-medium">${entry.ingresos.toLocaleString('es-UY')}</span>
+                  <span className="text-[#8A8A8A]">{entry.cantidad} reservas</span>
                 </div>
               ))}
             </div>

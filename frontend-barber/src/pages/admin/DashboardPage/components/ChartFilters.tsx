@@ -26,7 +26,7 @@ export default function ChartFilters({
   serviceId, onServiceChange,
   status, onStatusChange,
 }: ChartFiltersProps) {
-  const showStatus = status !== undefined && onStatusChange !== undefined;
+  const showStatus = onStatusChange !== undefined;
   const [barbers, setBarbers] = useState<Professional[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [error, setError] = useState<string | null>(null);

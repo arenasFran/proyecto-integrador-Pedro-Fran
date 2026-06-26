@@ -232,7 +232,7 @@ export class MongoAnalyticsRepository {
     const groupStage: mongoose.PipelineStage = isSingleDay
       ? {
           $group: {
-            _id: { $concat: ['$date', ' ', { $substrCP: ['$startTime', 0, 2] }, ':00'] },
+            _id: { $concat: ['$date', ' ', '$startTime'] },
             cantidadReservas: { $sum: 1 },
             ganancias: {
               $sum: {

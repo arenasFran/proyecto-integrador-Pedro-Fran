@@ -1,7 +1,7 @@
 type PeriodoType = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 function detectType(periodo: string): PeriodoType {
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:00$/.test(periodo)) return 'hourly';
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(periodo)) return 'hourly';
   if (/^\d{4}-\d{2}-\d{2}$/.test(periodo)) return 'daily';
   if (/^\d{4}$/.test(periodo)) return 'yearly';
   if (/^\d{4}-\d{2}$/.test(periodo)) {

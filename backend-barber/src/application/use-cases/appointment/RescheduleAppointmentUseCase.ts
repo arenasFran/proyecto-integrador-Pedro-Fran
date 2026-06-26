@@ -103,6 +103,16 @@ export class RescheduleAppointmentUseCase {
     // RN02 — Horario laboral
     const dayKey = getDayKey(dto.date);
     const daySchedule = barber.schedule[dayKey];
+
+    // Validar que startTime esté alineado con slotDuration del barbero
+    const dayStartMinutes = daySchedule.startTime !== null ? toMinutes(daySchedule.startTime) : null;
+    if (dayStartMinutes !== null && (startMinutes - dayStartMinutes) % barber.slotDuration !== 0) {
+      throw new AppError(
+        'La hora seleccionada no está alineada con la duración de los turnos del barbero.',
+        400
+      );
+    }
+
     if (!isWithinSchedule(startMinutes, endMinutes, daySchedule)) {
       throw new AppError('El turno está fuera del horario laboral del barbero.', 400);
     }

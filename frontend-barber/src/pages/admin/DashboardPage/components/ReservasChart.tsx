@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useGetReservasGananciasQuery } from '../../../../services/analyticsApi';
 import ChartFilters from './ChartFilters';
 import DateRangeFilter from './DateRangeFilter';
+import { ChartContainer } from '../../../../components/common';
 import { formatFecha, deriveGranularidad } from '../../../../utils/formatFecha';
 
 export default function ReservasChart() {
@@ -47,40 +48,27 @@ export default function ReservasChart() {
 
       {error && <p className="text-[#FF5C00] text-sm mt-2">{error}</p>}
 
-      <div className="mt-4 overflow-x-hidden" style={{ position: 'relative', height: 280 }}>
-        {isFetching && data.length > 0 && (
-          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
-            <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-        <div style={{ opacity: isFetching ? 0.4 : 1, transition: 'opacity 0.3s ease', height: '100%' }}>
-        {loading ? (
-          <div className="w-full h-full bg-[#1A1A1A] rounded-xl animate-pulse" />
-        ) : data.length === 0 ? (
-          <p className="text-[#8A8A8A] text-sm text-center py-8">Sin datos en el periodo seleccionado</p>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
-              <XAxis
-                dataKey="periodo"
-                tickFormatter={(value) => formatFecha(value)}
-                tick={{ fill: '#8A8A8A', fontSize: 12 }}
-                stroke="#282828"
-              />
-              <YAxis tick={{ fill: '#8A8A8A', fontSize: 12 }} stroke="#282828" />
-              <Tooltip
-                contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
-                labelStyle={{ color: '#fff' }}
-                labelFormatter={(label) => formatFecha(label)}
-                formatter={(value) => [value, 'Reservas']}
-              />
-              <Bar dataKey="cantidadReservas" fill="#FF5C00" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        </div>
-      </div>
+      <ChartContainer isFetching={isFetching} loading={loading} hasData={data.length > 0} height={280} className="mt-4 overflow-x-hidden">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
+            <XAxis
+              dataKey="periodo"
+              tickFormatter={(value) => formatFecha(value)}
+              tick={{ fill: '#8A8A8A', fontSize: 12 }}
+              stroke="#282828"
+            />
+            <YAxis tick={{ fill: '#8A8A8A', fontSize: 12 }} stroke="#282828" />
+            <Tooltip
+              contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
+              labelStyle={{ color: '#fff' }}
+              labelFormatter={(label) => formatFecha(label)}
+              formatter={(value) => [value, 'Reservas']}
+            />
+            <Bar dataKey="cantidadReservas" fill="#FF5C00" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartContainer>
     </div>
   );
 }

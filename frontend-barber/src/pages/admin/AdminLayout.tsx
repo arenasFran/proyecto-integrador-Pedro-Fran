@@ -12,7 +12,7 @@ export const AdminLayout: React.FC = () => {
   const kind = getTokenKind(token);
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-[#050505] overflow-x-hidden">
       <AppSidebar
         collapsed={collapsed}
         onToggle={() => setCollapsed(!collapsed)}

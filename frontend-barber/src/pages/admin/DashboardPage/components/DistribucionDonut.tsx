@@ -23,7 +23,7 @@ export default function DistribucionDonut() {
     : null;
 
   return (
-    <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5">
+    <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <h3 className="text-white text-base font-bold mb-4">Distribución de reservas por barbero</h3>
 
       <div className="mb-2">
@@ -32,7 +32,7 @@ export default function DistribucionDonut() {
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
-      <div style={{ position: 'relative' }}>
+      <div style={{ position: 'relative', overflowX: 'hidden' }}>
         {isFetching && dataEntries.length > 0 && (
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
             <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
@@ -46,7 +46,7 @@ export default function DistribucionDonut() {
         ) : (
           <div className="flex justify-center">
             <div className="flex flex-col lg:flex-row items-center gap-6">
-            <div className="w-[280px] h-[280px] shrink-0 max-w-full">
+            <div className="w-[280px] h-[280px] max-w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie

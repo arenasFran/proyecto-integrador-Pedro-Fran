@@ -42,7 +42,7 @@ export default function ReservasChart() {
     : null;
 
   return (
-    <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5">
+    <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <h3 className="text-white text-base font-bold mb-2">Reservas</h3>
       <div className="mb-2">
         <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
@@ -58,7 +58,7 @@ export default function ReservasChart() {
 
       {error && <p className="text-[#FF5C00] text-sm mt-2">{error}</p>}
 
-      <div className="mt-4" style={{ position: 'relative', height: 280 }}>
+      <div className="mt-4 overflow-x-hidden" style={{ position: 'relative', height: 280 }}>
         {isFetching && data.length > 0 && (
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
             <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />

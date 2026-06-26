@@ -19,7 +19,7 @@ export default function DistribucionDonut() {
     { skip: !desde || !hasta },
   );
 
-  const dataEntries = data?.porBarbero ?? [];
+  const dataEntries = data?.byBarber ?? [];
   const loading = isLoading;
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError

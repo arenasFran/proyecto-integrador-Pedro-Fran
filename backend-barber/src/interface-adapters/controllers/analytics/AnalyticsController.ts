@@ -104,8 +104,8 @@ export class AnalyticsController {
         return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
       }
 
-      const porBarbero = await this.repository.getDistribucion(desde, hasta);
-      return sendSuccess(res, { porBarbero });
+      const byBarber = await this.repository.getDistribucion(desde, hasta);
+      return sendSuccess(res, { byBarber });
     } catch (error) {
       return sendError(res, error, 'Error al obtener distribución');
     }

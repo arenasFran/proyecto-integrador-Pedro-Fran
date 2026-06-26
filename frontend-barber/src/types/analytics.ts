@@ -25,7 +25,7 @@ export interface DistribucionEntry {
 }
 
 export interface DistribucionData {
-  porBarbero: DistribucionEntry[];
+  byBarber: DistribucionEntry[];
 }
 
 export type Granularidad = 'diario' | 'semanal' | 'mensual' | 'anual';

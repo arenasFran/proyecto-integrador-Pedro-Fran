@@ -121,9 +121,7 @@ export class MongoAnalyticsRepository {
     if (param.lastYear) {
       const now = new Date();
       lte = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      gte = new Date(lte);
-      gte.setFullYear(gte.getFullYear() - 1);
-      gte.setDate(gte.getDate() + 1);
+      gte = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     } else {
       const year = param.year ?? new Date().getFullYear();
       gte = new Date(`${year}-01-01`);

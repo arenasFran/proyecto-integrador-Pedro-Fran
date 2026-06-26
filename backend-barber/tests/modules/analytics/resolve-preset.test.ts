@@ -25,7 +25,7 @@ describe('resolvePreset', () => {
     it('devuelve el día actual como desde y hasta', () => {
       const restore = mockDateNow('2025-06-15T10:30:00.000Z');
       const result = resolvePreset('hoy');
-      expect(result).toEqual({ desde: '2025-06-15', hasta: '2025-06-15' });
+      expect(result).toEqual({ desde: '2025-06-15', hasta: '2025-06-15T23:59:59.999Z' });
       restore();
     });
   });
@@ -34,14 +34,14 @@ describe('resolvePreset', () => {
     it('devuelve el día anterior', () => {
       const restore = mockDateNow('2025-06-15T10:30:00.000Z');
       const result = resolvePreset('ayer');
-      expect(result).toEqual({ desde: '2025-06-14', hasta: '2025-06-14' });
+      expect(result).toEqual({ desde: '2025-06-14', hasta: '2025-06-14T23:59:59.999Z' });
       restore();
     });
 
     it('cruza el límite de mes correctamente', () => {
       const restore = mockDateNow('2025-03-01T10:30:00.000Z');
       const result = resolvePreset('ayer');
-      expect(result).toEqual({ desde: '2025-02-28', hasta: '2025-02-28' });
+      expect(result).toEqual({ desde: '2025-02-28', hasta: '2025-02-28T23:59:59.999Z' });
       restore();
     });
   });
@@ -50,21 +50,21 @@ describe('resolvePreset', () => {
     it('lunes -> semana del lunes al domingo', () => {
       const restore = mockDateNow('2025-06-16T10:30:00.000Z');
       const result = resolvePreset('semana');
-      expect(result).toEqual({ desde: '2025-06-16', hasta: '2025-06-22' });
+      expect(result).toEqual({ desde: '2025-06-16', hasta: '2025-06-22T23:59:59.999Z' });
       restore();
     });
 
     it('domingo -> semana del lunes anterior al domingo actual', () => {
       const restore = mockDateNow('2025-06-15T10:30:00.000Z');
       const result = resolvePreset('semana');
-      expect(result).toEqual({ desde: '2025-06-09', hasta: '2025-06-15' });
+      expect(result).toEqual({ desde: '2025-06-09', hasta: '2025-06-15T23:59:59.999Z' });
       restore();
     });
 
     it('miércoles -> semana del lunes al domingo', () => {
       const restore = mockDateNow('2025-06-18T10:30:00.000Z');
       const result = resolvePreset('semana');
-      expect(result).toEqual({ desde: '2025-06-16', hasta: '2025-06-22' });
+      expect(result).toEqual({ desde: '2025-06-16', hasta: '2025-06-22T23:59:59.999Z' });
       restore();
     });
   });
@@ -73,21 +73,21 @@ describe('resolvePreset', () => {
     it('devuelve el mes actual completo', () => {
       const restore = mockDateNow('2025-06-15T10:30:00.000Z');
       const result = resolvePreset('mes');
-      expect(result).toEqual({ desde: '2025-06-01', hasta: '2025-06-30' });
+      expect(result).toEqual({ desde: '2025-06-01', hasta: '2025-06-30T23:59:59.999Z' });
       restore();
     });
 
     it('febrero no bisiesto', () => {
       const restore = mockDateNow('2025-02-15T10:30:00.000Z');
       const result = resolvePreset('mes');
-      expect(result).toEqual({ desde: '2025-02-01', hasta: '2025-02-28' });
+      expect(result).toEqual({ desde: '2025-02-01', hasta: '2025-02-28T23:59:59.999Z' });
       restore();
     });
 
     it('febrero bisiesto', () => {
       const restore = mockDateNow('2024-02-15T10:30:00.000Z');
       const result = resolvePreset('mes');
-      expect(result).toEqual({ desde: '2024-02-01', hasta: '2024-02-29' });
+      expect(result).toEqual({ desde: '2024-02-01', hasta: '2024-02-29T23:59:59.999Z' });
       restore();
     });
   });
@@ -96,7 +96,7 @@ describe('resolvePreset', () => {
     it('devuelve el año actual completo', () => {
       const restore = mockDateNow('2025-06-15T10:30:00.000Z');
       const result = resolvePreset('year');
-      expect(result).toEqual({ desde: '2025-01-01', hasta: '2025-12-31' });
+      expect(result).toEqual({ desde: '2025-01-01', hasta: '2025-12-31T23:59:59.999Z' });
       restore();
     });
   });

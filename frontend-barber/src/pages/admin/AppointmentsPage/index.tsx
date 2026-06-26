@@ -22,7 +22,7 @@ const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label:
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
   Completado: { bg: 'bg-green-500/10', text: 'text-green-400', label: 'Completado' },
   Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Cancelado' },
-  NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No Show' },
+  NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -218,7 +218,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 <option value="Confirmado">Confirmado</option>
                 <option value="Completado">Completado</option>
                 <option value="Cancelado">Cancelado</option>
-                <option value="NoShow">No Show</option>
+                <option value="NoShow">No asistió</option>
               </select>
             </div>
             <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
@@ -321,7 +321,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                                   onClick={() => handleStatusChange(appointment.id, 'NoShow')}
                                   disabled={isUpdatingStatus}
                                   className="rounded-[8px] border border-yellow-500/30 p-1.5 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
-                                  title="Marcar como No Show"
+                                  title="Marcar como no asistió"
                                 >
                                   <FiXCircle className="text-sm" />
                                 </button>

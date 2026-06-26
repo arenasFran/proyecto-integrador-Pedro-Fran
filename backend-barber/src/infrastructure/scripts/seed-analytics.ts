@@ -329,7 +329,7 @@ async function cleanupTestData() {
   const appsViejo = await AppointmentModel.deleteMany({ clientName: /^TEST_/ });
   const appsNuevo = await AppointmentModel.deleteMany({ clientName: { $regex: `^${TEST_PREFIX}` } });
   const totalApps = appsViejo.deletedCount + appsNuevo.deletedCount;
-  await RegisteredClient.deleteMany({ email: { $in: [CLIENT_EMAIL, 'analytics-reg@test.com'] } });
+  await RegisteredClient.deleteMany({ email: CLIENT_EMAIL });
   await Employee.deleteMany({
     email: { $regex: /analytics-test|seed-/ },
   });

@@ -35,7 +35,7 @@ export default function ChartFilters({
     const msg = err && typeof err === 'object' && 'response' in err
       ? String((err as { response: { data: { error: string } } }).response?.data?.error ?? fallback)
       : fallback;
-    setError(prev => [prev, msg].filter(Boolean).join(' | '));
+    setError(msg);
   };
 
   useEffect(() => {

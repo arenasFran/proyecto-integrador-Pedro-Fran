@@ -43,19 +43,19 @@ export default function HeatmapChart() {
     if (mostRecentYear !== undefined && selectedYear === undefined) {
       setSelectedYear(mostRecentYear);
     }
-  }, [mostRecentYear, selectedYear]);
+  }, [mostRecentYear, selectedYear, setSelectedYear]);
 
   const params = selectedYear ? { anio: selectedYear } : { ultimoAnio: true as const };
-  const { data = [], isLoading, error: rtkError } = useGetHeatmapQuery(params, {
+  const { data = [], isFetching, error: rtkError } = useGetHeatmapQuery(params, {
     skip: selectedYear === undefined,
   });
 
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError
       ? String(rtkError.data)
-      : 'Error al carrar heatmap'
+      : 'Error al cargar heatmap'
     : null;
-  const loading = isLoading || yearsLoading;
+  const loading = isFetching || yearsLoading;
 
   const yearGrid = useMemo(() => {
     if (selectedYear === undefined) return [];
@@ -103,7 +103,7 @@ export default function HeatmapChart() {
   return (
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white text-base font-bold">Heatmap</h3>
+        <h3 className="text-white text-base font-bold">Actividad</h3>
         <select
           value={selectedYear ?? ''}
           onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
@@ -118,67 +118,78 @@ export default function HeatmapChart() {
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
-      {loading ? (
-        <div className="flex gap-[3px]">
-          {Array.from({ length: 20 }).map((_, wi) => (
-            <div key={wi} className="flex flex-col gap-[3px] flex-1">
-              {Array.from({ length: 7 }).map((_, di) => (
-                <div key={di} className="w-full aspect-square rounded-sm bg-[#242424] animate-pulse" />
-              ))}
-            </div>
-          ))}
-        </div>
-      ) : selectedYear === undefined ? (
-        <div className="flex items-center justify-center h-40">
-          <p className="text-[#8A8A8A] text-sm">No hay datos disponibles</p>
-        </div>
-      ) : (
-        <div className="pt-[14px] overflow-hidden">
-          <div className="flex gap-[3px]">
-            <div className="w-8 shrink-0" />
-            {weeks.map((week, wi) => {
-              const firstReal = week.find(d => d.date !== '');
-              if (!firstReal) return <div key={wi} className="flex-1" />;
-              const month = new Date(firstReal.date + 'T00:00:00').getMonth();
-              const prevWeek = wi > 0 ? weeks[wi - 1].find(d => d.date !== '') : null;
-              const prevMonth = prevWeek ? new Date(prevWeek.date + 'T00:00:00').getMonth() : -1;
-              return (
-                <div key={wi} className="flex-1 text-[10px] text-[#8A8A8A] leading-none whitespace-nowrap pointer-events-none select-none">
-                  {month !== prevMonth ? MONTHS_SHORT[month] : ''}
-                </div>
-              );
-            })}
+      <div style={{ position: 'relative' }}>
+        {isFetching && !loading && (
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
+            <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
           </div>
-
+        )}
+        <div style={{ opacity: isFetching ? 0.4 : 1, transition: 'opacity 0.3s ease' }}>
+        {loading ? (
           <div className="flex gap-[3px]">
-            <div className="flex flex-col gap-[3px] w-8 shrink-0">
-              {Array.from({ length: 7 }, (_, i) => (
-                <div key={i} className="flex-1 flex items-center justify-end pr-1 text-[10px] text-[#8A8A8A] leading-none">
-                  {i === 1 ? 'Lun' : i === 3 ? 'Mié' : i === 5 ? 'Vie' : ''}
-                </div>
-              ))}
-            </div>
-
-            {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col gap-[3px] flex-1 min-w-0">
-                {week.map((day, di) => (
-                  <div
-                    key={`${wi}-${di}`}
-                    className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, maxCantidad) : 'transparent'} cursor-pointer relative`}
-                    onMouseEnter={(e) => {
-                      if (day.date) {
-                        const rect = (e.target as HTMLElement).getBoundingClientRect();
-                        setTooltip({ fecha: day.date, cantidad: day.cantidad, x: rect.left, y: rect.top - 8 });
-                      }
-                    }}
-                    onMouseLeave={() => setTooltip(null)}
-                  />
+            {Array.from({ length: 20 }).map((_, wi) => (
+              <div key={wi} className="flex flex-col gap-[3px] flex-1">
+                {Array.from({ length: 7 }).map((_, di) => (
+                  <div key={di} className="w-full aspect-square rounded-sm bg-[#242424] animate-pulse" />
                 ))}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : selectedYear === undefined ? (
+          <div className="flex items-center justify-center h-40">
+            <p className="text-[#8A8A8A] text-sm">No hay datos disponibles</p>
+          </div>
+        ) : (
+          <div className="pt-[14px] overflow-x-auto">
+            <div style={{ minWidth: '600px' }}>
+              <div className="flex gap-[3px]">
+                <div className="w-8 shrink-0" />
+                {weeks.map((week, wi) => {
+                  const firstReal = week.find(d => d.date !== '');
+                  if (!firstReal) return <div key={wi} className="flex-1" />;
+                  const month = new Date(firstReal.date + 'T00:00:00').getMonth();
+                  const prevWeek = wi > 0 ? weeks[wi - 1].find(d => d.date !== '') : null;
+                  const prevMonth = prevWeek ? new Date(prevWeek.date + 'T00:00:00').getMonth() : -1;
+                  return (
+                    <div key={wi} className="flex-1 text-[10px] text-[#8A8A8A] leading-none whitespace-nowrap pointer-events-none select-none">
+                      {month !== prevMonth ? MONTHS_SHORT[month] : ''}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-[3px]">
+                <div className="flex flex-col gap-[3px] w-8 shrink-0">
+                  {Array.from({ length: 7 }, (_, i) => (
+                    <div key={i} className="flex-1 flex items-center justify-end pr-1 text-[10px] text-[#8A8A8A] leading-none">
+                      {i === 1 ? 'Lun' : i === 3 ? 'Mié' : i === 5 ? 'Vie' : ''}
+                    </div>
+                  ))}
+                </div>
+
+                {weeks.map((week, wi) => (
+                  <div key={wi} className="flex flex-col gap-[3px] flex-1 min-w-0">
+                    {week.map((day, di) => (
+                      <div
+                        key={`${wi}-${di}`}
+                        className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, maxCantidad) : 'transparent'} cursor-pointer relative`}
+                        onMouseEnter={(e) => {
+                          if (day.date) {
+                            const rect = (e.target as HTMLElement).getBoundingClientRect();
+                            setTooltip({ fecha: day.date, cantidad: day.cantidad, x: rect.left, y: rect.top - 8 });
+                          }
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      </div>
 
       {tooltip && (
         <div

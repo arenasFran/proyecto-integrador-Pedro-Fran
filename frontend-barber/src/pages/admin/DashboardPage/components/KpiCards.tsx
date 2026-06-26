@@ -30,7 +30,7 @@ export default function KpiCards({ data, loading, error }: KpiCardsProps) {
   if (error) {
     return (
       <div className="text-[#FF5C00] text-sm bg-[#1A1A1A] rounded-2xl p-5 border border-[#282828]">
-        Error al carrar KPIs: {error}
+        Error al cargar KPIs: {error}
       </div>
     );
   }

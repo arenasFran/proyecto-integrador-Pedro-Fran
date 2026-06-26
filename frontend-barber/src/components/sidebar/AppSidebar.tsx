@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 const adminNavItems = [
-  { to: '/admin/dashboard', icon: FiBarChart2, label: 'Dashboard' },
+  { to: '/admin/dashboard', icon: FiBarChart2, label: 'Métricas' },
   { to: '/admin/turnos', icon: FiCalendar, label: 'Turnos' },
   { to: '/admin/profesionales', icon: FiUsers, label: 'Profesionales' },
 ];

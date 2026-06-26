@@ -92,10 +92,10 @@ describe('resolvePreset', () => {
     });
   });
 
-  describe('año', () => {
+  describe('year', () => {
     it('devuelve el año actual completo', () => {
       const restore = mockDateNow('2025-06-15T10:30:00.000Z');
-      const result = resolvePreset('año');
+      const result = resolvePreset('year');
       expect(result).toEqual({ desde: '2025-01-01', hasta: '2025-12-31' });
       restore();
     });

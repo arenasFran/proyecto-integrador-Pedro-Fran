@@ -45,8 +45,8 @@ export default function HeatmapChart() {
     }
   }, [mostRecentYear, selectedYear, setSelectedYear]);
 
-  const params = selectedYear ? { anio: selectedYear } : { ultimoAnio: true as const };
-  const { data = [], isFetching, error: rtkError } = useGetHeatmapQuery(params, {
+  const params = selectedYear ? { year: selectedYear } : { lastYear: true as const };
+  const { data = [], isFetching, isLoading, error: rtkError } = useGetHeatmapQuery(params, {
     skip: selectedYear === undefined,
   });
 
@@ -55,7 +55,7 @@ export default function HeatmapChart() {
       ? String(rtkError.data)
       : 'Error al cargar heatmap'
     : null;
-  const loading = isFetching || yearsLoading;
+  const loading = isLoading || yearsLoading;
 
   const yearGrid = useMemo(() => {
     if (selectedYear === undefined) return [];
@@ -119,7 +119,7 @@ export default function HeatmapChart() {
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <div style={{ position: 'relative' }}>
-        {isFetching && !loading && (
+        {isFetching && data.length > 0 && (
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
             <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
           </div>

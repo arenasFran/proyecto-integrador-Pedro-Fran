@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 
-type PresetKey = 'hoy' | 'ayer' | 'semana' | 'semanaPasada' | 'mes' | 'anio' | 'personalizado';
+type PresetKey = 'hoy' | 'ayer' | 'semana' | 'semanaPasada' | 'mes' | 'year' | 'personalizado';
 
 interface DateRangeFilterProps {
   onChange: (desde: string, hasta: string) => void;
@@ -12,7 +12,7 @@ const PRESETS: { key: PresetKey; label: string }[] = [
   { key: 'semana', label: 'Esta semana' },
   { key: 'semanaPasada', label: 'Semana pasada' },
   { key: 'mes', label: 'Este mes' },
-  { key: 'anio', label: 'Este año' },
+  { key: 'year', label: 'Este año' },
   { key: 'personalizado', label: 'Personalizar' },
 ];
 
@@ -54,7 +54,7 @@ function resolvePreset(p: PresetKey): { desde: string; hasta: string } {
       const fin = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       return { desde: toISODate(inicio), hasta: toISODate(fin) };
     }
-    case 'anio': {
+    case 'year': {
       return { desde: toISODate(new Date(today.getFullYear(), 0, 1)), hasta: toISODate(new Date(today.getFullYear(), 11, 31)) };
     }
     default:

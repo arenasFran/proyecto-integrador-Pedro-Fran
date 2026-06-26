@@ -141,7 +141,7 @@ describeIfMongo('MongoAnalyticsRepository', () => {
 
   describe('getHeatmap', () => {
     it('agrupa por fecha para el año solicitado', async () => {
-      const result = await repository.getHeatmap({ anio: 2025 });
+      const result = await repository.getHeatmap({ year: 2025 });
 
       expect(result.length).toBe(7);
       expect(result[0]).toEqual({ fecha: '2025-05-20', cantidad: 1 });
@@ -154,7 +154,7 @@ describeIfMongo('MongoAnalyticsRepository', () => {
     });
 
     it('devuelve array vacío para año sin datos', async () => {
-      const result = await repository.getHeatmap({ anio: 2020 });
+      const result = await repository.getHeatmap({ year: 2020 });
       expect(result).toEqual([]);
     });
   });

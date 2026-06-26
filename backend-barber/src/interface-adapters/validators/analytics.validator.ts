@@ -3,7 +3,7 @@ import Joi from 'joi';
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const overviewQuerySchema = Joi.object({
-  preset: Joi.string().valid('hoy', 'ayer', 'semana', 'mes', 'anio'),
+  preset: Joi.string().valid('hoy', 'ayer', 'semana', 'mes', 'year'),
   desde: Joi.string().pattern(ISO_DATE),
   hasta: Joi.string().pattern(ISO_DATE),
 }).custom((value, helpers) => {
@@ -65,14 +65,14 @@ export const reservasGananciasQuerySchema = Joi.object({
 const CURRENT_YEAR = new Date().getFullYear();
 
 export const heatmapQuerySchema = Joi.object({
-  anio: Joi.number().integer().min(2020).max(CURRENT_YEAR + 1),
-  ultimoAnio: Joi.boolean(),
+  year: Joi.number().integer().min(2020).max(CURRENT_YEAR + 1),
+  lastYear: Joi.boolean(),
 }).custom((value, helpers) => {
-  if (!value.ultimoAnio && !value.anio) {
-    return helpers.message({ custom: 'Debe proporcionar "anio" o "ultimoAnio".' });
+  if (!value.lastYear && !value.year) {
+    return helpers.message({ custom: 'Debe proporcionar "year" o "lastYear".' });
   }
-  if (value.ultimoAnio && value.anio) {
-    return helpers.message({ custom: 'No combine "anio" con "ultimoAnio".' });
+  if (value.lastYear && value.year) {
+    return helpers.message({ custom: 'No combine "year" con "lastYear".' });
   }
   return value;
 });

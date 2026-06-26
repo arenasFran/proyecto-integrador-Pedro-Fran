@@ -19,7 +19,7 @@ export const analyticsApi = createApi({
       }),
     }),
 
-    getHeatmap: builder.query<HeatmapEntry[], { anio?: number; ultimoAnio?: boolean }>({
+    getHeatmap: builder.query<HeatmapEntry[], { year?: number; lastYear?: boolean }>({
       query: (params) => ({
         url: '/api/analytics/heatmap',
         params,

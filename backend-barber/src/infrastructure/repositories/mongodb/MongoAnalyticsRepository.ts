@@ -114,20 +114,20 @@ export class MongoAnalyticsRepository {
     };
   }
 
-  async getHeatmap(param: { anio?: number; ultimoAnio?: boolean }): Promise<HeatmapEntry[]> {
+  async getHeatmap(param: { year?: number; lastYear?: boolean }): Promise<HeatmapEntry[]> {
     let gte: Date;
     let lte: Date;
 
-    if (param.ultimoAnio) {
+    if (param.lastYear) {
       const now = new Date();
       lte = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       gte = new Date(lte);
       gte.setFullYear(gte.getFullYear() - 1);
       gte.setDate(gte.getDate() + 1);
     } else {
-      const anio = param.anio ?? new Date().getFullYear();
-      gte = new Date(`${anio}-01-01`);
-      lte = new Date(`${anio}-12-31`);
+      const year = param.year ?? new Date().getFullYear();
+      gte = new Date(`${year}-01-01`);
+      lte = new Date(`${year}-12-31`);
     }
 
     const pipeline = [

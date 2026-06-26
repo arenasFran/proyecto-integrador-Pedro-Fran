@@ -114,11 +114,11 @@ export class MongoAnalyticsRepository {
     };
   }
 
-  async getHeatmap(param: { anio?: number; ultimoAño?: boolean }): Promise<HeatmapEntry[]> {
+  async getHeatmap(param: { anio?: number; ultimoAnio?: boolean }): Promise<HeatmapEntry[]> {
     let gte: Date;
     let lte: Date;
 
-    if (param.ultimoAño) {
+    if (param.ultimoAnio) {
       const now = new Date();
       lte = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       gte = new Date(lte);
@@ -216,6 +216,9 @@ export class MongoAnalyticsRepository {
     const hastaDate = new Date(filters.hasta);
     const dateFormat = DATE_FORMATS[filters.granularidad];
 
+    const diffMs = hastaDate.getTime() - desdeDate.getTime();
+    const isSingleDay = diffMs <= 1000 * 60 * 60 * 24;
+
     const matchStage: Record<string, unknown> = {
       dateObj: { $gte: desdeDate, $lte: hastaDate },
     };
@@ -226,24 +229,42 @@ export class MongoAnalyticsRepository {
       if (normalized) matchStage.status = normalized;
     }
 
+    const groupStage: mongoose.PipelineStage = isSingleDay
+      ? {
+          $group: {
+            _id: { $concat: ['$date', ' ', { $substrCP: ['$startTime', 0, 2] }, ':00'] },
+            cantidadReservas: { $sum: 1 },
+            ganancias: {
+              $sum: {
+                $cond: [
+                  { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                  '$servicePrice',
+                  0,
+                ],
+              },
+            },
+          },
+        }
+      : {
+          $group: {
+            _id: { $dateToString: { format: dateFormat, date: '$dateObj' } },
+            cantidadReservas: { $sum: 1 },
+            ganancias: {
+              $sum: {
+                $cond: [
+                  { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                  '$servicePrice',
+                  0,
+                ],
+              },
+            },
+          },
+        };
+
     const pipeline = [
       DATE_CONVERSION_STAGE,
       { $match: matchStage },
-      {
-        $group: {
-          _id: { $dateToString: { format: dateFormat, date: '$dateObj' } },
-          cantidadReservas: { $sum: 1 },
-          ganancias: {
-            $sum: {
-              $cond: [
-                { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
-                '$servicePrice',
-                0,
-              ],
-            },
-          },
-        },
-      },
+      groupStage,
       { $project: { _id: 0, periodo: '$_id', cantidadReservas: 1, ganancias: 1 } },
       { $sort: { periodo: 1 } },
     ] as mongoose.PipelineStage[];

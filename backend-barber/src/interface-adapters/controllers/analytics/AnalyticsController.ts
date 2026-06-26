@@ -14,7 +14,7 @@ function startOfDay(date: Date): string {
 }
 
 function endOfDay(date: Date): string {
-  return toISODate(date);
+  return `${toISODate(date)}T23:59:59.999Z`;
 }
 
 export function resolvePreset(preset: string): { desde: string; hasta: string } {
@@ -43,7 +43,7 @@ export function resolvePreset(preset: string): { desde: string; hasta: string } 
       const finMes = new Date(today.getFullYear(), today.getMonth() + 1, 0);
       return { desde: startOfDay(inicioMes), hasta: endOfDay(finMes) };
     }
-    case 'año': {
+    case 'anio': {
       const inicioAnio = new Date(today.getFullYear(), 0, 1);
       const finAnio = new Date(today.getFullYear(), 11, 31);
       return { desde: startOfDay(inicioAnio), hasta: endOfDay(finAnio) };
@@ -79,15 +79,15 @@ export class AnalyticsController {
 
   getHeatmapHandler = async (req: Request, res: Response) => {
     try {
-      const { anio, ultimoAño } = req.query as Record<string, string | undefined>;
+      const { anio, ultimoAnio } = req.query as Record<string, string | undefined>;
 
-      if (!ultimoAño && !anio) {
-        return sendError(res, new Error('Debe proporcionar "anio" o "ultimoAño".'), 'Error al obtener heatmap');
+      if (!ultimoAnio && !anio) {
+        return sendError(res, new Error('Debe proporcionar "anio" o "ultimoAnio".'), 'Error al obtener heatmap');
       }
 
       const result = await this.repository.getHeatmap({
         anio: anio ? parseInt(anio, 10) : undefined,
-        ultimoAño: ultimoAño === 'true' ? true : undefined,
+        ultimoAnio: ultimoAnio === 'true' ? true : undefined,
       });
 
       return sendSuccess(res, result);

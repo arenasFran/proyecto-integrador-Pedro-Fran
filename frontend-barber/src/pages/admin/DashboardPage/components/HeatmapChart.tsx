@@ -101,7 +101,7 @@ export default function HeatmapChart() {
   }, [yearGrid, dataMap]);
 
   return (
-    <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5">
+    <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white text-base font-bold">Actividad</h3>
         <select

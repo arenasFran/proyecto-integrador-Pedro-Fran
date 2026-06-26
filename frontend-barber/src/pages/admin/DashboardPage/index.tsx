@@ -42,10 +42,10 @@ export default function DashboardPage() {
 
       <AnimatedContainer animation="fadeInUp" delay={0.2}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          <div className="lg:col-span-4 order-2 lg:order-1">
+          <div className="lg:col-span-4 order-2 lg:order-1 min-w-0">
             <HeatmapChart />
           </div>
-          <div className="order-1 lg:order-2">
+          <div className="order-1 lg:order-2 min-w-0">
             <StatusBreakdown
               data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
               loading={loading}
@@ -57,8 +57,8 @@ export default function DashboardPage() {
 
       <AnimatedContainer animation="fadeInUp" delay={0.3}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <ReservasChart />
-          <GananciasChart />
+          <div className="min-w-0"><ReservasChart /></div>
+          <div className="min-w-0"><GananciasChart /></div>
         </div>
       </AnimatedContainer>
 

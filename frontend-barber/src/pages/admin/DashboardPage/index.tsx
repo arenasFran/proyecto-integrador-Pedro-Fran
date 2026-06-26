@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { AnimatedContainer } from '../../../components/common';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
-import type { OverviewData } from '../../../types/analytics';
 import DateRangeFilter from './components/DateRangeFilter';
 import KpiCards from './components/KpiCards';
 import StatusBreakdown from './components/StatusBreakdown';
@@ -14,12 +13,10 @@ export default function DashboardPage() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
 
-  const { data: overviewData, isFetching, isLoading, error: rtkError } = useGetOverviewQuery(
+  const { data: overview, isLoading, error: rtkError } = useGetOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
-
-  const overview: OverviewData | null = overviewData ?? null;
   const loading = isLoading;
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError

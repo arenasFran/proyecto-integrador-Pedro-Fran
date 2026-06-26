@@ -1,20 +1,9 @@
 import { useState, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGetReservasGananciasQuery } from '../../../../services/analyticsApi';
-import type { Granularidad } from '../../../../types/analytics';
 import ChartFilters from './ChartFilters';
 import DateRangeFilter from './DateRangeFilter';
-import { formatFecha } from '../../../../utils/formatFecha';
-
-function deriveGranularidad(desde: string, hasta: string): Granularidad {
-  const d1 = new Date(desde);
-  const d2 = new Date(hasta);
-  const diffDays = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 7) return 'diario';
-  if (diffDays <= 90) return 'semanal';
-  if (diffDays <= 365) return 'mensual';
-  return 'anual';
-}
+import { formatFecha, deriveGranularidad } from '../../../../utils/formatFecha';
 
 export default function ReservasChart() {
   const [desde, setDesde] = useState('');

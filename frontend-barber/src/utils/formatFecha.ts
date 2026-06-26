@@ -1,3 +1,5 @@
+import type { Granularidad } from '../types/analytics';
+
 type PeriodoType = 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly';
 
 function detectType(periodo: string): PeriodoType {
@@ -9,6 +11,16 @@ function detectType(periodo: string): PeriodoType {
     return n >= 1 && n <= 12 ? 'monthly' : 'weekly';
   }
   return 'daily';
+}
+
+export function deriveGranularidad(desde: string, hasta: string): Granularidad {
+  const d1 = new Date(desde);
+  const d2 = new Date(hasta);
+  const diffDays = Math.ceil((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 7) return 'diario';
+  if (diffDays <= 90) return 'semanal';
+  if (diffDays <= 365) return 'mensual';
+  return 'anual';
 }
 
 export function formatFecha(periodo: string): string {

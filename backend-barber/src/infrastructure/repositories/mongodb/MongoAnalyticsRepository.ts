@@ -80,14 +80,14 @@ export class MongoAnalyticsRepository {
     const data = facetResult[0] || { totalReservas: [], duracionTotalMinutos: [], ingresosTotales: [], estadisticasPorEstado: [] };
 
     const registeredPipeline = [
-      { $match: { clientId: { $exists: true } } as any },
+      { $match: { clientId: { $exists: true } } } as mongoose.PipelineStage,
       { $group: { _id: '$clientId', primerTurno: { $min: '$date' } } },
       { $match: { primerTurno: { $gte: desde, $lte: hasta } } },
       { $count: 'total' },
     ];
 
     const unregisteredPipeline = [
-      { $match: { clientId: { $exists: false }, clientPhone: { $exists: true, $ne: null } } as any },
+      { $match: { clientId: { $exists: false }, clientPhone: { $exists: true, $ne: null } } } as mongoose.PipelineStage,
       { $group: { _id: '$clientPhone', primerTurno: { $min: '$date' } } },
       { $match: { primerTurno: { $gte: desde, $lte: hasta } } },
       { $count: 'total' },

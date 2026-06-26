@@ -6,6 +6,10 @@ import DateRangeFilter from './DateRangeFilter';
 
 const COLORS = ['#FF5C00', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
+function formatCurrency(value: number): string {
+  return '$' + value.toLocaleString('es-UY');
+}
+
 export default function DistribucionDonut() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
@@ -66,7 +70,7 @@ export default function DistribucionDonut() {
               <div key={entry.barberId} className="flex items-center gap-2 text-sm">
                 <span className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                 <span className="text-white">{entry.nombre}</span>
-                <span className="text-[#8A8A8A]">{entry.cantidad} reservas</span>
+                <span className="text-[#8A8A8A]">{entry.cantidad} · {formatCurrency(entry.ingresos)}</span>
               </div>
             ))}
           </div>

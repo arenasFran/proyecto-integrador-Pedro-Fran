@@ -9,13 +9,13 @@ export default function DistribucionDonut() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
 
-  const { data, isFetching, error: rtkError } = useGetDistribucionQuery(
+  const { data, isFetching, isLoading, error: rtkError } = useGetDistribucionQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
 
   const dataEntries = data?.porBarbero ?? [];
-  const loading = isFetching;
+  const loading = isLoading;
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError
       ? String(rtkError.data)
@@ -33,7 +33,7 @@ export default function DistribucionDonut() {
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <div style={{ position: 'relative' }}>
-        {isFetching && !loading && (
+        {isFetching && dataEntries.length > 0 && (
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
             <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
           </div>

@@ -14,13 +14,13 @@ export default function DashboardPage() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
 
-  const { data: overviewData, isFetching, error: rtkError } = useGetOverviewQuery(
+  const { data: overviewData, isFetching, isLoading, error: rtkError } = useGetOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
 
   const overview: OverviewData | null = overviewData ?? null;
-  const loading = isFetching;
+  const loading = isLoading;
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError
       ? String(rtkError.data)
@@ -42,14 +42,16 @@ export default function DashboardPage() {
 
       <AnimatedContainer animation="fadeInUp" delay={0.2}>
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 order-2 lg:order-1">
             <HeatmapChart />
           </div>
-          <StatusBreakdown
-            data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
-            loading={loading}
-            error={error}
-          />
+          <div className="order-1 lg:order-2">
+            <StatusBreakdown
+              data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
+              loading={loading}
+              error={error}
+            />
+          </div>
         </div>
       </AnimatedContainer>
 

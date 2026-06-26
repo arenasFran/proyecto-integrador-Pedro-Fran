@@ -25,7 +25,7 @@ export default function ReservasChart() {
 
   const granularidad = useMemo(() => deriveGranularidad(desde, hasta), [desde, hasta]);
 
-  const { data = [], isFetching, error: rtkError } = useGetReservasGananciasQuery({
+  const { data = [], isFetching, isLoading, error: rtkError } = useGetReservasGananciasQuery({
     desde,
     hasta,
     granularidad,
@@ -34,7 +34,7 @@ export default function ReservasChart() {
     status,
   }, { skip: !desde || !hasta });
 
-  const loading = isFetching;
+  const loading = isLoading;
   const error = rtkError
     ? typeof rtkError === 'object' && 'data' in rtkError
       ? String(rtkError.data)
@@ -59,7 +59,7 @@ export default function ReservasChart() {
       {error && <p className="text-[#FF5C00] text-sm mt-2">{error}</p>}
 
       <div className="mt-4" style={{ position: 'relative', height: 280 }}>
-        {isFetching && !loading && (
+        {isFetching && data.length > 0 && (
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10, opacity: 1 }}>
             <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
           </div>

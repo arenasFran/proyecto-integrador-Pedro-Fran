@@ -65,7 +65,7 @@ export const reservasGananciasQuerySchema = Joi.object({
 const CURRENT_YEAR = new Date().getFullYear();
 
 export const heatmapQuerySchema = Joi.object({
-  year: Joi.number().integer().min(2020).max(CURRENT_YEAR + 1),
+  year: Joi.number().integer().min(2020).max(CURRENT_YEAR),
   lastYear: Joi.boolean(),
 }).custom((value, helpers) => {
   if (!value.lastYear && !value.year) {

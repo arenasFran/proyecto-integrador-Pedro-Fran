@@ -250,19 +250,6 @@ export const BookingPage: React.FC = () => {
           </div>
       </div>
 
-      {areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime) && !showClientForm && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#282828] bg-[#121212] p-4">
-          <div className="mx-auto max-w-xl">
-            <button
-              onClick={() => setShowClientForm(true)}
-              className="w-full rounded-[12px] bg-[#FF5C00] py-3 text-[14px] font-semibold text-white hover:bg-[#FF5C00]/90 transition-colors"
-            >
-              Continuar con la reserva
-            </button>
-          </div>
-        </div>
-      )}
-
       <ClientDataOverlay
         isOpen={showClientForm}
         barber={selectedBarber}

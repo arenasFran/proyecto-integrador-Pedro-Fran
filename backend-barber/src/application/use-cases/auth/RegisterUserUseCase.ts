@@ -4,7 +4,7 @@ import { MongoAppointmentRepository } from '../../../infrastructure/repositories
 import { Email } from '../../../domain/value-objects/Email';
 import { Password } from '../../../domain/value-objects/Password';
 import { Phone } from '../../../domain/value-objects/Phone';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 type RegisterUserDTO = {
   email: string;
@@ -78,3 +78,5 @@ export class RegisterUserUseCase {
     }
   }
 }
+
+

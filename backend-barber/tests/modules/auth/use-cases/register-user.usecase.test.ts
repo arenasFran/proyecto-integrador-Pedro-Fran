@@ -1,5 +1,5 @@
 import { RegisterUserUseCase } from '../../../../src/application/use-cases/auth/RegisterUserUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 import { makeMockUserRepository, makeMockAppointmentRepository, makeMockPasswordHasher } from '../../../test-utils/mocks';

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 type TwoFactorSendDTO = {
   email: string;
@@ -99,3 +99,5 @@ export class SendTwoFactorCodeUseCase {
     return { message: 'Código enviado al email' };
   }
 }
+
+

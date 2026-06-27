@@ -1,7 +1,7 @@
 import { PasswordRecoveryController } from '../../../../src/interface-adapters/controllers/auth/PasswordRecoveryController';
 import { RequestPasswordResetUseCase } from '../../../../src/application/use-cases/password/RequestPasswordResetUseCase';
 import { ResetPasswordUseCase } from '../../../../src/application/use-cases/password/ResetPasswordUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
 describe('PasswordRecoveryController', () => {

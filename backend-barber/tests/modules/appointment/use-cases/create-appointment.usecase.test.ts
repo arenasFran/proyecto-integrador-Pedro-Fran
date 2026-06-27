@@ -1,5 +1,5 @@
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
@@ -73,7 +73,7 @@ describe('CreateAppointmentUseCase', () => {
     Service.create({
       id: 'svc-1',
       name: 'Corte de pelo',
-      description: 'Incluye barba/cejas/lavado/bebida a elección',
+      description: 'Incluye barba/cejas/lavado/bebida a elecciÃ³n',
       price: 490,
       imageUrl: 'https://placehold.co/400x300?text=Corte+de+pelo',
     });
@@ -345,7 +345,7 @@ describe('CreateAppointmentUseCase', () => {
         clientName: 'Juan',
         clientLastname: 'Perez',
       })
-    ).rejects.toThrow(/anticipación/);
+    ).rejects.toThrow(/anticipaciÃ³n/);
   });
 
   it('debe respetar clientId y createdBy ya asignados en el DTO (Registrado)', async () => {

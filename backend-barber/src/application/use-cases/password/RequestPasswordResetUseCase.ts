@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import { MongoPasswordResetRepository } from '../../../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
@@ -71,3 +71,4 @@ export class RequestPasswordResetUseCase {
     };
   }
 }
+

@@ -1,5 +1,5 @@
 import { AuthenticateWithGoogleUseCase } from '../../../../src/application/use-cases/auth/AuthenticateWithGoogleUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { IGoogleAuthService } from '../../../../src/application/ports/IGoogleAuthService';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { ITokenService } from '../../../../src/application/ports/ITokenService';

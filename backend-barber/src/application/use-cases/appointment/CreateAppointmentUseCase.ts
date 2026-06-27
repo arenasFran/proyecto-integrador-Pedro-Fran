@@ -20,7 +20,7 @@ type CreateAppointmentDTO = {
   tempLockId?: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
 };
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import {
   toMinutes,
   doesOverlap,
@@ -243,3 +243,5 @@ export class CreateAppointmentUseCase {
       });
   }
 }
+
+

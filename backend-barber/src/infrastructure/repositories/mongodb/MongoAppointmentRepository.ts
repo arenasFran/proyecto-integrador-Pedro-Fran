@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { Appointment, AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry } from '../../../domain/types/appointment';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import AppointmentModel from './models/appointment.model';
 
 export type AppointmentFilters = {
@@ -243,3 +243,5 @@ export class MongoAppointmentRepository {
     return toAppointmentEntity(doc);
   }
 }
+
+

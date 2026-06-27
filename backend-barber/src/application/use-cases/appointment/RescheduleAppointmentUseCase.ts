@@ -9,7 +9,7 @@ type RescheduleAppointmentDTO = {
   startTime: string;
   barberId: string;
 };
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import {
   toMinutes,
   doesOverlap,
@@ -161,3 +161,4 @@ export class RescheduleAppointmentUseCase {
     };
   }
 }
+

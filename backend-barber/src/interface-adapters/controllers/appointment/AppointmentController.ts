@@ -5,7 +5,7 @@ import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/a
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class AppointmentController {
   constructor(
@@ -145,3 +145,5 @@ export class AppointmentController {
     }
   };
 }
+
+

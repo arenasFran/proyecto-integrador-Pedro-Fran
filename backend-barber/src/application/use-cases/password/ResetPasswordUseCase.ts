@@ -1,7 +1,7 @@
 import { MongoPasswordResetRepository } from '../../../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Password } from '../../../domain/value-objects/Password';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 type ResetPasswordDTO = {
   token: string;
@@ -95,3 +95,5 @@ export class ResetPasswordUseCase {
     }
   }
 }
+
+

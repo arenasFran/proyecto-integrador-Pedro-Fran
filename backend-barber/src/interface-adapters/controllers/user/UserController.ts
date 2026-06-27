@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class UserController {
   constructor(private readonly userRepository: MongoUserRepository) {}
@@ -46,3 +46,5 @@ export class UserController {
     }
   };
 }
+
+

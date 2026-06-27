@@ -1,5 +1,5 @@
 import { TempLockController } from '../../../../src/interface-adapters/controllers/tempLock/TempLockController';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
 import { makeMockTempLockRepository } from '../../../test-utils/mocks';
 

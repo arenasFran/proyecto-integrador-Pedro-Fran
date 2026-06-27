@@ -1,5 +1,5 @@
 import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService, TokenPayload } from '../../ports/ITokenService';
 
@@ -49,3 +49,5 @@ export class RefreshTokenUseCase {
     return { message: 'Token renovado', token: newAccessToken, refreshToken: newRefreshToken };
   }
 }
+
+

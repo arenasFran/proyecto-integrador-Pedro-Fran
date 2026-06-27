@@ -2,7 +2,7 @@ import { MongoBarberRepository } from '../../../infrastructure/repositories/mong
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { IEmailService } from '../../ports/IEmailService';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class DeleteBarberUseCase {
   constructor(
@@ -52,3 +52,5 @@ export class DeleteBarberUseCase {
     return { message: 'Barbero desactivado exitosamente' };
   }
 }
+
+

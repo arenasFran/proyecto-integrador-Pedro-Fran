@@ -1,7 +1,7 @@
 import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 type TwoFactorVerifyDTO = {
   email: string;
@@ -89,3 +89,5 @@ export class VerifyTwoFactorUseCase {
     return { message: 'Login exitoso', token, refreshToken };
   }
 }
+
+

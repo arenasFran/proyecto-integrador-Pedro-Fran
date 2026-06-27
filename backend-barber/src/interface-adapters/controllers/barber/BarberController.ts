@@ -10,7 +10,7 @@ import { Phone } from '../../../domain/value-objects/Phone';
 import { Password } from '../../../domain/value-objects/Password';
 import { BarberSchedule } from '../../../domain/entities/Barber';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class BarberController {
   private toResponse(barber: Barber) {
@@ -277,3 +277,4 @@ export class BarberController {
     }
   };
 }
+

@@ -1,7 +1,7 @@
 import { AuthGoogleController } from '../../../../src/interface-adapters/controllers/auth/AuthGoogleController';
 import { AuthenticateWithGoogleUseCase } from '../../../../src/application/use-cases/auth/AuthenticateWithGoogleUseCase';
 import { CompleteGoogleProfileUseCase } from '../../../../src/application/use-cases/auth/CompleteGoogleProfileUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 
 describe('AuthGoogleController', () => {

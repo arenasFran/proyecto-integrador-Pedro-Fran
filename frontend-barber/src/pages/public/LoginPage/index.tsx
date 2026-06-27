@@ -135,7 +135,7 @@ export const LoginPage: React.FC = () => {
           // Profile fetch failed — navigate anyway
         }
         const role = getTokenKind(result.token);
-        navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+        navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
       }
     } catch (err: unknown) {
       const apiError = err as { data?: string };
@@ -242,7 +242,7 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
       const apiError = err as { data?: string };
       const message = apiError?.data || (err instanceof Error ? err.message : 'Error al verificar el código');
@@ -288,7 +288,7 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
       const apiError = err as { data?: string };
       const message = apiError?.data || (err instanceof Error ? err.message : 'Error al completar el perfil');

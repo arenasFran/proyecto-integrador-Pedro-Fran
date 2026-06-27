@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input } from '../../../components/common';
+import { AnimatedContainer, Button, Input, useToast } from '../../../components/common';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsQuery,
@@ -27,6 +27,7 @@ function formatTime(time: string) {
 export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
+  const { showToast } = useToast();
   const { data: appointments = [], isLoading, error } = useGetAppointmentsQuery(
     user ? { clientId: user.id } : skipToken,
     { pollingInterval: 15000 }
@@ -49,17 +50,15 @@ export const MyAppointmentsPage: React.FC = () => {
     dispatch(fetchPublicBarbers());
   }, [dispatch]);
 
-  const [actionError, setActionError] = useState<string | null>(null);
-
   const handleCancelConfirm = async () => {
     if (!cancelTarget) return;
     try {
       await cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }).unwrap();
+      showToast('Turno cancelado con éxito');
       setCancelTarget(null);
       setCancelReason('');
-      setActionError(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Error al cancelar turno');
+      showToast(err instanceof Error ? err.message : 'Error al cancelar turno', 'error');
     }
   };
 
@@ -72,13 +71,13 @@ export const MyAppointmentsPage: React.FC = () => {
         startTime: rescheduleTime,
         barberId: rescheduleBarberId,
       }).unwrap();
+      showToast('Turno reprogramado con éxito');
       setRescheduleTarget(null);
       setRescheduleDate('');
       setRescheduleTime('');
       setRescheduleBarberId('');
-      setActionError(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Error al reprogramar turno');
+      showToast(err instanceof Error ? err.message : 'Error al reprogramar turno', 'error');
     }
   };
 
@@ -107,11 +106,6 @@ export const MyAppointmentsPage: React.FC = () => {
           </div>
         </AnimatedContainer>
 
-        {actionError && (
-          <AnimatedContainer animation="fadeIn" className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
-            <p className="text-[13px] text-red-400">{actionError}</p>
-          </AnimatedContainer>
-        )}
         {error ? (
           <AnimatedContainer animation="fadeIn" className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
             <p className="text-[13px] text-red-400">Error al cargar turnos. Verificá la conexión.</p>
@@ -247,7 +241,7 @@ export const MyAppointmentsPage: React.FC = () => {
               <Button
                 onClick={handleCancelConfirm}
                 loading={isCancelling}
-                className="bg-red-500 hover:bg-red-600"
+                variant="danger"
               >
                 Confirmar cancelación
               </Button>

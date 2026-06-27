@@ -119,7 +119,7 @@ export const ProfessionalsList: React.FC<ProfessionalsListProps> = ({
                     Slots
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="danger"
                     size="sm"
                     icon={FiTrash2}
                     onClick={() => void onDelete(professional)}

@@ -258,7 +258,7 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
             Limpiar formulario
           </Button>
           {professional && (
-            <Button type="button" variant="ghost" icon={FiTrash2} onClick={() => void onDelete(professional)}>
+            <Button type="button" variant="danger" icon={FiTrash2} onClick={() => void onDelete(professional)}>
               Eliminar
             </Button>
           )}

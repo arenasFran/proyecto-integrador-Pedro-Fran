@@ -4,7 +4,7 @@ import type { IconType } from 'react-icons';
 
 interface ButtonProps {
   children?: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   icon?: IconType;
@@ -38,6 +38,7 @@ export const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-[#242424] text-white hover:bg-[#242424]/80 active:scale-[0.98]',
     outline: 'border border-[#282828] text-white hover:border-[#FF5C00] hover:text-[#FF5C00] active:scale-[0.98]',
     ghost: 'text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] active:scale-[0.98]',
+    danger: 'bg-red-500 text-white hover:bg-red-600 active:scale-[0.98]',
   };
 
   const sizes = {

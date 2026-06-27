@@ -65,7 +65,7 @@ export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> =
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="relative w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >

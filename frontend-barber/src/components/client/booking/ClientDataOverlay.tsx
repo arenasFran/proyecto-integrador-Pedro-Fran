@@ -65,7 +65,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 40 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
             className="w-full sm:max-w-md rounded-t-[20px] sm:rounded-[16px] border border-[#282828] bg-[#121212] p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
           >

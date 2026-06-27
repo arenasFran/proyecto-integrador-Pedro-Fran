@@ -27,7 +27,7 @@ function formatTime(time: string) {
 export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
-  const { data: appointments = [], isLoading, error, refetch } = useGetAppointmentsQuery(
+  const { data: appointments = [], isLoading, error } = useGetAppointmentsQuery(
     user ? { clientId: user.id } : skipToken,
     { pollingInterval: 15000 }
   );
@@ -86,11 +86,7 @@ export const MyAppointmentsPage: React.FC = () => {
   const pastAppointments = appointments.filter((a) => a.status !== 'Confirmado');
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-[#050505] text-white">
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
@@ -107,9 +103,7 @@ export const MyAppointmentsPage: React.FC = () => {
                 Revisá, cancelá o reprogramá tus turnos.
               </p>
             </div>
-            <Button variant="secondary" icon={FiRefreshCw} onClick={() => refetch()}>
-              Refrescar
-            </Button>
+            
           </div>
         </AnimatedContainer>
 

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   FiCalendar,
   FiCheck,
@@ -54,7 +55,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     return params;
   }, [filterDate, filterBarberId]);
 
-  const { data: appointments = [], isLoading, isFetching, error, refetch } = useGetAppointmentsQuery(queryParams, {
+  const { data: appointments = [], isLoading, isFetching, error } = useGetAppointmentsQuery(queryParams, {
     pollingInterval: 30000,
   });
 
@@ -137,11 +138,7 @@ export const AdminAppointmentsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-[#050505] text-white">
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
@@ -159,9 +156,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               </p>
             </div>
 
-            <Button variant="secondary" icon={FiRefreshCw} onClick={() => refetch()}>
-              Refrescar
-            </Button>
+            
           </div>
 
           <div className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4">
@@ -275,7 +270,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                     const style = statusStyles[appointment.status];
                     const isActive = appointment.status === 'Confirmado';
                     return (
-                      <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/50 transition-colors">
+                      <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
                         <td className="py-3 pr-4">
                           <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
                           {appointment.clientEmail && (
@@ -289,9 +284,15 @@ export const AdminAppointmentsPage: React.FC = () => {
                         <td className="py-3 pr-4 text-white">{appointment.date}</td>
                         <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
                         <td className="py-3 pr-4">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
+                          <motion.span
+                            key={`${appointment.id}-${appointment.status}`}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}
+                          >
                             {style.label}
-                          </span>
+                          </motion.span>
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-1.5">

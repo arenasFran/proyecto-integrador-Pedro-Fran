@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
+import { ToastProvider } from './components/common';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -57,6 +58,7 @@ function App() {
   return (
     <Provider store={store}>
       <AppInitializer>
+        <ToastProvider>
         <Router>
           <div className="fixed inset-0 pointer-events-none z-0" aria-hidden="true">
             <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
@@ -95,6 +97,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>
+        </ToastProvider>
       </AppInitializer>
     </Provider>
   );

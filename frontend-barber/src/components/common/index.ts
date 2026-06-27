@@ -5,3 +5,5 @@ export { AnimatedContainer } from './AnimatedContainer';
 export { PasswordStrength } from './PasswordStrength';
 export { AppHeader } from './AppHeader';
 export { ChartContainer } from './ChartContainer';
+export { ToastProvider, useToast } from './Toast';
+export { ConfirmModal } from './ConfirmModal';

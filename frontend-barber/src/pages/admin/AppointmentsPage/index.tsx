@@ -4,12 +4,11 @@ import {
   FiCalendar,
   FiCheck,
   FiClock,
-  FiRefreshCw,
   FiScissors,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, Spinner, useToast } from '../../../components/common';
 import { useAppSelector } from '../../../store/hooks';
 import {
   useCancelAppointmentMutation,
@@ -232,7 +231,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             </div>
             {(isLoading || isFetching) && (
               <div className="flex items-center gap-2 text-[#8A8A8A] text-[13px]">
-                <FiRefreshCw className="animate-spin" />
+                <Spinner size="sm" />
                 Actualizando...
               </div>
             )}
@@ -244,7 +243,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             </div>
           ) : isLoading ? (
             <div className="flex items-center justify-center py-20">
-              <FiRefreshCw className="animate-spin text-[#FF5C00] text-2xl" />
+              <Spinner size="lg" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-[#8A8A8A]">

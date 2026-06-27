@@ -1,7 +1,7 @@
 import React from 'react';
 import { FiCalendar, FiEdit3, FiTrash2 } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { AnimatedContainer, Button, Input } from '../../../../components/common';
+import { AnimatedContainer, Button, Input, LoadingSkeleton } from '../../../../components/common';
 import type { Professional } from '../../../../types/professional';
 
 type ProfessionalsListProps = {
@@ -55,9 +55,7 @@ export const ProfessionalsList: React.FC<ProfessionalsListProps> = ({
 
       <div className="mt-4 grid gap-3">
         {isLoading ? (
-          <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 text-[13px] text-[#8A8A8A]">
-            Cargando profesionales...
-          </div>
+          <LoadingSkeleton variant="card" count={3} />
         ) : professionals.length === 0 ? (
           <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 text-[13px] text-[#8A8A8A]">
             No hay empleados cargados todavía.

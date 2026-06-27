@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiChevronDown, FiChevronUp, FiSave, FiScissors, FiShield, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, PasswordInput } from '../../../components/common';
+import { AnimatedContainer, Button, Input, PasswordInput, Spinner } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
@@ -195,7 +195,7 @@ export const ProfilePage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
-        <p className="text-[#8A8A8A]">Cargando perfil...</p>
+        <Spinner size="lg" />
       </div>
     );
   }

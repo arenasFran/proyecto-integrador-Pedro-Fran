@@ -79,3 +79,17 @@ export const barberIdParamSchema = Joi.object({
 export const slotsQuerySchema = Joi.object({
   date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
 });
+
+export const updateBarberMeSchema = Joi.object({
+  email: Joi.string().pattern(EMAIL_REGEX).optional(),
+  password: Joi.string().min(6).optional(),
+  name: Joi.string().min(3).optional(),
+  lastname: Joi.string().min(3).optional(),
+  phone: Joi.string().optional(),
+  services: Joi.array().items(Joi.string().min(1)).optional(),
+  age: Joi.number().integer().min(0).allow(null).optional(),
+  photoUrl: Joi.string().uri().allow(null).optional(),
+  slotDuration: Joi.number().integer().min(1).optional(),
+  maxAdvanceDays: Joi.number().integer().min(1).optional(),
+  schedule: scheduleSchema.optional(),
+}).min(1);

@@ -23,12 +23,9 @@ type CreateAppointmentDTO = {
 import { AppError } from '../../errors/AppError';
 import {
   toMinutes,
-  toTimeString,
   doesOverlap,
-  getDayKey,
-  isWithinSchedule,
-  isInBreakRange,
   getNowInTimezone,
+  validateAppointmentSlot,
 } from '../../../domain/utils/time';
 
 export class CreateAppointmentUseCase {
@@ -80,24 +77,9 @@ export class CreateAppointmentUseCase {
       throw new AppError('Servicio no encontrado.', 404);
     }
 
-    const startMinutes = toMinutes(dto.startTime);
-    if (startMinutes === null) {
-      throw new AppError('Formato de hora inválido.', 400);
-    }
-    const endMinutes = startMinutes + barber.slotDuration;
-    const endTime = toTimeString(endMinutes);
-
-    // RN02 — Turno dentro del horario laboral del barbero
-    const dayKey = getDayKey(dto.date);
-    const daySchedule = barber.schedule[dayKey];
-    if (!isWithinSchedule(startMinutes, endMinutes, daySchedule)) {
-      throw new AppError('El turno está fuera del horario laboral del barbero.', 400);
-    }
-
-    // RN03 — Turno no puede superponerse con breaks
-    if (isInBreakRange(startMinutes, endMinutes, daySchedule.breaks)) {
-      throw new AppError('El turno se superpone con un descanso del barbero.', 400);
-    }
+    const { startMinutes, endMinutes, endTime, daySchedule } = validateAppointmentSlot(
+      dto.startTime, dto.date, barber
+    );
 
     // RN10 — Cliente no registrado: buscar o crear entidad
     if (!dto.clientId) {

@@ -1,4 +1,5 @@
 import { BarberSchedule, BarberScheduleDay, BarberScheduleBreak } from '../entities/Barber';
+import { AppError } from '../../application/errors/AppError';
 
 const TIME_ZONE = 'America/Montevideo';
 
@@ -83,6 +84,40 @@ export const isInBreakRange = (
     return startMinutes < bEnd && bStart < endMinutes;
   });
 };
+
+export function validateAppointmentSlot(
+  startTime: string,
+  date: string,
+  barber: { slotDuration: number; schedule: BarberSchedule },
+): { startMinutes: number; endMinutes: number; endTime: string; daySchedule: BarberScheduleDay } {
+  const startMinutes = toMinutes(startTime);
+  if (startMinutes === null) {
+    throw new AppError('Formato de hora inválido.', 400);
+  }
+  const endMinutes = startMinutes + barber.slotDuration;
+  const endTime = toTimeString(endMinutes);
+
+  const dayKey = getDayKey(date);
+  const daySchedule = barber.schedule[dayKey];
+
+  const dayStartMinutes = daySchedule.startTime !== null ? toMinutes(daySchedule.startTime) : null;
+  if (dayStartMinutes !== null && (startMinutes - dayStartMinutes) % barber.slotDuration !== 0) {
+    throw new AppError(
+      'La hora seleccionada no está alineada con la duración de los turnos del barbero.',
+      400,
+    );
+  }
+
+  if (!isWithinSchedule(startMinutes, endMinutes, daySchedule)) {
+    throw new AppError('El turno está fuera del horario laboral del barbero.', 400);
+  }
+
+  if (isInBreakRange(startMinutes, endMinutes, daySchedule.breaks)) {
+    throw new AppError('El turno se superpone con un descanso del barbero.', 400);
+  }
+
+  return { startMinutes, endMinutes, endTime, daySchedule };
+}
 
 export const getNowInTimezone = (): { date: string; minutes: number } => {
   const now = new Date();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
@@ -8,14 +8,15 @@ import {
   useGetAppointmentsQuery,
   useRescheduleAppointmentMutation,
 } from '../../../services/appointmentApi';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppSelector, useAppDispatch } from '../../../store/hooks';
+import { fetchPublicBarbers } from '../../../store/slices/bookingSlice';
 import type { Appointment, AppointmentStatus } from '../../../types/booking';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
   Completado: { bg: 'bg-green-500/10', text: 'text-green-400', label: 'Completado' },
   Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Cancelado' },
-  NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No Show' },
+  NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
 };
 
 function formatTime(time: string) {
@@ -42,6 +43,11 @@ export const MyAppointmentsPage: React.FC = () => {
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
 
   const barbers = useAppSelector((state) => state.booking.async.barbers);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(fetchPublicBarbers());
+  }, [dispatch]);
 
   const [actionError, setActionError] = useState<string | null>(null);
 

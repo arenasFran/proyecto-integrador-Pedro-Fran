@@ -12,12 +12,9 @@ type RescheduleAppointmentDTO = {
 import { AppError } from '../../errors/AppError';
 import {
   toMinutes,
-  toTimeString,
   doesOverlap,
-  getDayKey,
-  isWithinSchedule,
-  isInBreakRange,
   getNowInTimezone,
+  validateAppointmentSlot,
 } from '../../../domain/utils/time';
 import { VALID_TRANSITIONS } from '../../../domain/types/appointment';
 
@@ -93,24 +90,9 @@ export class RescheduleAppointmentUseCase {
       }
     }
 
-    const startMinutes = toMinutes(dto.startTime);
-    if (startMinutes === null) {
-      throw new AppError('Formato de hora inválido.', 400);
-    }
-    const endMinutes = startMinutes + barber.slotDuration;
-    const endTime = toTimeString(endMinutes);
-
-    // RN02 — Horario laboral
-    const dayKey = getDayKey(dto.date);
-    const daySchedule = barber.schedule[dayKey];
-    if (!isWithinSchedule(startMinutes, endMinutes, daySchedule)) {
-      throw new AppError('El turno está fuera del horario laboral del barbero.', 400);
-    }
-
-    // RN03 — Breaks
-    if (isInBreakRange(startMinutes, endMinutes, daySchedule.breaks)) {
-      throw new AppError('El turno se superpone con un descanso del barbero.', 400);
-    }
+    const { startMinutes, endMinutes, endTime, daySchedule } = validateAppointmentSlot(
+      dto.startTime, dto.date, barber
+    );
 
     // RN04 — Colisión
     const existingAppointments = await this.appointmentRepository.findByBarberAndDate(

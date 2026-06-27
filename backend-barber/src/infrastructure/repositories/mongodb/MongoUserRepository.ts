@@ -7,6 +7,16 @@ export type TwoFactorUpdate = {
   expiresAt?: Date;
 };
 
+export type UserUpdate = {
+  name?: string;
+  lastname?: string;
+  phone?: string;
+  email?: string;
+  contactEmail?: string;
+  passwordHash?: string;
+  photoUrl?: string | null;
+};
+
 export type UserSecurityUpdate = {
   twoFactorFailedAttempts?: number | null;
   twoFactorLockedUntil?: Date | null;
@@ -24,6 +34,7 @@ const userFromBarber = (doc: Record<string, any>): User =>
     kind: doc.kind || 'Empleado',
     authProvider: 'local',
     passwordHash: doc.password,
+    photoUrl: doc.photoUrl ?? null,
     twoFactor: {
       codeHash: doc.twoFactorCode,
       expiresAt: doc.twoFactorExpires,
@@ -46,6 +57,7 @@ const userFromRegisteredClient = (doc: Record<string, any>): User =>
     authProvider: doc.authProvider || 'local',
     passwordHash: doc.password,
     googleId: doc.googleId,
+    photoUrl: doc.photoUrl ?? null,
     twoFactor: {
       codeHash: doc.twoFactorCode,
       expiresAt: doc.twoFactorExpires,
@@ -65,6 +77,7 @@ const userToRegisteredClientData = (user: User) => ({
   phone: user.phone,
   authProvider: user.authProvider,
   googleId: user.googleId,
+  photoUrl: user.photoUrl,
   twoFactorCode: user.twoFactor?.codeHash,
   twoFactorExpires: user.twoFactor?.expiresAt,
   twoFactorFailedAttempts: user.twoFactorFailedAttempts ?? undefined,
@@ -120,6 +133,41 @@ export class MongoUserRepository {
   async createRegisteredClient(user: User): Promise<User> {
     const doc = await RegisteredClient.create(userToRegisteredClientData(user));
     return userFromRegisteredClient(doc);
+  }
+
+  async update(userId: string, data: UserUpdate): Promise<User | null> {
+    const mongoData: Record<string, unknown> = {};
+
+    if (data.name !== undefined) mongoData.name = data.name;
+    if (data.lastname !== undefined) mongoData.lastname = data.lastname;
+    if (data.phone !== undefined) mongoData.phone = data.phone;
+    if (data.email !== undefined) {
+      mongoData.email = data.email;
+      mongoData.contactEmail = data.email;
+    }
+    if (data.contactEmail !== undefined) mongoData.contactEmail = data.contactEmail;
+    if (data.passwordHash !== undefined) mongoData.password = data.passwordHash;
+    if (data.photoUrl !== undefined) mongoData.photoUrl = data.photoUrl;
+
+    const barber = await Barber.findByIdAndUpdate(
+      userId,
+      { $set: mongoData },
+      { returnDocument: 'after', strict: false }
+    );
+    if (barber) {
+      return userFromBarber(barber);
+    }
+
+    const client = await RegisteredClient.findByIdAndUpdate(
+      userId,
+      { $set: mongoData },
+      { returnDocument: 'after', strict: false }
+    );
+    if (client) {
+      return userFromRegisteredClient(client);
+    }
+
+    return null;
   }
 
   async updatePassword(userId: string, passwordHash: string): Promise<void> {

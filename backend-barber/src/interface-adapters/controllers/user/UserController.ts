@@ -19,10 +19,30 @@ export class UserController {
         email: user.email,
         phone: user.phone || '',
         kind: user.kind,
-        photoUrl: null,
+        photoUrl: user.photoUrl ?? null,
       });
     } catch (error) {
       return sendError(res, error, 'Error al obtener perfil');
+    }
+  };
+
+  updateMe = async (req: Request, res: Response) => {
+    try {
+      const updated = await this.userRepository.update(req.user!._id, req.body);
+      if (!updated) {
+        throw new AppError('Usuario no encontrado.', 404);
+      }
+      return sendSuccess(res, {
+        id: updated.id,
+        name: updated.name,
+        lastname: updated.lastname,
+        email: updated.email,
+        phone: updated.phone || '',
+        kind: updated.kind,
+        photoUrl: updated.photoUrl ?? null,
+      });
+    } catch (error) {
+      return sendError(res, error, 'Error al actualizar perfil');
     }
   };
 }

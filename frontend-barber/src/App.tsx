@@ -7,16 +7,17 @@ import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import AdminLayout from './pages/admin/AdminLayout';
+import AppLayout from './pages/app/AppLayout';
+import DashboardPage from './pages/admin/DashboardPage';
 import ProfessionalsPage from './pages/admin/ProfessionalsPage';
-import AdminProfilePage from './pages/admin/AdminProfilePage';
 import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
+import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
 import { NotFoundPage } from './pages/public/NotFoundPage';
 import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
 import BookingPage from './pages/client/BookingPage';
-import ClientLayout from './pages/client/ClientLayout';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
 import { getTokenKind, isTokenValid } from './utils/token';
 
@@ -71,20 +72,21 @@ function App() {
                 </RequireAdminRoute>
               }
             >
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="profesionales" element={<ProfessionalsPage />} />
-              <Route path="perfil" element={<AdminProfilePage />} />
+              <Route path="perfil" element={<ProfilePage />} />
               <Route path="turnos" element={<AdminAppointmentsPage />} />
-              <Route index element={<Navigate to="profesionales" replace />} />
+              <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
             <Route
-              path="/mis-turnos"
               element={
                 <RequireAuthRoute>
-                  <ClientLayout />
+                  <AppLayout />
                 </RequireAuthRoute>
               }
             >
-              <Route index element={<MyAppointmentsPage />} />
+              <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
+              <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

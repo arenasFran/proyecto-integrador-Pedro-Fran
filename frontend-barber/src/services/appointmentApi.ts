@@ -1,35 +1,9 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import type { AxiosError } from 'axios';
-import api from './api';
+import { axiosBaseQuery } from './baseQuery';
 import type { Appointment } from '../types/booking';
 import type { AppointmentQueryParams } from './appointment.service';
 
 type QueryParams = AppointmentQueryParams;
-
-const axiosBaseQuery = async ({ url, method, data, params }: {
-  url: string;
-  method?: string;
-  data?: unknown;
-  params?: QueryParams;
-}) => {
-  try {
-    const result = await api({
-      url,
-      method: method ?? 'GET',
-      data,
-      params,
-    });
-    return { data: result.data };
-  } catch (axiosError) {
-    const err = axiosError as AxiosError<{ error?: string }>;
-    return {
-      error: {
-        status: err.response?.status,
-        data: err.response?.data?.error ?? err.message,
-      },
-    };
-  }
-};
 
 export const appointmentApi = createApi({
   reducerPath: 'appointmentApi',

@@ -37,6 +37,7 @@ export const createEmptySchedule = (): Record<DayKey, ScheduleDayForm> => ({
 export const mapScheduleToForm = (
   schedule: BarberSchedule
 ): Record<DayKey, ScheduleDayForm> => {
+  if (!schedule) return createEmptySchedule();
   return days.reduce((acc, day) => {
     const current = schedule[day.key];
     const firstBreak = current.breaks[0];

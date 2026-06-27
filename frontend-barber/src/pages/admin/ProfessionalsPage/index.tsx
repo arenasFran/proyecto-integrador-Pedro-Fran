@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiPlus, FiScissors } from 'react-icons/fi';
-import { AnimatedContainer, Button } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, useToast } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   createBarber,
@@ -56,13 +56,12 @@ const createEmptyForm = (): ProfessionalFormState => ({
 export const ProfessionalsPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const { list: professionals } = useAppSelector((state) => state.barbers);
+  const { showToast } = useToast();
   const authUser = useAppSelector((state) => state.auth.user) as Professional | null;
 
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [form, setForm] = useState<ProfessionalFormState>(createEmptyForm());
   const [searchTerm, setSearchTerm] = useState('');
-  const [pageError, setPageError] = useState<string | null>(null);
-  const [pageMessage, setPageMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [slotsDate, setSlotsDate] = useState(todayValue());
@@ -70,6 +69,7 @@ export const ProfessionalsPage: React.FC = () => {
   const [slotsError, setSlotsError] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [viewingAdminSlots, setViewingAdminSlots] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Professional | null>(null);
 
   const currentTokenUser = useMemo(() => {
     return getTokenUser(getAccessToken());
@@ -131,18 +131,15 @@ export const ProfessionalsPage: React.FC = () => {
       schedule: mapScheduleToForm(professional.schedule),
     });
     setAvailableSlots([]);
-    setPageMessage(null);
-    setPageError(null);
   }, []);
 
   const loadProfessionals = useCallback(async () => {
     setIsLoading(true);
-    setPageError(null);
 
     try {
       await dispatch(fetchBarbers()).unwrap();
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : 'Error al cargar profesionales');
+      showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -178,18 +175,16 @@ export const ProfessionalsPage: React.FC = () => {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setPageError(null);
-    setPageMessage(null);
 
     const scheduleError = validateSchedule(form.schedule);
     if (scheduleError) {
-      setPageError(scheduleError);
+      showToast(scheduleError, 'error');
       return;
     }
 
     const slotDuration = Number(form.slotDuration || 30);
     if (!Number.isInteger(slotDuration) || slotDuration < 1) {
-      setPageError('La duración del slot debe ser un número entero mayor o igual a 1.');
+      showToast('La duración del slot debe ser un número entero mayor o igual a 1.', 'error');
       return;
     }
 
@@ -207,7 +202,7 @@ export const ProfessionalsPage: React.FC = () => {
     };
 
     if (!selectedProfessionalId && !payload.password) {
-      setPageError('La contraseña es obligatoria para crear un barbero.');
+      showToast('La contraseña es obligatoria para crear un barbero.', 'error');
       return;
     }
 
@@ -233,37 +228,31 @@ export const ProfessionalsPage: React.FC = () => {
         await dispatch(
           updateBarberSchedule({ id: selectedProfessionalId, schedule: payload.schedule })
         ).unwrap();
-        setPageMessage(`Profesional ${updatedProfessional.name} actualizado con éxito.`);
+        showToast(`Profesional ${updatedProfessional.name} actualizado con éxito.`);
         syncSelection(updatedProfessional);
       } else {
         const createdProfessional = await dispatch(createBarber(payload)).unwrap();
-        setPageMessage(`Profesional ${createdProfessional.name} creado con éxito.`);
+        showToast(`Profesional ${createdProfessional.name} creado con éxito.`);
         syncSelection(createdProfessional);
       }
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : 'Error al guardar el profesional');
+      showToast(error instanceof Error ? error.message : 'Error al guardar el profesional', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleDelete = async (professional: Professional) => {
-    const confirmed = window.confirm(`¿Eliminar a ${professional.name} ${professional.lastname}?`);
-    if (!confirmed) {
-      return;
-    }
-
-    setPageError(null);
-    setPageMessage(null);
+    setDeleteTarget(null);
 
     try {
       const result = await dispatch(removeBarber(professional.id)).unwrap();
-      setPageMessage(result.message);
+      showToast(result.message);
       if (selectedProfessionalId === professional.id) {
         syncSelection(null);
       }
     } catch (error) {
-      setPageError(error instanceof Error ? error.message : 'Error al desactivar el profesional');
+      showToast(error instanceof Error ? error.message : 'Error al desactivar el profesional', 'error');
     }
   };
 
@@ -312,9 +301,9 @@ export const ProfessionalsPage: React.FC = () => {
             <div className="flex flex-wrap gap-3">
               <Button
                 icon={FiPlus}
-                onClick={() => {
+                  onClick={() => {
                   syncSelection(null);
-                  setPageMessage('Listo para crear un nuevo profesional.');
+                  showToast('Listo para crear un nuevo profesional.');
                 }}
               >
                 Nuevo profesional
@@ -334,14 +323,6 @@ export const ProfessionalsPage: React.FC = () => {
           </div>
         </AnimatedContainer>
 
-        {(pageError || pageMessage) && (
-          <AnimatedContainer animation="fadeIn" className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] px-4 py-3">
-            <p className={`text-[13px] ${pageError ? 'text-red-400' : 'text-green-400'}`}>
-              {pageError || pageMessage}
-            </p>
-          </AnimatedContainer>
-        )}
-
         <div className="grid gap-6 xl:grid-cols-[1.1fr_1.6fr]">
           <div className="grid gap-6">
             <ProfessionalsList
@@ -351,8 +332,8 @@ export const ProfessionalsPage: React.FC = () => {
               selectedProfessionalId={selectedProfessionalId}
               onSelect={syncSelection}
               onLoadSlots={handleLoadSlots}
-              onDelete={handleDelete}
-              isLoading={isLoading}
+              onDelete={(p) => setDeleteTarget(p)}
+              isSaving={isSaving}
             />
           </div>
 
@@ -364,7 +345,7 @@ export const ProfessionalsPage: React.FC = () => {
               onDayChange={handleDayChange}
               onSubmit={handleSubmit}
               onClear={() => syncSelection(null)}
-              onDelete={handleDelete}
+              onDelete={(p) => setDeleteTarget(p)}
               isSaving={isSaving}
             />
 
@@ -390,6 +371,20 @@ export const ProfessionalsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => {
+          if (deleteTarget) {
+            handleDelete(deleteTarget);
+          }
+        }}
+        title="Eliminar profesional"
+        message={deleteTarget ? `¿Eliminar a ${deleteTarget.name} ${deleteTarget.lastname}?` : ''}
+        confirmText="Eliminar"
+        variant="danger"
+      />
     </div>
   );
 };

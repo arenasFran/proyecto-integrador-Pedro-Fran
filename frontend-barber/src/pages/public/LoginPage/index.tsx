@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
 import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
@@ -60,6 +60,16 @@ export const LoginPage: React.FC = () => {
   const [profileCompletionName, setProfileCompletionName] = useState('');
   const [profileCompletionLastname, setProfileCompletionLastname] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { toast?: string; toastType?: 'success' | 'error' } | null;
+    if (state?.toast) {
+      showToast(state.toast, state.toastType || 'success');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, showToast]);
 
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;

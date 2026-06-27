@@ -24,11 +24,7 @@ const itemVariants = {
   },
 };
 
-interface RegisterPageProps {
-  onNavigateToLogin?: () => void;
-}
-
-export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigateToLogin }) => {
+export const RegisterPage: React.FC = () => {
   return (
     <div className="min-h-[100dvh] bg-[#050505] flex items-center justify-center px-4 py-4">
       <motion.div
@@ -53,7 +49,7 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigateToLogin })
           variants={itemVariants}
           className="bg-[#121212] border border-[#282828] rounded-[20px] p-4"
         >
-          <RegisterForm onSuccess={onNavigateToLogin} />
+          <RegisterForm />
         </motion.div>
 
         <motion.div variants={itemVariants} className="mt-4 text-center">

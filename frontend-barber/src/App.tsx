@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Navigate, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './store/hooks';
@@ -143,13 +143,7 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 function RegisterPageWrapper() {
-  const navigate = useNavigate();
-
-  const handleNavigateToLogin = () => {
-    navigate('/login');
-  };
-
-  return <RegisterPage onNavigateToLogin={handleNavigateToLogin} />;
+  return <RegisterPage />;
 }
 
 export default App;

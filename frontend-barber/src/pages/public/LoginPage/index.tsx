@@ -324,9 +324,10 @@ export const LoginPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-[12px] text-[#8A8A8A] text-center"
+                  className="flex flex-col items-center gap-1 text-center"
                 >
-                  Completá tu nombre para finalizar el registro con Google
+                  <span className="text-[14px] font-medium text-[#22C55E]">Registro con Google exitoso</span>
+                  <span className="text-[12px] text-[#8A8A8A]">Solo falta un paso más: completá tus datos</span>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -509,10 +510,6 @@ export const LoginPage: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FF5C00]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#FF5C00]/3 rounded-full blur-3xl" />
-      </div>
     </div>
   );
 };

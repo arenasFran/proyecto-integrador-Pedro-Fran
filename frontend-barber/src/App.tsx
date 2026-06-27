@@ -58,6 +58,10 @@ function App() {
     <Provider store={store}>
       <AppInitializer>
         <Router>
+          <div className="fixed inset-0 pointer-events-none z-0" aria-hidden="true">
+            <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
+            <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
+          </div>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<BookingPage />} />

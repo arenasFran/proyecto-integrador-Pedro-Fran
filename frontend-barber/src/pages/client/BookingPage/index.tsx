@@ -167,13 +167,7 @@ export const BookingPage: React.FC = () => {
     <div className="min-h-screen bg-[#050505] text-white">
       <PublicHeader />
 
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
-        </div>
-
-        <div className="relative mx-auto max-w-xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
+      <div className="relative mx-auto max-w-xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
           <AnimatedContainer animation="fadeInDown" className="text-center mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[11px] text-[#8A8A8A] mb-3">
               <FiScissors className="text-[#FF5C00]" />
@@ -253,7 +247,6 @@ export const BookingPage: React.FC = () => {
               )}
             </AccordionStep>
           </div>
-        </div>
       </div>
 
       {areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime) && !showClientForm && (

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiPlus, FiScissors } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, LoadingSkeleton, Spinner, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, useToast } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   createBarber,
@@ -333,7 +333,7 @@ export const ProfessionalsPage: React.FC = () => {
               onSelect={syncSelection}
               onLoadSlots={handleLoadSlots}
               onDelete={(p) => setDeleteTarget(p)}
-              isSaving={isSaving}
+              isLoading={isLoading}
             />
           </div>
 

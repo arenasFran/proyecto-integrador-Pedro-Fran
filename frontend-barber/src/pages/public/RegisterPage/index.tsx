@@ -68,20 +68,9 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigateToLogin })
           </p>
         </motion.div>
 
-        <motion.div variants={itemVariants} className="mt-2 text-center">
-          <Link
-            to="/recovery"
-            className="text-[11px] text-[#8A8A8A] hover:text-white transition-colors"
-          >
-            ¿Olvidaste tu contraseña?
-          </Link>
-        </motion.div>
+        
       </motion.div>
 
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#FF5C00]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#FF5C00]/3 rounded-full blur-3xl" />
-      </div>
     </div>
   );
 };

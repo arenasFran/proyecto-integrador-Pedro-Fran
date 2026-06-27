@@ -9,7 +9,7 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, useToast } from '../../../components/common';
 import { useAppSelector } from '../../../store/hooks';
 import {
   useCancelAppointmentMutation,
@@ -35,6 +35,7 @@ function formatTime(time: string) {
 
 export const AdminAppointmentsPage: React.FC = () => {
   const barbers = useAppSelector((state) => state.barbers.list);
+  const { showToast } = useToast();
 
   const [filterDate, setFilterDate] = useState(todayStr());
   const [filterBarberId, setFilterBarberId] = useState('');
@@ -90,6 +91,7 @@ export const AdminAppointmentsPage: React.FC = () => {
   }, [appointments]);
 
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
 
   const extractError = (err: unknown): string => {
     if (err instanceof Error) return err.message;
@@ -101,20 +103,23 @@ export const AdminAppointmentsPage: React.FC = () => {
     if (!cancelTarget) return;
     try {
       await cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }).unwrap();
+      showToast('Turno cancelado con éxito');
       setCancelTarget(null);
       setCancelReason('');
       setStatusError(null);
     } catch (err) {
-      setStatusError(extractError(err));
+      showToast(extractError(err), 'error');
     }
   };
 
   const handleStatusChange = async (id: string, status: 'Completado' | 'NoShow') => {
     try {
       await updateStatus({ id, status }).unwrap();
+      const label = status === 'Completado' ? 'completado' : 'marcado como no asistió';
+      showToast(`Turno ${label} con éxito`);
       setStatusError(null);
     } catch (err) {
-      setStatusError(extractError(err));
+      showToast(extractError(err), 'error');
     }
   };
 
@@ -127,13 +132,14 @@ export const AdminAppointmentsPage: React.FC = () => {
         startTime: rescheduleTime,
         barberId: rescheduleBarberId,
       }).unwrap();
+      showToast('Turno reprogramado con éxito');
       setRescheduleTarget(null);
       setRescheduleDate('');
       setRescheduleTime('');
       setRescheduleBarberId('');
       setStatusError(null);
     } catch (err) {
-      setStatusError(extractError(err));
+      showToast(extractError(err), 'error');
     }
   };
 
@@ -232,11 +238,6 @@ export const AdminAppointmentsPage: React.FC = () => {
             )}
           </div>
 
-          {statusError && (
-            <div className="mb-4 rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
-              <p className="text-[13px] text-red-400">{statusError}</p>
-            </div>
-          )}
           {error ? (
             <div className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
               <p className="text-[13px] text-red-400">Error al cargar turnos. Verificá la conexión.</p>
@@ -319,7 +320,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                                   <FiClock className="text-sm" />
                                 </button>
                                 <button
-                                  onClick={() => handleStatusChange(appointment.id, 'NoShow')}
+                                  onClick={() => setConfirmTarget({ id: appointment.id, action: 'NoShow' })}
                                   disabled={isUpdatingStatus}
                                   className="rounded-[8px] border border-yellow-500/30 p-1.5 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
                                   title="Marcar como no asistió"
@@ -376,7 +377,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Button
                 onClick={handleCancelConfirm}
                 loading={isCancelling}
-                className="bg-red-500 hover:bg-red-600"
+                variant="danger"
               >
                 Confirmar cancelación
               </Button>
@@ -436,6 +437,22 @@ export const AdminAppointmentsPage: React.FC = () => {
           </AnimatedContainer>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={confirmTarget !== null}
+        onClose={() => setConfirmTarget(null)}
+        onConfirm={() => {
+          if (confirmTarget) {
+            handleStatusChange(confirmTarget.id, confirmTarget.action);
+            setConfirmTarget(null);
+          }
+        }}
+        title="Marcar como no asistió"
+        message="¿Estás seguro de marcar este turno como no asistido? Esta acción no se puede deshacer."
+        confirmText="Sí, marcar como no asistió"
+        variant="danger"
+        loading={isUpdatingStatus}
+      />
     </div>
   );
 };

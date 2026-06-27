@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FiCalendar } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { FiBarChart2, FiCalendar, FiGrid, FiPieChart } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
 import DateRangeFilter from './components/DateRangeFilter';
@@ -9,6 +9,14 @@ import HeatmapChart from './components/HeatmapChart';
 import ReservasChart from './components/ReservasChart';
 import GananciasChart from './components/GananciasChart';
 import DistribucionDonut from './components/DistribucionDonut';
+
+type TabKey = 'resumen' | 'tendencia' | 'distribucion';
+
+const TABS: { key: TabKey; label: string; icon: React.ComponentType }[] = [
+  { key: 'resumen', label: 'Resumen', icon: FiGrid },
+  { key: 'tendencia', label: 'Tendencia', icon: FiBarChart2 },
+  { key: 'distribucion', label: 'Distribución', icon: FiPieChart },
+];
 
 function getThisMonthRange() {
   const now = new Date();
@@ -23,6 +31,7 @@ function getThisMonthRange() {
 export default function DashboardPage() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
+  const [activeTab, setActiveTab] = useState<TabKey>('resumen');
 
   const { data: overview, isLoading, error: rtkError } = useGetOverviewQuery(
     { desde, hasta },
@@ -93,34 +102,58 @@ export default function DashboardPage() {
       </AnimatedContainer>
 
       <AnimatedContainer animation="fadeInUp" delay={0.1}>
-        <KpiCards data={overview} loading={loading} error={error} />
+        <div className="flex gap-2 mb-4">
+          {TABS.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                activeTab === key
+                  ? 'bg-[#FF5C00] text-white'
+                  : 'bg-[#1A1A1A] text-[#8A8A8A] border border-[#282828] hover:border-[#FF5C00] hover:text-white'
+              }`}
+            >
+              <Icon />
+              {label}
+            </button>
+          ))}
+        </div>
       </AnimatedContainer>
 
-      <AnimatedContainer animation="fadeInUp" delay={0.2}>
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          <div className="lg:col-span-4 order-2 lg:order-1 min-w-0">
-            <HeatmapChart />
-          </div>
-          <div className="order-1 lg:order-2 min-w-0">
+      {activeTab === 'resumen' && (
+        <>
+          <AnimatedContainer animation="fadeInUp" delay={0.2}>
+            <KpiCards data={overview} loading={loading} error={error} />
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
             <StatusBreakdown
               data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
               loading={loading}
               error={error}
             />
-          </div>
-        </div>
-      </AnimatedContainer>
+          </AnimatedContainer>
+        </>
+      )}
 
-      <AnimatedContainer animation="fadeInUp" delay={0.3}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="min-w-0"><ReservasChart /></div>
-          <div className="min-w-0"><GananciasChart /></div>
-        </div>
-      </AnimatedContainer>
+      {activeTab === 'tendencia' && (
+        <>
+          <AnimatedContainer animation="fadeInUp" delay={0.2}>
+            <HeatmapChart />
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="min-w-0"><ReservasChart /></div>
+              <div className="min-w-0"><GananciasChart /></div>
+            </div>
+          </AnimatedContainer>
+        </>
+      )}
 
-      <AnimatedContainer animation="fadeInUp" delay={0.4}>
-        <DistribucionDonut />
-      </AnimatedContainer>
+      {activeTab === 'distribucion' && (
+        <AnimatedContainer animation="fadeInUp" delay={0.2}>
+          <DistribucionDonut />
+        </AnimatedContainer>
+      )}
     </div>
   );
 }

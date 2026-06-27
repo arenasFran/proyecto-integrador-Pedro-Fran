@@ -6,7 +6,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
-import { ToastProvider } from './components/common';
+import { Spinner, ToastProvider } from './components/common';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -109,7 +109,11 @@ function RequireAdminRoute({ children }: { children: React.ReactNode }) {
   const role = getTokenKind(token);
 
   if (isInitializing) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
   if (!isTokenValid(token) || role !== 'Admin') {
@@ -124,7 +128,11 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
   const token = getAccessToken();
 
   if (isInitializing) {
-    return null;
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
   if (!isTokenValid(token)) {

@@ -27,6 +27,7 @@ import {
 } from '../../../store/slices/bookingSlice';
 import { authApi } from '../../../services/authApi';
 import { getAccessToken } from '../../../services/api';
+import { formatDate } from '../../../utils/formatDate';
 import type { BookingStep, BarberPublic } from '../../../types/booking';
 
 const getTodayString = (): string => {
@@ -225,7 +226,7 @@ export const BookingPage: React.FC = () => {
               title="Fecha y hora"
               summary={
                 selectedDate
-                  ? `${selectedDate.split('-').reverse().join('/')}${selectedTime ? ` - ${selectedTime}` : ''}`
+                  ? `${formatDate(selectedDate)}${selectedTime ? ` - ${selectedTime}` : ''}`
                   : null
               }
               isExpanded={currentStep === 'datetime'}

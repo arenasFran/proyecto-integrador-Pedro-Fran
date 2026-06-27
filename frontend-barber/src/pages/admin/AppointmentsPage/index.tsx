@@ -9,6 +9,7 @@ import {
   FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Input, Spinner, useToast } from '../../../components/common';
+import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
   useCancelAppointmentMutation,
@@ -281,7 +282,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                           {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
                         </td>
                         <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
-                        <td className="py-3 pr-4 text-white">{appointment.date}</td>
+                        <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
                         <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
                         <td className="py-3 pr-4">
                           <motion.span
@@ -361,7 +362,7 @@ export const AdminAppointmentsPage: React.FC = () => {
           <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Cancelar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {cancelTarget.clientName} {cancelTarget.clientLastname} &mdash; {cancelTarget.date} a las {formatTime(cancelTarget.startTime)}
+              {cancelTarget.clientName} {cancelTarget.clientLastname} &mdash; {formatDate(cancelTarget.date)} a las {formatTime(cancelTarget.startTime)}
             </p>
             <Input
               label="Motivo de cancelación (opcional)"
@@ -390,7 +391,7 @@ export const AdminAppointmentsPage: React.FC = () => {
           <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {rescheduleTarget.clientName} {rescheduleTarget.clientLastname} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
+              {rescheduleTarget.clientName} {rescheduleTarget.clientLastname} &mdash; actual: {formatDate(rescheduleTarget.date)} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4">
               <Input

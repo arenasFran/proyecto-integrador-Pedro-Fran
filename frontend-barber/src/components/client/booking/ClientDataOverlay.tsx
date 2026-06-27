@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar } from 'react-icons/fi';
-import { Button } from '../../common';
+import { Button, Input } from '../../common';
+import { formatDate } from '../../../utils/formatDate';
 import type { BarberPublic, Service } from '../../../types/booking';
 
 interface ClientDataOverlayProps {
@@ -22,11 +23,29 @@ interface ClientDataOverlayProps {
   onClose: () => void;
 }
 
-const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
-};
+function validateField(field: string, value: string, isLoggedIn?: boolean): string | undefined {
+  switch (field) {
+    case 'name':
+      if (!value.trim()) return 'El nombre es obligatorio';
+      if (value.trim().length < 2) return 'Mínimo 2 caracteres';
+      return undefined;
+    case 'lastname':
+      if (!value.trim()) return 'El apellido es obligatorio';
+      if (value.trim().length < 2) return 'Mínimo 2 caracteres';
+      return undefined;
+    case 'phone':
+      if (isLoggedIn && !value.trim()) return undefined;
+      if (!value.trim()) return 'El teléfono es obligatorio';
+      if (value.trim().length < 7) return 'Mínimo 7 dígitos';
+      return undefined;
+    case 'email':
+      if (!value.trim()) return 'El email es obligatorio';
+      if (!value.includes('@')) return 'Email inválido';
+      return undefined;
+    default:
+      return undefined;
+  }
+}
 
 export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
   isOpen,
@@ -45,10 +64,41 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
   onSubmit,
   onClose,
 }) => {
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
   const totalPrice = service?.price ?? 0;
   const barberName = barber ? `${barber.name} ${barber.lastname}` : '';
+
+  const getFieldError = (field: string): string | undefined => {
+    if (!touched[field]) return undefined;
+    return errors[field];
+  };
+
   const phoneValid = isLoggedIn ? clientPhone.trim().length >= 7 || clientPhone.trim().length === 0 : clientPhone.trim().length >= 7;
-  const isValid = clientName.trim().length >= 2 && clientLastname.trim().length >= 2 && phoneValid && clientEmail.includes('@');
+  const hasError = Object.values(errors).some(Boolean);
+  const isValid = clientName.trim().length >= 2 && clientLastname.trim().length >= 2 && phoneValid && clientEmail.includes('@') && !hasError;
+
+  const handleBlur = (field: string, value: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    const error = validateField(field, value, isLoggedIn);
+    setErrors(prev => ({ ...prev, [field]: error || '' }));
+  };
+
+  const handleFieldChange = (field: string, value: string) => {
+    const data = {
+      name: field === 'name' ? value : clientName,
+      lastname: field === 'lastname' ? value : clientLastname,
+      phone: field === 'phone' ? value : clientPhone,
+      email: field === 'email' ? value : clientEmail,
+    };
+    onChange(data);
+
+    if (touched[field]) {
+      const error = validateField(field, value, isLoggedIn);
+      setErrors(prev => ({ ...prev, [field]: error || '' }));
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -99,46 +149,48 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
 
             <div className="space-y-3 mb-5">
               <div className="grid grid-cols-2 gap-3">
-                <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                  <input
-                    type="text"
-                    placeholder="Nombre *"
-                    value={clientName}
-                    onChange={(e) => onChange({ name: e.target.value, lastname: clientLastname, phone: clientPhone, email: clientEmail })}
-                    className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                  />
-                </div>
-                <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                  <input
-                    type="text"
-                    placeholder="Apellido *"
-                    value={clientLastname}
-                    onChange={(e) => onChange({ name: clientName, lastname: e.target.value, phone: clientPhone, email: clientEmail })}
-                    className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                  />
-                </div>
-                <div className="relative">
-                  <FiPhone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                  <input
-                    type="tel"
-                    placeholder="Teléfono *"
-                    value={clientPhone}
-                    onChange={(e) => onChange({ name: clientName, lastname: clientLastname, phone: e.target.value, email: clientEmail })}
-                    className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                  />
-                </div>
-                <div className="relative">
-                  <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#8A8A8A]" />
-                  <input
-                    type="email"
-                    placeholder="Email *"
-                    value={clientEmail}
-                    onChange={(e) => onChange({ name: clientName, lastname: clientLastname, phone: clientPhone, email: e.target.value })}
-                    className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-2.5 pl-9 pr-3 text-[13px] text-white placeholder-[#8A8A8A] outline-none focus:border-[#FF5C00] transition-colors"
-                  />
-                </div>
+                <Input
+                  label="Nombre"
+                  required
+                  icon={<FiUser className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+                  value={clientName}
+                  onChange={(e) => handleFieldChange('name', e.target.value)}
+                  onBlur={() => handleBlur('name', clientName)}
+                  error={getFieldError('name')}
+                  placeholder="Nombre"
+                />
+                <Input
+                  label="Apellido"
+                  required
+                  icon={<FiUser className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+                  value={clientLastname}
+                  onChange={(e) => handleFieldChange('lastname', e.target.value)}
+                  onBlur={() => handleBlur('lastname', clientLastname)}
+                  error={getFieldError('lastname')}
+                  placeholder="Apellido"
+                />
+                <Input
+                  label="Teléfono"
+                  required={!isLoggedIn}
+                  icon={<FiPhone className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+                  type="tel"
+                  value={clientPhone}
+                  onChange={(e) => handleFieldChange('phone', e.target.value)}
+                  onBlur={() => handleBlur('phone', clientPhone)}
+                  error={getFieldError('phone')}
+                  placeholder="Teléfono"
+                />
+                <Input
+                  label="Email"
+                  required
+                  icon={<FiMail className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+                  type="email"
+                  value={clientEmail}
+                  onChange={(e) => handleFieldChange('email', e.target.value)}
+                  onBlur={() => handleBlur('email', clientEmail)}
+                  error={getFieldError('email')}
+                  placeholder="Email"
+                />
               </div>
             </div>
 

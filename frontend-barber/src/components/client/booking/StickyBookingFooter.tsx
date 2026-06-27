@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiClock, FiUser, FiCalendar, FiArrowUp } from 'react-icons/fi';
 import { Button } from '../../common';
+import { formatDate } from '../../../utils/formatDate';
 import type { BarberPublic, Service } from '../../../types/booking';
 
 interface StickyBookingFooterProps {
@@ -14,12 +15,6 @@ interface StickyBookingFooterProps {
   confirmError: string | null;
   onSubmit: () => void;
 }
-
-const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
-};
 
 export const StickyBookingFooter: React.FC<StickyBookingFooterProps> = ({
   barber,

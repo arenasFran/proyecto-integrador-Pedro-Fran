@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiUser, FiClock, FiCalendar, FiPhone, FiMail, FiArrowRight } from 'react-icons/fi';
 import { Button } from '../../common';
+import { formatDate } from '../../../utils/formatDate';
 import type { BarberPublic, Service } from '../../../types/booking';
 
 interface BookingConfirmationModalProps {
@@ -15,12 +16,6 @@ interface BookingConfirmationModalProps {
   totalPrice: number;
   totalDuration: number;
 }
-
-const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
-};
 
 export const BookingConfirmationModal: React.FC<BookingConfirmationModalProps> = ({
   isOpen,

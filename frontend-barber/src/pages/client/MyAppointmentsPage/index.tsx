@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, Input, Pagination, useToast } from '../../../components/common';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsQuery,
@@ -81,8 +81,21 @@ export const MyAppointmentsPage: React.FC = () => {
     }
   };
 
+  const [pastPage, setPastPage] = useState(1);
+  const PAST_PAGE_SIZE = 10;
+
   const activeAppointments = appointments.filter((a) => a.status === 'Confirmado');
   const pastAppointments = appointments.filter((a) => a.status !== 'Confirmado');
+
+  const pastTotalPages = Math.ceil(pastAppointments.length / PAST_PAGE_SIZE) || 1;
+  const paginatedPast = useMemo(
+    () => pastAppointments.slice((pastPage - 1) * PAST_PAGE_SIZE, pastPage * PAST_PAGE_SIZE),
+    [pastAppointments, pastPage]
+  );
+
+  useEffect(() => {
+    setPastPage(1);
+  }, [appointments.length]);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -189,9 +202,9 @@ export const MyAppointmentsPage: React.FC = () => {
 
             {pastAppointments.length > 0 && (
               <div>
-                <h2 className="text-[18px] font-bold text-white mb-4">Historial</h2>
+                <h2 className="text-[18px] font-bold text-white mb-4">Historial ({pastAppointments.length})</h2>
                 <div className="grid gap-3">
-                  {pastAppointments.map((appointment) => {
+                  {paginatedPast.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     return (
                       <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-4 opacity-70">
@@ -215,6 +228,7 @@ export const MyAppointmentsPage: React.FC = () => {
                     );
                   })}
                 </div>
+                <Pagination currentPage={pastPage} totalPages={pastTotalPages} onPageChange={setPastPage} />
               </div>
             )}
           </>

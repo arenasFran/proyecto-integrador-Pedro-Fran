@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import {
   FiCalendar,
   FiCheck,
+  FiChevronDown,
+  FiChevronUp,
   FiClock,
   FiFilter,
   FiMoreVertical,
@@ -11,6 +13,7 @@ import {
   FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, useToast } from '../../../components/common';
+import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
@@ -28,8 +31,6 @@ const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label:
   NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
 };
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
-
 function formatTime(time: string) {
   const [h, m] = time.split(':');
   return `${h}:${m}`;
@@ -39,12 +40,14 @@ export const AdminAppointmentsPage: React.FC = () => {
   const barbers = useAppSelector((state) => state.barbers.list);
   const { showToast } = useToast();
 
-  const [filterDate, setFilterDate] = useState(todayStr());
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [filterBarberId, setFilterBarberId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 15;
 
@@ -55,15 +58,49 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
 
+  const [sortBy, setSortBy] = useState<'date' | 'time' | null>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [resetKey, setResetKey] = useState(0);
+
+  const toggleSort = (column: 'date' | 'time') => {
+    if (sortBy === column) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const handleDateRangeChange = (desde: string, hasta: string) => {
+    setFilterDateFrom(desde);
+    setFilterDateTo(hasta);
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterBarberId('');
+    setFilterStatus('');
+    setSearchTerm('');
+    setSortBy(null);
+    setSortDir('asc');
+    setShowMoreFilters(false);
+    setPage(1);
+    setMenuRect(null);
+    setResetKey((k) => k + 1);
+  };
+
   const queryParams = useMemo(() => {
-    const params: { date?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
-    if (filterDate) params.date = filterDate;
+    const params: { dateFrom?: string; dateTo?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
+    if (filterDateFrom) params.dateFrom = filterDateFrom;
+    if (filterDateTo) params.dateTo = filterDateTo;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
     params.page = page;
     params.limit = PAGE_SIZE;
     return params;
-  }, [filterDate, filterBarberId, filterStatus, page]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, page]);
 
   const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
@@ -89,8 +126,16 @@ export const AdminAppointmentsPage: React.FC = () => {
           a.serviceName.toLowerCase().includes(q)
       );
     }
+    if (sortBy) {
+      result = [...result].sort((a, b) => {
+        const valA = sortBy === 'date' ? a.date : a.startTime;
+        const valB = sortBy === 'date' ? b.date : b.startTime;
+        const cmp = valA.localeCompare(valB);
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+    }
     return result;
-  }, [appointments, searchTerm]);
+  }, [appointments, searchTerm, sortBy, sortDir]);
 
   const stats = useMemo(() => {
     const total = totalResults;
@@ -102,7 +147,7 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filterDate, filterBarberId, filterStatus]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus]);
 
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
 
@@ -193,13 +238,11 @@ export const AdminAppointmentsPage: React.FC = () => {
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
           <div className="flex flex-wrap items-center gap-3 mb-6">
-            <Input
-              label="Fecha"
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-            />
-            <div className="flex flex-col gap-1 flex-1 min-w-[200px]">
+            <div className="flex flex-col gap-1 w-full">
+              <label className="text-[13px] font-medium text-white">Rango de fechas</label>
+              <DateRangeFilter key={resetKey} onChange={handleDateRangeChange} />
+            </div>
+            <div className="flex flex-col gap-1 w-full sm:w-[240px]">
               <Input
                 label="Buscar"
                 value={searchTerm}
@@ -207,17 +250,29 @@ export const AdminAppointmentsPage: React.FC = () => {
                 placeholder="Cliente, servicio..."
               />
             </div>
-            <button
-              onClick={() => setShowMoreFilters(!showMoreFilters)}
-              className={`flex items-center gap-1.5 h-[40px] rounded-[10px] border px-3 text-[13px] font-medium transition-colors ${
-                showMoreFilters
-                  ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-[#FF5C00]'
-                  : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]'
-              }`}
-            >
-              <FiFilter className="text-sm" />
-              Más filtros
-            </button>
+            <div className="flex flex-col gap-1">
+              <label className="text-[13px] font-medium text-transparent select-none">_</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowMoreFilters(!showMoreFilters)}
+                  className={`flex items-center gap-1.5 h-[40px] rounded-[10px] border px-3 text-[13px] font-medium transition-colors ${
+                    showMoreFilters
+                      ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-[#FF5C00]'
+                      : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]'
+                  }`}
+                >
+                  <FiFilter className="text-sm" />
+                  Más filtros
+                </button>
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-1.5 h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] font-medium text-[#8A8A8A] transition-colors hover:text-white hover:border-[#FF5C00]"
+                >
+                  <FiX className="text-sm" />
+                  Limpiar
+                </button>
+              </div>
+            </div>
             {(isLoading || isFetching) && (
               <div className="flex items-center gap-2 text-[#8A8A8A] text-[13px]">
                 <Spinner size="sm" />
@@ -271,7 +326,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             <div className="flex flex-col items-center justify-center py-20 text-[#8A8A8A]">
               <FiCalendar className="text-4xl mb-3" />
               <p className="text-[15px]">No se encontraron turnos</p>
-              <p className="text-[12px] mt-1">Probá cambiar los filtros o seleccionar otra fecha.</p>
+              <p className="text-[12px] mt-1">Probá cambiar los filtros o seleccionar otro rango de fechas.</p>
             </div>
           ) : (
             <>
@@ -282,8 +337,26 @@ export const AdminAppointmentsPage: React.FC = () => {
                       <th className="pb-3 pr-4 font-medium">Cliente</th>
                       <th className="pb-3 pr-4 font-medium">Barbero</th>
                       <th className="pb-3 pr-4 font-medium">Servicio</th>
-                      <th className="pb-3 pr-4 font-medium">Fecha</th>
-                      <th className="pb-3 pr-4 font-medium">Hora</th>
+                      <th className="pb-3 pr-4 font-medium">
+                        <button onClick={() => toggleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
+                          Fecha
+                          {sortBy === 'date' ? (
+                            sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
+                          ) : (
+                            <FiChevronUp className="text-[11px] opacity-30" />
+                          )}
+                        </button>
+                      </th>
+                      <th className="pb-3 pr-4 font-medium">
+                        <button onClick={() => toggleSort('time')} className="flex items-center gap-1 hover:text-white transition-colors">
+                          Hora
+                          {sortBy === 'time' ? (
+                            sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
+                          ) : (
+                            <FiChevronUp className="text-[11px] opacity-30" />
+                          )}
+                        </button>
+                      </th>
                       <th className="pb-3 pr-4 font-medium">Estado</th>
                       <th className="pb-3 font-medium">Acciones</th>
                     </tr>
@@ -322,19 +395,36 @@ export const AdminAppointmentsPage: React.FC = () => {
                               {isActive && (
                                 <div className="relative">
                                   <button
-                                    onClick={() => setActiveMenu(activeMenu === appointment.id ? null : appointment.id)}
+                                    onClick={(e) => {
+                                      if (activeMenu === appointment.id) {
+                                        setActiveMenu(null);
+                                        setMenuRect(null);
+                                      } else {
+                                        const rect = e.currentTarget.getBoundingClientRect();
+                                        setMenuRect({ top: rect.top, right: rect.right });
+                                        setActiveMenu(appointment.id);
+                                      }
+                                    }}
                                     className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
                                     aria-label="Acciones del turno"
                                     aria-expanded={activeMenu === appointment.id}
                                   >
                                     <FiMoreVertical className="text-sm" />
                                   </button>
-                                  {activeMenu === appointment.id && (
+                                  {activeMenu === appointment.id && menuRect && (
                                     <>
-                                      <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
-                                      <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl">
+                                      <div className="fixed inset-0 z-40" onClick={() => { setActiveMenu(null); setMenuRect(null); }} />
+                                      <div
+                                        className="fixed z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl"
+                                        style={{
+                                          right: window.innerWidth - menuRect.right + 4,
+                                          ...(menuRect.top + 200 < window.innerHeight
+                                            ? { top: menuRect.top }
+                                            : { bottom: window.innerHeight - menuRect.top }),
+                                        }}
+                                      >
                                           <button
-                                            onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); }}
+                                            onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); setMenuRect(null); }}
                                             disabled={isUpdatingStatus}
                                             className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
                                             aria-label="Marcar como completado"
@@ -348,6 +438,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                                               setRescheduleTime(appointment.startTime);
                                               setRescheduleBarberId(appointment.barberId);
                                               setActiveMenu(null);
+                                              setMenuRect(null);
                                             }}
                                             className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
                                             aria-label="Reprogramar turno"
@@ -355,7 +446,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                                             <FiClock className="text-sm" /> Reprogramar
                                           </button>
                                         <button
-                                          onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); }}
+                                          onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); setMenuRect(null); }}
                                           disabled={isUpdatingStatus}
                                           className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
                                           aria-label="Marcar como no asistió"
@@ -364,7 +455,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                                         </button>
                                         <hr className="border-[#282828] my-1" />
                                         <button
-                                          onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); }}
+                                          onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); setMenuRect(null); }}
                                           disabled={isCancelling}
                                           className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
                                           aria-label="Cancelar turno"

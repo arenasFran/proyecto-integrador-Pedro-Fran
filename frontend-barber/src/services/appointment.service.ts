@@ -40,6 +40,16 @@ export type AppointmentQueryParams = {
   date?: string;
   dateFrom?: string;
   dateTo?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type PaginatedAppointmentsResponse = {
+  appointments: Appointment[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
 };
 
 export const tempLockService = {

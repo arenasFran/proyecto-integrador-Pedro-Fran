@@ -12,12 +12,20 @@ interface BarbersState {
   list: Professional[];
   isLoading: boolean;
   error: string | null;
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
 }
 
 const initialState: BarbersState = {
   list: [],
   isLoading: false,
   error: null,
+  total: 0,
+  page: 1,
+  totalPages: 1,
+  limit: 50,
 };
 
 export const fetchBarbers = createAsyncThunk(
@@ -25,6 +33,19 @@ export const fetchBarbers = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       return await professionalService.list();
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Error al cargar profesionales';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const fetchBarbersPaginated = createAsyncThunk(
+  'barbers/fetchBarbersPaginated',
+  async (params: { page?: number; limit?: number }, { rejectWithValue }) => {
+    try {
+      return await professionalService.listPaginated(params);
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : 'Error al cargar profesionales';
@@ -149,8 +170,27 @@ const barbersSlice = createSlice({
       .addCase(fetchBarbers.fulfilled, (state, action) => {
         state.isLoading = false;
         state.list = action.payload;
+        state.total = action.payload.length;
+        state.totalPages = 1;
+        state.page = 1;
       })
       .addCase(fetchBarbers.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchBarbersPaginated.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(fetchBarbersPaginated.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.list = action.payload.barbers;
+        state.total = action.payload.total;
+        state.page = action.payload.page;
+        state.totalPages = action.payload.totalPages;
+        state.limit = action.payload.limit;
+      })
+      .addCase(fetchBarbersPaginated.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
       })

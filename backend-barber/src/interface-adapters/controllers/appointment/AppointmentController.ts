@@ -6,6 +6,7 @@ import { RescheduleAppointmentUseCase } from '../../../application/use-cases/app
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
+import type { AppointmentStatus } from '../../../domain/types/appointment';
 
 export class AppointmentController {
   constructor(
@@ -42,7 +43,7 @@ export class AppointmentController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: string; page?: number; limit?: number } = {};
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; page?: number; limit?: number } = {};
 
       if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
@@ -54,7 +55,7 @@ export class AppointmentController {
       if (req.query.date) query.date = req.query.date as string;
       if (req.query.dateFrom) query.dateFrom = req.query.dateFrom as string;
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
-      if (req.query.status) query.status = req.query.status as string;
+      if (req.query.status) query.status = req.query.status as AppointmentStatus;
 
       const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;

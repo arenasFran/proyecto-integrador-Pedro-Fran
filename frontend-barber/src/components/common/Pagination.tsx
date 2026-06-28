@@ -59,7 +59,7 @@ export const Pagination: React.FC<PaginationProps> = ({ currentPage, totalPages,
 
       {pageNumbers.map((page, idx) =>
         page === 'ellipsis' ? (
-          <span key={`ellipsis-${idx}`} className="text-[#8A8A8A] px-1">...</span>
+          <span key={`ellipsis-${idx}`} className="text-[#8A8A8A] px-1 select-none">...</span>
         ) : (
           <button
             key={page}

@@ -46,6 +46,10 @@ const initialState = {
   list: [],
   isLoading: false,
   error: null,
+  total: 0,
+  page: 1,
+  totalPages: 1,
+  limit: 50,
 };
 
 describe('barbersSlice', () => {

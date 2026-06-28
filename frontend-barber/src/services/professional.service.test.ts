@@ -48,7 +48,7 @@ describe('professionalService', () => {
 
     const result = await professionalService.list();
 
-    expect(mockedApi.get).toHaveBeenCalledWith('/api/barbers');
+    expect(mockedApi.get).toHaveBeenCalledWith('/api/barbers', { params: undefined });
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('b1');
     expect(result[0]).not.toHaveProperty('_id');

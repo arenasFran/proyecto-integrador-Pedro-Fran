@@ -21,7 +21,7 @@ export class DeleteBarberUseCase {
     await this.barberRepository.deactivateBarber(barberId);
     await this.tempLockRepository.deleteMany({ barberId });
 
-    const futureAppointments = await this.appointmentRepository.findMany({
+    const { data: futureAppointments } = await this.appointmentRepository.findMany({
       barberId,
       dateFrom: new Date().toISOString().split('T')[0],
     });

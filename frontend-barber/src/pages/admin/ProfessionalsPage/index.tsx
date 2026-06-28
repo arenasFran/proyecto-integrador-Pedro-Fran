@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiPlus, FiScissors } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Pagination, useToast } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   createBarber,
-  fetchBarbers,
+  fetchBarbersPaginated,
   removeBarber,
   updateBarber,
   updateBarberSchedule,
@@ -55,7 +55,7 @@ const createEmptyForm = (): ProfessionalFormState => ({
 
 export const ProfessionalsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { list: professionals } = useAppSelector((state) => state.barbers);
+  const { list: professionals, totalPages, total } = useAppSelector((state) => state.barbers);
   const { showToast } = useToast();
   const authUser = useAppSelector((state) => state.auth.user) as Professional | null;
 
@@ -70,6 +70,8 @@ export const ProfessionalsPage: React.FC = () => {
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [viewingAdminSlots, setViewingAdminSlots] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Professional | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const currentTokenUser = useMemo(() => {
     return getTokenUser(getAccessToken());
@@ -133,11 +135,11 @@ export const ProfessionalsPage: React.FC = () => {
     setAvailableSlots([]);
   }, []);
 
-  const loadProfessionals = useCallback(async () => {
+  const loadProfessionals = useCallback(async (pageNum?: number) => {
     setIsLoading(true);
 
     try {
-      await dispatch(fetchBarbers()).unwrap();
+      await dispatch(fetchBarbersPaginated({ page: pageNum ?? 1, limit: PAGE_SIZE })).unwrap();
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
     } finally {
@@ -145,9 +147,20 @@ export const ProfessionalsPage: React.FC = () => {
     }
   }, [dispatch]);
 
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage);
+    setIsLoading(true);
+    dispatch(fetchBarbersPaginated({ page: newPage, limit: PAGE_SIZE }))
+      .unwrap()
+      .catch((error) => {
+        showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
+      })
+      .finally(() => setIsLoading(false));
+  }, [dispatch, showToast]);
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
-      void loadProfessionals();
+      void loadProfessionals(1);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -335,6 +348,7 @@ export const ProfessionalsPage: React.FC = () => {
               onDelete={(p) => setDeleteTarget(p)}
               isLoading={isLoading}
             />
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
           </div>
 
           <div className="grid gap-6">

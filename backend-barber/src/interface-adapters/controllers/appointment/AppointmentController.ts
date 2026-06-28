@@ -42,7 +42,7 @@ export class AppointmentController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string } = {};
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; page?: number; limit?: number } = {};
 
       if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
@@ -55,8 +55,19 @@ export class AppointmentController {
       if (req.query.dateFrom) query.dateFrom = req.query.dateFrom as string;
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
 
-      const appointments = await this.appointmentRepository.findMany(query);
-      return sendSuccess(res, { appointments: appointments.map((a) => a.toPrimitives()) }, 200);
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+      if (page !== undefined) query.page = page;
+      if (limit !== undefined) query.limit = limit;
+
+      const result = await this.appointmentRepository.findMany(query);
+      return sendSuccess(res, {
+        appointments: result.data.map((a) => a.toPrimitives()),
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+        limit: result.limit,
+      }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }
@@ -119,12 +130,12 @@ export class AppointmentController {
       if (!clientEmail && !clientPhone) {
         throw new AppError('Debe proporcionar email o teléfono.', 400);
       }
-      const appointments = await this.appointmentRepository.findMany({
+      const result = await this.appointmentRepository.findMany({
         clientEmail,
         clientPhone,
         date: req.query.date as string | undefined,
       });
-      return sendSuccess(res, { appointments: appointments.map((a) => a.toPrimitives()) }, 200);
+      return sendSuccess(res, { appointments: result.data.map((a) => a.toPrimitives()) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }

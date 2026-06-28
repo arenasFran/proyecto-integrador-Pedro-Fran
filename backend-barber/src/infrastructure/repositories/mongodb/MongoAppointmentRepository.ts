@@ -13,6 +13,16 @@ export type AppointmentFilters = {
   status?: AppointmentStatus;
   dateFrom?: string;
   dateTo?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type PaginatedResult<T> = {
+  data: T[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
 };
 
 export type CreateAppointmentData = Omit<AppointmentProps, 'id' | 'createdAt' | 'updatedAt'>;
@@ -69,7 +79,7 @@ export class MongoAppointmentRepository {
     return toAppointmentEntity(doc);
   }
 
-  async findMany(filters: AppointmentFilters): Promise<Appointment[]> {
+  async findMany(filters: AppointmentFilters): Promise<PaginatedResult<Appointment>> {
     const query: Record<string, unknown> = {};
 
     if (filters.barberId) {
@@ -96,11 +106,26 @@ export class MongoAppointmentRepository {
       if (filters.dateTo) (query.date as Record<string, unknown>).$lte = filters.dateTo;
     }
 
-    const docs = await AppointmentModel.find(query)
-      .sort({ date: -1, startTime: -1 })
-      .lean();
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+    const skip = (page - 1) * limit;
 
-    return docs.map((doc) => toAppointmentEntity(doc));
+    const [docs, total] = await Promise.all([
+      AppointmentModel.find(query)
+        .sort({ date: -1, startTime: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      AppointmentModel.countDocuments(query),
+    ]);
+
+    return {
+      data: docs.map((doc) => toAppointmentEntity(doc)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
+      limit,
+    };
   }
 
   async findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<Appointment[]> {

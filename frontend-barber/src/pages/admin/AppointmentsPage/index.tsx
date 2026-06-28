@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FiCalendar,
@@ -10,12 +10,12 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Spinner, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, useToast } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
   useCancelAppointmentMutation,
-  useGetAppointmentsQuery,
+  useGetAppointmentsPaginatedQuery,
   useRescheduleAppointmentMutation,
   useUpdateAppointmentStatusMutation,
 } from '../../../services/appointmentApi';
@@ -45,6 +45,8 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 15;
 
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -54,15 +56,22 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
 
   const queryParams = useMemo(() => {
-    const params: { date?: string; barberId?: string } = {};
+    const params: { date?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
     if (filterDate) params.date = filterDate;
     if (filterBarberId) params.barberId = filterBarberId;
+    if (filterStatus) params.status = filterStatus;
+    params.page = page;
+    params.limit = PAGE_SIZE;
     return params;
-  }, [filterDate, filterBarberId]);
+  }, [filterDate, filterBarberId, filterStatus, page]);
 
-  const { data: appointments = [], isLoading, isFetching, error } = useGetAppointmentsQuery(queryParams, {
+  const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
   });
+
+  const appointments = paginatedData?.appointments ?? [];
+  const totalResults = paginatedData?.total ?? 0;
+  const totalPages = paginatedData?.totalPages ?? 1;
 
   const [cancelAppointment, { isLoading: isCancelling }] = useCancelAppointmentMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
@@ -70,9 +79,6 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   const filtered = useMemo(() => {
     let result = appointments;
-    if (filterStatus) {
-      result = result.filter((a) => a.status === filterStatus);
-    }
     if (searchTerm.trim()) {
       const q = searchTerm.trim().toLowerCase();
       result = result.filter(
@@ -84,15 +90,21 @@ export const AdminAppointmentsPage: React.FC = () => {
       );
     }
     return result;
-  }, [appointments, filterStatus, searchTerm]);
+  }, [appointments, searchTerm]);
 
   const stats = useMemo(() => {
-    const total = appointments.length;
+    const total = totalResults;
     const confirmed = appointments.filter((a) => a.status === 'Confirmado').length;
     const completed = appointments.filter((a) => a.status === 'Completado').length;
     const cancelled = appointments.filter((a) => a.status === 'Cancelado').length;
     return { total, confirmed, completed, cancelled };
-  }, [appointments]);
+  }, [appointments, totalResults]);
+
+  const resetPage = () => setPage(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterDate, filterBarberId, filterStatus]);
 
   const [statusError, setStatusError] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
@@ -377,6 +389,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
           )}
         </AnimatedContainer>
       </div>

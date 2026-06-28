@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiPlus, FiSave, FiTrash2 } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiCopy, FiPlus, FiSave, FiTrash2 } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, PasswordInput } from '../../../../components/common';
 import type { DayKey, Professional } from '../../../../types/professional';
 import { days, type ScheduleDayForm } from '../../../admin/utils/schedule-helpers';
@@ -22,6 +22,7 @@ type ProfessionalFormProps = {
   form: ProfessionalFormState;
   onFieldChange: (field: keyof Omit<ProfessionalFormState, 'schedule'>) => (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDayChange: (day: DayKey, field: keyof ScheduleDayForm) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onScheduleShortcut?: (action: 'copyToNext' | 'copyToAll' | 'copyToWeekdays', sourceDay: DayKey) => void;
   onSubmit: (e: React.FormEvent) => Promise<void>;
   onClear: () => void;
   onDelete: (professional: Professional) => void;
@@ -44,6 +45,7 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
   form,
   onFieldChange,
   onDayChange,
+  onScheduleShortcut,
   onSubmit,
   onClear,
   onDelete,
@@ -59,6 +61,10 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
       return `${dayLabels[d.key]} ${day.startTime}-${day.endTime}`;
     })
     .join(' · ');
+
+  const dayKeys: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+  const firstConfiguredDay = days.find((d) => form.schedule[d.key].startTime);
+  const hasConfiguredDays = days.some((d) => form.schedule[d.key].startTime);
 
   const isLastStep = currentStep === STEPS.length;
 
@@ -174,6 +180,29 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
                   </Button>
                 </div>
 
+                {hasConfiguredDays && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      icon={FiCopy}
+                      onClick={() => onScheduleShortcut?.('copyToAll', firstConfiguredDay!.key)}
+                    >
+                      Aplicar a todos
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      icon={FiCopy}
+                      onClick={() => onScheduleShortcut?.('copyToWeekdays', firstConfiguredDay!.key)}
+                    >
+                      Aplicar a días de semana
+                    </Button>
+                  </div>
+                )}
+
                 {scheduleExpanded ? (
                   <div className="mt-4 grid gap-4">
                     {days.map((day) => (
@@ -193,6 +222,17 @@ export const ProfessionalForm: React.FC<ProfessionalFormProps> = ({
                           <Input label={`Break inicio ${day.label}`} type="time" value={form.schedule[day.key].breakStart} onChange={onDayChange(day.key, 'breakStart')} />
                           <Input label={`Break fin ${day.label}`} type="time" value={form.schedule[day.key].breakEnd} onChange={onDayChange(day.key, 'breakEnd')} />
                         </div>
+                        {day.key !== 'sunday' && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            icon={FiCopy}
+                            onClick={() => onScheduleShortcut?.('copyToNext', day.key)}
+                          >
+                            Copiar al {dayLabels[dayKeys[dayKeys.indexOf(day.key) + 1]]}
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>

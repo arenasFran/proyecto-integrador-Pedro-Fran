@@ -166,6 +166,25 @@ export const ProfessionalsPage: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, [loadProfessionals]);
 
+  const handleScheduleShortcut = useCallback((action: 'copyToNext' | 'copyToAll' | 'copyToWeekdays', sourceDay: DayKey) => {
+    setForm((previous) => {
+      const source = previous.schedule[sourceDay];
+      if (!source) return previous;
+      const newSchedule = { ...previous.schedule };
+      const dayKeys: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+      const weekdays: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      if (action === 'copyToNext') {
+        const sourceIndex = dayKeys.indexOf(sourceDay);
+        const nextKey = dayKeys[sourceIndex + 1];
+        if (nextKey) newSchedule[nextKey] = { ...source };
+      } else {
+        const targetDays = action === 'copyToAll' ? dayKeys : weekdays;
+        targetDays.forEach((day) => { newSchedule[day] = { ...source }; });
+      }
+      return { ...previous, schedule: newSchedule };
+    });
+  }, []);
+
   const handleFieldChange = (field: keyof Omit<ProfessionalFormState, 'schedule'>) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       setForm((previous) => ({ ...previous, [field]: event.target.value }));
@@ -357,6 +376,7 @@ export const ProfessionalsPage: React.FC = () => {
               form={form}
               onFieldChange={handleFieldChange}
               onDayChange={handleDayChange}
+              onScheduleShortcut={handleScheduleShortcut}
               onSubmit={handleSubmit}
               onClear={() => syncSelection(null)}
               onDelete={(p) => setDeleteTarget(p)}

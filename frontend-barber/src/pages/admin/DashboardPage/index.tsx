@@ -146,13 +146,13 @@ export default function DashboardPage() {
       {activeTab === 'tendencia' && (
         <>
           <AnimatedContainer animation="fadeInUp" delay={0.2}>
-            <HeatmapChart />
-          </AnimatedContainer>
-          <AnimatedContainer animation="fadeInUp" delay={0.3}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <div className="min-w-0"><ReservasChart /></div>
               <div className="min-w-0"><GananciasChart /></div>
             </div>
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
+            <HeatmapChart />
           </AnimatedContainer>
         </>
       )}

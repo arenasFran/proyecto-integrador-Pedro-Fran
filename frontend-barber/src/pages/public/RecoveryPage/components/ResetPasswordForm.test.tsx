@@ -10,10 +10,17 @@ vi.mock('../../../../services/api', () => ({
   setupDispatch: vi.fn(),
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 describe('ResetPasswordForm', () => {
   beforeEach(() => {
     apiMock.mockReset();
     apiMock.mockResolvedValue({ data: { message: 'Contraseña restablecida con éxito' } });
+    mockNavigate.mockReset();
   });
 
   it('renders token and password fields', () => {
@@ -41,7 +48,9 @@ describe('ResetPasswordForm', () => {
     await user.click(screen.getByRole('button', { name: /restablecer contraseña/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('¡Contraseña actualizada!')).toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledWith('/login', {
+        state: { toast: expect.stringMatching(/contraseña/i), toastType: 'success' },
+      });
     });
   });
 

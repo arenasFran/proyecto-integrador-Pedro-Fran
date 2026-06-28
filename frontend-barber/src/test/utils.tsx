@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { ToastProvider } from '../components/common';
 import authReducer from '../store/slices/authSlice';
 import barbersReducer from '../store/slices/barbersSlice';
 import { authApi } from '../services/authApi';
@@ -35,7 +36,9 @@ export function renderWithProviders(
   function Wrapper({ children }: PropsWithChildren) {
     return (
       <Provider store={store}>
-        <MemoryRouter initialEntries={initialEntries}>{children}</MemoryRouter>
+        <MemoryRouter initialEntries={initialEntries}>
+          <ToastProvider>{children}</ToastProvider>
+        </MemoryRouter>
       </Provider>
     );
   }

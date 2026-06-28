@@ -10,6 +10,12 @@ vi.mock('../../../../services/api', () => ({
   setupDispatch: vi.fn(),
 }));
 
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
 const fillRegisterForm = async () => {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText(/nombre/i), 'John');
@@ -24,6 +30,7 @@ describe('RegisterForm', () => {
   beforeEach(() => {
     apiMock.mockReset();
     apiMock.mockResolvedValue({ data: { message: 'Usuario registrado con éxito' } });
+    mockNavigate.mockReset();
   });
 
   it('renders all fields', () => {
@@ -52,7 +59,9 @@ describe('RegisterForm', () => {
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('¡Registro exitoso!')).toBeInTheDocument();
+      expect(mockNavigate).toHaveBeenCalledWith('/login', {
+        state: { toast: expect.stringMatching(/registro/i), toastType: 'success' },
+      });
     });
   });
 

@@ -58,7 +58,7 @@ describe('ClientDataOverlay', () => {
     const user = userEvent.setup();
     render(<ClientDataOverlay {...defaultProps} onChange={onChange} clientName="Carlos" />);
 
-    const input = screen.getByPlaceholderText('Nombre *');
+    const input = screen.getByPlaceholderText('Nombre');
     await user.type(input, 'x');
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Carlosx' })

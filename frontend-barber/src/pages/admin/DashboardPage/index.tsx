@@ -123,7 +123,7 @@ export default function DashboardPage() {
       {activeTab === 'resumen' && (
         <>
           <AnimatedContainer animation="fadeInUp" delay={0.2}>
-            <KpiCards data={overview} loading={loading} error={error} />
+            <KpiCards data={overview ?? null} loading={loading} error={error} />
           </AnimatedContainer>
           <AnimatedContainer animation="fadeInUp" delay={0.3}>
             <StatusBreakdown

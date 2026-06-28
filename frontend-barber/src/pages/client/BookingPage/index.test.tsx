@@ -45,8 +45,8 @@ vi.mock('../../../components/client/booking', () => ({
       <button data-testid="accordion-toggle" onClick={onToggle as () => void}>
         {String(title)}
       </button>
-      {summary && <span data-testid="step-summary">{String(summary)}</span>}
-      {isExpanded && <div data-testid="accordion-content">{children}</div>}
+      {typeof summary === 'string' && <span data-testid="step-summary">{summary}</span>}
+      {!!isExpanded && <div data-testid="accordion-content">{(children as React.ReactNode)}</div>}
     </div>
   ),
   BarberSelectionStep: ({ barbers, isLoading, error }: Record<string, unknown>) => (
@@ -71,9 +71,9 @@ vi.mock('../../../components/client/booking', () => ({
       data-max-days={String(maxAdvanceDays)}
     />
   ),
-  ClientDataOverlay: ({ isOpen, onSubmit, onClose }: Record<string, unknown>) => (
+  ClientDataOverlay: ({ isOpen, onSubmit }: Record<string, unknown>) => (
     <div data-testid="client-overlay" data-open={String(isOpen)}>
-      {isOpen && (
+      {!!isOpen && (
         <button data-testid="confirm-btn" onClick={onSubmit as () => void}>
           Confirmar reserva
         </button>
@@ -82,7 +82,7 @@ vi.mock('../../../components/client/booking', () => ({
   ),
   BookingSuccessModal: ({ isOpen, onClose }: Record<string, unknown>) => (
     <div data-testid="success-modal" data-open={String(isOpen)}>
-      {isOpen && <button onClick={onClose as () => void}>Volver al inicio</button>}
+      {!!isOpen && <button onClick={onClose as () => void}>Volver al inicio</button>}
     </div>
   ),
 }));

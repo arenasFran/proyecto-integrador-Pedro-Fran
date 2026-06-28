@@ -21,8 +21,9 @@ vi.mock('../../../utils/token', () => ({
 
 import { professionalService } from '../../../services/professional.service';
 import { getTokenUser } from '../../../utils/token';
+import type { Professional } from '../../../types/professional';
 
-const mockEmployees = [
+const mockEmployees: Professional[] = [
   {
     id: 'emp1',
     name: 'Carlos',
@@ -35,6 +36,7 @@ const mockEmployees = [
     photoUrl: null,
     isActive: true,
     slotDuration: 30,
+    maxAdvanceDays: 30,
     schedule: {
       monday: { startTime: '09:00', endTime: '18:00', breaks: [] },
       tuesday: { startTime: '09:00', endTime: '18:00', breaks: [] },
@@ -57,6 +59,7 @@ const mockEmployees = [
     photoUrl: null,
     isActive: false,
     slotDuration: 45,
+    maxAdvanceDays: 30,
     schedule: {
       monday: { startTime: '10:00', endTime: '17:00', breaks: [{ startTime: '13:00', endTime: '14:00' }] },
       tuesday: { startTime: '10:00', endTime: '17:00', breaks: [{ startTime: '13:00', endTime: '14:00' }] },
@@ -71,7 +74,7 @@ const mockEmployees = [
 
 const preloadedState = {
   auth: { user: null } as never,
-  barbers: { list: mockEmployees, isLoading: false, error: null },
+  barbers: { list: mockEmployees, isLoading: false, error: null, total: 0, page: 1, totalPages: 1, limit: 50 },
 };
 
 describe('ProfessionalsPage', () => {
@@ -84,12 +87,12 @@ describe('ProfessionalsPage', () => {
         lastname: 'Test',
         email: 'admin@test.com',
         phone: '099000000',
-        kind: 'Admin',
+        kind: 'Admin' as const,
         services: [],
-        age: null,
         photoUrl: null,
         isActive: true,
         slotDuration: 30,
+        maxAdvanceDays: 30,
         schedule: {
           monday: { startTime: null, endTime: null, breaks: [] },
           tuesday: { startTime: null, endTime: null, breaks: [] },
@@ -99,7 +102,7 @@ describe('ProfessionalsPage', () => {
           saturday: { startTime: null, endTime: null, breaks: [] },
           sunday: { startTime: null, endTime: null, breaks: [] },
         },
-      },
+      } as Professional,
       ...mockEmployees,
     ]);
   });

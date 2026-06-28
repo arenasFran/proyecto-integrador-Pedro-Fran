@@ -81,9 +81,9 @@ const mockService = { id: 's1', name: 'Corte', description: '', price: 500, imag
 
 function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
   return configureStore({
-    reducer: { booking: reducer },
+    reducer: { booking: reducer } as any,
     preloadedState: preloaded ? { booking: preloaded } : { booking: initialState },
-  });
+  } as any);
 }
 
 describe('bookingSlice', () => {
@@ -132,7 +132,7 @@ describe('bookingSlice', () => {
 
     it('setSelectedDate asigna fecha y limpia hora y slots', () => {
       const state = reducer(
-        { ...initialState, flow: { ...initialState.flow, selectedTime: '10:00' } as typeof initialState.flow },
+        { ...initialState, flow: { ...initialState.flow, selectedTime: '10:00' } },
         setSelectedDate('2025-06-16')
       );
       expect(state.flow.selectedDate).toBe('2025-06-16');

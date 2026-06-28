@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import LoginPage from './index';
 import { renderWithProviders } from '../../../test/utils';
-import { getAccessToken } from '../../../services/api';
 
 const apiMock = vi.hoisted(() => vi.fn());
 vi.mock('../../../services/api', () => ({

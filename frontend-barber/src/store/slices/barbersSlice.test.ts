@@ -31,6 +31,7 @@ const mockBarber: Professional = {
   photoUrl: null,
   isActive: true,
   slotDuration: 30,
+  maxAdvanceDays: 30,
   schedule: {
     monday: { startTime: '09:00', endTime: '18:00', breaks: [] },
     tuesday: { startTime: '09:00', endTime: '18:00', breaks: [] },

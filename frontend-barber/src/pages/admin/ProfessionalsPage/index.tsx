@@ -55,7 +55,7 @@ const createEmptyForm = (): ProfessionalFormState => ({
 
 export const ProfessionalsPage: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { list: professionals, totalPages, total } = useAppSelector((state) => state.barbers);
+  const { list: professionals, totalPages } = useAppSelector((state) => state.barbers);
   const { showToast } = useToast();
   const authUser = useAppSelector((state) => state.auth.user) as Professional | null;
 

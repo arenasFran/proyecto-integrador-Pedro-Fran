@@ -1,6 +1,6 @@
 import React, { type PropsWithChildren } from 'react';
 import { Provider } from 'react-redux';
-import { configureStore, type PreloadedState } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import authReducer from '../store/slices/authSlice';
@@ -9,21 +9,21 @@ import { authApi } from '../services/authApi';
 import type { RootState } from '../store';
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
-  preloadedState?: PreloadedState<RootState>;
+  preloadedState?: Partial<RootState>;
   initialEntries?: string[];
 }
 
-function createTestStore(preloadedState?: PreloadedState<Partial<RootState>>) {
+function createTestStore(preloadedState?: Partial<RootState>) {
   return configureStore({
     reducer: {
       auth: authReducer,
       barbers: barbersReducer,
       [authApi.reducerPath]: authApi.reducer,
-    },
-    middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(authApi.middleware),
+    } as any,
+    middleware: (getDefaultMiddleware: any) =>
+      (getDefaultMiddleware() as any[]).concat(authApi.middleware) as any,
     preloadedState,
-  });
+  } as any);
 }
 
 export function renderWithProviders(

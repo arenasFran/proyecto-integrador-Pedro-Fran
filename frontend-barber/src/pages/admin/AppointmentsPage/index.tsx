@@ -100,13 +100,10 @@ export const AdminAppointmentsPage: React.FC = () => {
     return { total, confirmed, completed, cancelled };
   }, [appointments, totalResults]);
 
-  const resetPage = () => setPage(1);
-
   useEffect(() => {
     setPage(1);
   }, [filterDate, filterBarberId, filterStatus]);
 
-  const [statusError, setStatusError] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
 
   const extractError = (err: unknown): string => {
@@ -122,7 +119,6 @@ export const AdminAppointmentsPage: React.FC = () => {
       showToast('Turno cancelado con éxito');
       setCancelTarget(null);
       setCancelReason('');
-      setStatusError(null);
     } catch (err) {
       showToast(extractError(err), 'error');
     }
@@ -133,7 +129,6 @@ export const AdminAppointmentsPage: React.FC = () => {
       await updateStatus({ id, status }).unwrap();
       const label = status === 'Completado' ? 'completado' : 'marcado como no asistió';
       showToast(`Turno ${label} con éxito`);
-      setStatusError(null);
     } catch (err) {
       showToast(extractError(err), 'error');
     }
@@ -153,7 +148,6 @@ export const AdminAppointmentsPage: React.FC = () => {
       setRescheduleDate('');
       setRescheduleTime('');
       setRescheduleBarberId('');
-      setStatusError(null);
     } catch (err) {
       showToast(extractError(err), 'error');
     }

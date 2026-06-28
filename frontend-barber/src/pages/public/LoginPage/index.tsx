@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
 import { Button, Input, PasswordInput, useToast } from '../../../components/common';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import { useFormValidation } from '../../../hooks/useFormValidation';
 import { useAppDispatch } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
@@ -138,15 +139,10 @@ export const LoginPage: React.FC = () => {
         navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
       }
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al iniciar sesión con Google');
-      if (message === 'ACCOUNT_EXISTS_LOCAL') {
-        showToast('Este email ya está registrado con una contraseña. Usá el formulario de inicio de sesión.', 'error');
-      } else {
-        showToast(message, 'error');
-      }
+      const message = getErrorMessage(err, 'Error al iniciar sesión con Google');
+      showToast(message, 'error');
     }
-  }, [googleLoginMutation, dispatch, navigate]);
+  }, [googleLoginMutation, dispatch, navigate, showToast]);
 
   useEffect(() => {
     if (isCodeStep || !googleClientId) return;
@@ -220,9 +216,7 @@ export const LoginPage: React.FC = () => {
       setTwoFactorPendingEmail(credentialsValues.email);
       setSuccessMessage(result.message);
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al enviar el código');
-      showToast(message, 'error');
+      showToast(getErrorMessage(err, 'Error al enviar el código'), 'error');
     }
   };
 
@@ -244,9 +238,7 @@ export const LoginPage: React.FC = () => {
       const role = getTokenKind(result.token);
       navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al verificar el código');
-      showToast(message, 'error');
+      showToast(getErrorMessage(err, 'Error al verificar el código'), 'error');
     }
   };
 
@@ -290,9 +282,7 @@ export const LoginPage: React.FC = () => {
       const role = getTokenKind(result.token);
       navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al completar el perfil');
-      showToast(message, 'error');
+      showToast(getErrorMessage(err, 'Error al completar el perfil'), 'error');
     }
   };
 

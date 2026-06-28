@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight } from 'react-icons/fi';
 import { Input, Button } from '../../../../components/common';
+import { getErrorMessage } from '../../../../utils/errorMessages';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
 import { useRequestResetMutation } from '../../../../services/authApi';
 import type { RequestResetFormData } from '../../../../types/auth';
@@ -34,7 +35,7 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
     }
   };
 
-  const errorMessage = error ? ((error as { data?: string }).data ?? 'Error al solicitar recuperación') : null;
+  const errorMessage = error ? getErrorMessage(error, 'Error al solicitar recuperación') : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">

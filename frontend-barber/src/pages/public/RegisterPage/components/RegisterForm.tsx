@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
 import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
+import { getErrorMessage } from '../../../../utils/errorMessages';
 import { useRegisterMutation } from '../../../../services/authApi';
 import type { RegisterFormData } from '../../../../types/auth';
 
@@ -41,7 +42,7 @@ export const RegisterForm: React.FC = () => {
     }
   };
 
-  const errorMessage = error ? ((error as { data?: string }).data ?? 'Error al registrar') : null;
+  const errorMessage = error ? getErrorMessage(error, 'Error al registrar') : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">

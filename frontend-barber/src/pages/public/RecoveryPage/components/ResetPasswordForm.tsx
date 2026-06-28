@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
 import { PasswordInput, Button, PasswordStrength } from '../../../../components/common';
+import { getErrorMessage } from '../../../../utils/errorMessages';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
 import { useResetPasswordMutation } from '../../../../services/authApi';
 import type { ResetPasswordFormData } from '../../../../types/auth';
@@ -43,7 +44,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email }) =
     }
   };
 
-  const errorMessage = error ? ((error as { data?: string }).data ?? 'Error al restablecer contraseña') : null;
+  const errorMessage = error ? getErrorMessage(error, 'Error al restablecer contraseña') : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">

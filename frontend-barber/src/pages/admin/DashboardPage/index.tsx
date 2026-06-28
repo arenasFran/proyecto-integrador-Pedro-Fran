@@ -97,12 +97,11 @@ export default function DashboardPage() {
       <AnimatedContainer animation="fadeInDown">
         <div className="flex flex-col gap-3">
           <h1 className="text-white text-2xl lg:text-3xl font-bold">Métricas</h1>
-          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
         </div>
       </AnimatedContainer>
 
       <AnimatedContainer animation="fadeInUp" delay={0.1}>
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
           {TABS.map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -122,16 +121,25 @@ export default function DashboardPage() {
 
       {activeTab === 'resumen' && (
         <>
-          <AnimatedContainer animation="fadeInUp" delay={0.2}>
-            <KpiCards data={overview ?? null} loading={loading} error={error} />
+          <AnimatedContainer animation="fadeInUp" delay={0.15}>
+            <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
           </AnimatedContainer>
-          <AnimatedContainer animation="fadeInUp" delay={0.3}>
-            <StatusBreakdown
-              data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
-              loading={loading}
-              error={error}
-            />
-          </AnimatedContainer>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div className="lg:col-span-2">
+            <AnimatedContainer animation="fadeInUp" delay={0.2}>
+              <KpiCards data={overview ?? null} loading={loading} error={error} />
+            </AnimatedContainer>
+          </div>
+          <div>
+            <AnimatedContainer animation="fadeInUp" delay={0.3}>
+              <StatusBreakdown
+                data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
+                loading={loading}
+                error={error}
+              />
+            </AnimatedContainer>
+          </div>
+        </div>
         </>
       )}
 

@@ -90,7 +90,7 @@ export const RegisterForm: React.FC = () => {
         required
         error={touched.password ? errors.password : undefined}
       />
-      {values.password && <PasswordStrength password={values.password} />}
+      <PasswordStrength password={values.password} />
 
       <PasswordInput
         label="Confirmar"

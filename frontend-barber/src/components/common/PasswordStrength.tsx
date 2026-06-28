@@ -4,6 +4,13 @@ interface PasswordStrengthProps {
   password: string;
 }
 
+const REQUIREMENTS = [
+  { label: 'Mínimo 8 caracteres', test: (pwd: string) => pwd.length >= 8 },
+  { label: 'Una mayúscula', test: (pwd: string) => /[A-Z]/.test(pwd) },
+  { label: 'Una minúscula', test: (pwd: string) => /[a-z]/.test(pwd) },
+  { label: 'Un número', test: (pwd: string) => /[0-9]/.test(pwd) },
+];
+
 export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password }) => {
   const getStrength = (pwd: string): { level: number; label: string; color: string } => {
     if (!pwd) return { level: 0, label: '', color: '#282828' };
@@ -22,24 +29,40 @@ export const PasswordStrength: React.FC<PasswordStrengthProps> = ({ password }) 
   };
 
   const strength = getStrength(password);
+  const isEmpty = !password;
 
   return (
     <div className="mt-2">
-      <div className="flex gap-1 h-1.5">
-        {[1, 2, 3, 4].map((level) => (
-          <div
-            key={level}
-            className="flex-1 rounded-full"
-            style={{
-              backgroundColor: level <= strength.level ? strength.color : '#282828',
-            }}
-          />
-        ))}
-      </div>
-      {strength.label && (
-        <p className="text-[12px] mt-1" style={{ color: strength.color }}>
-          {strength.label}
-        </p>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1">
+        {REQUIREMENTS.map((req) => {
+          const met = !isEmpty && req.test(password);
+          return (
+            <li key={req.label} className="text-[11px] flex items-center gap-1" style={{ color: isEmpty ? '#8A8A8A' : met ? '#22C55E' : '#EF4444' }}>
+              <span>{isEmpty ? '·' : met ? '✓' : '✗'}</span>
+              {req.label}
+            </li>
+          );
+        })}
+      </ul>
+      {!isEmpty && (
+        <>
+          <div className="flex gap-1 h-1.5 mt-2">
+            {[1, 2, 3, 4].map((level) => (
+              <div
+                key={level}
+                className="flex-1 rounded-full"
+                style={{
+                  backgroundColor: level <= strength.level ? strength.color : '#282828',
+                }}
+              />
+            ))}
+          </div>
+          {strength.label && (
+            <p className="text-[12px] mt-1" style={{ color: strength.color }}>
+              {strength.label}
+            </p>
+          )}
+        </>
       )}
     </div>
   );

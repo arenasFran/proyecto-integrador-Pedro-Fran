@@ -73,7 +73,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email }) =
           required
           error={touched.password ? errors.password : undefined}
         />
-        {values.password && <PasswordStrength password={values.password} />}
+        <PasswordStrength password={values.password} />
       </motion.div>
 
       <motion.div

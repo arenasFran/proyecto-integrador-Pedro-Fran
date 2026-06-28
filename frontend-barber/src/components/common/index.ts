@@ -8,4 +8,5 @@ export { ChartContainer } from './ChartContainer';
 export { ToastProvider, useToast } from './Toast';
 export { ConfirmModal } from './ConfirmModal';
 export { Spinner } from './Spinner';
+export { Pagination } from './Pagination';
 export { LoadingSkeleton } from '../client/common/LoadingSkeleton';

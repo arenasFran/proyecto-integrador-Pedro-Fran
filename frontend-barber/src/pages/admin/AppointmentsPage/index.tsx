@@ -280,116 +280,118 @@ export const AdminAppointmentsPage: React.FC = () => {
               <p className="text-[12px] mt-1">Probá cambiar los filtros o seleccionar otra fecha.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[13px]">
-                <thead>
-                  <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
-                    <th className="pb-3 pr-4 font-medium">Cliente</th>
-                    <th className="pb-3 pr-4 font-medium">Barbero</th>
-                    <th className="pb-3 pr-4 font-medium">Servicio</th>
-                    <th className="pb-3 pr-4 font-medium">Fecha</th>
-                    <th className="pb-3 pr-4 font-medium">Hora</th>
-                    <th className="pb-3 pr-4 font-medium">Estado</th>
-                    <th className="pb-3 font-medium">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((appointment) => {
-                    const style = statusStyles[appointment.status];
-                    const isActive = appointment.status === 'Confirmado';
-                    return (
-                      <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
-                        <td className="py-3 pr-4">
-                          <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
-                          {appointment.clientEmail && (
-                            <div className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</div>
-                          )}
-                        </td>
-                        <td className="py-3 pr-4 text-[#8A8A8A]">
-                          {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
-                        </td>
-                        <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
-                        <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
-                        <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
-                        <td className="py-3 pr-4">
-                          <motion.span
-                            key={`${appointment.id}-${appointment.status}`}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.2 }}
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}
-                          >
-                            {style.label}
-                          </motion.span>
-                        </td>
-                        <td className="py-3">
-                          <div className="flex items-center gap-1.5">
-                            {isActive && (
-                              <div className="relative">
-                                <button
-                                  onClick={() => setActiveMenu(activeMenu === appointment.id ? null : appointment.id)}
-                                  className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
-                                  title="Acciones"
-                                >
-                                  <FiMoreVertical className="text-sm" />
-                                </button>
-                                {activeMenu === appointment.id && (
-                                  <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
-                                    <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl">
-                                      <button
-                                        onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); }}
-                                        disabled={isUpdatingStatus}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                      >
-                                        <FiCheck className="text-sm" /> Completado
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          setRescheduleTarget(appointment);
-                                          setRescheduleDate(appointment.date);
-                                          setRescheduleTime(appointment.startTime);
-                                          setRescheduleBarberId(appointment.barberId);
-                                          setActiveMenu(null);
-                                        }}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
-                                      >
-                                        <FiClock className="text-sm" /> Reprogramar
-                                      </button>
-                                      <button
-                                        onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); }}
-                                        disabled={isUpdatingStatus}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                      >
-                                        <FiXCircle className="text-sm" /> No asistió
-                                      </button>
-                                      <hr className="border-[#282828] my-1" />
-                                      <button
-                                        onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); }}
-                                        disabled={isCancelling}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                      >
-                                        <FiX className="text-sm" /> Cancelar
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[13px]">
+                  <thead>
+                    <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
+                      <th className="pb-3 pr-4 font-medium">Cliente</th>
+                      <th className="pb-3 pr-4 font-medium">Barbero</th>
+                      <th className="pb-3 pr-4 font-medium">Servicio</th>
+                      <th className="pb-3 pr-4 font-medium">Fecha</th>
+                      <th className="pb-3 pr-4 font-medium">Hora</th>
+                      <th className="pb-3 pr-4 font-medium">Estado</th>
+                      <th className="pb-3 font-medium">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((appointment) => {
+                      const style = statusStyles[appointment.status];
+                      const isActive = appointment.status === 'Confirmado';
+                      return (
+                        <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
+                          <td className="py-3 pr-4">
+                            <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
+                            {appointment.clientEmail && (
+                              <div className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</div>
                             )}
-                            {appointment.status === 'Cancelado' && appointment.cancelReason && (
-                              <span className="text-[11px] text-[#8A8A8A] max-w-[120px] truncate" title={appointment.cancelReason}>
-                                {appointment.cancelReason}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+                          </td>
+                          <td className="py-3 pr-4 text-[#8A8A8A]">
+                            {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
+                          </td>
+                          <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
+                          <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
+                          <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
+                          <td className="py-3 pr-4">
+                            <motion.span
+                              key={`${appointment.id}-${appointment.status}`}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ duration: 0.2 }}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}
+                            >
+                              {style.label}
+                            </motion.span>
+                          </td>
+                          <td className="py-3">
+                            <div className="flex items-center gap-1.5">
+                              {isActive && (
+                                <div className="relative">
+                                  <button
+                                    onClick={() => setActiveMenu(activeMenu === appointment.id ? null : appointment.id)}
+                                    className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
+                                    title="Acciones"
+                                  >
+                                    <FiMoreVertical className="text-sm" />
+                                  </button>
+                                  {activeMenu === appointment.id && (
+                                    <>
+                                      <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
+                                      <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl">
+                                        <button
+                                          onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); }}
+                                          disabled={isUpdatingStatus}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                        >
+                                          <FiCheck className="text-sm" /> Completado
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setRescheduleTarget(appointment);
+                                            setRescheduleDate(appointment.date);
+                                            setRescheduleTime(appointment.startTime);
+                                            setRescheduleBarberId(appointment.barberId);
+                                            setActiveMenu(null);
+                                          }}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
+                                        >
+                                          <FiClock className="text-sm" /> Reprogramar
+                                        </button>
+                                        <button
+                                          onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); }}
+                                          disabled={isUpdatingStatus}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                        >
+                                          <FiXCircle className="text-sm" /> No asistió
+                                        </button>
+                                        <hr className="border-[#282828] my-1" />
+                                        <button
+                                          onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); }}
+                                          disabled={isCancelling}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                        >
+                                          <FiX className="text-sm" /> Cancelar
+                                        </button>
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                              {appointment.status === 'Cancelado' && appointment.cancelReason && (
+                                <span className="text-[11px] text-[#8A8A8A] max-w-[120px] truncate" title={appointment.cancelReason}>
+                                  {appointment.cancelReason}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+            </>
           )}
         </AnimatedContainer>
       </div>

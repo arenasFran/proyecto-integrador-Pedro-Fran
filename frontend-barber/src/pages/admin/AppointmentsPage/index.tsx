@@ -12,7 +12,7 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, useToast } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
@@ -282,34 +282,30 @@ export const AdminAppointmentsPage: React.FC = () => {
           </div>
           {showMoreFilters && (
             <div className="flex flex-wrap items-center gap-3 mb-6">
-              <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-white">Barbero</label>
-                <select
+              <div className="w-full sm:w-[200px]">
+                <Select
+                  label="Barbero"
                   value={filterBarberId}
-                  onChange={(e) => setFilterBarberId(e.target.value)}
-                  className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-                >
-                  <option value="">Todos</option>
-                  {barbers.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} {b.lastname}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setFilterBarberId}
+                  options={[
+                    { value: '', label: 'Todos' },
+                    ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                  ]}
+                />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-white">Estado</label>
-                <select
+              <div className="w-full sm:w-[200px]">
+                <Select
+                  label="Estado"
                   value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-                >
-                  <option value="">Todos</option>
-                  <option value="Confirmado">Confirmado</option>
-                  <option value="Completado">Completado</option>
-                  <option value="Cancelado">Cancelado</option>
-                  <option value="NoShow">No asistió</option>
-                </select>
+                  onChange={setFilterStatus}
+                  options={[
+                    { value: '', label: 'Todos' },
+                    { value: 'Confirmado', label: 'Confirmado' },
+                    { value: 'Completado', label: 'Completado' },
+                    { value: 'Cancelado', label: 'Cancelado' },
+                    { value: 'NoShow', label: 'No asistió' },
+                  ]}
+                />
               </div>
             </div>
           )}
@@ -535,21 +531,15 @@ export const AdminAppointmentsPage: React.FC = () => {
                 value={rescheduleTime}
                 onChange={(e) => setRescheduleTime(e.target.value)}
               />
-              <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-white">Barbero</label>
-                <select
-                  value={rescheduleBarberId}
-                  onChange={(e) => setRescheduleBarberId(e.target.value)}
-                  className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-                >
-                  <option value="">Seleccionar barbero</option>
-                  {barbers.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} {b.lastname}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Barbero"
+                value={rescheduleBarberId}
+                onChange={setRescheduleBarberId}
+                options={[
+                  { value: '', label: 'Seleccionar barbero' },
+                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                ]}
+              />
             </div>
             <div className="flex gap-3 mt-6">
               <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>

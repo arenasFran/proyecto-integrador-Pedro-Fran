@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import { Select } from '../../../../components/common/Select';
 import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
 
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -104,16 +105,15 @@ export default function HeatmapChart() {
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-white text-base font-bold">Actividad</h3>
-        <select
-          value={selectedYear ?? ''}
-          onChange={(e) => setSelectedYear(e.target.value ? Number(e.target.value) : undefined)}
-          className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF5C00]"
-        >
-          {availableYears.length === 0 && <option value="">Sin datos</option>}
-          {availableYears.map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+        <Select
+          label="Año"
+          value={selectedYear !== undefined ? String(selectedYear) : ''}
+          onChange={(v) => setSelectedYear(v ? Number(v) : undefined)}
+          options={[
+            ...(availableYears.length === 0 ? [{ value: '', label: 'Sin datos' }] : []),
+            ...availableYears.map((y) => ({ value: String(y), label: String(y) })),
+          ]}
+        />
       </div>
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}

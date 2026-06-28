@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, Pagination, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, Input, Pagination, Select, useToast } from '../../../components/common';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsQuery,
@@ -284,21 +284,15 @@ export const MyAppointmentsPage: React.FC = () => {
                 value={rescheduleTime}
                 onChange={(e) => setRescheduleTime(e.target.value)}
               />
-              <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-white">Barbero</label>
-                <select
-                  value={rescheduleBarberId}
-                  onChange={(e) => setRescheduleBarberId(e.target.value)}
-                  className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-                >
-                  <option value="">Seleccionar barbero</option>
-                  {barbers.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} {b.lastname}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Barbero"
+                value={rescheduleBarberId}
+                onChange={setRescheduleBarberId}
+                options={[
+                  { value: '', label: 'Seleccionar barbero' },
+                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                ]}
+              />
             </div>
             <div className="flex gap-3 mt-6">
               <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>

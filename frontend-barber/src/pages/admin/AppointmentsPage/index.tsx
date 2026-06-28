@@ -330,7 +330,8 @@ export const AdminAppointmentsPage: React.FC = () => {
                                   <button
                                     onClick={() => setActiveMenu(activeMenu === appointment.id ? null : appointment.id)}
                                     className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
-                                    title="Acciones"
+                                    aria-label="Acciones del turno"
+                                    aria-expanded={activeMenu === appointment.id}
                                   >
                                     <FiMoreVertical className="text-sm" />
                                   </button>
@@ -338,29 +339,32 @@ export const AdminAppointmentsPage: React.FC = () => {
                                     <>
                                       <div className="fixed inset-0 z-40" onClick={() => setActiveMenu(null)} />
                                       <div className="absolute right-0 top-full mt-1 z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl">
-                                        <button
-                                          onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); }}
-                                          disabled={isUpdatingStatus}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                        >
-                                          <FiCheck className="text-sm" /> Completado
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            setRescheduleTarget(appointment);
-                                            setRescheduleDate(appointment.date);
-                                            setRescheduleTime(appointment.startTime);
-                                            setRescheduleBarberId(appointment.barberId);
-                                            setActiveMenu(null);
-                                          }}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
-                                        >
-                                          <FiClock className="text-sm" /> Reprogramar
-                                        </button>
+                                          <button
+                                            onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); }}
+                                            disabled={isUpdatingStatus}
+                                            className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                            aria-label="Marcar como completado"
+                                          >
+                                            <FiCheck className="text-sm" /> Completado
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setRescheduleTarget(appointment);
+                                              setRescheduleDate(appointment.date);
+                                              setRescheduleTime(appointment.startTime);
+                                              setRescheduleBarberId(appointment.barberId);
+                                              setActiveMenu(null);
+                                            }}
+                                            className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
+                                            aria-label="Reprogramar turno"
+                                          >
+                                            <FiClock className="text-sm" /> Reprogramar
+                                          </button>
                                         <button
                                           onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); }}
                                           disabled={isUpdatingStatus}
                                           className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                          aria-label="Marcar como no asistió"
                                         >
                                           <FiXCircle className="text-sm" /> No asistió
                                         </button>
@@ -369,6 +373,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                                           onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); }}
                                           disabled={isCancelling}
                                           className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                          aria-label="Cancelar turno"
                                         >
                                           <FiX className="text-sm" /> Cancelar
                                         </button>

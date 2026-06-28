@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FiBarChart2, FiCalendar, FiGrid, FiPieChart } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
-import DateRangeFilter from './components/DateRangeFilter';
+import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import KpiCards from './components/KpiCards';
 import StatusBreakdown from './components/StatusBreakdown';
 import HeatmapChart from './components/HeatmapChart';

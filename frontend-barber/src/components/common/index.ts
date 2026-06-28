@@ -9,4 +9,6 @@ export { ToastProvider, useToast } from './Toast';
 export { ConfirmModal } from './ConfirmModal';
 export { Spinner } from './Spinner';
 export { Pagination } from './Pagination';
+export { Select } from './Select';
+export type { SelectOption } from './Select';
 export { LoadingSkeleton } from '../client/common/LoadingSkeleton';

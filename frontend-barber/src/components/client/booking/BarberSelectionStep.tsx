@@ -74,21 +74,28 @@ export const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
             </div>
 
             {onSelectAny && (
-              <motion.button
-                onClick={() => onSelectAny()}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
-                className={`
-                  w-full flex items-center justify-center gap-2 rounded-[10px] border border-dashed py-2.5 px-4 text-[12px] font-medium transition-all duration-200
-                  ${isAnySelected
-                    ? 'border-[#FF5C00] text-[#FF5C00] bg-[#FF5C00]/5'
-                    : 'border-[#282828] text-[#8A8A8A] hover:text-[#FF5C00] hover:border-[#FF5C00]/40'
-                  }
-                `}
-              >
-                <FiUser className="w-3.5 h-3.5" />
-                {isAnySelected ? 'Sin preferencia (elegimos el mejor horario)' : 'No tengo preferencia'}
-              </motion.button>
+              <>
+                <motion.button
+                  onClick={() => onSelectAny()}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  className={`
+                    w-full flex items-center justify-center gap-2 rounded-[10px] border border-dashed py-2.5 px-4 text-[12px] font-medium transition-all duration-200
+                    ${isAnySelected
+                      ? 'border-[#FF5C00] text-[#FF5C00] bg-[#FF5C00]/5'
+                      : 'border-[#282828] text-[#8A8A8A] hover:text-[#FF5C00] hover:border-[#FF5C00]/40'
+                    }
+                  `}
+                >
+                  <FiUser className="w-3.5 h-3.5" />
+                  {isAnySelected ? 'Sin preferencia (elegimos el mejor horario)' : 'No tengo preferencia'}
+                </motion.button>
+                {isAnySelected && (
+                  <p className="text-[11px] text-[#8A8A8A] italic text-center">
+                    Se asignará el primer barbero disponible
+                  </p>
+                )}
+              </>
             )}
           </>
         )}

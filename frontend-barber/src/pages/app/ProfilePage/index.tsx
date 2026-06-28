@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiChevronDown, FiChevronUp, FiSave, FiScissors, FiShield, FiUser } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiScissors, FiSettings, FiShield, FiUser } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, PasswordInput, Spinner } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateCurrentUser } from '../../../store/slices/authSlice';
@@ -48,6 +48,7 @@ export const ProfilePage: React.FC = () => {
     return barbers.find((b) => b.id === authUser.id) ?? null;
   }, [authUser, barbers, isBarber]);
 
+  const [activeTab, setActiveTab] = useState<'personal' | 'agenda'>('personal');
   const [password, setPassword] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
@@ -56,13 +57,7 @@ export const ProfilePage: React.FC = () => {
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
-  const scheduleRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (scheduleExpanded && scheduleRef.current) {
-      scheduleRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }, [scheduleExpanded]);
+  const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
 
   useEffect(() => {
     if (isBarber && barbers.length === 0 && !barbersLoading) {
@@ -256,126 +251,84 @@ export const ProfilePage: React.FC = () => {
         )}
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-          <form className="grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                label="Nombre"
-                value={String(formData.name ?? '')}
-                onChange={handleFieldChange('name')}
-                required
-                placeholder="Nombre"
-              />
-              <Input
-                label="Apellido"
-                value={String(formData.lastname ?? '')}
-                onChange={handleFieldChange('lastname')}
-                required
-                placeholder="Apellido"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <Input
-                label="Email"
-                type="email"
-                value={String(formData.email ?? '')}
-                onChange={handleFieldChange('email')}
-                required
-                placeholder="email@ejemplo.com"
-              />
-              <Input
-                label="Teléfono"
-                value={String(formData.phone ?? '')}
-                onChange={handleFieldChange('phone')}
-                required
-                placeholder="099000000"
-              />
-            </div>
-
-            <PasswordInput
-              label="Nueva contraseña (opcional)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Dejar vacío para no cambiar"
-            />
-
-            <Input
-              label="Foto de perfil"
-              type="url"
-              value={String(formData.photoUrl ?? '')}
-              onChange={(e) =>
-                setEditedFields((prev) => ({ ...prev, photoUrl: e.target.value.trim() || null }))
-              }
-              placeholder="https://..."
-              helperText="Opcional"
-            />
-
+          <div className="flex gap-1 mb-6 rounded-[12px] bg-[#1A1A1A] p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab('personal')}
+              className={`flex-1 flex items-center justify-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-medium transition-all duration-200 ${
+                activeTab === 'personal' ? 'bg-[#FF5C00] text-white shadow-sm' : 'text-[#8A8A8A] hover:text-white'
+              }`}
+            >
+              <FiUser className="w-4 h-4" />
+              Información personal
+            </button>
             {isBarber && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('agenda')}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-medium transition-all duration-200 ${
+                  activeTab === 'agenda' ? 'bg-[#FF5C00] text-white shadow-sm' : 'text-[#8A8A8A] hover:text-white'
+                }`}
+              >
+                <FiCalendar className="w-4 h-4" />
+                Configuración de agenda
+              </button>
+            )}
+          </div>
+
+          <form className="grid gap-4" onSubmit={handleSubmit}>
+            {activeTab === 'personal' && (
               <>
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="Duración del slot"
-                    type="number"
-                    min={1}
-                    value={String(formData.slotDuration ?? 30)}
-                    onChange={(e) =>
-                      setEditedFields((prev) => ({ ...prev, slotDuration: Number(e.target.value) || 30 }))
-                    }
-                    required
-                    placeholder="30"
-                    helperText="En minutos"
-                  />
-                  <Input
-                    label="Días máximos para reservar"
-                    type="number"
-                    min={1}
-                    value={String(formData.maxAdvanceDays ?? 30)}
-                    onChange={(e) =>
-                      setEditedFields((prev) => ({ ...prev, maxAdvanceDays: Number(e.target.value) || 30 }))
-                    }
-                    required
-                    placeholder="30"
-                    helperText="Anticipación máxima"
-                  />
+                  <Input label="Nombre" value={String(formData.name ?? '')} onChange={handleFieldChange('name')} required placeholder="Nombre" />
+                  <Input label="Apellido" value={String(formData.lastname ?? '')} onChange={handleFieldChange('lastname')} required placeholder="Apellido" />
                 </div>
-
                 <div className="grid gap-4 md:grid-cols-2">
-                  <Input
-                    label="Servicios"
-                    value={String(formData.services ? (formData.services as string[]).join(', ') : '')}
-                    onChange={(e) =>
-                      setEditedFields((prev) => ({ ...prev, services: normalizeServices(e.target.value) }))
-                    }
-                    placeholder="corte, barba, color"
-                    helperText="Separadas por coma"
-                  />
-                  <Input
-                    label="Edad"
-                    type="number"
-                    min={0}
-                    value={formData.age ? String(formData.age) : ''}
-                    onChange={(e) =>
-                      setEditedFields((prev) => ({ ...prev, age: e.target.value ? Number(e.target.value) : undefined }))
-                    }
-                    placeholder="30"
-                  />
+                  <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
+                  <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="099000000" />
+                </div>
+                <PasswordInput label="Nueva contraseña (opcional)" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />
+                <Input label="Foto de perfil" type="url" value={String(formData.photoUrl ?? '')} onChange={(e) => setEditedFields((prev) => ({ ...prev, photoUrl: e.target.value.trim() || null }))} placeholder="https://..." helperText="Opcional" />
+              </>
+            )}
+
+            {activeTab === 'agenda' && isBarber && (
+              <div className="grid gap-4">
+                <div className="rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <FiSettings className="w-4 h-4 text-[#FF5C00]" />
+                      <div>
+                        <h3 className="text-[14px] font-semibold text-white">Configuración de barbero</h3>
+                        <p className="text-[11px] text-[#8A8A8A]">{barberConfigExpanded ? 'Duración, servicios y datos personales' : 'Slot, servicios, edad y más'}</p>
+                      </div>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" icon={barberConfigExpanded ? FiChevronUp : FiChevronDown} onClick={() => setBarberConfigExpanded(!barberConfigExpanded)}>
+                      {barberConfigExpanded ? 'Colapsar' : 'Expandir'}
+                    </Button>
+                  </div>
+
+                  {barberConfigExpanded && (
+                    <div className="mt-4 grid gap-4">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Input label="Duración del slot" type="number" min={1} value={String(formData.slotDuration ?? 30)} onChange={(e) => setEditedFields((prev) => ({ ...prev, slotDuration: Number(e.target.value) || 30 }))} required placeholder="30" helperText="En minutos" />
+                        <Input label="Días máximos para reservar" type="number" min={1} value={String(formData.maxAdvanceDays ?? 30)} onChange={(e) => setEditedFields((prev) => ({ ...prev, maxAdvanceDays: Number(e.target.value) || 30 }))} required placeholder="30" helperText="Anticipación máxima" />
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Input label="Servicios" value={String(formData.services ? (formData.services as string[]).join(', ') : '')} onChange={(e) => setEditedFields((prev) => ({ ...prev, services: normalizeServices(e.target.value) }))} placeholder="corte, barba, color" helperText="Separadas por coma" />
+                        <Input label="Edad" type="number" min={0} value={formData.age ? String(formData.age) : ''} onChange={(e) => setEditedFields((prev) => ({ ...prev, age: e.target.value ? Number(e.target.value) : undefined }))} placeholder="30" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div ref={scheduleRef} className="mt-2 rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
+                <div className="rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="text-[16px] font-semibold text-white">Calendario</h3>
-                      <p className="text-[12px] text-[#8A8A8A]">
-                        {scheduleExpanded ? 'Definí horarios y breaks por día.' : 'Horario semanal.'}
-                      </p>
+                      <h3 className="text-[14px] font-semibold text-white">Calendario</h3>
+                      <p className="text-[11px] text-[#8A8A8A]">{scheduleExpanded ? 'Definí horarios y breaks por día.' : 'Horario semanal.'}</p>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      icon={scheduleExpanded ? FiChevronUp : FiChevronDown}
-                      onClick={() => setScheduleExpanded(!scheduleExpanded)}
-                    >
+                    <Button type="button" variant="ghost" size="sm" icon={scheduleExpanded ? FiChevronUp : FiChevronDown} onClick={() => setScheduleExpanded(!scheduleExpanded)}>
                       {scheduleExpanded ? 'Colapsar' : 'Expandir'}
                     </Button>
                   </div>
@@ -383,48 +336,21 @@ export const ProfilePage: React.FC = () => {
                   {scheduleExpanded ? (
                     <div className="mt-4 grid gap-4">
                       {days.map((day) => (
-                        <div
-                          key={day.key}
-                          className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3"
-                        >
+                        <div key={day.key} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3">
                           <div className="flex items-center justify-between gap-4">
                             <div>
                               <p className="text-[14px] font-semibold text-white">{day.label}</p>
                               <p className="text-[11px] text-[#8A8A8A]">Horario y breaks del día</p>
                             </div>
-                            <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">
-                              {day.key}
-                            </span>
+                            <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">{day.key}</span>
                           </div>
-
                           <div className="grid gap-3 md:grid-cols-2">
-                            <Input
-                              label={`Inicio ${day.label}`}
-                              type="time"
-                              value={schedule[day.key].startTime}
-                              onChange={handleDayChange(day.key, 'startTime')}
-                            />
-                            <Input
-                              label={`Fin ${day.label}`}
-                              type="time"
-                              value={schedule[day.key].endTime}
-                              onChange={handleDayChange(day.key, 'endTime')}
-                            />
+                            <Input label={`Inicio ${day.label}`} type="time" value={schedule[day.key].startTime} onChange={handleDayChange(day.key, 'startTime')} />
+                            <Input label={`Fin ${day.label}`} type="time" value={schedule[day.key].endTime} onChange={handleDayChange(day.key, 'endTime')} />
                           </div>
-
                           <div className="grid gap-3 md:grid-cols-2">
-                            <Input
-                              label={`Break inicio ${day.label}`}
-                              type="time"
-                              value={schedule[day.key].breakStart}
-                              onChange={handleDayChange(day.key, 'breakStart')}
-                            />
-                            <Input
-                              label={`Break fin ${day.label}`}
-                              type="time"
-                              value={schedule[day.key].breakEnd}
-                              onChange={handleDayChange(day.key, 'breakEnd')}
-                            />
+                            <Input label={`Break inicio ${day.label}`} type="time" value={schedule[day.key].breakStart} onChange={handleDayChange(day.key, 'breakStart')} />
+                            <Input label={`Break fin ${day.label}`} type="time" value={schedule[day.key].breakEnd} onChange={handleDayChange(day.key, 'breakEnd')} />
                           </div>
                         </div>
                       ))}
@@ -432,21 +358,15 @@ export const ProfilePage: React.FC = () => {
                   ) : (
                     <div className="mt-4">
                       {scheduleSummary ? (
-                        <p className="text-[13px] text-[#8A8A8A] leading-relaxed">
-                          {scheduleSummary}
-                        </p>
+                        <p className="text-[13px] text-[#8A8A8A] leading-relaxed">{scheduleSummary}</p>
                       ) : (
-                        <p className="text-[13px] text-[#8A8A8A] italic">
-                          Sin horarios cargados.
-                        </p>
+                        <p className="text-[13px] text-[#8A8A8A] italic">Sin horarios cargados.</p>
                       )}
-                      <p className="mt-2 text-[11px] text-[#555]">
-                        {days.filter((d) => schedule[d.key].startTime).length}/7 días con horario
-                      </p>
+                      <p className="mt-2 text-[11px] text-[#555]">{days.filter((d) => schedule[d.key].startTime).length}/7 días con horario</p>
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             <div className="flex flex-wrap gap-3 pt-2">

@@ -5,7 +5,8 @@ import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/enti
 import { Email } from '../../../../src/domain/value-objects/Email';
 import { Phone } from '../../../../src/domain/value-objects/Phone';
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
-import { makeMockBarberRepository, makeMockUserRepository, makeMockAppointmentRepository, makeMockTempLockRepository } from '../../../test-utils/mocks';
+import { makeMockBarberRepository, makeMockUserRepository } from '../../../test-utils/mocks';
+import { DeleteBarberUseCase } from '../../../../src/application/use-cases/barber/DeleteBarberUseCase';
 
 const createScheduleDay = () => ({
   startTime: '09:00',
@@ -46,29 +47,23 @@ const makeBarberEntity = (overrides?: Partial<BarberProps>) => {
 describe('BarberController', () => {
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let userRepository: ReturnType<typeof makeMockUserRepository>;
-  let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
-  let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
   let passwordHasher: { hash: jest.Mock; compare: jest.Mock };
-  let emailService: { sendMail: jest.Mock };
   let getAvailableSlots: jest.Mocked<GetAvailableSlotsUseCase>;
+  let deleteBarber: jest.Mocked<DeleteBarberUseCase>;
   let controller: BarberController;
 
   beforeEach(() => {
     barberRepository = makeMockBarberRepository();
     userRepository = makeMockUserRepository();
-    appointmentRepository = makeMockAppointmentRepository();
-    tempLockRepository = makeMockTempLockRepository();
     passwordHasher = { hash: jest.fn(), compare: jest.fn() };
-    emailService = { sendMail: jest.fn().mockResolvedValue(undefined) };
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
+    deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
     controller = new BarberController(
       barberRepository,
       userRepository,
-      appointmentRepository,
-      tempLockRepository,
       passwordHasher as any,
-      emailService as any,
-      getAvailableSlots
+      getAvailableSlots,
+      deleteBarber
     );
   });
 
@@ -228,8 +223,7 @@ describe('BarberController', () => {
 
   describe('delete', () => {
     it('debe responder 200 con mensaje de exito', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      appointmentRepository.findMany.mockResolvedValue([]);
+      deleteBarber.execute.mockResolvedValue({ message: 'Barbero desactivado exitosamente' });
 
       const req = createMockReqFull({ params: { id: 'barber-1' } });
       const res = createMockRes();

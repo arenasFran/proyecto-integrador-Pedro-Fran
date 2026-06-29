@@ -16,31 +16,37 @@ import mongoose from 'mongoose';
 import request from 'supertest';
 import app from '../../../src/app';
 import AppointmentModel from '../../../src/infrastructure/repositories/mongodb/models/appointment.model';
+import ServiceModel from '../../../src/infrastructure/repositories/mongodb/models/service.model';
 import {
   signToken,
   seedBarber,
   seedAdmin,
   seedRegisteredClient,
   seedAppointment,
+  seedService,
   seedTempLock,
   getFutureDate,
-  SERVICE_ID,
 } from '../../test-utils/factories';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
 
 describeIfMongo('Appointment routes — integración real', () => {
+  beforeEach(async () => {
+    await ServiceModel.deleteMany({});
+  });
+
   describe('POST /api/appointments — booking completo', () => {
     it('crea turno como cliente anónimo', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const date = getFutureDate(15);
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId,
-          serviceId: SERVICE_ID,
+          serviceId,
           date,
           startTime: '10:00',
           clientName: 'Juan',
@@ -64,6 +70,7 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('crea turno como cliente registrado (con auth)', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
       const date = getFutureDate(15);
@@ -73,7 +80,7 @@ describeIfMongo('Appointment routes — integración real', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           barberId,
-          serviceId: SERVICE_ID,
+          serviceId,
           date,
           startTime: '10:00',
           clientName: 'Juan',
@@ -87,6 +94,7 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('crea turno con tempLockId válido', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const date = getFutureDate(15);
       const { tempLockId } = await seedTempLock({ barberId, date, startTime: '10:00' });
 
@@ -94,7 +102,7 @@ describeIfMongo('Appointment routes — integración real', () => {
         .post('/api/appointments')
         .send({
           barberId,
-          serviceId: SERVICE_ID,
+          serviceId,
           date,
           startTime: '10:00',
           clientName: 'Juan',
@@ -111,13 +119,14 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('rechaza tempLockId inválido', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const date = getFutureDate(15);
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId,
-          serviceId: SERVICE_ID,
+          serviceId,
           date,
           startTime: '10:00',
           clientName: 'Juan',
@@ -131,10 +140,11 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('rechaza horario duplicado (unique index)', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const date = getFutureDate(15);
       const payload = {
         barberId,
-        serviceId: SERVICE_ID,
+        serviceId,
         date,
         startTime: '10:00',
         clientName: 'Juan',
@@ -150,12 +160,13 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('rechaza barbero inactivo', async () => {
       const { barberId } = await seedBarber({ isActive: false });
+      const { serviceId } = await seedService();
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId,
-          serviceId: SERVICE_ID,
+          serviceId,
           date: getFutureDate(15),
           startTime: '10:00',
           clientName: 'Juan',
@@ -168,12 +179,13 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('rechaza turno fuera del horario laboral', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId,
-          serviceId: SERVICE_ID,
+          serviceId,
           date: getFutureDate(15),
           startTime: '20:00',
           clientName: 'Juan',
@@ -194,11 +206,13 @@ describeIfMongo('Appointment routes — integración real', () => {
     });
 
     it('rechaza barbero inexistente', async () => {
+      const { serviceId } = await seedService();
+
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId: new mongoose.Types.ObjectId().toString(),
-          serviceId: SERVICE_ID,
+          serviceId,
           date: getFutureDate(15),
           startTime: '10:00',
           clientName: 'Juan',
@@ -213,9 +227,10 @@ describeIfMongo('Appointment routes — integración real', () => {
   describe('GET /api/appointments/anonymous — consulta anónima', () => {
     it('devuelve turnos por email', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const date = getFutureDate(15);
-      await seedAppointment({ barberId, clientEmail: 'consulta@test.com', date, startTime: '10:00' });
-      await seedAppointment({ barberId, clientEmail: 'otro@test.com', date, startTime: '11:00' });
+      await seedAppointment({ barberId, serviceId, clientEmail: 'consulta@test.com', date, startTime: '10:00' });
+      await seedAppointment({ barberId, serviceId, clientEmail: 'otro@test.com', date, startTime: '11:00' });
 
       const res = await request(app)
         .get('/api/appointments/anonymous')
@@ -238,12 +253,13 @@ describeIfMongo('Appointment routes — integración real', () => {
   describe('GET /api/appointments — listado autenticado', () => {
     it('cliente ve solo sus turnos', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
       const date = getFutureDate(15);
 
-      await seedAppointment({ barberId, clientId, date, startTime: '10:00' });
-      await seedAppointment({ barberId, clientId: new mongoose.Types.ObjectId().toString(), date, startTime: '11:00' });
+      await seedAppointment({ barberId, serviceId, clientId, date, startTime: '10:00' });
+      await seedAppointment({ barberId, serviceId, clientId: new mongoose.Types.ObjectId().toString(), date, startTime: '11:00' });
 
       const res = await request(app)
         .get('/api/appointments')
@@ -257,9 +273,10 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { adminId } = await seedAdmin();
       const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const date = getFutureDate(15);
 
-      await seedAppointment({ barberId, date, startTime: '10:00' });
+      await seedAppointment({ barberId, serviceId, date, startTime: '10:00' });
 
       const res = await request(app)
         .get('/api/appointments')
@@ -274,9 +291,10 @@ describeIfMongo('Appointment routes — integración real', () => {
   describe('GET /api/appointments/:id — obtener por ID', () => {
     it('dueño ve su turno', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
-      const { appointmentId } = await seedAppointment({ barberId, clientId });
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientId });
 
       const res = await request(app)
         .get(`/api/appointments/${appointmentId}`)
@@ -288,9 +306,10 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('no dueño recibe 403', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId } = await seedRegisteredClient({ email: 'dueno@test.com' });
       const otherToken = signToken({ kind: 'Registrado' });
-      const { appointmentId } = await seedAppointment({ barberId, clientId });
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientId });
 
       const res = await request(app)
         .get(`/api/appointments/${appointmentId}`)
@@ -314,9 +333,10 @@ describeIfMongo('Appointment routes — integración real', () => {
   describe('PATCH /api/appointments/:id/cancel — cancelación', () => {
     it('dueño cancela su turno', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
-      const { appointmentId } = await seedAppointment({ barberId, clientId });
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientId });
 
       const res = await request(app)
         .patch(`/api/appointments/${appointmentId}/cancel`)
@@ -334,7 +354,8 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { adminId } = await seedAdmin();
       const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
       const { barberId } = await seedBarber();
-      const { appointmentId } = await seedAppointment({ barberId });
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId, serviceId });
 
       const res = await request(app)
         .patch(`/api/appointments/${appointmentId}/cancel`)
@@ -346,9 +367,10 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('es idempotente si ya estaba cancelado', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
-      const { appointmentId } = await seedAppointment({ barberId, clientId, status: 'Cancelado' });
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientId, status: 'Cancelado' });
 
       const res = await request(app)
         .patch(`/api/appointments/${appointmentId}/cancel`)
@@ -361,9 +383,10 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('no dueño recibe 403', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const other = signToken({ kind: 'Registrado' });
       const { clientId } = await seedRegisteredClient({ email: 'dueno@test.com' });
-      const { appointmentId } = await seedAppointment({ barberId, clientId });
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientId });
 
       const res = await request(app)
         .patch(`/api/appointments/${appointmentId}/cancel`)
@@ -389,10 +412,11 @@ describeIfMongo('Appointment routes — integración real', () => {
   describe('PATCH /api/appointments/:id/reschedule — reprogramación', () => {
     it('dueño reagenda turno', async () => {
       const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
       const oldDate = getFutureDate(15);
-      const { appointmentId } = await seedAppointment({ barberId, clientId, date: oldDate, startTime: '10:00' });
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientId, date: oldDate, startTime: '10:00' });
       const newDate = getFutureDate(20);
 
       const res = await request(app)
@@ -411,7 +435,8 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { adminId } = await seedAdmin();
       const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
       const { barberId } = await seedBarber();
-      const { appointmentId } = await seedAppointment({ barberId, status: 'Confirmado' });
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, status: 'Confirmado' });
 
       const res = await request(app)
         .patch(`/api/appointments/${appointmentId}/status`)
@@ -429,7 +454,8 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { adminId } = await seedAdmin();
       const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
       const { barberId } = await seedBarber();
-      const { appointmentId } = await seedAppointment({ barberId, status: 'Confirmado' });
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, status: 'Confirmado' });
 
       const res = await request(app)
         .patch(`/api/appointments/${appointmentId}/status`)

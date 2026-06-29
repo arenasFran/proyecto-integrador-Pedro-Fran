@@ -97,6 +97,34 @@ export const removeBarber = createAsyncThunk(
   }
 );
 
+export const deactivateBarber = createAsyncThunk(
+  'barbers/deactivateBarber',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const result = await professionalService.deactivate(id);
+      return { id, message: result.message };
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Error al desactivar profesional';
+      return rejectWithValue(message);
+    }
+  }
+);
+
+export const activateBarber = createAsyncThunk(
+  'barbers/activateBarber',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const barber = await professionalService.activate(id);
+      return barber;
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : 'Error al activar profesional';
+      return rejectWithValue(message);
+    }
+  }
+);
+
 export const updateBarberSchedule = createAsyncThunk(
   'barbers/updateBarberSchedule',
   async (
@@ -205,6 +233,18 @@ const barbersSlice = createSlice({
       })
       .addCase(removeBarber.fulfilled, (state, action) => {
         state.list = state.list.filter((p) => p.id !== action.payload.id);
+      })
+      .addCase(deactivateBarber.fulfilled, (state, action) => {
+        const index = state.list.findIndex((p) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.list[index] = { ...state.list[index], isActive: false };
+        }
+      })
+      .addCase(activateBarber.fulfilled, (state, action) => {
+        const index = state.list.findIndex((p) => p.id === action.payload.id);
+        if (index !== -1) {
+          state.list[index] = action.payload;
+        }
       })
       .addCase(updateBarberSchedule.fulfilled, (state, action) => {
         const index = state.list.findIndex((p) => p.id === action.payload.id);

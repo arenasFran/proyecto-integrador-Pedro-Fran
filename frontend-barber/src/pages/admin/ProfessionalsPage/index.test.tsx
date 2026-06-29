@@ -6,6 +6,7 @@ import ProfessionalsPage from './index';
 vi.mock('../../../services/professional.service', () => ({
   professionalService: {
     list: vi.fn(),
+    listPaginated: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
@@ -74,70 +75,71 @@ const mockEmployees: Professional[] = [
 
 const preloadedState = {
   auth: { user: null } as never,
-  barbers: { list: mockEmployees, isLoading: false, error: null, total: 0, page: 1, totalPages: 1, limit: 50 },
+  barbers: {
+    list: mockEmployees,
+    isLoading: false,
+    error: null,
+    total: 2,
+    page: 1,
+    totalPages: 1,
+    limit: 50,
+  },
 };
 
 describe('ProfessionalsPage', () => {
   beforeEach(() => {
     vi.mocked(getTokenUser).mockReturnValue({ id: 'admin1', email: 'admin@test.com', kind: 'Admin' });
-    vi.mocked(professionalService.list).mockResolvedValue([
-      {
-        id: 'admin1',
-        name: 'Admin',
-        lastname: 'Test',
-        email: 'admin@test.com',
-        phone: '099000000',
-        kind: 'Admin' as const,
-        services: [],
-        photoUrl: null,
-        isActive: true,
-        slotDuration: 30,
-        maxAdvanceDays: 30,
-        schedule: {
-          monday: { startTime: null, endTime: null, breaks: [] },
-          tuesday: { startTime: null, endTime: null, breaks: [] },
-          wednesday: { startTime: null, endTime: null, breaks: [] },
-          thursday: { startTime: null, endTime: null, breaks: [] },
-          friday: { startTime: null, endTime: null, breaks: [] },
-          saturday: { startTime: null, endTime: null, breaks: [] },
-          sunday: { startTime: null, endTime: null, breaks: [] },
-        },
-      } as Professional,
-      ...mockEmployees,
-    ]);
+    vi.mocked(professionalService.listPaginated).mockResolvedValue({
+      barbers: [
+        {
+          id: 'admin1',
+          name: 'Admin',
+          lastname: 'Test',
+          email: 'admin@test.com',
+          phone: '099000000',
+          kind: 'Admin' as const,
+          services: [],
+          photoUrl: null,
+          isActive: true,
+          slotDuration: 30,
+          maxAdvanceDays: 30,
+          schedule: {
+            monday: { startTime: null, endTime: null, breaks: [] },
+            tuesday: { startTime: null, endTime: null, breaks: [] },
+            wednesday: { startTime: null, endTime: null, breaks: [] },
+            thursday: { startTime: null, endTime: null, breaks: [] },
+            friday: { startTime: null, endTime: null, breaks: [] },
+            saturday: { startTime: null, endTime: null, breaks: [] },
+            sunday: { startTime: null, endTime: null, breaks: [] },
+          },
+        } as Professional,
+        ...mockEmployees,
+      ],
+      total: 3,
+      page: 1,
+      totalPages: 1,
+      limit: 50,
+    });
   });
 
-  it('renders the page heading and description', () => {
+  it('renders the page heading', () => {
     renderWithProviders(<ProfessionalsPage />, { preloadedState });
 
-    expect(screen.getByText('Gestioná barberos, horarios y slots desde una sola pantalla.')).toBeInTheDocument();
-  });
-
-  it('renders employee stats cards', () => {
-    renderWithProviders(<ProfessionalsPage />, { preloadedState });
-
-    const empleadosElements = screen.getAllByText('Empleados');
-    expect(empleadosElements.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText('Activos')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Barberos' })).toBeInTheDocument();
   });
 
   it('renders the search input', () => {
     renderWithProviders(<ProfessionalsPage />, { preloadedState });
 
-    expect(screen.getByPlaceholderText('Nombre, email, teléfono o servicio')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Buscar por nombre, email o teléfono...')
+    ).toBeInTheDocument();
   });
 
-  it('renders the slots section with date picker', () => {
+  it('renders "Nuevo barbero" button', () => {
     renderWithProviders(<ProfessionalsPage />, { preloadedState });
 
-    expect(screen.getByText('Slots disponibles')).toBeInTheDocument();
-    expect(screen.getByText('Mis slots')).toBeInTheDocument();
-  });
-
-  it('renders "Nuevo profesional" button', () => {
-    renderWithProviders(<ProfessionalsPage />, { preloadedState });
-
-    expect(screen.getByText('Nuevo profesional')).toBeInTheDocument();
+    expect(screen.getByText('Nuevo barbero')).toBeInTheDocument();
   });
 
   it('shows employee names from Redux data', async () => {
@@ -149,12 +151,21 @@ describe('ProfessionalsPage', () => {
     });
   });
 
-  it('shows active/inactive badges for employees', async () => {
+  it('shows active/inactive badges', async () => {
     renderWithProviders(<ProfessionalsPage />, { preloadedState });
 
     await waitFor(() => {
       expect(screen.getByText('Activo')).toBeInTheDocument();
       expect(screen.getByText('Inactivo')).toBeInTheDocument();
+    });
+  });
+
+  it('shows action buttons for each employee', async () => {
+    renderWithProviders(<ProfessionalsPage />, { preloadedState });
+
+    await waitFor(() => {
+      const editButtons = screen.getAllByText('Editar');
+      expect(editButtons.length).toBe(2);
     });
   });
 

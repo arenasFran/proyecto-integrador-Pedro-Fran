@@ -85,6 +85,16 @@ export const professionalService = {
     return response.data.message;
   },
 
+  deactivate: async (id: string): Promise<{ message: string }> => {
+    const response = await api.patch<{ message: string }>(`/api/barbers/${id}/deactivate`);
+    return response.data;
+  },
+
+  activate: async (id: string): Promise<Professional> => {
+    const response = await api.put<ProfessionalRaw>(`/api/barbers/${id}`, { isActive: true });
+    return mapProfessional(response.data);
+  },
+
   getSchedule: async (id: string): Promise<BarberSchedule> => {
     const response = await api.get<ScheduleResponse>(`/api/barbers/${id}/schedule`);
     return response.data.schedule;

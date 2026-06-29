@@ -161,7 +161,7 @@ const SEED_SERVICES = [
   { id: 'svc-1', name: 'Corte de pelo', price: 490, duration: 50 },
   { id: 'svc-2', name: 'Corte a máquina', price: 350, duration: 30 },
   { id: 'svc-3', name: 'Barba', price: 250, duration: 25 },
-  { id: 'svc-4', name: 'Promo x2', price: 450, duration: 70 },
+  { id: 'svc-4', name: 'Promo x2', price: 900, duration: 70 },
 ];
 
 async function seedAppointments(): Promise<void> {

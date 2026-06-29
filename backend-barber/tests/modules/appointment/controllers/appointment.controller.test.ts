@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { AppointmentController } from '../../../../src/interface-adapters/controllers/appointment/AppointmentController';
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
@@ -36,7 +37,7 @@ describe('AppointmentController', () => {
       createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
       const req = createMockReq({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: new mongoose.Types.ObjectId().toString(),
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -65,7 +66,7 @@ describe('AppointmentController', () => {
       createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
       const body = {
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: new mongoose.Types.ObjectId().toString(),
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -89,7 +90,7 @@ describe('AppointmentController', () => {
       createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
       const body = {
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: new mongoose.Types.ObjectId().toString(),
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -162,7 +163,7 @@ describe('AppointmentController', () => {
           clientId: 'client-1',
           clientName: 'Juan',
           clientLastname: 'Perez',
-          serviceId: 'svc-1',
+          serviceId: new mongoose.Types.ObjectId().toString(),
           serviceName: 'Corte',
           servicePrice: 490,
           serviceDuration: 30,
@@ -209,7 +210,7 @@ describe('AppointmentController', () => {
           clientId: 'other-user',
           clientName: 'Juan',
           clientLastname: 'Perez',
-          serviceId: 'svc-1',
+          serviceId: new mongoose.Types.ObjectId().toString(),
           serviceName: 'Corte',
           servicePrice: 490,
           serviceDuration: 30,

@@ -3,7 +3,7 @@ import { EMAIL_REGEX, TIME_REGEX } from '../../domain/constants/validation';
 
 export const createAppointmentSchema = Joi.object({
   barberId: Joi.string().required(),
-  serviceId: Joi.string().required(),
+  serviceId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
   date: Joi.string()
     .pattern(/^\d{4}-\d{2}-\d{2}$/)
     .required(),

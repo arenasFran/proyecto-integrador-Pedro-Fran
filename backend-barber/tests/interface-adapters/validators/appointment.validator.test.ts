@@ -1,8 +1,9 @@
+import mongoose from 'mongoose';
 import { createAppointmentSchema } from '../../../src/interface-adapters/validators/appointment.validator';
 
 const validPayload = {
   barberId: 'barber-1',
-  serviceId: 'svc-1',
+  serviceId: new mongoose.Types.ObjectId().toString(),
   date: '2099-01-01',
   startTime: '10:00',
   clientName: 'Juan',

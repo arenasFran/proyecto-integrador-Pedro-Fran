@@ -20,6 +20,13 @@ type ServiceForm = {
 
 const emptyForm = (): ServiceForm => ({ name: '', description: '', price: '', imageUrl: '' });
 
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === 'object' && 'data' in err) {
+    return (err as { data?: string }).data ?? fallback;
+  }
+  return fallback;
+}
+
 export const ServicesPage: React.FC = () => {
   const { data: services = [], isLoading, isFetching, error, refetch } = useGetServicesAdminQuery();
   const [createService, { isLoading: isCreating }] = useCreateServiceMutation();
@@ -101,11 +108,7 @@ export const ServicesPage: React.FC = () => {
       }
       closeModal();
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'data' in err
-        ? (err as { data: { error?: string } }).data?.error
-          ?? 'Error al guardar el servicio'
-        : 'Error al guardar el servicio';
-      setPageError(msg);
+      setPageError(getApiErrorMessage(err, 'Error al guardar el servicio'));
     }
   };
 
@@ -121,11 +124,7 @@ export const ServicesPage: React.FC = () => {
       await deleteService(confirmDeleteService.id).unwrap();
       setConfirmDeleteService(null);
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'data' in err
-        ? (err as { data: { error?: string } }).data?.error
-          ?? 'Error al eliminar el servicio'
-        : 'Error al eliminar el servicio';
-      setPageError(msg);
+      setPageError(getApiErrorMessage(err, 'Error al eliminar el servicio'));
       setConfirmDeleteService(null);
     }
   };
@@ -136,11 +135,7 @@ export const ServicesPage: React.FC = () => {
     try {
       await updateService({ id: service.id, data: { isActive: !service.isActive } }).unwrap();
     } catch (err: unknown) {
-      const msg = err && typeof err === 'object' && 'data' in err
-        ? (err as { data: { error?: string } }).data?.error
-          ?? 'Error al actualizar el servicio'
-        : 'Error al actualizar el servicio';
-      setPageError(msg);
+      setPageError(getApiErrorMessage(err, 'Error al actualizar el servicio'));
     }
   };
 

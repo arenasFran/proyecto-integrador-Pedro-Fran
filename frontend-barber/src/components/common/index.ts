@@ -12,3 +12,7 @@ export { Pagination } from './Pagination';
 export { Select } from './Select';
 export type { SelectOption } from './Select';
 export { LoadingSkeleton } from '../client/common/LoadingSkeleton';
+
+export { Modal } from './Modal';
+export { BarberAvatar } from './BarberAvatar';
+export { ImageUpload } from './ImageUpload';

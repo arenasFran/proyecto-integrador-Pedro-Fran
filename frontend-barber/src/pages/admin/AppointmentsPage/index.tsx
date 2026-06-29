@@ -257,7 +257,93 @@ export const AdminAppointmentsPage: React.FC = () => {
               <p className="text-[12px] mt-1">Probá cambiar los filtros o seleccionar otra fecha.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile cards */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {filtered.map((appointment) => {
+                const style = statusStyles[appointment.status];
+                const isActive = appointment.status === 'Confirmado';
+                return (
+                  <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-white truncate">
+                          {appointment.clientName} {appointment.clientLastname}
+                        </p>
+                        {appointment.clientEmail && (
+                          <p className="text-[11px] text-[#8A8A8A] truncate">{appointment.clientEmail}</p>
+                        )}
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
+                        {style.label}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 text-[13px]">
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Barbero</span>
+                        <span className="text-white">{barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Servicio</span>
+                        <span className="text-white text-right max-w-[60%] truncate">{appointment.serviceName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Fecha</span>
+                        <span className="text-white">{appointment.date}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Hora</span>
+                        <span className="text-white">{formatTime(appointment.startTime)}</span>
+                      </div>
+                    </div>
+
+                    {isActive && (
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
+                        <button
+                          onClick={() => handleStatusChange(appointment.id, 'Completado')}
+                          disabled={isUpdatingStatus}
+                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+                          title="Marcar como completado"
+                        >
+                          <FiCheck className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { setRescheduleTarget(appointment); setRescheduleDate(appointment.date); setRescheduleTime(appointment.startTime); setRescheduleBarberId(appointment.barberId); }}
+                          className="rounded-[8px] border border-blue-500/30 p-1.5 text-blue-400 hover:bg-blue-500/10 transition-colors"
+                          title="Reprogramar"
+                        >
+                          <FiClock className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => handleStatusChange(appointment.id, 'NoShow')}
+                          disabled={isUpdatingStatus}
+                          className="rounded-[8px] border border-yellow-500/30 p-1.5 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
+                          title="Marcar como no asistió"
+                        >
+                          <FiXCircle className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { setCancelTarget(appointment); setCancelReason(''); }}
+                          disabled={isCancelling}
+                          className="rounded-[8px] border border-red-500/30 p-1.5 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          title="Cancelar turno"
+                        >
+                          <FiX className="text-sm" />
+                        </button>
+                      </div>
+                    )}
+
+                    {appointment.status === 'Cancelado' && appointment.cancelReason && (
+                      <div className="text-[11px] text-[#8A8A8A] truncate" title={appointment.cancelReason}>
+                        Motivo: {appointment.cancelReason}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
@@ -351,6 +437,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </AnimatedContainer>
       </div>

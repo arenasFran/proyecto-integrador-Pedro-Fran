@@ -4,6 +4,8 @@ export type ServiceCreateProps = {
   description: string;
   price: number;
   imageUrl: string;
+  isActive: boolean;
+  isDeleted: boolean;
 };
 
 export type ServicePrimitives = {
@@ -12,6 +14,8 @@ export type ServicePrimitives = {
   description: string;
   price: number;
   imageUrl: string;
+  isActive: boolean;
+  isDeleted: boolean;
 };
 
 type ServiceProps = {
@@ -20,6 +24,8 @@ type ServiceProps = {
   description: string;
   price: number;
   imageUrl: string;
+  isActive: boolean;
+  isDeleted: boolean;
 };
 
 export class Service {
@@ -53,6 +59,14 @@ export class Service {
     return this.props.imageUrl;
   }
 
+  get isActive(): boolean {
+    return this.props.isActive;
+  }
+
+  get isDeleted(): boolean {
+    return this.props.isDeleted;
+  }
+
   toPrimitives(): ServicePrimitives {
     return {
       id: this.id,
@@ -60,6 +74,8 @@ export class Service {
       description: this.description,
       price: this.price,
       imageUrl: this.imageUrl,
+      isActive: this.isActive,
+      isDeleted: this.isDeleted,
     };
   }
 }

@@ -80,11 +80,12 @@ app.use("/auth/google/complete-profile", googleLimiter);
 
 app.use("/auth", buildAuthRouter());
 app.use("/api/barbers", buildBarberRouter());
-app.use("/api/services", buildServiceRouter());
+const tokenService = buildTokenService();
+const serviceAuth = createAuthenticate(tokenService);
+app.use("/api/services", buildServiceRouter({ authenticate: serviceAuth }));
 app.use("/api/appointments", buildAppointmentRouter());
 app.use("/api/appointments/temp-lock", buildTempLockRouter());
 app.use("/api/users", buildUserRouter());
-const tokenService = buildTokenService();
 const analyticsAuth = createAuthenticate(tokenService);
 app.use("/api/analytics", createAnalyticsRouter(analyticsAuth));
 

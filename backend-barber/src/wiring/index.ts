@@ -11,7 +11,7 @@ import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
 import { BarberController } from '../interface-adapters/controllers/barber/BarberController';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
 import { createBarberRouter } from '../interface-adapters/routes/barber.routes';
-import { StaticServiceRepository } from '../infrastructure/repositories/static/StaticServiceRepository';
+import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { ServiceController } from '../interface-adapters/controllers/service/ServiceController';
 import { createServiceRouter } from '../interface-adapters/routes/service.routes';
 import { UserController } from '../interface-adapters/controllers/user/UserController';
@@ -47,11 +47,11 @@ export const buildBarberRouter = () => {
   return createBarberRouter({ barberController, authenticate });
 };
 
-export const buildServiceRouter = () => {
-  const repo = new StaticServiceRepository();
+export const buildServiceRouter = (deps?: { authenticate?: ReturnType<typeof createAuthenticate> }) => {
+  const repo = new MongoServiceRepository();
   const controller = new ServiceController(repo);
 
-  return createServiceRouter({ serviceController: controller });
+  return createServiceRouter({ serviceController: controller, authenticate: deps?.authenticate });
 };
 
 export const buildUserRouter = () => {

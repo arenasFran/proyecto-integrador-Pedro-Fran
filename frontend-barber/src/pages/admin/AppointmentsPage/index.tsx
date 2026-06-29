@@ -6,14 +6,12 @@ import {
   FiChevronDown,
   FiChevronUp,
   FiClock,
-  FiFilter,
   FiMoreVertical,
   FiScissors,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, useToast } from '../../../components/common';
-import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, useToast } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
@@ -40,12 +38,10 @@ export const AdminAppointmentsPage: React.FC = () => {
   const barbers = useAppSelector((state) => state.barbers.list);
   const { showToast } = useToast();
 
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterDate, setFilterDate] = useState('');
   const [filterBarberId, setFilterBarberId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
   const [page, setPage] = useState(1);
@@ -60,7 +56,6 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   const [sortBy, setSortBy] = useState<'date' | 'time' | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-  const [resetKey, setResetKey] = useState(0);
 
   const toggleSort = (column: 'date' | 'time') => {
     if (sortBy === column) {
@@ -71,36 +66,27 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
   };
 
-  const handleDateRangeChange = (desde: string, hasta: string) => {
-    setFilterDateFrom(desde);
-    setFilterDateTo(hasta);
-    setPage(1);
-  };
-
   const clearFilters = () => {
-    setFilterDateFrom('');
-    setFilterDateTo('');
+    setFilterDate('');
     setFilterBarberId('');
     setFilterStatus('');
     setSearchTerm('');
     setSortBy(null);
     setSortDir('asc');
-    setShowMoreFilters(false);
     setPage(1);
-    setMenuRect(null);
-    setResetKey((k) => k + 1);
   };
 
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+
   const queryParams = useMemo(() => {
-    const params: { dateFrom?: string; dateTo?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
-    if (filterDateFrom) params.dateFrom = filterDateFrom;
-    if (filterDateTo) params.dateTo = filterDateTo;
+    const params: { date?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
+    if (filterDate) params.date = filterDate;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
     params.page = page;
     params.limit = PAGE_SIZE;
     return params;
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, page]);
+  }, [filterDate, filterBarberId, filterStatus, page]);
 
   const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
@@ -147,7 +133,7 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus]);
+  }, [filterDate, filterBarberId, filterStatus]);
 
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
 
@@ -199,7 +185,11 @@ export const AdminAppointmentsPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
+    <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
+      </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
@@ -220,29 +210,66 @@ export const AdminAppointmentsPage: React.FC = () => {
             
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1 text-[12px] text-white">
-              Total <strong>{stats.total}</strong>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1 text-[12px] text-blue-400">
-              Confirmados <strong>{stats.confirmed}</strong>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1 text-[12px] text-green-400">
-              Completados <strong>{stats.completed}</strong>
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1 text-[12px] text-red-400">
-              Cancelados <strong>{stats.cancelled}</strong>
-            </span>
+          <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-4">
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
+              <p className="text-[12px] text-[#8A8A8A]">Total</p>
+              <p className="mt-1 text-[24px] font-bold text-white">{stats.total}</p>
+            </div>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
+              <p className="text-[12px] text-[#8A8A8A]">Confirmados</p>
+              <p className="mt-1 text-[24px] font-bold text-blue-400">{stats.confirmed}</p>
+            </div>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
+              <p className="text-[12px] text-[#8A8A8A]">Completados</p>
+              <p className="mt-1 text-[24px] font-bold text-green-400">{stats.completed}</p>
+            </div>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
+              <p className="text-[12px] text-[#8A8A8A]">Cancelados</p>
+              <p className="mt-1 text-[24px] font-bold text-red-400">{stats.cancelled}</p>
+            </div>
           </div>
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-          <div className="flex flex-wrap items-center gap-3 mb-6">
-            <div className="flex flex-col gap-1 w-full">
-              <label className="text-[13px] font-medium text-white">Rango de fechas</label>
-              <DateRangeFilter key={resetKey} onChange={handleDateRangeChange} />
+          <div className="flex flex-wrap items-end gap-3 mb-6">
+            <div className="w-full sm:w-[180px]">
+              <Input
+                label="Fecha"
+                type="date"
+                value={filterDate}
+                onChange={(e) => setFilterDate(e.target.value)}
+              />
             </div>
-            <div className="flex flex-col gap-1 w-full sm:w-[240px]">
+            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
+              <label className="text-[13px] font-medium text-white">Barbero</label>
+              <select
+                value={filterBarberId}
+                onChange={(e) => setFilterBarberId(e.target.value)}
+                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
+              >
+                <option value="">Todos</option>
+                {barbers.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.lastname}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1 w-full sm:w-[160px]">
+              <label className="text-[13px] font-medium text-white">Estado</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
+              >
+                <option value="">Todos</option>
+                <option value="Confirmado">Confirmado</option>
+                <option value="Completado">Completado</option>
+                <option value="Cancelado">Cancelado</option>
+                <option value="NoShow">No asistió</option>
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
               <Input
                 label="Buscar"
                 value={searchTerm}
@@ -250,29 +277,13 @@ export const AdminAppointmentsPage: React.FC = () => {
                 placeholder="Cliente, servicio..."
               />
             </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-[13px] font-medium text-transparent select-none">_</label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setShowMoreFilters(!showMoreFilters)}
-                  className={`flex items-center gap-1.5 h-[40px] rounded-[10px] border px-3 text-[13px] font-medium transition-colors ${
-                    showMoreFilters
-                      ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-[#FF5C00]'
-                      : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]'
-                  }`}
-                >
-                  <FiFilter className="text-sm" />
-                  Más filtros
-                </button>
-                <button
-                  onClick={clearFilters}
-                  className="flex items-center gap-1.5 h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] font-medium text-[#8A8A8A] transition-colors hover:text-white hover:border-[#FF5C00]"
-                >
-                  <FiX className="text-sm" />
-                  Limpiar
-                </button>
-              </div>
-            </div>
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] font-medium text-[#8A8A8A] transition-colors hover:text-white hover:border-[#FF5C00]"
+            >
+              <FiX className="text-sm" />
+              Limpiar
+            </button>
             {(isLoading || isFetching) && (
               <div className="flex items-center gap-2 text-[#8A8A8A] text-[13px]">
                 <Spinner size="sm" />
@@ -280,35 +291,6 @@ export const AdminAppointmentsPage: React.FC = () => {
               </div>
             )}
           </div>
-          {showMoreFilters && (
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-              <div className="w-full sm:w-[200px]">
-                <Select
-                  label="Barbero"
-                  value={filterBarberId}
-                  onChange={setFilterBarberId}
-                  options={[
-                    { value: '', label: 'Todos' },
-                    ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
-                  ]}
-                />
-              </div>
-              <div className="w-full sm:w-[200px]">
-                <Select
-                  label="Estado"
-                  value={filterStatus}
-                  onChange={setFilterStatus}
-                  options={[
-                    { value: '', label: 'Todos' },
-                    { value: 'Confirmado', label: 'Confirmado' },
-                    { value: 'Completado', label: 'Completado' },
-                    { value: 'Cancelado', label: 'Cancelado' },
-                    { value: 'NoShow', label: 'No asistió' },
-                  ]}
-                />
-              </div>
-            </div>
-          )}
 
           {error ? (
             <div className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">

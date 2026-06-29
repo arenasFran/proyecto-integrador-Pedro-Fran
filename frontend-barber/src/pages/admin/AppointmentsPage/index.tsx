@@ -154,38 +154,38 @@ export const AdminAppointmentsPage: React.FC = () => {
               <h1 className="mt-4 text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
                 Administrá todos los turnos desde una sola pantalla.
               </h1>
-              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#8A8A8A] sm:text-[15px]">
+              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#8A8A8A] sm:text-[15px] hidden md:block">
                 Visualizá, cancelá, reprogramá y cambiá el estado de los turnos de forma centralizada.
               </p>
             </div>
 
-            <Button variant="secondary" icon={FiRefreshCw} onClick={() => refetch()}>
+            <Button variant="secondary" icon={FiRefreshCw} onClick={() => refetch()} className="hidden md:inline-flex">
               Refrescar
             </Button>
           </div>
 
           <div className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4">
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Total</p>
-              <p className="mt-2 text-[24px] font-bold text-white">{stats.total}</p>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-3 md:p-4">
+              <p className="text-[11px] md:text-[12px] text-[#8A8A8A]">Total</p>
+              <p className="mt-2 text-[18px] md:text-[24px] font-bold text-white">{stats.total}</p>
             </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Confirmados</p>
-              <p className="mt-2 text-[24px] font-bold text-blue-400">{stats.confirmed}</p>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-3 md:p-4">
+              <p className="text-[11px] md:text-[12px] text-[#8A8A8A]">Confirmados</p>
+              <p className="mt-2 text-[18px] md:text-[24px] font-bold text-blue-400">{stats.confirmed}</p>
             </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Completados</p>
-              <p className="mt-2 text-[24px] font-bold text-green-400">{stats.completed}</p>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-3 md:p-4">
+              <p className="text-[11px] md:text-[12px] text-[#8A8A8A]">Completados</p>
+              <p className="mt-2 text-[18px] md:text-[24px] font-bold text-green-400">{stats.completed}</p>
             </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Cancelados</p>
-              <p className="mt-2 text-[24px] font-bold text-red-400">{stats.cancelled}</p>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-3 md:p-4">
+              <p className="text-[11px] md:text-[12px] text-[#8A8A8A]">Cancelados</p>
+              <p className="mt-2 text-[18px] md:text-[24px] font-bold text-red-400">{stats.cancelled}</p>
             </div>
           </div>
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-          <div className="flex flex-wrap items-center gap-3 mb-6">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-4 md:mb-6">
             <Input
               label="Fecha"
               type="date"

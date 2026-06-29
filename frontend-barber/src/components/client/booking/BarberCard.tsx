@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiStar, FiUser, FiCheck } from 'react-icons/fi';
+import { FiStar, FiCheck } from 'react-icons/fi';
+import { BarberAvatar } from '../../common/BarberAvatar';
 import type { BarberPublic } from '../../../types/booking';
 
 interface BarberCardProps {
@@ -45,17 +46,12 @@ export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSe
       )}
 
       <div className="flex flex-col items-center gap-1.5">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#242424] overflow-hidden">
-          {barber.photoUrl ? (
-            <img
-              src={barber.photoUrl}
-              alt={fullName}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <FiUser className="w-6 h-6 text-[#8A8A8A]" />
-          )}
-        </div>
+        <BarberAvatar
+          name={barber.name}
+          lastname={barber.lastname}
+          photoUrl={barber.photoUrl}
+          size="md"
+        />
 
         <div className="min-w-0 w-full">
           <h3 className="text-[12px] font-semibold text-white truncate">{fullName}</h3>

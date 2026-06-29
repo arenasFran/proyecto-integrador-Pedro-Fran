@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiScissors, FiSettings, FiShield, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, PasswordInput, Spinner } from '../../../components/common';
+import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiSettings, FiUser } from 'react-icons/fi';
+import { AnimatedContainer, BarberAvatar, Button, ImageUpload, Input, PasswordInput, Spinner } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
@@ -20,12 +20,6 @@ const roleTitle: Record<string, string> = {
   Admin: 'Administrador',
   Empleado: 'Barbero',
   Registrado: 'Mi perfil',
-};
-
-const roleIcon: Record<string, React.ReactNode> = {
-  Admin: <FiShield className="text-[#FF5C00] text-xl" />,
-  Empleado: <FiScissors className="text-[#FF5C00] text-xl" />,
-  Registrado: <FiUser className="text-[#FF5C00] text-xl" />,
 };
 
 const dayLabels: Record<string, string> = {
@@ -55,6 +49,7 @@ export const ProfilePage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
@@ -139,6 +134,7 @@ export const ProfilePage: React.FC = () => {
       }
     }
 
+    // TODO: Subir photoFile a Cloudinary/S3 y usar la URL retornada como photoUrl
     setIsSaving(true);
 
     try {
@@ -215,19 +211,12 @@ export const ProfilePage: React.FC = () => {
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-full bg-[#FF5C00]/10 overflow-hidden">
-                {formData.photoUrl ? (
-                  <img
-                    src={String(formData.photoUrl)}
-                    alt={displayName}
-                    className="h-14 w-14 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="p-3">
-                    {role ? roleIcon[role] ?? <FiUser className="text-[#FF5C00] text-xl" /> : <FiUser className="text-[#FF5C00] text-xl" />}
-                  </div>
-                )}
-              </div>
+              <BarberAvatar
+                name={String(formData.name ?? '')}
+                lastname={String(formData.lastname ?? '')}
+                photoUrl={formData.photoUrl ? String(formData.photoUrl) : null}
+                size="lg"
+              />
               <div>
                 <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
                   {displayName}
@@ -288,7 +277,14 @@ export const ProfilePage: React.FC = () => {
                   <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="099000000" />
                 </div>
                 <PasswordInput label="Nueva contraseña (opcional)" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />
-                <Input label="Foto de perfil" type="url" value={String(formData.photoUrl ?? '')} onChange={(e) => setEditedFields((prev) => ({ ...prev, photoUrl: e.target.value.trim() || null }))} placeholder="https://..." helperText="Opcional" />
+                <ImageUpload
+                  currentUrl={formData.photoUrl ? String(formData.photoUrl) : null}
+                  onFileSelect={(file) => {
+                    setPhotoFile(file);
+                    if (file) setEditedFields((prev) => ({ ...prev, photoUrl: null }));
+                  }}
+                  helperText={photoFile ? 'Archivo seleccionado.' : 'Arrastrá una imagen o hacé clic para subir'}
+                />
               </>
             )}
 

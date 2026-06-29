@@ -15,6 +15,8 @@ export type Service = {
   description: string;
   price: number;
   imageUrl: string;
+  isActive: boolean;
+  isDeleted: boolean;
 };
 
 export type AppointmentStatus = 'Confirmado' | 'Cancelado' | 'Completado' | 'NoShow';

@@ -5,6 +5,7 @@ import bookingReducer from './slices/bookingSlice';
 import { analyticsApi } from '../services/analyticsApi';
 import { appointmentApi } from '../services/appointmentApi';
 import { authApi } from '../services/authApi';
+import { serviceApi } from '../services/service.api';
 
 export const store = configureStore({
   reducer: {
@@ -14,9 +15,10 @@ export const store = configureStore({
     [appointmentApi.reducerPath]: appointmentApi.reducer,
     [authApi.reducerPath]: authApi.reducer,
     [analyticsApi.reducerPath]: analyticsApi.reducer,
+    [serviceApi.reducerPath]: serviceApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(appointmentApi.middleware, authApi.middleware, analyticsApi.middleware),
+    getDefaultMiddleware().concat(appointmentApi.middleware, authApi.middleware, analyticsApi.middleware, serviceApi.middleware),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

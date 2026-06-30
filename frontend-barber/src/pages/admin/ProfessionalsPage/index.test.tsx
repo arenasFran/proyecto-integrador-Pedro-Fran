@@ -18,10 +18,15 @@ vi.mock('../../../services/professional.service', () => ({
 
 vi.mock('../../../utils/token', () => ({
   getTokenUser: vi.fn(),
+  getTokenKind: vi.fn(),
+}));
+
+vi.mock('../../../services/api', () => ({
+  getAccessToken: vi.fn(() => 'mock-token'),
 }));
 
 import { professionalService } from '../../../services/professional.service';
-import { getTokenUser } from '../../../utils/token';
+import { getTokenUser, getTokenKind } from '../../../utils/token';
 import type { Professional } from '../../../types/professional';
 
 const mockEmployees: Professional[] = [
@@ -89,6 +94,7 @@ const preloadedState = {
 describe('ProfessionalsPage', () => {
   beforeEach(() => {
     vi.mocked(getTokenUser).mockReturnValue({ id: 'admin1', email: 'admin@test.com', kind: 'Admin' });
+    vi.mocked(getTokenKind).mockReturnValue('Admin');
     vi.mocked(professionalService.listPaginated).mockResolvedValue({
       barbers: [
         {

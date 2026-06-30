@@ -11,8 +11,9 @@ import {
   updateBarber,
   updateBarberSchedule,
 } from '../../../store/slices/barbersSlice';
-import { getTokenUser } from '../../../utils/token';
+import { getTokenUser, getTokenKind } from '../../../utils/token';
 import { getAccessToken } from '../../../services/api';
+import { Navigate } from 'react-router-dom';
 import type { DayKey, Professional, ProfessionalPayload } from '../../../types/professional';
 import {
   normalizeServices,
@@ -25,6 +26,11 @@ import { ProfessionalModalWizard } from './components/ProfessionalModalWizard';
 const PAGE_SIZE = 20;
 
 export const ProfessionalsPage: React.FC = () => {
+  const token = getAccessToken();
+  const kind = getTokenKind(token);
+  if (kind !== 'Admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
   const dispatch = useAppDispatch();
   const { list: professionals, totalPages } = useAppSelector((state) => state.barbers);
   const { showToast } = useToast();

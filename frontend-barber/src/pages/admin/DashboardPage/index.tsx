@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { FiBarChart2, FiCalendar, FiGrid, FiPieChart } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { getAccessToken } from '../../../services/api';
+import { getTokenKind } from '../../../utils/token';
 import KpiCards from './components/KpiCards';
 import StatusBreakdown from './components/StatusBreakdown';
 import HeatmapChart from './components/HeatmapChart';
@@ -29,6 +32,12 @@ function getThisMonthRange() {
 }
 
 export default function DashboardPage() {
+  const token = getAccessToken();
+  const kind = getTokenKind(token);
+  if (kind !== 'Admin') {
+    return <Navigate to="/admin/turnos" replace />;
+  }
+
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');

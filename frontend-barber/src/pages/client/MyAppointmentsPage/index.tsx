@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, Pagination, Select, useToast } from '../../../components/common';
+import { formatDate } from '../../../utils/formatDate';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsQuery,
@@ -104,11 +105,11 @@ export const MyAppointmentsPage: React.FC = () => {
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-[12px] text-[#8A8A8A]">
                 <FiScissors className="text-[#FF5C00]" />
                 Mis turnos
               </div>
-              <h1 className="mt-4 text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
+              <h1 className="mt-3 sm:mt-4 text-[22px] sm:text-[38px] font-extrabold tracking-[-0.02em] text-white">
                 Tus turnos
               </h1>
               <p className="mt-2 text-[14px] text-[#8A8A8A]">
@@ -145,8 +146,8 @@ export const MyAppointmentsPage: React.FC = () => {
                   {activeAppointments.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     return (
-                      <AnimatedContainer key={appointment.id} animation="fadeInUp" className="rounded-[20px] border border-[#282828] bg-[#121212] p-5">
-                        <div className="flex items-start justify-between gap-4">
+                      <AnimatedContainer key={appointment.id} animation="fadeInUp" className="rounded-[20px] border border-[#282828] bg-[#121212] p-4 sm:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
@@ -157,7 +158,7 @@ export const MyAppointmentsPage: React.FC = () => {
                             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-[#8A8A8A]">
                               <span className="flex items-center gap-1">
                                 <FiCalendar className="text-[#FF5C00]" />
-                                {appointment.date}
+                                {formatDate(appointment.date)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <FiClock className="text-[#FF5C00]" />
@@ -165,7 +166,7 @@ export const MyAppointmentsPage: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex gap-2 shrink-0">
+                          <div className="flex gap-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -177,7 +178,7 @@ export const MyAppointmentsPage: React.FC = () => {
                                 setRescheduleBarberId(appointment.barberId);
                               }}
                             >
-                              Reprogramar
+                              <span className="hidden sm:inline">Reprogramar</span>
                             </Button>
                             <Button
                               variant="outline"
@@ -189,7 +190,7 @@ export const MyAppointmentsPage: React.FC = () => {
                               }}
                               disabled={isCancelling}
                             >
-                              Cancelar
+                              <span className="hidden sm:inline">Cancelar</span>
                             </Button>
                           </div>
                         </div>
@@ -207,7 +208,7 @@ export const MyAppointmentsPage: React.FC = () => {
                   {paginatedPast.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     return (
-                      <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-4 opacity-70">
+                      <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-3 sm:p-4 opacity-60 sm:opacity-70">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -217,7 +218,7 @@ export const MyAppointmentsPage: React.FC = () => {
                             </div>
                             <p className="text-[14px] font-medium text-white">{appointment.serviceName}</p>
                             <p className="text-[12px] text-[#8A8A8A] mt-0.5">
-                              {appointment.date} a las {formatTime(appointment.startTime)}
+                              {formatDate(appointment.date)} a las {formatTime(appointment.startTime)}
                             </p>
                             {appointment.cancelReason && (
                               <p className="text-[11px] text-red-400 mt-1">Motivo: {appointment.cancelReason}</p>

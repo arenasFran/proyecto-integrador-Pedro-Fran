@@ -27,6 +27,7 @@ export const appointmentQuerySchema = Joi.object({
   status: Joi.string().valid('Confirmado', 'Cancelado', 'Completado', 'NoShow'),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
+  includeBarber: Joi.string().valid('true'),
 });
 
 export const appointmentIdParamSchema = Joi.object({

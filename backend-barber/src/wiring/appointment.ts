@@ -47,6 +47,7 @@ export const buildAppointmentRouter = () => {
 
   const appointmentController = new AppointmentController(
     appointmentRepository,
+    barberRepository,
     createAppointment,
     cancelAppointment,
     updateAppointmentStatus,

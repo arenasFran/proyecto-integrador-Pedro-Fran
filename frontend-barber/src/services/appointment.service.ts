@@ -42,6 +42,7 @@ export type AppointmentQueryParams = {
   dateTo?: string;
   page?: number;
   limit?: number;
+  includeBarber?: string;
 };
 
 export type PaginatedAppointmentsResponse = {

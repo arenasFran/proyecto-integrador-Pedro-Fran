@@ -12,6 +12,7 @@ import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
 import ProfessionalsPage from './pages/admin/ProfessionalsPage';
 import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
+import CalendarPage from './pages/admin/CalendarPage';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
@@ -82,6 +83,7 @@ function App() {
               <Route path="profesionales" element={<ProfessionalsPage />} />
               <Route path="perfil" element={<ProfilePage />} />
               <Route path="turnos" element={<AdminAppointmentsPage />} />
+              <Route path="calendario" element={<CalendarPage />} />
               <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
             <Route
@@ -116,7 +118,7 @@ function RequireAdminRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isTokenValid(token) || role !== 'Admin') {
+  if (!isTokenValid(token) || (role !== 'Admin' && role !== 'Empleado')) {
     return <Navigate to="/login" replace />;
   }
 

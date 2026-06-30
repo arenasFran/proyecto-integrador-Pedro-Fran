@@ -11,7 +11,7 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, StatsCards, useToast } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
@@ -210,24 +210,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             
           </div>
 
-          <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-4">
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Total</p>
-              <p className="mt-1 text-[24px] font-bold text-white">{stats.total}</p>
-            </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Confirmados</p>
-              <p className="mt-1 text-[24px] font-bold text-blue-400">{stats.confirmed}</p>
-            </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Completados</p>
-              <p className="mt-1 text-[24px] font-bold text-green-400">{stats.completed}</p>
-            </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Cancelados</p>
-              <p className="mt-1 text-[24px] font-bold text-red-400">{stats.cancelled}</p>
-            </div>
-          </div>
+          <StatsCards stats={stats} />
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">

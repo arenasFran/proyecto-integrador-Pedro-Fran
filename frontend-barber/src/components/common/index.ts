@@ -16,3 +16,5 @@ export { LoadingSkeleton } from '../client/common/LoadingSkeleton';
 export { Modal } from './Modal';
 export { BarberAvatar } from './BarberAvatar';
 export { ImageUpload } from './ImageUpload';
+export { StatsCards } from './StatsCards';
+export type { Stats } from './StatsCards';

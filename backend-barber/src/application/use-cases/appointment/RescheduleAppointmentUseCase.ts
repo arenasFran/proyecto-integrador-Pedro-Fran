@@ -3,13 +3,13 @@ import { MongoBarberRepository } from '../../../infrastructure/repositories/mong
 import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
+import { AppError } from '../../../domain/errors/AppError';
 
 type RescheduleAppointmentDTO = {
   date: string;
   startTime: string;
   barberId: string;
 };
-import { AppError } from '../../../domain/errors/AppError';
 import {
   toMinutes,
   doesOverlap,
@@ -118,9 +118,12 @@ export class RescheduleAppointmentUseCase {
       );
     }
     const filtered = activeAppointments.filter((a) => a.id !== id);
-    const hasActive = filtered.some(
-      (a) => a.status === 'Confirmado'
-    );
+    const now = new Date();
+    const hasActive = filtered.some((a) => {
+      if (a.status !== 'Confirmado') return false;
+      const appointmentEnd = new Date(`${a.date}T${a.endTime}:00`);
+      return appointmentEnd > now;
+    });
     if (hasActive) {
       throw new AppError(
         'Ya tenés un turno activo completo. Cancelalo antes de reagendar.',

@@ -80,11 +80,6 @@ vi.mock('../../../components/client/booking', () => ({
       )}
     </div>
   ),
-  BookingSuccessModal: ({ isOpen, onClose }: Record<string, unknown>) => (
-    <div data-testid="success-modal" data-open={String(isOpen)}>
-      {!!isOpen && <button onClick={onClose as () => void}>Volver al inicio</button>}
-    </div>
-  ),
 }));
 
 import BookingPage from './index';
@@ -331,7 +326,7 @@ describe('BookingPage', () => {
     });
     renderPage();
 
-    expect(screen.getByTestId('success-modal')).toHaveAttribute('data-open', 'true');
+    expect(screen.queryByTestId('success-modal')).toBeNull();
   });
 
   it('dispatches setCurrentStep when accordion toggle is clicked', async () => {

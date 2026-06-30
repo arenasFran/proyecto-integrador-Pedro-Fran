@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
 import { AnimatedContainer } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
@@ -9,7 +10,6 @@ import {
   BarberSelectionStep,
   ServiceSelectionStep,
   DateTimeStep,
-  BookingSuccessModal,
 } from '../../../components/client/booking';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -23,7 +23,6 @@ import {
   setCurrentStep,
   submitAppointment,
   resetBooking,
-  resetBookingFlow,
 } from '../../../store/slices/bookingSlice';
 import { authApi } from '../../../services/authApi';
 import { getAccessToken } from '../../../services/api';
@@ -58,7 +57,6 @@ export const BookingPage: React.FC = () => {
       servicesError,
       confirmError,
       submitSuccess,
-      createdAppointment,
     },
     flow: {
       currentStep,
@@ -149,12 +147,13 @@ export const BookingPage: React.FC = () => {
     dispatch(submitAppointment());
   }, [dispatch]);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (submitSuccess) {
-      setShowClientForm(false);
+      navigate('/mis-turnos');
     }
-     
-  }, [submitSuccess]);
+  }, [submitSuccess, navigate]);
 
   const isStep3Complete = !!selectedDate && !!selectedTime;
 
@@ -266,12 +265,6 @@ export const BookingPage: React.FC = () => {
         onChange={(data) => dispatch(setClientData(data))}
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
-      />
-
-      <BookingSuccessModal
-        isOpen={submitSuccess}
-        appointment={createdAppointment}
-        onClose={() => dispatch(resetBookingFlow())}
       />
 
       <PublicFooter />

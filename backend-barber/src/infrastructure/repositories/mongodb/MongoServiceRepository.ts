@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { Service, type ServiceStatus } from '../../../domain/entities/Service';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import ServiceModel from './models/service.model';
 
 const toServiceEntity = (doc: Record<string, any>): Service =>

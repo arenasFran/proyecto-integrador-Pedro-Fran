@@ -153,7 +153,10 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
   }
 );
 
-appointmentSchema.index({ barberId: 1, date: 1, startTime: 1 }, { unique: true });
+appointmentSchema.index(
+  { barberId: 1, date: 1, startTime: 1 },
+  { unique: true, partialFilterExpression: { status: { $eq: 'Confirmado' } } }
+);
 appointmentSchema.index({ clientId: 1 });
 appointmentSchema.index({ date: 1 });
 appointmentSchema.index({ date: 1, status: 1 });

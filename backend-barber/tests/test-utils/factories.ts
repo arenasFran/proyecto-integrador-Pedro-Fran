@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt';
 import { Employee, Admin } from '../../src/infrastructure/repositories/mongodb/models/barber.model';
 import { RegisteredClient } from '../../src/infrastructure/repositories/mongodb/models/client.model';
 import AppointmentModel from '../../src/infrastructure/repositories/mongodb/models/appointment.model';
+import ServiceModel from '../../src/infrastructure/repositories/mongodb/models/service.model';
 import TempLockModel from '../../src/infrastructure/repositories/mongodb/models/tempLock.model';
 import type { BarberSchedule } from '../../src/domain/entities/Barber';
 
@@ -61,7 +62,7 @@ export async function seedBarber(overrides?: {
     name: overrides?.name || 'Carlos',
     lastname: overrides?.lastname || 'Lopez',
     phone: overrides?.phone || '098765432',
-    services: ['svc-1'],
+    services: [],
     isActive: overrides?.isActive ?? true,
     slotDuration: overrides?.slotDuration ?? 30,
     maxAdvanceDays: overrides?.maxAdvanceDays ?? 30,
@@ -111,6 +112,23 @@ export async function seedRegisteredClient(overrides?: {
   return { _id: doc._id as mongoose.Types.ObjectId, clientId: doc._id.toString(), email };
 }
 
+export async function seedService(overrides?: {
+  name?: string;
+  description?: string;
+  price?: number;
+  imageUrl?: string;
+  status?: string;
+}): Promise<{ _id: mongoose.Types.ObjectId; serviceId: string }> {
+  const doc = await ServiceModel.create({
+    name: overrides?.name || 'Corte de pelo',
+    description: overrides?.description || 'Incluye barba/cejas/lavado/bebida a elección',
+    price: overrides?.price ?? 490,
+    imageUrl: overrides?.imageUrl || '',
+    status: overrides?.status ?? 'active',
+  });
+  return { _id: doc._id as mongoose.Types.ObjectId, serviceId: doc._id.toString() };
+}
+
 export async function seedAppointment(overrides: {
   barberId: string;
   clientId?: string;
@@ -128,7 +146,7 @@ export async function seedAppointment(overrides: {
     clientLastname: 'Perez',
     clientPhone: '099333333',
     clientEmail: overrides.clientEmail || 'cliente@test.com',
-    serviceId: overrides.serviceId || 'svc-1',
+    serviceId: overrides.serviceId || SERVICE_ID,
     serviceName: 'Corte de pelo',
     servicePrice: 490,
     serviceDuration: 30,
@@ -165,5 +183,5 @@ export function getFutureDate(daysAhead: number, time?: string): string {
   return `${y}-${m}-${day}`;
 }
 
-export const SERVICE_ID = 'svc-1';
-export const SERVICE_ID_2 = 'svc-2';
+export const SERVICE_ID = new mongoose.Types.ObjectId().toString();
+export const SERVICE_ID_2 = new mongoose.Types.ObjectId().toString();

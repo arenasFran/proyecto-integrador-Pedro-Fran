@@ -1,7 +1,7 @@
 import { Appointment } from '../../../domain/entities/Appointment';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
-import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
+import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { IEmailService } from '../../ports/IEmailService';
@@ -32,7 +32,7 @@ export class CreateAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly barberRepository: MongoBarberRepository,
-    private readonly serviceRepository: StaticServiceRepository,
+    private readonly serviceRepository: MongoServiceRepository,
     private readonly clientRepository: MongoClientRepository,
     private readonly emailService: IEmailService,
     private readonly tempLockRepository: MongoTempLockRepository

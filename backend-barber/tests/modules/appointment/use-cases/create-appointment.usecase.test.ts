@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { AppError } from '../../../../src/application/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
@@ -24,6 +25,9 @@ describe('CreateAppointmentUseCase', () => {
     sunday: createScheduleDay(),
   });
 
+  const TEST_SERVICE_ID = new mongoose.Types.ObjectId().toString();
+  const TEST_BARBER_ID = new mongoose.Types.ObjectId().toString();
+
   const makeBarber = (overrides?: Partial<BarberProps>) => {
     const base: BarberProps = {
       id: 'barber-1',
@@ -49,7 +53,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       clientPhone: '123456789',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       serviceName: 'Corte de pelo',
       servicePrice: 490,
       serviceDuration: 60,
@@ -71,11 +75,13 @@ describe('CreateAppointmentUseCase', () => {
 
   const makeService = () =>
     Service.create({
-      id: 'svc-1',
+      id: TEST_SERVICE_ID,
       name: 'Corte de pelo',
       description: 'Incluye barba/cejas/lavado/bebida a elección',
       price: 490,
       imageUrl: 'https://placehold.co/400x300?text=Corte+de+pelo',
+      isActive: true,
+      isDeleted: false,
     });
 
   const makeClient = () =>
@@ -123,7 +129,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -138,7 +144,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -154,7 +160,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-inventado',
+        serviceId: new mongoose.Types.ObjectId().toString(),
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -173,7 +179,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -192,7 +198,7 @@ describe('CreateAppointmentUseCase', () => {
 
     const result = await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
       startTime: '10:00',
       clientName: 'Juan',
@@ -204,7 +210,7 @@ describe('CreateAppointmentUseCase', () => {
     expect(appointmentRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '10:00',
         endTime: '10:30',
@@ -215,7 +221,7 @@ describe('CreateAppointmentUseCase', () => {
     expect(result.appointment).toEqual(
       expect.objectContaining({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '10:00',
         status: 'Confirmado',
@@ -234,9 +240,9 @@ describe('CreateAppointmentUseCase', () => {
 
     const result = await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
-      startTime: '10:00',
+      startTime: '09:45',
       clientName: 'Juan',
       clientLastname: 'Perez',
     });
@@ -245,8 +251,8 @@ describe('CreateAppointmentUseCase', () => {
       expect.objectContaining({
         barberId: 'barber-1',
         date: '2099-01-01',
-        startTime: '10:00',
-        endTime: '10:45',
+        startTime: '09:45',
+        endTime: '10:30',
       })
     );
     expect(result.message).toMatch(/Turno creado/);
@@ -256,7 +262,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2020-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -272,7 +278,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '20:00',
         clientName: 'Juan',
@@ -291,7 +297,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-05',
         startTime: '13:00',
         clientName: 'Juan',
@@ -312,7 +318,7 @@ describe('CreateAppointmentUseCase', () => {
 
     const result = await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
       startTime: '10:00',
       clientName: 'Juan',
@@ -339,7 +345,7 @@ describe('CreateAppointmentUseCase', () => {
     await expect(
       useCase.execute({
         barberId: 'barber-1',
-        serviceId: 'svc-1',
+        serviceId: TEST_SERVICE_ID,
         date: '2099-01-01',
         startTime: '10:00',
         clientName: 'Juan',
@@ -358,7 +364,7 @@ describe('CreateAppointmentUseCase', () => {
 
     await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
       startTime: '10:00',
       clientName: 'Juan',
@@ -386,7 +392,7 @@ describe('CreateAppointmentUseCase', () => {
 
     await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
       startTime: '10:00',
       clientName: 'Juan',
@@ -415,7 +421,7 @@ describe('CreateAppointmentUseCase', () => {
 
     await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
       startTime: '10:00',
       clientName: 'Juan',
@@ -441,7 +447,7 @@ describe('CreateAppointmentUseCase', () => {
 
     const result = await useCase.execute({
       barberId: 'barber-1',
-      serviceId: 'svc-1',
+      serviceId: TEST_SERVICE_ID,
       date: '2099-01-01',
       startTime: '10:00',
       clientName: 'Juan',

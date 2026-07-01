@@ -6,11 +6,13 @@ const config = getConfig();
 
 import { connectDB } from './infrastructure/config/db';
 import { seedAdmin, seedBarbers } from './infrastructure/scripts/seed';
+import { seedServices } from './infrastructure/scripts/seedServices';
 
 const startServer = async () => {
   await connectDB();
   await seedAdmin();
   await seedBarbers();
+  await seedServices();
 
   const { default: app } = await import('./app');
 

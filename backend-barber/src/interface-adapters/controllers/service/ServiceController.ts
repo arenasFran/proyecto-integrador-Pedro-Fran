@@ -17,7 +17,8 @@ export class ServiceController {
 
   getAllAdmin = async (req: Request, res: Response) => {
     try {
-      const services = await this.serviceRepository.findAllAdmin();
+      const includeDeleted = req.query.includeDeleted === 'true';
+      const services = await this.serviceRepository.findAllAdmin(includeDeleted);
       return sendSuccess(res, { services: services.map((s) => s.toPrimitives()) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener servicios');
@@ -56,6 +57,19 @@ export class ServiceController {
       return sendSuccess(res, { service: service.toPrimitives() }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al eliminar servicio');
+    }
+  };
+
+  restore = async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const service = await this.serviceRepository.restore(id);
+      if (!service) {
+        throw new AppError('Servicio no encontrado o no está eliminado', 404);
+      }
+      return sendSuccess(res, { service: service.toPrimitives() }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al restaurar servicio');
     }
   };
 }

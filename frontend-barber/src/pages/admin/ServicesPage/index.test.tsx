@@ -4,15 +4,19 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../../test/utils';
 
 const mockDeleteTrigger = vi.hoisted(() => vi.fn());
+const mockRestoreTrigger = vi.hoisted(() => vi.fn());
+
+const mockMutationState = { isLoading: false, reset: vi.fn() };
 
 vi.mock('../../../services/service.api', () => ({
   useGetServicesAdminQuery: vi.fn(),
-  useCreateServiceMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
-  useUpdateServiceMutation: vi.fn(() => [vi.fn(), { isLoading: false }]),
+  useCreateServiceMutation: vi.fn(() => [vi.fn(), { ...mockMutationState }]),
+  useUpdateServiceMutation: vi.fn(() => [vi.fn(), { ...mockMutationState }]),
   useDeleteServiceMutation: vi.fn(),
+  useRestoreServiceMutation: vi.fn(),
 }));
 
-import { useGetServicesAdminQuery, useDeleteServiceMutation } from '../../../services/service.api';
+import { useGetServicesAdminQuery, useDeleteServiceMutation, useRestoreServiceMutation } from '../../../services/service.api';
 import ServicesPage from './index';
 
 const activeService = {
@@ -21,8 +25,7 @@ const activeService = {
   description: 'Corte clásico',
   price: 490,
   imageUrl: '',
-  isActive: true,
-  isDeleted: false,
+  status: 'active',
 };
 
 const inactiveService = {
@@ -31,8 +34,7 @@ const inactiveService = {
   description: 'Arreglo de barba',
   price: 350,
   imageUrl: '',
-  isActive: false,
-  isDeleted: false,
+  status: 'inactive',
 };
 
 const mockServices = [activeService, inactiveService];
@@ -56,9 +58,15 @@ describe('ServicesPage', () => {
     vi.mocked(useDeleteServiceMutation).mockReset();
     vi.mocked(useDeleteServiceMutation).mockReturnValue([
       mockDeleteTrigger,
-      { isLoading: false },
+      { isLoading: false, reset: vi.fn() },
+    ]);
+    vi.mocked(useRestoreServiceMutation).mockReset();
+    vi.mocked(useRestoreServiceMutation).mockReturnValue([
+      mockRestoreTrigger,
+      { isLoading: false, reset: vi.fn() },
     ]);
     mockDeleteTrigger.mockClear();
+    mockRestoreTrigger.mockClear();
   });
 
   it('renderiza lista de servicios con stats y acciones', () => {
@@ -126,7 +134,7 @@ describe('ServicesPage', () => {
   it('deshabilita botones de eliminar durante la mutación', () => {
     vi.mocked(useDeleteServiceMutation).mockReturnValue([
       mockDeleteTrigger,
-      { isLoading: true },
+      { isLoading: true, reset: vi.fn() },
     ]);
     mockQuery({ data: [activeService] });
     renderWithProviders(<ServicesPage />);

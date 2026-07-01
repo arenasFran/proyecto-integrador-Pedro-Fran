@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { FiEdit3, FiPlus, FiScissors, FiTrash2 } from 'react-icons/fi';
+import { FiEdit3, FiEye, FiEyeOff, FiPlus, FiScissors, FiTrash2, FiRefreshCw } from 'react-icons/fi';
 import { AnimatedContainer, Button } from '../../../components/common';
 import {
   useGetServicesAdminQuery,
   useCreateServiceMutation,
   useUpdateServiceMutation,
   useDeleteServiceMutation,
+  useRestoreServiceMutation,
 } from '../../../services/service.api';
-import type { Service } from '../../../types/booking';
+import type { Service, ServiceStatus } from '../../../types/booking';
 import ServiceFormModal from './components/ServiceFormModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 
@@ -27,11 +28,25 @@ function getApiErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+const statusLabel: Record<ServiceStatus, string> = {
+  active: 'Activo',
+  inactive: 'Inactivo',
+  deleted: 'Eliminado',
+};
+
+const statusColor: Record<ServiceStatus, string> = {
+  active: 'bg-green-500/10 text-green-400',
+  inactive: 'bg-red-500/10 text-red-400',
+  deleted: 'bg-gray-500/10 text-gray-400',
+};
+
 export const ServicesPage: React.FC = () => {
-  const { data: services = [], isLoading, isFetching, error, refetch } = useGetServicesAdminQuery();
+  const [includeDeleted, setIncludeDeleted] = useState(false);
+  const { data: services = [], isLoading, isFetching, error } = useGetServicesAdminQuery({ includeDeleted });
   const [createService, { isLoading: isCreating }] = useCreateServiceMutation();
   const [updateService, { isLoading: isUpdating }] = useUpdateServiceMutation();
   const [deleteService, { isLoading: isDeleting }] = useDeleteServiceMutation();
+  const [restoreService, { isLoading: isRestoring }] = useRestoreServiceMutation();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -39,6 +54,8 @@ export const ServicesPage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ServiceForm, string>>>({});
   const [pageError, setPageError] = useState<string | null>(null);
   const [confirmDeleteService, setConfirmDeleteService] = useState<Service | null>(null);
+
+  const isMutating = isCreating || isUpdating || isDeleting || isRestoring;
 
   const openCreate = () => {
     setEditingService(null);
@@ -130,16 +147,27 @@ export const ServicesPage: React.FC = () => {
   };
 
   const handleToggleStatus = async (service: Service) => {
-    if (isDeleting || isUpdating) return;
+    if (isDeleting || isUpdating || isRestoring) return;
     setPageError(null);
     try {
-      await updateService({ id: service.id, data: { isActive: !service.isActive } }).unwrap();
+      const newStatus: ServiceStatus = service.status === 'active' ? 'inactive' : 'active';
+      await updateService({ id: service.id, data: { status: newStatus } }).unwrap();
     } catch (err: unknown) {
       setPageError(getApiErrorMessage(err, 'Error al actualizar el servicio'));
     }
   };
 
-  const isMutating = isCreating || isUpdating || isDeleting;
+  const handleRestore = async (service: Service) => {
+    if (isMutating) return;
+    setPageError(null);
+    try {
+      await restoreService(service.id).unwrap();
+    } catch (err: unknown) {
+      setPageError(getApiErrorMessage(err, 'Error al restaurar el servicio'));
+    }
+  };
+
+  const deletedServices = services.filter((s) => s.status === 'deleted');
 
   return (
     <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
@@ -171,29 +199,44 @@ export const ServicesPage: React.FC = () => {
             </div>
           </div>
 
-           <div className="mt-6 grid gap-4 grid-cols-3 sm:grid-cols-3">
+          <div className="mt-6 grid gap-4 grid-cols-4 sm:grid-cols-4">
             <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
               <p className="text-[12px] text-[#8A8A8A]">Total</p>
               <p className="mt-2 text-[24px] font-bold text-white">{services.length}</p>
             </div>
             <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
               <p className="text-[12px] text-[#8A8A8A]">Activos</p>
-              <p className="mt-2 text-[24px] font-bold text-green-400">{services.filter((s) => s.isActive).length}</p>
+              <p className="mt-2 text-[24px] font-bold text-green-400">{services.filter((s) => s.status === 'active').length}</p>
             </div>
             <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
               <p className="text-[12px] text-[#8A8A8A]">Inactivos</p>
-              <p className="mt-2 text-[24px] font-bold text-red-400">{services.filter((s) => !s.isActive).length}</p>
+              <p className="mt-2 text-[24px] font-bold text-red-400">{services.filter((s) => s.status === 'inactive').length}</p>
+            </div>
+            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
+              <p className="text-[12px] text-[#8A8A8A]">Eliminados</p>
+              <p className="mt-2 text-[24px] font-bold text-gray-400">{deletedServices.length}</p>
             </div>
           </div>
         </AnimatedContainer>
 
-        {pageError && (
+        {!modalOpen && pageError && (
           <div className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
             <p className="text-[13px] text-red-400">{pageError}</p>
           </div>
         )}
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+          <div className="flex items-center justify-end mb-4 gap-3">
+            <span className="text-[11px] text-[#8A8A8A]">{includeDeleted ? 'Eliminados visibles' : 'Eliminados ocultos'}</span>
+            <button
+              onClick={() => setIncludeDeleted((prev) => !prev)}
+              className="flex items-center justify-center rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-[#8A8A8A]/30 hover:text-white transition-colors"
+              title={includeDeleted ? 'Ocultar eliminados' : 'Mostrar eliminados'}
+            >
+              {includeDeleted ? <FiEyeOff className="text-sm" /> : <FiEye className="text-sm" />}
+            </button>
+          </div>
+
           {error ? (
             <div className="flex flex-col items-center justify-center py-20 text-[#8A8A8A]">
               <FiScissors className="text-4xl mb-3" />
@@ -259,40 +302,55 @@ export const ServicesPage: React.FC = () => {
               )}
               <div className="flex flex-col gap-3 md:hidden">
                 {services.map((service) => (
-                  <div key={service.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3">
+                  <div key={service.id} className={`rounded-[16px] border p-4 flex flex-col gap-3 ${service.status === 'deleted' ? 'border-gray-700/50 bg-[#1A1A1A]/50 opacity-60' : 'border-[#282828] bg-[#1A1A1A]'}`}>
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-[14px] font-semibold text-white">{service.name}</p>
-                      <span
-                        onClick={() => handleToggleStatus(service)}
-                        title={service.isActive ? 'Desactivar' : 'Activar'}
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${
-                          service.isActive
-                            ? 'bg-green-500/10 text-green-400'
-                            : 'bg-red-500/10 text-red-400'
-                        }`}
-                      >
-                        {service.isActive ? 'Activo' : 'Inactivo'}
-                      </span>
+                      {service.status !== 'deleted' ? (
+                        <span
+                          onClick={() => handleToggleStatus(service)}
+                          title={service.status === 'active' ? 'Desactivar' : 'Activar'}
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${statusColor[service.status]}`}
+                        >
+                          {statusLabel[service.status]}
+                        </span>
+                      ) : (
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusColor.deleted}`}>
+                          {statusLabel.deleted}
+                        </span>
+                      )}
                     </div>
                     <p className="text-[13px] text-[#8A8A8A] line-clamp-2">{service.description}</p>
                     <div className="flex items-center justify-between">
                       <p className="text-[15px] font-bold text-white">${service.price}</p>
                       <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => openEdit(service)}
-                          className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-blue-500/30 hover:text-blue-400 transition-colors"
-                          title="Editar"
-                        >
-                          <FiEdit3 className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(service)}
-                          disabled={isMutating}
-                          className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-red-500/30 hover:text-red-400 transition-colors disabled:opacity-50"
-                          title="Eliminar"
-                        >
-                          <FiTrash2 className="text-sm" />
-                        </button>
+                        {service.status !== 'deleted' ? (
+                          <>
+                            <button
+                              onClick={() => openEdit(service)}
+                              className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-blue-500/30 hover:text-blue-400 transition-colors"
+                              title="Editar"
+                            >
+                              <FiEdit3 className="text-sm" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(service)}
+                              disabled={isMutating}
+                              className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-red-500/30 hover:text-red-400 transition-colors disabled:opacity-50"
+                              title="Eliminar"
+                            >
+                              <FiTrash2 className="text-sm" />
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => handleRestore(service)}
+                            disabled={isMutating}
+                            className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-green-500/30 hover:text-green-400 transition-colors disabled:opacity-50"
+                            title="Restaurar"
+                          >
+                            <FiRefreshCw className="text-sm" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -315,39 +373,58 @@ export const ServicesPage: React.FC = () => {
                   </thead>
                   <tbody>
                     {services.map((service) => (
-                      <tr key={service.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/50 transition-colors">
+                      <tr
+                        key={service.id}
+                        className={`border-b border-[#282828]/50 hover:bg-[#1A1A1A]/50 transition-colors ${service.status === 'deleted' ? 'opacity-50' : ''}`}
+                      >
                         <td className="py-3 pr-4 font-medium text-white">{service.name}</td>
                         <td className="py-3 pr-4 text-[#8A8A8A] max-w-[200px] truncate">{service.description}</td>
                         <td className="py-3 pr-4 text-white">${service.price}</td>
                         <td className="py-3 pr-4">
-                          <span
-                            onClick={() => handleToggleStatus(service)}
-                            title={service.isActive ? 'Desactivar' : 'Activar'}
-                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${
-                            service.isActive
-                              ? 'bg-green-500/10 text-green-400'
-                              : 'bg-red-500/10 text-red-400'
-                          }`}>
-                            {service.isActive ? 'Activo' : 'Inactivo'}
-                          </span>
+                          {service.status !== 'deleted' ? (
+                            <span
+                              onClick={() => handleToggleStatus(service)}
+                              title={service.status === 'active' ? 'Desactivar' : 'Activar'}
+                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium cursor-pointer hover:opacity-80 transition-opacity ${statusColor[service.status]}`}
+                            >
+                              {statusLabel[service.status]}
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusColor.deleted}`}>
+                              {statusLabel.deleted}
+                            </span>
+                          )}
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => openEdit(service)}
-                              className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-blue-500/30 hover:text-blue-400 transition-colors"
-                              title="Editar"
-                            >
-                              <FiEdit3 className="text-sm" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(service)}
-                              disabled={isMutating}
-                              className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-red-500/30 hover:text-red-400 transition-colors disabled:opacity-50"
-                              title="Eliminar"
-                            >
-                              <FiTrash2 className="text-sm" />
-                            </button>
+                            {service.status !== 'deleted' ? (
+                              <>
+                                <button
+                                  onClick={() => openEdit(service)}
+                                  className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-blue-500/30 hover:text-blue-400 transition-colors"
+                                  title="Editar"
+                                >
+                                  <FiEdit3 className="text-sm" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(service)}
+                                  disabled={isMutating}
+                                  className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-red-500/30 hover:text-red-400 transition-colors disabled:opacity-50"
+                                  title="Eliminar"
+                                >
+                                  <FiTrash2 className="text-sm" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => handleRestore(service)}
+                                disabled={isMutating}
+                                className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:border-green-500/30 hover:text-green-400 transition-colors disabled:opacity-50"
+                                title="Restaurar"
+                              >
+                                <FiRefreshCw className="text-sm" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

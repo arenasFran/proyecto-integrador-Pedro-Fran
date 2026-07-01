@@ -1,9 +1,12 @@
+export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+
 export type ServiceCreateProps = {
   id: string;
   name: string;
   description: string;
   price: number;
   imageUrl: string;
+  status: ServiceStatus;
 };
 
 export type ServicePrimitives = {
@@ -12,6 +15,7 @@ export type ServicePrimitives = {
   description: string;
   price: number;
   imageUrl: string;
+  status: ServiceStatus;
 };
 
 type ServiceProps = {
@@ -20,6 +24,7 @@ type ServiceProps = {
   description: string;
   price: number;
   imageUrl: string;
+  status: ServiceStatus;
 };
 
 export class Service {
@@ -53,6 +58,10 @@ export class Service {
     return this.props.imageUrl;
   }
 
+  get status(): ServiceStatus {
+    return this.props.status;
+  }
+
   toPrimitives(): ServicePrimitives {
     return {
       id: this.id,
@@ -60,6 +69,7 @@ export class Service {
       description: this.description,
       price: this.price,
       imageUrl: this.imageUrl,
+      status: this.status,
     };
   }
 }

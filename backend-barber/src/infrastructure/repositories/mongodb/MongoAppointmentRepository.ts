@@ -218,7 +218,7 @@ export class MongoAppointmentRepository {
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
       { $set: updateData, $currentDate: { updatedAt: true } },
-      { returnDocument: 'after', new: true }
+      { returnDocument: 'after' }
     ).lean();
 
     if (!doc) return null;
@@ -229,7 +229,7 @@ export class MongoAppointmentRepository {
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
       { $set: { clientId: new mongoose.Types.ObjectId(clientId) }, $currentDate: { updatedAt: true } },
-      { returnDocument: 'after', new: true }
+      { returnDocument: 'after' }
     ).lean();
     if (!doc) return null;
     return toAppointmentEntity(doc);
@@ -261,7 +261,7 @@ export class MongoAppointmentRepository {
     const doc = await AppointmentModel.findByIdAndUpdate(
       id,
       update,
-      { returnDocument: 'after', new: true }
+      { returnDocument: 'after' }
     ).lean();
 
     if (!doc) return null;

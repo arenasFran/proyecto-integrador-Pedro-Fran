@@ -14,7 +14,7 @@ const adminNavItems = [
   { to: '/admin/dashboard', icon: FiBarChart2, label: 'Métricas' },
   { to: '/admin/turnos',     icon: FiList, label: 'Turnos' },
   { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
-  { to: '/admin/profesionales', icon: FiUsers, label: 'Profesionales' },
+  { to: '/admin/servicios', icon: FiScissors, label: 'Servicios' },
   { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
 ];
 

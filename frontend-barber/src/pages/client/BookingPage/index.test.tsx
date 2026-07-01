@@ -22,6 +22,10 @@ vi.mock('../../../services/authApi', () => ({
   },
 }));
 
+vi.mock('../../../services/service.api', () => ({
+  useGetServicesQuery: vi.fn(() => ({ data: [], isLoading: false })),
+}));
+
 vi.mock('../../../services/api', () => ({
   getAccessToken: vi.fn(() => null),
 }));

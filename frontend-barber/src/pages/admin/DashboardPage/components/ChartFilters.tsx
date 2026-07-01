@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import { Select } from '../../../../components/common/Select';
 import { professionalService } from '../../../../services/professional.service';
 import type { Professional } from '../../../../types/professional';
-import { serviceService } from '../../../../services/service.service';
-import type { Service } from '../../../../types/booking';
+import { useGetServicesQuery } from '../../../../services/service.api';
 
 interface ChartFiltersProps {
   barberId: string | undefined;
@@ -29,7 +28,6 @@ export default function ChartFilters({
 }: ChartFiltersProps) {
   const showStatus = onStatusChange !== undefined;
   const [barbers, setBarbers] = useState<Professional[]>([]);
-  const [services, setServices] = useState<Service[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleError = (err: unknown, fallback: string) => {
@@ -45,11 +43,7 @@ export default function ChartFilters({
       .catch((err) => handleError(err, 'Error al cargar barberos'));
   }, []);
 
-  useEffect(() => {
-    serviceService.list()
-      .then(setServices)
-      .catch((err) => handleError(err, 'Error al cargar servicios'));
-  }, []);
+  const { data: services = [] } = useGetServicesQuery();
 
   return (
     <div className="flex flex-wrap items-center gap-3 mt-2">

@@ -6,7 +6,7 @@ import { MongoAppointmentRepository } from '../infrastructure/repositories/mongo
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
-import { StaticServiceRepository } from '../infrastructure/repositories/static/StaticServiceRepository';
+import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
 import { AppointmentController } from '../interface-adapters/controllers/appointment/AppointmentController';
@@ -16,7 +16,7 @@ import { buildTokenService } from './auth';
 export const buildAppointmentRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
   const barberRepository = new MongoBarberRepository();
-  const serviceRepository = new StaticServiceRepository();
+  const serviceRepository = new MongoServiceRepository();
   const clientRepository = new MongoClientRepository();
   const tempLockRepository = new MongoTempLockRepository();
   const tokenService = buildTokenService();

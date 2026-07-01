@@ -14,7 +14,7 @@ import {
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
   fetchPublicBarbers,
-  fetchServices,
+  setServices,
   setSelectedBarber,
   setSelectedService,
   setSelectedDate,
@@ -24,6 +24,7 @@ import {
   submitAppointment,
   resetBooking,
 } from '../../../store/slices/bookingSlice';
+import { useGetServicesQuery } from '../../../services/service.api';
 import { authApi } from '../../../services/authApi';
 import { getAccessToken } from '../../../services/api';
 import { formatDate } from '../../../utils/formatDate';
@@ -76,11 +77,17 @@ export const BookingPage: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchPublicBarbers());
-    dispatch(fetchServices());
     return () => {
       dispatch(resetBooking());
     };
   }, [dispatch]);
+
+  const { data: rtkServices } = useGetServicesQuery();
+  useEffect(() => {
+    if (rtkServices) {
+      dispatch(setServices(rtkServices));
+    }
+  }, [rtkServices, dispatch]);
 
   useEffect(() => {
     if (authUser) {

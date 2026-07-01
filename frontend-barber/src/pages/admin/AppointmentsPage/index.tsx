@@ -11,7 +11,7 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Spinner, StatsCards, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
@@ -202,7 +202,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <h1 className="mt-4 text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
                 Administrá todos los turnos desde una sola pantalla.
               </h1>
-              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#8A8A8A] sm:text-[15px]">
+              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#8A8A8A] sm:text-[15px] hidden md:block">
                 Visualizá, cancelá, reprogramá y cambiá el estado de los turnos de forma centralizada.
               </p>
             </div>
@@ -214,7 +214,7 @@ export const AdminAppointmentsPage: React.FC = () => {
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-          <div className="flex flex-wrap items-end gap-3 mb-6">
+          <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 md:mb-6">
             <div className="w-full sm:w-[180px]">
               <Input
                 label="Fecha"
@@ -238,7 +238,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 ))}
               </select>
             </div>
-            <div className="flex flex-col gap-1 w-full sm:w-[160px]">
+            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
               <label className="text-[13px] font-medium text-white">Estado</label>
               <select
                 value={filterStatus}
@@ -252,34 +252,25 @@ export const AdminAppointmentsPage: React.FC = () => {
                 <option value="NoShow">No asistió</option>
               </select>
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <Input
-                label="Buscar"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Cliente, servicio..."
-              />
-            </div>
-            <button
-              onClick={clearFilters}
-              className="flex items-center gap-1.5 h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] font-medium text-[#8A8A8A] transition-colors hover:text-white hover:border-[#FF5C00]"
-            >
-              <FiX className="text-sm" />
-              Limpiar
-            </button>
-            {(isLoading || isFetching) && (
-              <div className="flex items-center gap-2 text-[#8A8A8A] text-[13px]">
-                <Spinner size="sm" />
-                Actualizando...
-              </div>
+            <Input
+              label="Buscar"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Cliente, email o servicio"
+              containerClass="w-full sm:w-[200px]"
+            />
+            {(filterDate || filterBarberId || filterStatus || searchTerm || sortBy) && (
+              <button
+                onClick={clearFilters}
+                className="h-[40px] self-end rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"
+              >
+                Limpiar filtros
+              </button>
             )}
           </div>
 
-          {error ? (
-            <div className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
-              <p className="text-[13px] text-red-400">Error al cargar turnos. Verificá la conexión.</p>
-            </div>
-          ) : isLoading ? (
+          {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <Spinner size="lg" />
             </div>
@@ -291,157 +282,244 @@ export const AdminAppointmentsPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-[13px]">
-                  <thead>
-                    <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
-                      <th className="pb-3 pr-4 font-medium">Cliente</th>
-                      <th className="pb-3 pr-4 font-medium">Barbero</th>
-                      <th className="pb-3 pr-4 font-medium">Servicio</th>
-                      <th className="pb-3 pr-4 font-medium">
-                        <button onClick={() => toggleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
-                          Fecha
-                          {sortBy === 'date' ? (
-                            sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
-                          ) : (
-                            <FiChevronUp className="text-[11px] opacity-30" />
-                          )}
+            {/* Mobile cards */}
+            <div className="flex flex-col gap-3 md:hidden">
+              {filtered.map((appointment) => {
+                const style = statusStyles[appointment.status];
+                const isActive = appointment.status === 'Confirmado';
+                return (
+                  <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-white truncate">
+                          {appointment.clientName} {appointment.clientLastname}
+                        </p>
+                        {appointment.clientEmail && (
+                          <p className="text-[11px] text-[#8A8A8A] truncate">{appointment.clientEmail}</p>
+                        )}
+                      </div>
+                      <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
+                        {style.label}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 text-[13px]">
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Barbero</span>
+                        <span className="text-white">{barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Servicio</span>
+                        <span className="text-white text-right max-w-[60%] truncate">{appointment.serviceName}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Fecha</span>
+                        <span className="text-white">{appointment.date}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Hora</span>
+                        <span className="text-white">{formatTime(appointment.startTime)}</span>
+                      </div>
+                    </div>
+
+                    {isActive && (
+                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
+                        <button
+                          onClick={() => handleStatusChange(appointment.id, 'Completado')}
+                          disabled={isUpdatingStatus}
+                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+                          title="Marcar como completado"
+                        >
+                          <FiCheck className="text-sm" />
                         </button>
-                      </th>
-                      <th className="pb-3 pr-4 font-medium">
-                        <button onClick={() => toggleSort('time')} className="flex items-center gap-1 hover:text-white transition-colors">
-                          Hora
-                          {sortBy === 'time' ? (
-                            sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
-                          ) : (
-                            <FiChevronUp className="text-[11px] opacity-30" />
-                          )}
+                        <button
+                          onClick={() => { setRescheduleTarget(appointment); setRescheduleDate(appointment.date); setRescheduleTime(appointment.startTime); setRescheduleBarberId(appointment.barberId); }}
+                          className="rounded-[8px] border border-blue-500/30 p-1.5 text-blue-400 hover:bg-blue-500/10 transition-colors"
+                          title="Reprogramar"
+                        >
+                          <FiClock className="text-sm" />
                         </button>
-                      </th>
-                      <th className="pb-3 pr-4 font-medium">Estado</th>
-                      <th className="pb-3 font-medium">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((appointment) => {
-                      const style = statusStyles[appointment.status];
-                      const isActive = appointment.status === 'Confirmado';
-                      return (
-                        <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
-                          <td className="py-3 pr-4">
-                            <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
-                            {appointment.clientEmail && (
-                              <div className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</div>
-                            )}
-                          </td>
-                          <td className="py-3 pr-4 text-[#8A8A8A]">
-                            {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
-                          </td>
-                          <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
-                          <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
-                          <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
-                          <td className="py-3 pr-4">
-                            <motion.span
-                              key={`${appointment.id}-${appointment.status}`}
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ duration: 0.2 }}
-                              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}
-                            >
-                              {style.label}
-                            </motion.span>
-                          </td>
-                          <td className="py-3">
-                            <div className="flex items-center gap-1.5">
-                              {isActive && (
-                                <div className="relative">
-                                  <button
-                                    onClick={(e) => {
-                                      if (activeMenu === appointment.id) {
-                                        setActiveMenu(null);
-                                        setMenuRect(null);
-                                      } else {
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        setMenuRect({ top: rect.top, right: rect.right });
-                                        setActiveMenu(appointment.id);
-                                      }
-                                    }}
-                                    className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
-                                    aria-label="Acciones del turno"
-                                    aria-expanded={activeMenu === appointment.id}
-                                  >
-                                    <FiMoreVertical className="text-sm" />
-                                  </button>
-                                  {activeMenu === appointment.id && menuRect && (
-                                    <>
-                                      <div className="fixed inset-0 z-40" onClick={() => { setActiveMenu(null); setMenuRect(null); }} />
-                                      <div
-                                        className="fixed z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl"
-                                        style={{
-                                          right: window.innerWidth - menuRect.right + 4,
-                                          ...(menuRect.top + 200 < window.innerHeight
-                                            ? { top: menuRect.top }
-                                            : { bottom: window.innerHeight - menuRect.top }),
-                                        }}
-                                      >
-                                          <button
-                                            onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); setMenuRect(null); }}
-                                            disabled={isUpdatingStatus}
-                                            className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                            aria-label="Marcar como completado"
-                                          >
-                                            <FiCheck className="text-sm" /> Completado
-                                          </button>
-                                          <button
-                                            onClick={() => {
-                                              setRescheduleTarget(appointment);
-                                              setRescheduleDate(appointment.date);
-                                              setRescheduleTime(appointment.startTime);
-                                              setRescheduleBarberId(appointment.barberId);
-                                              setActiveMenu(null);
-                                              setMenuRect(null);
-                                            }}
-                                            className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
-                                            aria-label="Reprogramar turno"
-                                          >
-                                            <FiClock className="text-sm" /> Reprogramar
-                                          </button>
+                        <button
+                          onClick={() => handleStatusChange(appointment.id, 'NoShow')}
+                          disabled={isUpdatingStatus}
+                          className="rounded-[8px] border border-yellow-500/30 p-1.5 text-yellow-400 hover:bg-yellow-500/10 transition-colors disabled:opacity-50"
+                          title="Marcar como no asistió"
+                        >
+                          <FiXCircle className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { setCancelTarget(appointment); setCancelReason(''); }}
+                          disabled={isCancelling}
+                          className="rounded-[8px] border border-red-500/30 p-1.5 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                          title="Cancelar turno"
+                        >
+                          <FiX className="text-sm" />
+                        </button>
+                      </div>
+                    )}
+
+                    {appointment.status === 'Cancelado' && appointment.cancelReason && (
+                      <div className="text-[11px] text-[#8A8A8A] truncate" title={appointment.cancelReason}>
+                        Motivo: {appointment.cancelReason}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
+                    <th className="pb-3 pr-4 font-medium">Cliente</th>
+                    <th className="pb-3 pr-4 font-medium">Barbero</th>
+                    <th className="pb-3 pr-4 font-medium">Servicio</th>
+                    <th className="pb-3 pr-4 font-medium">
+                      <button onClick={() => toggleSort('date')} className="flex items-center gap-1 hover:text-white transition-colors">
+                        Fecha
+                        {sortBy === 'date' ? (
+                          sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
+                        ) : (
+                          <FiChevronUp className="text-[11px] opacity-30" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="pb-3 pr-4 font-medium">
+                      <button onClick={() => toggleSort('time')} className="flex items-center gap-1 hover:text-white transition-colors">
+                        Hora
+                        {sortBy === 'time' ? (
+                          sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
+                        ) : (
+                          <FiChevronUp className="text-[11px] opacity-30" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="pb-3 pr-4 font-medium">Estado</th>
+                    <th className="pb-3 font-medium">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((appointment) => {
+                    const style = statusStyles[appointment.status];
+                    const isActive = appointment.status === 'Confirmado';
+                    return (
+                      <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
+                        <td className="py-3 pr-4">
+                          <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
+                          {appointment.clientEmail && (
+                            <div className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</div>
+                          )}
+                        </td>
+                        <td className="py-3 pr-4 text-[#8A8A8A]">
+                          {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
+                        </td>
+                        <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
+                        <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
+                        <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
+                        <td className="py-3 pr-4">
+                          <motion.span
+                            key={`${appointment.id}-${appointment.status}`}
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}
+                          >
+                            {style.label}
+                          </motion.span>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1.5">
+                            {isActive && (
+                              <div className="relative">
+                                <button
+                                  onClick={(e) => {
+                                    if (activeMenu === appointment.id) {
+                                      setActiveMenu(null);
+                                      setMenuRect(null);
+                                    } else {
+                                      const rect = e.currentTarget.getBoundingClientRect();
+                                      setMenuRect({ top: rect.top, right: rect.right });
+                                      setActiveMenu(appointment.id);
+                                    }
+                                  }}
+                                  className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
+                                  aria-label="Acciones del turno"
+                                  aria-expanded={activeMenu === appointment.id}
+                                >
+                                  <FiMoreVertical className="text-sm" />
+                                </button>
+                                {activeMenu === appointment.id && menuRect && (
+                                  <>
+                                    <div className="fixed inset-0 z-40" onClick={() => { setActiveMenu(null); setMenuRect(null); }} />
+                                    <div
+                                      className="fixed z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl"
+                                      style={{
+                                        right: window.innerWidth - menuRect.right + 4,
+                                        ...(menuRect.top + 200 < window.innerHeight
+                                          ? { top: menuRect.top }
+                                          : { bottom: window.innerHeight - menuRect.top }),
+                                      }}
+                                    >
                                         <button
-                                          onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); setMenuRect(null); }}
+                                          onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); setMenuRect(null); }}
                                           disabled={isUpdatingStatus}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                          aria-label="Marcar como no asistió"
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                          aria-label="Marcar como completado"
                                         >
-                                          <FiXCircle className="text-sm" /> No asistió
+                                          <FiCheck className="text-sm" /> Completado
                                         </button>
-                                        <hr className="border-[#282828] my-1" />
                                         <button
-                                          onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); setMenuRect(null); }}
-                                          disabled={isCancelling}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                          aria-label="Cancelar turno"
+                                          onClick={() => {
+                                            setRescheduleTarget(appointment);
+                                            setRescheduleDate(appointment.date);
+                                            setRescheduleTime(appointment.startTime);
+                                            setRescheduleBarberId(appointment.barberId);
+                                            setActiveMenu(null);
+                                            setMenuRect(null);
+                                          }}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
+                                          aria-label="Reprogramar turno"
                                         >
-                                          <FiX className="text-sm" /> Cancelar
+                                          <FiClock className="text-sm" /> Reprogramar
                                         </button>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                              {appointment.status === 'Cancelado' && appointment.cancelReason && (
-                                <span className="text-[11px] text-[#8A8A8A] max-w-[120px] truncate" title={appointment.cancelReason}>
-                                  {appointment.cancelReason}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+                                      <button
+                                        onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); setMenuRect(null); }}
+                                        disabled={isUpdatingStatus}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                        aria-label="Marcar como no asistió"
+                                      >
+                                        <FiXCircle className="text-sm" /> No asistió
+                                      </button>
+                                      <hr className="border-[#282828] my-1" />
+                                      <button
+                                        onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); setMenuRect(null); }}
+                                        disabled={isCancelling}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                        aria-label="Cancelar turno"
+                                      >
+                                        <FiX className="text-sm" /> Cancelar
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                            {appointment.status === 'Cancelado' && appointment.cancelReason && (
+                              <span className="text-[11px] text-[#8A8A8A] max-w-[120px] truncate" title={appointment.cancelReason}>
+                                {appointment.cancelReason}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
             </>
           )}
         </AnimatedContainer>

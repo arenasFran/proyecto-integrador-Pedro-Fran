@@ -1,6 +1,6 @@
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
-import { StaticServiceRepository } from '../../../infrastructure/repositories/static/StaticServiceRepository';
+import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
@@ -22,7 +22,7 @@ export class RescheduleAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly barberRepository: MongoBarberRepository,
-    private readonly serviceRepository: StaticServiceRepository,
+    private readonly serviceRepository: MongoServiceRepository,
     private readonly emailService: IEmailService
   ) {}
 
@@ -74,7 +74,7 @@ export class RescheduleAppointmentUseCase {
       );
     }
 
-    const service = await this.serviceRepository.findById(appointment.serviceId);
+    const service = await this.serviceRepository.findByIdIncludingInactive(appointment.serviceId);
     if (!service) {
       throw new AppError('Servicio no encontrado.', 404);
     }

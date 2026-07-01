@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
 import reducer, {
+  setServices,
   setCurrentStep,
   setSelectedBarber,
   setSelectedService,
@@ -11,7 +12,6 @@ import reducer, {
   resetBooking,
   resetBookingFlow,
   fetchPublicBarbers,
-  fetchServices,
   fetchAvailableSlots,
   submitAppointment,
 } from './bookingSlice';
@@ -50,10 +50,6 @@ const mockProfessionalService = vi.hoisted(() => ({
   getSlots: vi.fn(),
 }));
 
-const mockServiceService = vi.hoisted(() => ({
-  list: vi.fn(),
-}));
-
 const mockAppointmentService = vi.hoisted(() => ({
   create: vi.fn(),
 }));
@@ -67,17 +63,13 @@ vi.mock('../../services/professional.service', () => ({
   professionalService: mockProfessionalService,
 }));
 
-vi.mock('../../services/service.service', () => ({
-  serviceService: mockServiceService,
-}));
-
 vi.mock('../../services/appointment.service', () => ({
   appointmentService: mockAppointmentService,
   tempLockService: mockTempLockService,
 }));
 
 const mockBarber = { id: 'b1', name: 'Carlos', lastname: 'López', services: ['s1'], photoUrl: null, isActive: true, slotDuration: 30, maxAdvanceDays: 30 };
-const mockService = { id: 's1', name: 'Corte', description: '', price: 500, imageUrl: '' };
+const mockService = { id: 's1', name: 'Corte', description: '', price: 500, imageUrl: '', status: 'active' as const };
 
 function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
   return configureStore({
@@ -143,6 +135,12 @@ describe('bookingSlice', () => {
     it('setSelectedTime asigna la hora', () => {
       const state = reducer(initialState, setSelectedTime('10:00'));
       expect(state.flow.selectedTime).toBe('10:00');
+    });
+
+    it('setServices asigna servicios desde RTK Query', () => {
+      const svcs = [mockService];
+      const state = reducer(initialState, setServices(svcs));
+      expect(state.async.services).toEqual(svcs);
     });
 
     it('setClientData asigna datos del cliente', () => {
@@ -222,25 +220,6 @@ describe('bookingSlice', () => {
       await store.dispatch(fetchPublicBarbers());
       const state = store.getState().booking;
       expect(state.async.barbersError).toBe('Error al cargar barberos');
-    });
-  });
-
-  describe('fetchServices', () => {
-    it('fulfilled asigna servicios', async () => {
-      mockServiceService.list.mockResolvedValueOnce([mockService]);
-      const store = createStore();
-      await store.dispatch(fetchServices());
-      const state = store.getState().booking;
-      expect(state.async.isLoadingServices).toBe(false);
-      expect(state.async.services).toEqual([mockService]);
-    });
-
-    it('rejected asigna error', async () => {
-      mockServiceService.list.mockRejectedValueOnce(new Error('Error servicios'));
-      const store = createStore();
-      await store.dispatch(fetchServices());
-      const state = store.getState().booking;
-      expect(state.async.servicesError).toBe('Error servicios');
     });
   });
 

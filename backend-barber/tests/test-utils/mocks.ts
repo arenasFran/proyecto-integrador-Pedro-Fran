@@ -81,7 +81,13 @@ export const makeMockBarberRepository = () => ({
 
 export const makeMockServiceRepository = () => ({
   findAll: jest.fn(),
+  findAllAdmin: jest.fn(),
   findById: jest.fn(),
+  findByIdIncludingInactive: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  softDelete: jest.fn(),
+  restore: jest.fn(),
 });
 
 export const makeMockClientRepository = () => ({

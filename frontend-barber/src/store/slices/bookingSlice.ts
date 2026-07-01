@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { professionalService } from '../../services/professional.service';
-import { serviceService } from '../../services/service.service';
 import { appointmentService, tempLockService } from '../../services/appointment.service';
 import { appointmentApi } from '../../services/appointmentApi';
 import type {
@@ -85,18 +84,6 @@ export const fetchPublicBarbers = createAsyncThunk(
   }
 );
 
-export const fetchServices = createAsyncThunk(
-  'booking/fetchServices',
-  async (_, { rejectWithValue }) => {
-    try {
-      return await serviceService.list();
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error al cargar servicios';
-      return rejectWithValue(message);
-    }
-  }
-);
-
 export const fetchAvailableSlots = createAsyncThunk(
   'booking/fetchAvailableSlots',
   async (
@@ -151,6 +138,9 @@ const bookingSlice = createSlice({
   name: 'booking',
   initialState,
   reducers: {
+    setServices: (state, action: PayloadAction<Service[]>) => {
+      state.async.services = action.payload;
+    },
     setCurrentStep: (state, action: PayloadAction<BookingStep>) => {
       state.flow.currentStep = action.payload;
     },
@@ -220,18 +210,6 @@ const bookingSlice = createSlice({
         state.async.isLoadingBarbers = false;
         state.async.barbersError = action.payload as string;
       })
-      .addCase(fetchServices.pending, (state) => {
-        state.async.isLoadingServices = true;
-        state.async.servicesError = null;
-      })
-      .addCase(fetchServices.fulfilled, (state, action) => {
-        state.async.isLoadingServices = false;
-        state.async.services = action.payload;
-      })
-      .addCase(fetchServices.rejected, (state, action) => {
-        state.async.isLoadingServices = false;
-        state.async.servicesError = action.payload as string;
-      })
       .addCase(fetchAvailableSlots.pending, (state) => {
         state.async.isLoadingSlots = true;
         state.async.slotsError = null;
@@ -261,6 +239,7 @@ const bookingSlice = createSlice({
 });
 
 export const {
+  setServices,
   setCurrentStep,
   setSelectedBarber,
   setSelectedService,

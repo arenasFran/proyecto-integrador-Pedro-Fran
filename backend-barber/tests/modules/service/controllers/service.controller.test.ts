@@ -4,6 +4,7 @@ import { MongoServiceRepository } from '../../../../src/infrastructure/repositor
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
 import { Service } from '../../../../src/domain/entities/Service';
 import { AppError } from '../../../../src/application/errors/AppError';
+import type { ServiceStatus } from '../../../../src/domain/entities/Service';
 
 describe('ServiceController', () => {
   let serviceRepository: jest.Mocked<MongoServiceRepository>;
@@ -18,6 +19,7 @@ describe('ServiceController', () => {
       create: jest.fn(),
       update: jest.fn(),
       softDelete: jest.fn(),
+      restore: jest.fn(),
     } as unknown as jest.Mocked<MongoServiceRepository>;
 
     controller = new ServiceController(serviceRepository);
@@ -30,8 +32,7 @@ describe('ServiceController', () => {
       description: 'Incluye barba/cejas/lavado/bebida a elección',
       price: 490,
       imageUrl: '',
-      isActive: true,
-      isDeleted: false,
+      status: 'active',
     });
     serviceRepository.findAll.mockResolvedValue([service]);
 
@@ -71,8 +72,7 @@ describe('ServiceController', () => {
       description: 'Incluye barba/cejas/lavado/bebida a elección',
       price: 490,
       imageUrl: '',
-      isActive: true,
-      isDeleted: false,
+      status: 'active',
     });
     serviceRepository.findAllAdmin.mockResolvedValue([service]);
 
@@ -112,8 +112,7 @@ describe('ServiceController', () => {
       description: 'Incluye barba',
       price: 490,
       imageUrl: '',
-      isActive: true,
-      isDeleted: false,
+      status: 'active',
     });
     serviceRepository.create.mockResolvedValue(service);
 
@@ -148,8 +147,7 @@ describe('ServiceController', () => {
       description: 'Incluye barba/cejas/lavado/bebida a elección',
       price: 490,
       imageUrl: '',
-      isActive: true,
-      isDeleted: false,
+      status: 'active',
     });
     serviceRepository.update.mockResolvedValue(service);
 
@@ -177,15 +175,14 @@ describe('ServiceController', () => {
     expect(res.status).toHaveBeenCalledWith(404);
   });
 
-  it('delete debe responder 200 con el servicio desactivado', async () => {
+  it('delete debe responder 200 con el servicio eliminado', async () => {
     const service = Service.create({
       id: new mongoose.Types.ObjectId().toString(),
       name: 'Eliminar',
       description: '',
       price: 100,
       imageUrl: '',
-      isActive: false,
-      isDeleted: true,
+      status: 'deleted',
     });
     serviceRepository.softDelete.mockResolvedValue(service);
 
@@ -197,7 +194,7 @@ describe('ServiceController', () => {
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        service: expect.objectContaining({ isActive: false, isDeleted: true }),
+        service: expect.objectContaining({ status: 'deleted' }),
       })
     );
   });
@@ -209,6 +206,41 @@ describe('ServiceController', () => {
     const res = createMockRes();
 
     await controller.delete(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it('restore debe responder 200 y cambiar status a inactive', async () => {
+    const restored = Service.create({
+      id: new mongoose.Types.ObjectId().toString(),
+      name: 'Restaurado',
+      description: '',
+      price: 100,
+      imageUrl: '',
+      status: 'inactive',
+    });
+    serviceRepository.restore.mockResolvedValue(restored);
+
+    const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
+    const res = createMockRes();
+
+    await controller.restore(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        service: expect.objectContaining({ status: 'inactive' }),
+      })
+    );
+  });
+
+  it('restore debe responder 404 si el servicio no está eliminado', async () => {
+    serviceRepository.restore.mockResolvedValue(null);
+
+    const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
+    const res = createMockRes();
+
+    await controller.restore(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
   });

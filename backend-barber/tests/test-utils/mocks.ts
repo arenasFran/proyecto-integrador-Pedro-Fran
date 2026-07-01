@@ -87,6 +87,7 @@ export const makeMockServiceRepository = () => ({
   create: jest.fn(),
   update: jest.fn(),
   softDelete: jest.fn(),
+  restore: jest.fn(),
 });
 
 export const makeMockClientRepository = () => ({

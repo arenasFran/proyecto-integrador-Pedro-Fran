@@ -29,7 +29,7 @@ describeIfMongo('Service routes — integración real', () => {
   });
 
   it('debe devolver 200 con array vacío si no hay servicios activos', async () => {
-    await seedService({ name: 'Inactivo', price: 100, isActive: false });
+    await seedService({ name: 'Inactivo', price: 100, status: 'inactive' });
 
     const response = await request(app).get('/api/services');
 
@@ -108,6 +108,40 @@ describeIfMongo('Service routes — integración real', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.service.isDeleted).toBe(true);
+    expect(response.body.service.status).toBe('deleted');
+  });
+
+  it('debe restaurar servicio eliminado como admin', async () => {
+    const { adminId } = await seedAdmin();
+    const { token } = signToken({ id: adminId, kind: 'Admin' });
+    const { serviceId } = await seedService({ name: 'Restaurar', price: 100 });
+
+    await request(app)
+      .delete(`/api/services/${serviceId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const response = await request(app)
+      .patch(`/api/services/${serviceId}/restore`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.service.status).toBe('inactive');
+  });
+
+  it('debe rechazar actualizar un servicio eliminado', async () => {
+    const { adminId } = await seedAdmin();
+    const { token } = signToken({ id: adminId, kind: 'Admin' });
+    const { serviceId } = await seedService({ name: 'NoUpdate', price: 100 });
+
+    await request(app)
+      .delete(`/api/services/${serviceId}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    const response = await request(app)
+      .put(`/api/services/${serviceId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .send({ price: 999 });
+
+    expect(response.status).toBe(404);
   });
 });

@@ -117,14 +117,14 @@ export async function seedService(overrides?: {
   description?: string;
   price?: number;
   imageUrl?: string;
-  isActive?: boolean;
+  status?: string;
 }): Promise<{ _id: mongoose.Types.ObjectId; serviceId: string }> {
   const doc = await ServiceModel.create({
     name: overrides?.name || 'Corte de pelo',
     description: overrides?.description || 'Incluye barba/cejas/lavado/bebida a elección',
     price: overrides?.price ?? 490,
     imageUrl: overrides?.imageUrl || '',
-    isActive: overrides?.isActive ?? true,
+    status: overrides?.status ?? 'active',
   });
   return { _id: doc._id as mongoose.Types.ObjectId, serviceId: doc._id.toString() };
 }

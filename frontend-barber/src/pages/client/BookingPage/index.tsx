@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
 import { AnimatedContainer } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
@@ -9,7 +10,6 @@ import {
   BarberSelectionStep,
   ServiceSelectionStep,
   DateTimeStep,
-  BookingSuccessModal,
 } from '../../../components/client/booking';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -23,11 +23,11 @@ import {
   setCurrentStep,
   submitAppointment,
   resetBooking,
-  resetBookingFlow,
 } from '../../../store/slices/bookingSlice';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { authApi } from '../../../services/authApi';
 import { getAccessToken } from '../../../services/api';
+import { formatDate } from '../../../utils/formatDate';
 import type { BookingStep, BarberPublic } from '../../../types/booking';
 
 const getTodayString = (): string => {
@@ -58,7 +58,6 @@ export const BookingPage: React.FC = () => {
       servicesError,
       confirmError,
       submitSuccess,
-      createdAppointment,
     },
     flow: {
       currentStep,
@@ -155,12 +154,13 @@ export const BookingPage: React.FC = () => {
     dispatch(submitAppointment());
   }, [dispatch]);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     if (submitSuccess) {
-      setShowClientForm(false);
+      navigate('/mis-turnos');
     }
-     
-  }, [submitSuccess]);
+  }, [submitSuccess, navigate]);
 
   const isStep3Complete = !!selectedDate && !!selectedTime;
 
@@ -174,13 +174,7 @@ export const BookingPage: React.FC = () => {
     <div className="min-h-screen bg-[#050505] text-white">
       <PublicHeader />
 
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
-        </div>
-
-        <div className="relative mx-auto max-w-xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
+      <div className="relative mx-auto max-w-xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
           <AnimatedContainer animation="fadeInDown" className="text-center mb-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[11px] text-[#8A8A8A] mb-3">
               <FiScissors className="text-[#FF5C00]" />
@@ -238,7 +232,7 @@ export const BookingPage: React.FC = () => {
               title="Fecha y hora"
               summary={
                 selectedDate
-                  ? `${selectedDate.split('-').reverse().join('/')}${selectedTime ? ` - ${selectedTime}` : ''}`
+                  ? `${formatDate(selectedDate)}${selectedTime ? ` - ${selectedTime}` : ''}`
                   : null
               }
               isExpanded={currentStep === 'datetime'}
@@ -260,21 +254,7 @@ export const BookingPage: React.FC = () => {
               )}
             </AccordionStep>
           </div>
-        </div>
       </div>
-
-      {areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime) && !showClientForm && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#282828] bg-[#121212] p-4">
-          <div className="mx-auto max-w-xl">
-            <button
-              onClick={() => setShowClientForm(true)}
-              className="w-full rounded-[12px] bg-[#FF5C00] py-3 text-[14px] font-semibold text-white hover:bg-[#FF5C00]/90 transition-colors"
-            >
-              Continuar con la reserva
-            </button>
-          </div>
-        </div>
-      )}
 
       <ClientDataOverlay
         isOpen={showClientForm}
@@ -292,12 +272,6 @@ export const BookingPage: React.FC = () => {
         onChange={(data) => dispatch(setClientData(data))}
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
-      />
-
-      <BookingSuccessModal
-        isOpen={submitSuccess}
-        appointment={createdAppointment}
-        onClose={() => dispatch(resetBookingFlow())}
       />
 
       <PublicFooter />

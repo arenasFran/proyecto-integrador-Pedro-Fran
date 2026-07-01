@@ -1,6 +1,6 @@
 import { BarberController } from '../../../../src/interface-adapters/controllers/barber/BarberController';
 import { GetAvailableSlotsUseCase } from '../../../../src/application/use-cases/barber/GetAvailableSlotsUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { Email } from '../../../../src/domain/value-objects/Email';
 import { Phone } from '../../../../src/domain/value-objects/Phone';

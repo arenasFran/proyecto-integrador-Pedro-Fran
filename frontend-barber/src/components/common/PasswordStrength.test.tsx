@@ -2,7 +2,13 @@ import { render, screen } from '@testing-library/react';
 import { PasswordStrength } from './PasswordStrength';
 
 describe('PasswordStrength', () => {
-  it('renders nothing for empty password label', () => {
+  it('shows requirements hint even for empty password', () => {
+    render(<PasswordStrength password="" />);
+    expect(screen.getByText('Mínimo 8 caracteres')).toBeInTheDocument();
+    expect(screen.getByText('Una mayúscula')).toBeInTheDocument();
+  });
+
+  it('does not show strength label for empty password', () => {
     render(<PasswordStrength password="" />);
     expect(screen.queryByText(/débil|regular|buena|fuerte/i)).not.toBeInTheDocument();
   });
@@ -25,5 +31,14 @@ describe('PasswordStrength', () => {
   it('shows strong strength', () => {
     render(<PasswordStrength password="Abcdef1!" />);
     expect(screen.getByText('Fuerte')).toBeInTheDocument();
+  });
+
+  it('marks requirements as met when password is strong', () => {
+    render(<PasswordStrength password="Abcdef1!" />);
+    const chars = screen.getByText('Mínimo 8 caracteres');
+    expect(chars).toBeInTheDocument();
+    expect(screen.getByText('Una mayúscula')).toBeInTheDocument();
+    expect(screen.getByText('Una minúscula')).toBeInTheDocument();
+    expect(screen.getByText('Un número')).toBeInTheDocument();
   });
 });

@@ -11,6 +11,10 @@ import type {
 type ProfessionalRaw = Omit<Professional, 'id'> & { _id: string };
 type ProfessionalsResponse = {
   barbers: ProfessionalRaw[];
+  total?: number;
+  page?: number;
+  totalPages?: number;
+  limit?: number;
 };
 
 type PublicBarbersResponse = {
@@ -45,9 +49,20 @@ export const professionalService = {
     return response.data.barbers.map(mapBarberPublic);
   },
 
-  list: async (): Promise<Professional[]> => {
-    const response = await api.get<ProfessionalsResponse>('/api/barbers');
+  list: async (params?: { page?: number; limit?: number }): Promise<Professional[]> => {
+    const response = await api.get<ProfessionalsResponse>('/api/barbers', { params });
     return response.data.barbers.map(mapProfessional);
+  },
+
+  listPaginated: async (params: { page?: number; limit?: number }): Promise<{ barbers: Professional[]; total: number; page: number; totalPages: number; limit: number }> => {
+    const response = await api.get<ProfessionalsResponse>('/api/barbers', { params });
+    return {
+      barbers: response.data.barbers.map(mapProfessional),
+      total: response.data.total ?? 0,
+      page: response.data.page ?? 1,
+      totalPages: response.data.totalPages ?? 1,
+      limit: response.data.limit ?? 50,
+    };
   },
 
   getById: async (id: string): Promise<Professional> => {
@@ -68,6 +83,16 @@ export const professionalService = {
   remove: async (id: string): Promise<string> => {
     const response = await api.delete<{ message: string }>(`/api/barbers/${id}`);
     return response.data.message;
+  },
+
+  deactivate: async (id: string): Promise<{ message: string }> => {
+    const response = await api.patch<{ message: string }>(`/api/barbers/${id}/deactivate`);
+    return response.data;
+  },
+
+  activate: async (id: string): Promise<Professional> => {
+    const response = await api.put<ProfessionalRaw>(`/api/barbers/${id}`, { isActive: true });
+    return mapProfessional(response.data);
   },
 
   getSchedule: async (id: string): Promise<BarberSchedule> => {

@@ -93,6 +93,29 @@ export class MongoBarberRepository {
     });
   }
 
+  async findAllBarbersPaginated(page = 1, limit = 50): Promise<{ data: Barber[]; total: number; page: number; totalPages: number; limit: number }> {
+    const skip = (page - 1) * limit;
+    const filter = { kind: { $in: ['Empleado', 'Admin'] } };
+
+    const [docs, total] = await Promise.all([
+      BarberModel.find(filter).skip(skip).limit(limit).lean(),
+      BarberModel.countDocuments(filter),
+    ]);
+
+    return {
+      data: docs.map((doc) => {
+        if (!isBarberRaw(doc)) {
+          throw new Error('Documento inválido en la colección de barberos');
+        }
+        return toBarberEntity(doc);
+      }),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
+      limit,
+    };
+  }
+
   async createBarber(barber: Barber): Promise<Barber> {
     const doc = await Employee.create(toBarberEmployeeData(barber));
     return toBarberEntity(doc);

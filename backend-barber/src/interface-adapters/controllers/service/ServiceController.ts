@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class ServiceController {
   constructor(private readonly serviceRepository: MongoServiceRepository) {}
@@ -73,3 +73,5 @@ export class ServiceController {
     }
   };
 }
+
+

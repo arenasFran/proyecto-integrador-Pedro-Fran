@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 
-type PresetKey = 'hoy' | 'ayer' | 'semana' | 'semanaPasada' | 'mes' | 'year' | 'personalizado';
+export type PresetKey = 'hoy' | 'ayer' | 'semana' | 'semanaPasada' | 'mes' | 'year' | 'personalizado';
 
 interface DateRangeFilterProps {
   onChange: (desde: string, hasta: string) => void;
+  defaultPreset?: PresetKey;
 }
 
 const PRESETS: { key: PresetKey; label: string }[] = [
@@ -62,8 +63,8 @@ function resolvePreset(p: PresetKey): { desde: string; hasta: string } {
   }
 }
 
-export default function DateRangeFilter({ onChange }: DateRangeFilterProps) {
-  const [preset, setPreset] = useState<PresetKey>('semana');
+export default function DateRangeFilter({ onChange, defaultPreset = 'semana' }: DateRangeFilterProps) {
+  const [preset, setPreset] = useState<PresetKey>(defaultPreset);
   const [customDesde, setCustomDesde] = useState('');
   const [customHasta, setCustomHasta] = useState('');
   const initialised = useRef(false);
@@ -73,10 +74,10 @@ export default function DateRangeFilter({ onChange }: DateRangeFilterProps) {
   useEffect(() => {
     if (!initialised.current) {
       initialised.current = true;
-      const { desde, hasta } = resolvePreset('semana');
+      const { desde, hasta } = resolvePreset(defaultPreset);
       onChangeRef.current(desde, hasta);
     }
-  }, []);
+  }, [defaultPreset]);
 
   const handlePreset = (key: PresetKey) => {
     if (key === 'personalizado') {

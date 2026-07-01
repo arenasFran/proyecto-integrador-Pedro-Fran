@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class TempLockController {
   constructor(
@@ -33,3 +33,4 @@ export class TempLockController {
     }
   };
 }
+

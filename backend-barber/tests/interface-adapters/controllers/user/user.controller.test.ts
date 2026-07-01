@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { UserController } from '../../../../src/interface-adapters/controllers/user/UserController';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { User, UserProps } from '../../../../src/domain/entities/User';
 import { makeMockUserRepository } from '../../../test-utils/mocks';
 

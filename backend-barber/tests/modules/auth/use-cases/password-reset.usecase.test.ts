@@ -1,6 +1,6 @@
 import { RequestPasswordResetUseCase } from '../../../../src/application/use-cases/password/RequestPasswordResetUseCase';
 import { ResetPasswordUseCase } from '../../../../src/application/use-cases/password/ResetPasswordUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { IHashService } from '../../../../src/application/ports/IHashService';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
@@ -82,7 +82,7 @@ describe('Password reset use cases', () => {
       expect(emailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'test@example.com',
-          subject: 'Restablece tu contraseña',
+          subject: 'Restablece tu contraseÃ±a',
         })
       );
       expect(result.message).toMatch(/Si el email existe/);
@@ -133,7 +133,7 @@ describe('Password reset use cases', () => {
       });
 
       expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', 'hash');
-      expect(result.message).toMatch(/Contraseña restablecida/);
+      expect(result.message).toMatch(/ContraseÃ±a restablecida/);
     });
   });
 });

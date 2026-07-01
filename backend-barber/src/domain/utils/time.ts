@@ -1,5 +1,5 @@
 import { BarberSchedule, BarberScheduleDay, BarberScheduleBreak } from '../entities/Barber';
-import { AppError } from '../../application/errors/AppError';
+import { AppError } from '../errors/AppError';
 
 const TIME_ZONE = 'America/Montevideo';
 
@@ -137,3 +137,4 @@ export const getNowInTimezone = (): { date: string; minutes: number } => {
 
   return { date, minutes };
 };
+

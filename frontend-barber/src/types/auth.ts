@@ -1,4 +1,4 @@
-export interface RegisterFormData {
+export interface RegisterFormData extends Record<string, string> {
   email: string;
   password: string;
   repeatPassword: string;
@@ -7,24 +7,24 @@ export interface RegisterFormData {
   phone: string;
 }
 
-export interface LoginFormData {
+export interface LoginFormData extends Record<string, string> {
   email: string;
   password: string;
 }
 
-export interface GoogleLoginFormData {
+export interface GoogleLoginFormData extends Record<string, string> {
   token: string;
 }
 
-export interface TwoFactorCodeFormData {
+export interface TwoFactorCodeFormData extends Record<string, string> {
   token: string;
 }
 
-export interface RequestResetFormData {
+export interface RequestResetFormData extends Record<string, string> {
   email: string;
 }
 
-export interface ResetPasswordFormData {
+export interface ResetPasswordFormData extends Record<string, string> {
   token: string;
   password: string;
   repeatPassword: string;

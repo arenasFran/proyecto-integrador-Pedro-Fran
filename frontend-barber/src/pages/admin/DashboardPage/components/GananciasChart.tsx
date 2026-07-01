@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useGetReservasGananciasQuery } from '../../../../services/analyticsApi';
 import ChartFilters from './ChartFilters';
-import DateRangeFilter from './DateRangeFilter';
+import DateRangeFilter from '../../../../components/common/DateRangeFilter';
 import { ChartContainer } from '../../../../components/common';
 import { formatFecha, deriveGranularidad } from '../../../../utils/formatFecha';
 

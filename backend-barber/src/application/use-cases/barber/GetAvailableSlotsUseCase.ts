@@ -1,7 +1,7 @@
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import { OccupiedSlot, SlotService, SlotsResult } from '../../../domain/services/SlotService';
 import { toMinutes, toTimeString } from '../../../domain/utils/time';
 
@@ -51,3 +51,5 @@ export class GetAvailableSlotsUseCase {
     return this.slotService.execute(date, barber.schedule, barber.slotDuration, occupiedSlots);
   }
 }
+
+

@@ -35,8 +35,12 @@ export const AccordionStep: React.FC<AccordionStepProps> = ({
       }`}
     >
       <button
+        id={`accordion-header-${stepNumber}`}
         onClick={onToggle}
         disabled={isLocked}
+        role="button"
+        aria-expanded={isExpanded}
+        aria-controls={`accordion-content-${stepNumber}`}
         className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors disabled:cursor-not-allowed"
       >
         <div className="flex items-center gap-3 min-w-0">
@@ -80,6 +84,9 @@ export const AccordionStep: React.FC<AccordionStepProps> = ({
 
       {isExpanded && (
         <motion.div
+          id={`accordion-content-${stepNumber}`}
+          role="region"
+          aria-labelledby={`accordion-header-${stepNumber}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.15, ease: 'easeOut' }}

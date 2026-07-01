@@ -41,6 +41,8 @@ export type CreateAppointmentPayload = {
 export type Appointment = {
   id: string;
   barberId: string;
+  barberName?: string;
+  barberPhotoUrl?: string;
   clientId?: string;
   clientName: string;
   clientLastname: string;

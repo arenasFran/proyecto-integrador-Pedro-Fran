@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input } from '../../../components/common';
+import { AnimatedContainer, Button, Input, Pagination, Select, useToast } from '../../../components/common';
+import { formatDate } from '../../../utils/formatDate';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsQuery,
@@ -27,7 +28,8 @@ function formatTime(time: string) {
 export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
-  const { data: appointments = [], isLoading, error, refetch } = useGetAppointmentsQuery(
+  const { showToast } = useToast();
+  const { data: appointments = [], isLoading, error } = useGetAppointmentsQuery(
     user ? { clientId: user.id } : skipToken,
     { pollingInterval: 15000 }
   );
@@ -49,17 +51,15 @@ export const MyAppointmentsPage: React.FC = () => {
     dispatch(fetchPublicBarbers());
   }, [dispatch]);
 
-  const [actionError, setActionError] = useState<string | null>(null);
-
   const handleCancelConfirm = async () => {
     if (!cancelTarget) return;
     try {
       await cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }).unwrap();
+      showToast('Turno cancelado con éxito');
       setCancelTarget(null);
       setCancelReason('');
-      setActionError(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Error al cancelar turno');
+      showToast(err instanceof Error ? err.message : 'Error al cancelar turno', 'error');
     }
   };
 
@@ -72,52 +72,54 @@ export const MyAppointmentsPage: React.FC = () => {
         startTime: rescheduleTime,
         barberId: rescheduleBarberId,
       }).unwrap();
+      showToast('Turno reprogramado con éxito');
       setRescheduleTarget(null);
       setRescheduleDate('');
       setRescheduleTime('');
       setRescheduleBarberId('');
-      setActionError(null);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Error al reprogramar turno');
+      showToast(err instanceof Error ? err.message : 'Error al reprogramar turno', 'error');
     }
   };
+
+  const [pastPage, setPastPage] = useState(1);
+  const PAST_PAGE_SIZE = 10;
 
   const activeAppointments = appointments.filter((a) => a.status === 'Confirmado');
   const pastAppointments = appointments.filter((a) => a.status !== 'Confirmado');
 
+  const pastTotalPages = Math.ceil(pastAppointments.length / PAST_PAGE_SIZE) || 1;
+  const paginatedPast = useMemo(
+    () => pastAppointments.slice((pastPage - 1) * PAST_PAGE_SIZE, pastPage * PAST_PAGE_SIZE),
+    [pastAppointments, pastPage]
+  );
+
+  useEffect(() => {
+    setPastPage(1);
+  }, [appointments.length]);
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-[#050505] text-white">
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-4xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 sm:px-4 sm:py-2 text-[11px] sm:text-[12px] text-[#8A8A8A]">
                 <FiScissors className="text-[#FF5C00]" />
                 Mis turnos
               </div>
-              <h1 className="mt-4 text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
+              <h1 className="mt-3 sm:mt-4 text-[22px] sm:text-[38px] font-extrabold tracking-[-0.02em] text-white">
                 Tus turnos
               </h1>
               <p className="mt-2 text-[14px] text-[#8A8A8A]">
                 Revisá, cancelá o reprogramá tus turnos.
               </p>
             </div>
-            <Button variant="secondary" icon={FiRefreshCw} onClick={() => refetch()}>
-              Refrescar
-            </Button>
+            
           </div>
         </AnimatedContainer>
 
-        {actionError && (
-          <AnimatedContainer animation="fadeIn" className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
-            <p className="text-[13px] text-red-400">{actionError}</p>
-          </AnimatedContainer>
-        )}
         {error ? (
           <AnimatedContainer animation="fadeIn" className="rounded-[16px] border border-red-500/30 bg-red-500/10 px-4 py-3">
             <p className="text-[13px] text-red-400">Error al cargar turnos. Verificá la conexión.</p>
@@ -144,8 +146,8 @@ export const MyAppointmentsPage: React.FC = () => {
                   {activeAppointments.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     return (
-                      <AnimatedContainer key={appointment.id} animation="fadeInUp" className="rounded-[20px] border border-[#282828] bg-[#121212] p-5">
-                        <div className="flex items-start justify-between gap-4">
+                      <AnimatedContainer key={appointment.id} animation="fadeInUp" className="rounded-[20px] border border-[#282828] bg-[#121212] p-4 sm:p-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-2">
                               <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
@@ -156,7 +158,7 @@ export const MyAppointmentsPage: React.FC = () => {
                             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-[#8A8A8A]">
                               <span className="flex items-center gap-1">
                                 <FiCalendar className="text-[#FF5C00]" />
-                                {appointment.date}
+                                {formatDate(appointment.date)}
                               </span>
                               <span className="flex items-center gap-1">
                                 <FiClock className="text-[#FF5C00]" />
@@ -164,7 +166,7 @@ export const MyAppointmentsPage: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex gap-2 shrink-0">
+                          <div className="flex gap-2">
                             <Button
                               variant="outline"
                               size="sm"
@@ -176,7 +178,7 @@ export const MyAppointmentsPage: React.FC = () => {
                                 setRescheduleBarberId(appointment.barberId);
                               }}
                             >
-                              Reprogramar
+                              <span className="hidden sm:inline">Reprogramar</span>
                             </Button>
                             <Button
                               variant="outline"
@@ -188,7 +190,7 @@ export const MyAppointmentsPage: React.FC = () => {
                               }}
                               disabled={isCancelling}
                             >
-                              Cancelar
+                              <span className="hidden sm:inline">Cancelar</span>
                             </Button>
                           </div>
                         </div>
@@ -201,12 +203,12 @@ export const MyAppointmentsPage: React.FC = () => {
 
             {pastAppointments.length > 0 && (
               <div>
-                <h2 className="text-[18px] font-bold text-white mb-4">Historial</h2>
+                <h2 className="text-[18px] font-bold text-white mb-4">Historial ({pastAppointments.length})</h2>
                 <div className="grid gap-3">
-                  {pastAppointments.map((appointment) => {
+                  {paginatedPast.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     return (
-                      <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-4 opacity-70">
+                      <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-3 sm:p-4 opacity-60 sm:opacity-70">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
@@ -216,7 +218,7 @@ export const MyAppointmentsPage: React.FC = () => {
                             </div>
                             <p className="text-[14px] font-medium text-white">{appointment.serviceName}</p>
                             <p className="text-[12px] text-[#8A8A8A] mt-0.5">
-                              {appointment.date} a las {formatTime(appointment.startTime)}
+                              {formatDate(appointment.date)} a las {formatTime(appointment.startTime)}
                             </p>
                             {appointment.cancelReason && (
                               <p className="text-[11px] text-red-400 mt-1">Motivo: {appointment.cancelReason}</p>
@@ -227,6 +229,7 @@ export const MyAppointmentsPage: React.FC = () => {
                     );
                   })}
                 </div>
+                <Pagination currentPage={pastPage} totalPages={pastTotalPages} onPageChange={setPastPage} />
               </div>
             )}
           </>
@@ -253,7 +256,7 @@ export const MyAppointmentsPage: React.FC = () => {
               <Button
                 onClick={handleCancelConfirm}
                 loading={isCancelling}
-                className="bg-red-500 hover:bg-red-600"
+                variant="danger"
               >
                 Confirmar cancelación
               </Button>
@@ -282,21 +285,15 @@ export const MyAppointmentsPage: React.FC = () => {
                 value={rescheduleTime}
                 onChange={(e) => setRescheduleTime(e.target.value)}
               />
-              <div className="flex flex-col gap-1">
-                <label className="text-[13px] font-medium text-white">Barbero</label>
-                <select
-                  value={rescheduleBarberId}
-                  onChange={(e) => setRescheduleBarberId(e.target.value)}
-                  className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-                >
-                  <option value="">Seleccionar barbero</option>
-                  {barbers.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} {b.lastname}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Select
+                label="Barbero"
+                value={rescheduleBarberId}
+                onChange={setRescheduleBarberId}
+                options={[
+                  { value: '', label: 'Seleccionar barbero' },
+                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                ]}
+              />
             </div>
             <div className="flex gap-3 mt-6">
               <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>

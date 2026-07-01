@@ -31,6 +31,7 @@ const mockBarber: Professional = {
   photoUrl: null,
   isActive: true,
   slotDuration: 30,
+  maxAdvanceDays: 30,
   schedule: {
     monday: { startTime: '09:00', endTime: '18:00', breaks: [] },
     tuesday: { startTime: '09:00', endTime: '18:00', breaks: [] },
@@ -46,6 +47,10 @@ const initialState = {
   list: [],
   isLoading: false,
   error: null,
+  total: 0,
+  page: 1,
+  totalPages: 1,
+  limit: 50,
 };
 
 describe('barbersSlice', () => {

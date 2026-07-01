@@ -4,10 +4,11 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label: string;
   error?: string;
   helperText?: string;
+  icon?: React.ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, className = '', ...props }, ref) => {
+  ({ label, error, helperText, icon, className = '', ...props }, ref) => {
     const generatedId = useId();
     const inputId = props.id ?? generatedId;
     return (
@@ -21,12 +22,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
         </label>
         <div className="relative">
+          {icon && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              {icon}
+            </div>
+          )}
           <input
             ref={ref}
             className={`
-              w-full h-[40px] px-3 bg-[#1A1A1A] border rounded-[10px] 
+              w-full h-[40px] bg-[#1A1A1A] border rounded-[10px] 
               text-[13px] text-white placeholder:text-[#8A8A8A]
               outline-none transition-all duration-200
+              ${icon ? 'pl-9 pr-3' : 'px-3'}
               ${error 
                 ? 'border-red-500 focus:border-red-500' 
                 : 'border-[#282828] focus:border-[#FF5C00]'

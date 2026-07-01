@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FiArrowLeft, FiLock } from 'react-icons/fi';
 import { RequestResetForm } from './components/RequestResetForm';
 import { ResetPasswordForm } from './components/ResetPasswordForm';
@@ -27,17 +27,12 @@ const itemVariants = {
 };
 
 export const RecoveryPage: React.FC = () => {
-  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [resetEmail, setResetEmail] = useState('');
 
   const handleRequestSuccess = (email: string) => {
     setResetEmail(email);
     setCurrentStep(2);
-  };
-
-  const handleResetSuccess = () => {
-    navigate('/login');
   };
 
   return (
@@ -89,7 +84,7 @@ export const RecoveryPage: React.FC = () => {
           {currentStep === 1 ? (
             <RequestResetForm onSuccess={handleRequestSuccess} />
           ) : (
-            <ResetPasswordForm email={resetEmail} onSuccess={handleResetSuccess} />
+            <ResetPasswordForm email={resetEmail} />
           )}
         </motion.div>
 
@@ -106,10 +101,6 @@ export const RecoveryPage: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-[#FF5C00]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 w-64 h-64 bg-[#FF5C00]/3 rounded-full blur-3xl" />
-      </div>
     </div>
   );
 };

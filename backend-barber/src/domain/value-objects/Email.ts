@@ -1,4 +1,4 @@
-import { AppError } from '../../application/errors/AppError';
+import { AppError } from '../errors/AppError';
 import { EMAIL_REGEX } from '../constants/validation';
 
 export class Email {
@@ -16,3 +16,4 @@ export class Email {
     return this.value;
   }
 }
+

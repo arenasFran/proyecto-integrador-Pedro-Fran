@@ -1,6 +1,6 @@
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { IEmailService } from '../../ports/IEmailService';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
 
 export class CancelAppointmentUseCase {
@@ -100,3 +100,5 @@ ${reason ? `<p>Motivo: ${reason}</p>` : ''}`,
     return { message: 'Turno cancelado exitosamente' };
   }
 }
+
+

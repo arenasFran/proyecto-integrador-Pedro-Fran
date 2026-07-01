@@ -1,4 +1,4 @@
-import { AppError } from '../../application/errors/AppError';
+import { AppError } from '../errors/AppError';
 
 export class Phone {
   private constructor(private readonly value: string) {}
@@ -25,3 +25,4 @@ export class Phone {
     return this.value;
   }
 }
+

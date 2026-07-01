@@ -1,7 +1,7 @@
 import { User } from '../../../domain/entities/User';
 import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 type GoogleLoginDTO = {
   token: string;
@@ -86,3 +86,5 @@ export class AuthenticateWithGoogleUseCase {
     };
   }
 }
+
+

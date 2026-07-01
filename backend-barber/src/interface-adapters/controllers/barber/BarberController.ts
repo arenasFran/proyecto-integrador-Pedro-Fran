@@ -10,7 +10,7 @@ import { Phone } from '../../../domain/value-objects/Phone';
 import { Password } from '../../../domain/value-objects/Password';
 import { BarberSchedule } from '../../../domain/entities/Barber';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../application/errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 
 export class BarberController {
   private toResponse(barber: Barber) {
@@ -105,6 +105,20 @@ export class BarberController {
 
   getAll = async (req: Request, res: Response) => {
     try {
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+
+      if (req.user?.kind === 'Admin' && page !== undefined && limit !== undefined) {
+        const result = await this.barberRepository.findAllBarbersPaginated(page, limit);
+        return sendSuccess(res, {
+          barbers: result.data.map((b) => this.toResponse(b)),
+          total: result.total,
+          page: result.page,
+          totalPages: result.totalPages,
+          limit: result.limit,
+        }, 200);
+      }
+
       const barbers = await this.barberRepository.findAllBarbers();
       const isAdmin = req.user?.kind === 'Admin';
       const filtered = isAdmin
@@ -277,3 +291,4 @@ export class BarberController {
     }
   };
 }
+

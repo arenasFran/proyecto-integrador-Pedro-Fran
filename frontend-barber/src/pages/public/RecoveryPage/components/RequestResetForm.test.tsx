@@ -31,14 +31,15 @@ describe('RequestResetForm', () => {
   });
 
   it('shows success on valid submit', async () => {
+    const onSuccess = vi.fn();
     const user = userEvent.setup();
-    renderWithProviders(<RequestResetForm />);
+    renderWithProviders(<RequestResetForm onSuccess={onSuccess} />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
     await user.click(screen.getByRole('button', { name: /enviar instrucciones/i }));
 
     await waitFor(() => {
-      expect(screen.getByText('¡Enviado!')).toBeInTheDocument();
+      expect(onSuccess).toHaveBeenCalledWith('user@test.com');
     });
   });
 

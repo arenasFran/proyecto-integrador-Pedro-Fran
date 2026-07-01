@@ -1,5 +1,5 @@
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { makeMockAppointmentRepository, makeMockEmailService } from '../../../test-utils/mocks';
@@ -85,7 +85,7 @@ describe('CancelAppointmentUseCase', () => {
 
     await expect(
       strictUseCase.execute('apt-1', 'client-1', 'Registrado')
-    ).rejects.toThrow(/anticipación/);
+    ).rejects.toThrow(/anticipaciÃ³n/);
   });
 
   it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {

@@ -149,11 +149,6 @@ export const LandingPage: React.FC = () => {
         animate="visible"
         className="relative overflow-hidden"
       >
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-[#FF5C00]/10 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-[500px] w-[500px] rounded-full bg-[#FF5C00]/5 blur-3xl" />
-        </div>
-
         <div className="relative mx-auto max-w-7xl px-4 pt-20 pb-32 sm:px-6 lg:px-8 sm:pt-28 lg:pt-36">
           <div className="mx-auto max-w-3xl text-center">
             <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A] mb-6">

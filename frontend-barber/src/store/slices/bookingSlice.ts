@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { professionalService } from '../../services/professional.service';
 import { appointmentService, tempLockService } from '../../services/appointment.service';
+import { appointmentApi } from '../../services/appointmentApi';
 import type {
   BarberPublic,
   Service,
@@ -101,7 +102,7 @@ export const fetchAvailableSlots = createAsyncThunk(
 
 export const submitAppointment = createAsyncThunk(
   'booking/submitAppointment',
-  async (_, { getState, rejectWithValue }) => {
+  async (_, { getState, rejectWithValue, dispatch }) => {
     let tempLockId: string | undefined;
     try {
       const { flow } = (getState() as { booking: BookingState }).booking;
@@ -121,6 +122,7 @@ export const submitAppointment = createAsyncThunk(
         tempLockId,
       };
       const response = await appointmentService.create(payload);
+      dispatch(appointmentApi.util.invalidateTags(['Appointments']));
       return response.appointment;
     } catch (error: unknown) {
       if (tempLockId) {

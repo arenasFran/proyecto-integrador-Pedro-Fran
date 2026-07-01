@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiBarChart2, FiCalendar, FiChevronLeft, FiChevronRight, FiScissors, FiUsers, FiX } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiChevronLeft, FiChevronRight, FiList, FiScissors, FiUser, FiUsers, FiX } from 'react-icons/fi';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -12,17 +12,26 @@ interface SidebarProps {
 
 const adminNavItems = [
   { to: '/admin/dashboard', icon: FiBarChart2, label: 'Métricas' },
-  { to: '/admin/turnos', icon: FiCalendar, label: 'Turnos' },
-  { to: '/admin/profesionales', icon: FiUsers, label: 'Profesionales' },
+  { to: '/admin/turnos',     icon: FiList, label: 'Turnos' },
+  { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
   { to: '/admin/servicios', icon: FiScissors, label: 'Servicios' },
+  { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
+];
+
+const employeeNavItems = [
+  { to: '/admin/turnos', icon: FiList, label: 'Turnos' },
+  { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
+  { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
 const userNavItems = [
+  { to: '/reservar', icon: FiScissors, label: 'Agendar' },
   { to: '/mis-turnos', icon: FiCalendar, label: 'Mis turnos' },
+  { to: '/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
 export const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, onCloseMobile, mobileOpen, kind }) => {
-  const navItems = kind === 'Admin' ? adminNavItems : userNavItems;
+  const navItems = kind === 'Admin' ? adminNavItems : kind === 'Empleado' ? employeeNavItems : userNavItems;
   return (
     <>
       {mobileOpen && (

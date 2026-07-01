@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useGetDistribucionQuery } from '../../../../services/analyticsApi';
 import { ChartContainer } from '../../../../components/common';
-import DateRangeFilter from './DateRangeFilter';
+import DateRangeFilter from '../../../../components/common/DateRangeFilter';
 
 const COLORS = ['#FF5C00', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 

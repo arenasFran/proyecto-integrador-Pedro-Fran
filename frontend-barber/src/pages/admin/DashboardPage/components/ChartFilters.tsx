@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Select } from '../../../../components/common/Select';
 import { professionalService } from '../../../../services/professional.service';
 import type { Professional } from '../../../../types/professional';
 import { useGetServicesQuery } from '../../../../services/service.api';
@@ -48,38 +49,33 @@ export default function ChartFilters({
     <div className="flex flex-wrap items-center gap-3 mt-2">
       {error && <p className="text-[#FF5C00] text-xs w-full">{error}</p>}
 
-      <select
+      <Select
+        label="Barbero"
         value={barberId ?? ''}
-        onChange={(e) => onBarberChange(e.target.value || undefined)}
-        className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF5C00]"
-      >
-        <option value="">Todos los barberos</option>
-        {barbers.map((b) => (
-          <option key={b.id} value={b.id}>{b.name}</option>
-        ))}
-      </select>
+        onChange={(v) => onBarberChange(v || undefined)}
+        options={[
+          { value: '', label: 'Todos los barberos' },
+          ...barbers.map((b) => ({ value: b.id, label: b.name })),
+        ]}
+      />
 
-      <select
+      <Select
+        label="Servicio"
         value={serviceId ?? ''}
-        onChange={(e) => onServiceChange(e.target.value || undefined)}
-        className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF5C00]"
-      >
-        <option value="">Todos los servicios</option>
-        {services.map((s) => (
-          <option key={s.id} value={s.id}>{s.name}</option>
-        ))}
-      </select>
+        onChange={(v) => onServiceChange(v || undefined)}
+        options={[
+          { value: '', label: 'Todos los servicios' },
+          ...services.map((s) => ({ value: s.id, label: s.name })),
+        ]}
+      />
 
       {showStatus && onStatusChange && (
-        <select
+        <Select
+          label="Estado"
           value={status ?? ''}
-          onChange={(e) => onStatusChange(e.target.value || undefined)}
-          className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF5C00]"
-        >
-          {STATUS_OPTS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+          onChange={(v) => onStatusChange(v || undefined)}
+          options={STATUS_OPTS.map((opt) => ({ value: opt.value, label: opt.label }))}
+        />
       )}
     </div>
   );

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheck, FiScissors, FiUser, FiClock, FiCalendar } from 'react-icons/fi';
 import { Button } from '../../common';
+import { formatDate } from '../../../utils/formatDate';
 import type { Appointment } from '../../../types/booking';
 
 interface BookingSuccessModalProps {
@@ -9,11 +10,6 @@ interface BookingSuccessModalProps {
   appointment: Appointment | null;
   onClose: () => void;
 }
-
-const formatDate = (dateStr: string): string => {
-  const [year, month, day] = dateStr.split('-');
-  return `${day}/${month}/${year}`;
-};
 
 export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
   isOpen,
@@ -33,7 +29,7 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             className="relative w-full max-w-sm rounded-[24px] border border-[#282828] bg-[#121212] p-8 text-center shadow-2xl"
           >
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#22C55E]/20">

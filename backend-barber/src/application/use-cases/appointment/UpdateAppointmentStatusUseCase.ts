@@ -1,7 +1,7 @@
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
-import { AppError } from '../../errors/AppError';
+import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
 
 export type UpdateAppointmentStatusDTO = {
@@ -138,3 +138,5 @@ export class UpdateAppointmentStatusUseCase {
     return { message: `Estado actualizado a ${dto.status}` };
   }
 }
+
+

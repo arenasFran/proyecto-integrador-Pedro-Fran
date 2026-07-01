@@ -6,6 +6,7 @@ import { MongoClientRepository } from '../../../infrastructure/repositories/mong
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
+import { AppError } from '../../../domain/errors/AppError';
 
 type CreateAppointmentDTO = {
   barberId: string;
@@ -20,7 +21,6 @@ type CreateAppointmentDTO = {
   tempLockId?: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
 };
-import { AppError } from '../../errors/AppError';
 import {
   toMinutes,
   doesOverlap,
@@ -202,9 +202,12 @@ export class CreateAppointmentUseCase {
       ? activeAppointments.filter((a) => a.id !== excludeAppointmentId)
       : activeAppointments;
 
-    const hasActive = filtered.some(
-      (a) => a.status === 'Confirmado'
-    );
+    const now = new Date();
+    const hasActive = filtered.some((a) => {
+      if (a.status !== 'Confirmado') return false;
+      const appointmentEnd = new Date(`${a.date}T${a.endTime}:00`);
+      return appointmentEnd > now;
+    });
 
     if (hasActive) {
       if (isRegistered) {
@@ -243,3 +246,5 @@ export class CreateAppointmentUseCase {
       });
   }
 }
+
+

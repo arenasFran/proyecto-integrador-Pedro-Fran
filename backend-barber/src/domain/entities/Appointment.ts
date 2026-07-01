@@ -1,4 +1,4 @@
-import { AppError } from '../../application/errors/AppError';
+import { AppError } from '../errors/AppError';
 import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry, VALID_TRANSITIONS } from '../types/appointment';
 
 export type CreatedBy = {
@@ -118,3 +118,4 @@ export class Appointment {
     this.props.updatedAt = new Date();
   }
 }
+

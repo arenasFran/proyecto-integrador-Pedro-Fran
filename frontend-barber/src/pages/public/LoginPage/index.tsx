@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MdContentCut } from 'react-icons/md';
-import { Button, Input, PasswordInput } from '../../../components/common';
+import { Button, Input, PasswordInput, useToast } from '../../../components/common';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import { useFormValidation } from '../../../hooks/useFormValidation';
 import { useAppDispatch } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
@@ -48,6 +49,7 @@ const profileInitialValues = {
 export const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [sendTwoFactorCode, { isLoading: isSending }] = useSendTwoFactorCodeMutation();
   const [verifyTwoFactorCode, { isLoading: isVerifying }] = useVerifyTwoFactorCodeMutation();
@@ -59,8 +61,16 @@ export const LoginPage: React.FC = () => {
   const [profileCompletionName, setProfileCompletionName] = useState('');
   const [profileCompletionLastname, setProfileCompletionLastname] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [profileCompletionError, setProfileCompletionError] = useState<string | null>(null);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const state = location.state as { toast?: string; toastType?: 'success' | 'error' } | null;
+    if (state?.toast) {
+      showToast(state.toast, state.toastType || 'success');
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, showToast]);
 
   const googleButtonRef = useRef<HTMLDivElement | null>(null);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
@@ -117,7 +127,6 @@ export const LoginPage: React.FC = () => {
         setRequiresProfileCompletion(result.partialToken);
         setProfileCompletionName(result.name || '');
         setProfileCompletionLastname(result.lastname || '');
-        setErrorMessage(null);
         return;
       }
       if ('token' in result) {
@@ -127,18 +136,13 @@ export const LoginPage: React.FC = () => {
           // Profile fetch failed — navigate anyway
         }
         const role = getTokenKind(result.token);
-        navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+        navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
       }
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al iniciar sesión con Google');
-      if (message === 'ACCOUNT_EXISTS_LOCAL') {
-        setErrorMessage('Este email ya está registrado con una contraseña. Usá el formulario de inicio de sesión.');
-      } else {
-        setErrorMessage(message);
-      }
+      const message = getErrorMessage(err, 'Error al iniciar sesión con Google');
+      showToast(message, 'error');
     }
-  }, [googleLoginMutation, dispatch, navigate]);
+  }, [googleLoginMutation, dispatch, navigate, showToast]);
 
   useEffect(() => {
     if (isCodeStep || !googleClientId) return;
@@ -202,7 +206,6 @@ export const LoginPage: React.FC = () => {
     const isValid = validateCredentials();
     if (!isValid) return;
 
-    setErrorMessage(null);
     setSuccessMessage(null);
 
     try {
@@ -213,9 +216,7 @@ export const LoginPage: React.FC = () => {
       setTwoFactorPendingEmail(credentialsValues.email);
       setSuccessMessage(result.message);
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al enviar el código');
-      setErrorMessage(message);
+      showToast(getErrorMessage(err, 'Error al enviar el código'), 'error');
     }
   };
 
@@ -223,8 +224,6 @@ export const LoginPage: React.FC = () => {
     if (!twoFactorPendingEmail) return;
     const isValid = validateCode();
     if (!isValid) return;
-
-    setErrorMessage(null);
 
     try {
       const result = await verifyTwoFactorCode({
@@ -237,11 +236,9 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al verificar el código');
-      setErrorMessage(message);
+      showToast(getErrorMessage(err, 'Error al verificar el código'), 'error');
     }
   };
 
@@ -261,7 +258,6 @@ export const LoginPage: React.FC = () => {
   const handleBackToCredentials = () => {
     setTwoFactorPendingEmail(null);
     setSuccessMessage(null);
-    setErrorMessage(null);
     dispatch(logout());
   };
 
@@ -269,8 +265,6 @@ export const LoginPage: React.FC = () => {
     const isValid = validateProfile();
     if (!isValid) return;
     if (!requiresProfileCompletion) return;
-
-    setProfileCompletionError(null);
 
     try {
       const result = await completeGoogleProfileMutation({
@@ -286,11 +280,9 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/profesionales' : '/mis-turnos', { replace: true });
+      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
     } catch (err: unknown) {
-      const apiError = err as { data?: string };
-      const message = apiError?.data || (err instanceof Error ? err.message : 'Error al completar el perfil');
-      setProfileCompletionError(message);
+      showToast(getErrorMessage(err, 'Error al completar el perfil'), 'error');
     }
   };
 
@@ -324,9 +316,10 @@ export const LoginPage: React.FC = () => {
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-[12px] text-[#8A8A8A] text-center"
+                  className="flex flex-col items-center gap-1 text-center"
                 >
-                  Completá tu nombre para finalizar el registro con Google
+                  <span className="text-[14px] font-medium text-[#22C55E]">Registro con Google exitoso</span>
+                  <span className="text-[12px] text-[#8A8A8A]">Solo falta un paso más: completá tus datos</span>
                 </motion.div>
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -423,12 +416,6 @@ export const LoginPage: React.FC = () => {
               </>
             )}
 
-            {errorMessage && (
-              <p className="text-[12px] text-red-500 text-center">{errorMessage}</p>
-            )}
-            {profileCompletionError && (
-              <p className="text-[12px] text-red-500 text-center">{profileCompletionError}</p>
-            )}
             {successMessage && (
               <p className="text-[12px] text-[#22C55E] text-center">{successMessage}</p>
             )}
@@ -459,7 +446,6 @@ export const LoginPage: React.FC = () => {
                     setRequiresProfileCompletion(null);
                     setProfileCompletionName('');
                     setProfileCompletionLastname('');
-                    setProfileCompletionError(null);
                   }}
                 >
                   Cancelar
@@ -509,10 +495,6 @@ export const LoginPage: React.FC = () => {
         </motion.div>
       </motion.div>
 
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#FF5C00]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#FF5C00]/3 rounded-full blur-3xl" />
-      </div>
     </div>
   );
 };

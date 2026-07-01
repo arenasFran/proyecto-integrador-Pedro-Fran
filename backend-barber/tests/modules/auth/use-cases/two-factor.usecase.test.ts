@@ -1,6 +1,6 @@
 import { SendTwoFactorCodeUseCase } from '../../../../src/application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../../../../src/application/use-cases/auth/VerifyTwoFactorUseCase';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { IHashService } from '../../../../src/application/ports/IHashService';
@@ -118,10 +118,10 @@ describe('TwoFactor use cases', () => {
       expect(emailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'test@example.com',
-          subject: 'Tu código de verificación',
+          subject: 'Tu cÃ³digo de verificaciÃ³n',
         })
       );
-      expect(result.message).toMatch(/Código enviado/);
+      expect(result.message).toMatch(/CÃ³digo enviado/);
       jest.useRealTimers();
     });
   });

@@ -12,7 +12,7 @@ export const updateServiceSchema = Joi.object({
   description: Joi.string().trim().min(1).max(500).optional(),
   price: Joi.number().precision(2).min(0.01).optional(),
   imageUrl: Joi.string().uri().allow('', null).optional(),
-  isActive: Joi.boolean().optional(),
+  status: Joi.string().valid('active', 'inactive', 'deleted').optional(),
 }).min(1);
 
 export const serviceIdParamSchema = Joi.object({

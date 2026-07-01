@@ -1,11 +1,12 @@
+export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+
 export type ServiceCreateProps = {
   id: string;
   name: string;
   description: string;
   price: number;
   imageUrl: string;
-  isActive: boolean;
-  isDeleted: boolean;
+  status: ServiceStatus;
 };
 
 export type ServicePrimitives = {
@@ -14,8 +15,7 @@ export type ServicePrimitives = {
   description: string;
   price: number;
   imageUrl: string;
-  isActive: boolean;
-  isDeleted: boolean;
+  status: ServiceStatus;
 };
 
 type ServiceProps = {
@@ -24,8 +24,7 @@ type ServiceProps = {
   description: string;
   price: number;
   imageUrl: string;
-  isActive: boolean;
-  isDeleted: boolean;
+  status: ServiceStatus;
 };
 
 export class Service {
@@ -59,12 +58,8 @@ export class Service {
     return this.props.imageUrl;
   }
 
-  get isActive(): boolean {
-    return this.props.isActive;
-  }
-
-  get isDeleted(): boolean {
-    return this.props.isDeleted;
+  get status(): ServiceStatus {
+    return this.props.status;
   }
 
   toPrimitives(): ServicePrimitives {
@@ -74,8 +69,7 @@ export class Service {
       description: this.description,
       price: this.price,
       imageUrl: this.imageUrl,
-      isActive: this.isActive,
-      isDeleted: this.isDeleted,
+      status: this.status,
     };
   }
 }

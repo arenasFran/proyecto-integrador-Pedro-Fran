@@ -1,12 +1,13 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+
 export interface IServiceDocument extends Document {
   name: string;
   description: string;
   price: number;
   imageUrl: string;
-  isActive: boolean;
-  isDeleted: boolean;
+  status: ServiceStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -33,13 +34,10 @@ const serviceSchema = new Schema<IServiceDocument>(
       type: String,
       default: '',
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    isDeleted: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'deleted'],
+      default: 'active',
     },
   },
   {

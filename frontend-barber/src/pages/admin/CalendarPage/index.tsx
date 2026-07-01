@@ -1,52 +1,85 @@
 import React, { useMemo, useState } from 'react';
-import { FiCalendar, FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
-import { AnimatedContainer, Spinner, StatsCards } from '../../../components/common';
+import { FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
+import { AnimatedContainer, Spinner } from '../../../components/common';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
-import { CompactDayCard } from './CompactDayCard';
 import { DayCard } from './DayCard';
 import { DayDetailModal } from './DayDetailModal';
 import type { Appointment } from '../../../types/booking';
 
-const DAYS_PER_PAGE = 12;
-const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-const WEEKDAYS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const WEEKDAY_ABBR = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+const DAYS_TO_SHOW = 14;
 
-function formatDateCompact(d: Date): string {
-  const day = d.getDate();
-  const month = MONTHS[d.getMonth()];
-  const year = d.getFullYear();
-  return `${day} ${month} ${year}`;
+function startOfDay(d: Date): Date {
+  const r = new Date(d);
+  r.setHours(0, 0, 0, 0);
+  return r;
 }
 
 function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+
+function getMonday(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d;
+}
+
+function mondayDow(d: Date): number {
+  return (d.getDay() + 6) % 7;
+}
+
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-function generateDays(start: Date, count: number): Date[] {
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(start);
-    d.setDate(d.getDate() + i);
-    return d;
-  });
+function formatDateRange(days: Date[]): string {
+  const from = days[0];
+  const to = days[days.length - 1];
+  if (from.getMonth() === to.getMonth()) {
+    return `${from.getDate()} - ${to.getDate()} de ${MONTHS[from.getMonth()]}`;
+  }
+  const fromLabel = `${from.getDate()} de ${MONTHS[from.getMonth()]}`;
+  const toLabel = `${to.getDate()} de ${MONTHS[to.getMonth()]}`;
+  return `${fromLabel} - ${toLabel}`;
+}
+
+interface DayColumn {
+  date: Date;
+  dateStr: string;
+  dayApps: Appointment[];
 }
 
 export const CalendarPage: React.FC = () => {
-  const [baseDate, setBaseDate] = useState(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return today;
-  });
+  const [startDate, setStartDate] = useState(() => getMonday(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  const days = useMemo(() => generateDays(baseDate, DAYS_PER_PAGE), [baseDate]);
+  const today = useMemo(() => startOfDay(new Date()), []);
+
+  const days = useMemo(
+    () => Array.from({ length: DAYS_TO_SHOW }, (_, i) => addDays(startDate, i)),
+    [startDate],
+  );
+
   const dateFrom = toISODate(days[0]);
   const dateTo = toISODate(days[days.length - 1]);
 
-  const { data: appointments = [], isLoading } = useGetAppointmentsQuery({ dateFrom, dateTo });
+  const { data: appointments = [], isLoading } = useGetAppointmentsQuery({
+    dateFrom,
+    dateTo,
+    limit: 100,
+    includeBarber: 'true',
+  });
 
   const appointmentsByDate = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -60,30 +93,45 @@ export const CalendarPage: React.FC = () => {
 
   const selectedAppointments = selectedDate ? appointmentsByDate.get(selectedDate) ?? [] : [];
 
-  const stats = useMemo(() => {
-    const total = appointments.length;
-    const confirmed = appointments.filter((a) => a.status === 'Confirmado').length;
-    const completed = appointments.filter((a) => a.status === 'Completado').length;
-    const cancelled = appointments.filter((a) => a.status === 'Cancelado').length;
-    return { total, confirmed, completed, cancelled };
-  }, [appointments]);
-
   const goPrev = () => {
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() - DAYS_PER_PAGE);
-    setBaseDate(d);
+    setStartDate(addDays(startDate, -DAYS_TO_SHOW));
     setSelectedDate(null);
   };
 
   const goNext = () => {
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() + DAYS_PER_PAGE);
-    setBaseDate(d);
+    setStartDate(addDays(startDate, DAYS_TO_SHOW));
     setSelectedDate(null);
   };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const columns = useMemo<DayColumn[]>(
+    () =>
+      days.map((d) => ({
+        date: d,
+        dateStr: toISODate(d),
+        dayApps: appointmentsByDate.get(toISODate(d)) ?? [],
+      })),
+    [days, appointmentsByDate],
+  );
+
+  const gridRows = useMemo(() => {
+    const rows: (DayColumn | null)[][] = [];
+    let currentRow: (DayColumn | null)[] = [null, null, null, null, null, null, null];
+
+    for (const col of columns) {
+      const dow = mondayDow(col.date);
+      if (currentRow[dow] !== null) {
+        rows.push(currentRow);
+        currentRow = [null, null, null, null, null, null, null];
+      }
+      currentRow[dow] = col;
+    }
+
+    if (currentRow.some((c) => c !== null)) {
+      rows.push(currentRow);
+    }
+
+    return rows;
+  }, [columns]);
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -99,26 +147,23 @@ export const CalendarPage: React.FC = () => {
               <h1 className="hidden sm:block text-[28px] font-extrabold tracking-[-0.02em] text-white">
                 Calendario
               </h1>
-              <div className="flex items-center gap-2 sm:hidden">
-                <button onClick={goPrev} className="rounded-[8px] border border-[#282828] p-2 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors">
-                  <FiChevronLeft className="text-sm" />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={goPrev}
+                  className="flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-2 text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors"
+                  aria-label="Anterior"
+                >
+                  <FiChevronLeft className="text-base" />
                 </button>
                 <span className="text-[14px] font-medium text-white whitespace-nowrap">
-                  {formatDateCompact(days[0])} — {formatDateCompact(days[days.length - 1])}
+                  {formatDateRange(days)}
                 </span>
-                <button onClick={goNext} className="rounded-[8px] border border-[#282828] p-2 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors">
-                  <FiChevronRight className="text-sm" />
-                </button>
-              </div>
-              <div className="hidden sm:flex items-center gap-2">
-                <button onClick={goPrev} className="flex items-center gap-1 rounded-[8px] border border-[#282828] px-3 py-1.5 text-[13px] text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors">
-                  <FiChevronLeft /> Anterior
-                </button>
-                <span className="text-[14px] text-[#8A8A8A] px-2">
-                  {formatDateCompact(days[0])} — {formatDateCompact(days[days.length - 1])}
-                </span>
-                <button onClick={goNext} className="flex items-center gap-1 rounded-[8px] border border-[#282828] px-3 py-1.5 text-[13px] text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors">
-                  Siguiente <FiChevronRight />
+                <button
+                  onClick={goNext}
+                  className="flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-2 text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors"
+                  aria-label="Siguiente"
+                >
+                  <FiChevronRight className="text-base" />
                 </button>
               </div>
             </div>
@@ -130,51 +175,50 @@ export const CalendarPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="mt-6 grid grid-cols-4 gap-2 sm:hidden">
-                {days.map((d) => {
-                  const dateStr = toISODate(d);
-                  const dayApps = appointmentsByDate.get(dateStr) ?? [];
-                  return (
-                    <CompactDayCard
-                      key={dateStr}
-                      day={d.getDate()}
-                      month={MONTHS[d.getMonth()]}
-                      isToday={isSameDay(d, today)}
-                      hasAppointments={dayApps.length > 0}
-                      isSelected={selectedDate === dateStr}
-                      onClick={() => setSelectedDate(selectedDate === dateStr ? null : dateStr)}
-                    />
-                  );
-                })}
+              <div className="hidden lg:block mt-6">
+                <div className="grid grid-cols-7 gap-4 mb-4">
+                  {WEEKDAY_ABBR.map((abbr) => (
+                    <div key={abbr} className="text-center text-[13px] font-bold uppercase tracking-wider text-[#505050]">
+                      {abbr}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-4">
+                  {gridRows.map((row, rowIndex) => (
+                    <div key={rowIndex} className="grid grid-cols-7 gap-4">
+                      {row.map((col, colIndex) => {
+                        if (!col) {
+                          return <div key={`empty-${rowIndex}-${colIndex}`} />;
+                        }
+                        return (
+                          <DayCard
+                            key={col.dateStr}
+                            date={col.date}
+                            appointments={col.dayApps}
+                            isToday={isSameDay(col.date, today)}
+                            onShowMore={() => setSelectedDate(col.dateStr)}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              <div className="hidden sm:grid sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-6">
-                {days.map((d) => {
-                  const dateStr = toISODate(d);
-                  const dayApps = appointmentsByDate.get(dateStr) ?? [];
-                  return (
-                    <DayCard
-                      key={dateStr}
-                      day={d.getDate()}
-                      month={MONTHS[d.getMonth()]}
-                      weekday={WEEKDAYS[d.getDay()]}
-                      isToday={isSameDay(d, today)}
-                      isSelected={selectedDate === dateStr}
-                      appointmentCount={dayApps.length}
-                      onClick={() => setSelectedDate(selectedDate === dateStr ? null : dateStr)}
-                    />
-                  );
-                })}
+              <div className="mt-6 flex flex-col gap-4 lg:hidden">
+                {columns.map((col) => (
+                  <DayCard
+                    key={col.dateStr}
+                    date={col.date}
+                    appointments={col.dayApps}
+                    isToday={isSameDay(col.date, today)}
+                    onShowMore={() => setSelectedDate(col.dateStr)}
+                  />
+                ))}
               </div>
             </>
           )}
-
-          <div className="sm:hidden">
-            <StatsCards stats={stats} compact />
-          </div>
-          <div className="hidden sm:block">
-            <StatsCards stats={stats} />
-          </div>
         </AnimatedContainer>
       </div>
 

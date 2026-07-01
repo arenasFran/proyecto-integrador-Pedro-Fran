@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
-import type { Service } from '../types/booking';
+import type { Service, ServiceStatus } from '../types/booking';
 
 export const serviceApi = createApi({
   reducerPath: 'serviceApi',
@@ -15,10 +15,10 @@ export const serviceApi = createApi({
       providesTags: ['Services'],
     }),
 
-    getServicesAdmin: builder.query<Service[], void>({
-      query: () => ({
+    getServicesAdmin: builder.query<Service[], { includeDeleted?: boolean }>({
+      query: ({ includeDeleted } = {}) => ({
         url: '/api/services',
-        params: { includeInactive: 'true' },
+        params: { includeInactive: 'true', ...(includeDeleted ? { includeDeleted: 'true' } : {}) },
       }),
       transformResponse: (response: { services: Service[] }) => response.services,
       providesTags: ['Services'],
@@ -33,7 +33,7 @@ export const serviceApi = createApi({
       invalidatesTags: ['Services'],
     }),
 
-    updateService: builder.mutation<{ service: Service }, { id: string; data: Partial<{ name: string; description: string; price: number; imageUrl: string; isActive: boolean }> }>({
+    updateService: builder.mutation<{ service: Service }, { id: string; data: Partial<{ name: string; description: string; price: number; imageUrl: string; status: ServiceStatus }> }>({
       query: ({ id, data }) => ({
         url: `/api/services/${id}`,
         method: 'PUT',
@@ -49,6 +49,14 @@ export const serviceApi = createApi({
       }),
       invalidatesTags: ['Services'],
     }),
+
+    restoreService: builder.mutation<{ service: Service }, string>({
+      query: (id) => ({
+        url: `/api/services/${id}/restore`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Services'],
+    }),
   }),
 });
 
@@ -58,4 +66,5 @@ export const {
   useCreateServiceMutation,
   useUpdateServiceMutation,
   useDeleteServiceMutation,
+  useRestoreServiceMutation,
 } = serviceApi;

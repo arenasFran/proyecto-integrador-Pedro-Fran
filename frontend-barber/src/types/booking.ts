@@ -9,14 +9,15 @@ export type BarberPublic = {
   maxAdvanceDays: number;
 };
 
+export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+
 export type Service = {
   id: string;
   name: string;
   description: string;
   price: number;
   imageUrl: string;
-  isActive: boolean;
-  isDeleted: boolean;
+  status: ServiceStatus;
 };
 
 export type AppointmentStatus = 'Confirmado' | 'Cancelado' | 'Completado' | 'NoShow';

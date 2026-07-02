@@ -7,10 +7,11 @@ import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-
 import { RescheduleAppointmentUseCase } from '../../../../src/application/use-cases/appointment/RescheduleAppointmentUseCase';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
-import { makeMockAppointmentRepository } from '../../../test-utils/mocks';
+import { makeMockAppointmentRepository, makeMockBarberRepository } from '../../../test-utils/mocks';
 
 describe('AppointmentController', () => {
   let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
+  let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let createAppointment: jest.Mocked<CreateAppointmentUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
@@ -19,12 +20,14 @@ describe('AppointmentController', () => {
 
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
+    barberRepository = makeMockBarberRepository();
     createAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CreateAppointmentUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
     rescheduleAppointment = { execute: jest.fn() } as unknown as jest.Mocked<RescheduleAppointmentUseCase>;
     controller = new AppointmentController(
       appointmentRepository,
+      barberRepository,
       createAppointment,
       cancelAppointment,
       updateAppointmentStatus,
@@ -111,7 +114,7 @@ describe('AppointmentController', () => {
 
   describe('getAll', () => {
     it('debe listar turnos del cliente autenticado', async () => {
-      appointmentRepository.findMany.mockResolvedValue([]);
+      appointmentRepository.findMany.mockResolvedValue({ data: [], total: 0, page: 1, totalPages: 1, limit: 20 });
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).query = {};
@@ -126,7 +129,7 @@ describe('AppointmentController', () => {
     });
 
     it('debe permitir que admin filtre por barberId', async () => {
-      appointmentRepository.findMany.mockResolvedValue([]);
+      appointmentRepository.findMany.mockResolvedValue({ data: [], total: 0, page: 1, totalPages: 1, limit: 20 });
       const req = createMockReq();
       (req as any).user = { _id: 'admin-1', kind: 'Admin' };
       (req as any).query = { barberId: 'barber-1' };
@@ -339,7 +342,7 @@ describe('AppointmentController', () => {
 
   describe('getAnonymous', () => {
     it('debe devolver turnos del anonimo', async () => {
-      appointmentRepository.findMany.mockResolvedValue([]);
+      appointmentRepository.findMany.mockResolvedValue({ data: [], total: 0, page: 1, totalPages: 1, limit: 20 });
       const req = createMockReq();
       (req as any).query = { email: 'juan@test.com' };
       const res = createMockRes();
@@ -353,7 +356,7 @@ describe('AppointmentController', () => {
     });
 
     it('debe pasar date si se proporciona', async () => {
-      appointmentRepository.findMany.mockResolvedValue([]);
+      appointmentRepository.findMany.mockResolvedValue({ data: [], total: 0, page: 1, totalPages: 1, limit: 20 });
       const req = createMockReq();
       (req as any).query = { email: 'juan@test.com', date: '2099-01-01' };
       const res = createMockRes();

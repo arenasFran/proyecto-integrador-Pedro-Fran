@@ -4,23 +4,28 @@ import {
   FiCalendar,
   FiCheck,
   FiChevronDown,
+  FiChevronRight,
   FiChevronUp,
   FiClock,
+  FiDownload,
   FiMoreVertical,
   FiScissors,
+  FiSettings,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
+import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { formatDate } from '../../../utils/formatDate';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchBarbers } from '../../../store/slices/barbersSlice';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsPaginatedQuery,
   useRescheduleAppointmentMutation,
   useUpdateAppointmentStatusMutation,
 } from '../../../services/appointmentApi';
-import type { Appointment, AppointmentStatus } from '../../../types/booking';
+import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -34,18 +39,62 @@ function formatTime(time: string) {
   return `${h}:${m}`;
 }
 
+const methodLabelExport: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+
+function exportCSV(appointments: Appointment[]) {
+  const headers = ['Fecha', 'Hora inicio', 'Hora fin', 'Cliente', 'Apellido', 'Email', 'Teléfono', 'Barbero', 'Servicio', 'Duración (min)', 'Precio', 'Estado', 'Estado de pago', 'Método de pago', 'Origen'];
+  const rows = appointments.map((a) => [
+    a.date,
+    a.startTime,
+    a.endTime,
+    a.clientName,
+    a.clientLastname,
+    a.clientEmail ?? '',
+    a.clientPhone ?? '',
+    a.barberName ?? '',
+    a.serviceName,
+    String(a.serviceDuration),
+    String(a.servicePrice),
+    a.status,
+    a.paymentStatus,
+    methodLabelExport[a.paymentMethod] ?? a.paymentMethod,
+    a.createdBy?.type === 'staff' ? 'Admin' : a.createdBy?.type === 'registered' ? 'Online' : a.createdBy?.type === 'anonymous' ? 'Invitado' : '',
+  ]);
+  const bom = '\uFEFF';
+  const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `turnos-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const AdminAppointmentsPage: React.FC = () => {
+  const dispatch = useAppDispatch();
   const barbers = useAppSelector((state) => state.barbers.list);
   const { showToast } = useToast();
 
-  const [filterDate, setFilterDate] = useState('');
+  useEffect(() => {
+    if (barbers.length === 0) {
+      dispatch(fetchBarbers());
+    }
+  }, [dispatch, barbers.length]);
+
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [filterBarberId, setFilterBarberId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [pageSize, setPageSize] = useState(15);
+  const [showCustomize, setShowCustomize] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 15;
 
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -66,35 +115,43 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
   };
 
+  const handleDateRangeChange = (desde: string, hasta: string) => {
+    setFilterDateFrom(desde);
+    setFilterDateTo(hasta);
+  };
+
   const clearFilters = () => {
-    setFilterDate('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
     setFilterBarberId('');
     setFilterStatus('');
+    setFilterPaymentMethod('');
     setSearchTerm('');
     setSortBy(null);
     setSortDir('asc');
     setPage(1);
   };
 
-  const todayStr = () => new Date().toISOString().slice(0, 10);
-
   const queryParams = useMemo(() => {
-    const params: { date?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
-    if (filterDate) params.date = filterDate;
+    const params: Record<string, string | number | undefined> = {};
+    if (filterDateFrom) params.dateFrom = filterDateFrom;
+    if (filterDateTo) params.dateTo = filterDateTo;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
-    params.page = page;
-    params.limit = PAGE_SIZE;
+    if (filterPaymentMethod) params.paymentMethod = filterPaymentMethod;
+    if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
+    params.includeBarber = 'true';
+    params.page = sortBy ? 1 : page;
+    params.limit = sortBy ? 200 : pageSize;
     return params;
-  }, [filterDate, filterBarberId, filterStatus, page]);
-
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy]);
   const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
   });
 
   const appointments = paginatedData?.appointments ?? [];
   const totalResults = paginatedData?.total ?? 0;
-  const totalPages = paginatedData?.totalPages ?? 1;
+  const totalPages = sortBy ? 1 : (paginatedData?.totalPages ?? 1);
 
   const [cancelAppointment, { isLoading: isCancelling }] = useCancelAppointmentMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
@@ -103,13 +160,25 @@ export const AdminAppointmentsPage: React.FC = () => {
   const filtered = useMemo(() => {
     let result = appointments;
     if (searchTerm.trim()) {
-      const q = searchTerm.trim().toLowerCase();
-      result = result.filter(
-        (a) =>
-          a.clientName.toLowerCase().includes(q) ||
-          a.clientLastname.toLowerCase().includes(q) ||
-          a.clientEmail?.toLowerCase().includes(q) ||
-          a.serviceName.toLowerCase().includes(q)
+      const tokens = searchTerm.trim().split(/\s+/);
+      result = result.filter((a) =>
+        tokens.every((token) => {
+          const lowerToken = token.toLowerCase();
+          const wordBoundary = (val: string) => {
+            const idx = val.toLowerCase().indexOf(lowerToken);
+            if (idx === -1) return false;
+            if (idx > 0 && /\w/.test(val[idx - 1])) return false;
+            if (/\d$/.test(token)) {
+              const end = idx + token.length;
+              if (end < val.length && /\d/.test(val[end])) return false;
+            }
+            return true;
+          };
+          return wordBoundary(a.clientName) ||
+            wordBoundary(a.clientLastname) ||
+            wordBoundary(a.clientEmail ?? '') ||
+            wordBoundary(a.serviceName);
+        })
       );
     }
     if (sortBy) {
@@ -133,9 +202,46 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filterDate, filterBarberId, filterStatus]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, pageSize]);
 
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
+
+  const formatTimeRange = (start: string, end: string) => {
+    const short = (t: string) => { const [h, m] = t.split(':'); return `${h}:${m}`; };
+    return `${short(start)} - ${short(end)}`;
+  };
+
+  const paymentBadge = (ps: Appointment['paymentStatus']) => {
+    const isPaid = ps === 'Pagado';
+    return (
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${isPaid ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+        {isPaid ? 'Pagado' : 'Pendiente'}
+      </span>
+    );
+  };
+
+  const methodLabel: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+
+  const originBadge = (cb?: CreatedBy) => {
+    if (!cb) return <span className="text-[11px] text-[#8A8A8A]">—</span>;
+    const config: Record<string, { label: string; color: string }> = {
+      staff: { label: 'Admin', color: 'bg-purple-500/10 text-purple-400' },
+      registered: { label: 'Online', color: 'bg-blue-500/10 text-blue-400' },
+      anonymous: { label: 'Invitado', color: 'bg-gray-500/10 text-gray-400' },
+    };
+    const c = config[cb.type] ?? { label: cb.type, color: 'bg-gray-500/10 text-gray-400' };
+    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${c.color}`}>{c.label}</span>;
+  };
+
+  const formatTimestamp = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const statusLabel: Record<string, string> = {
+    Confirmado: 'Confirmado', Completado: 'Completado', Cancelado: 'Cancelado', NoShow: 'No asistió',
+  };
 
   const extractError = (err: unknown): string => {
     if (err instanceof Error) return err.message;
@@ -214,43 +320,74 @@ export const AdminAppointmentsPage: React.FC = () => {
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <DateRangeFilter onChange={handleDateRangeChange} defaultPreset="semana" />
+            <button
+              onClick={() => setShowCustomize(!showCustomize)}
+              className={`flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] transition-colors ${showCustomize ? 'border-[#FF5C00] text-white' : 'border-[#282828] text-[#8A8A8A] hover:border-[#FF5C00]/50 hover:text-white'}`}
+              title="Personalizar lista"
+            >
+              <FiSettings className="text-sm" />
+              Personalizar
+            </button>
+          </div>
+
+          {showCustomize && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[12px] border border-[#282828] bg-[#1A1A1A] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <label className="text-[12px] text-[#8A8A8A]">Filas por página</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  className="h-[34px] rounded-[8px] border border-[#282828] bg-[#121212] px-2 text-[13px] text-white outline-none focus:border-[#FF5C00]"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 md:mb-6">
             <div className="w-full sm:w-[180px]">
-              <Input
-                label="Fecha"
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
+              <Select
+                label="Barbero"
+                value={filterBarberId}
+                onChange={setFilterBarberId}
+                options={[
+                  { value: '', label: 'Todos' },
+                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                ]}
               />
             </div>
-            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
-              <label className="text-[13px] font-medium text-white">Barbero</label>
-              <select
-                value={filterBarberId}
-                onChange={(e) => setFilterBarberId(e.target.value)}
-                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-              >
-                <option value="">Todos</option>
-                {barbers.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} {b.lastname}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
-              <label className="text-[13px] font-medium text-white">Estado</label>
-              <select
+            <div className="w-full sm:w-[180px]">
+              <Select
+                label="Estado"
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-              >
-                <option value="">Todos</option>
-                <option value="Confirmado">Confirmado</option>
-                <option value="Completado">Completado</option>
-                <option value="Cancelado">Cancelado</option>
-                <option value="NoShow">No asistió</option>
-              </select>
+                onChange={setFilterStatus}
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'Confirmado', label: 'Confirmado' },
+                  { value: 'Completado', label: 'Completado' },
+                  { value: 'Cancelado', label: 'Cancelado' },
+                  { value: 'NoShow', label: 'No asistió' },
+                ]}
+              />
+            </div>
+            <div className="w-full sm:w-[180px]">
+              <Select
+                label="Método de pago"
+                value={filterPaymentMethod}
+                onChange={setFilterPaymentMethod}
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'local', label: 'Local' },
+                  { value: 'online', label: 'Online' },
+                  { value: 'memberPass', label: 'Membresía' },
+                ]}
+              />
             </div>
             <Input
               label="Buscar"
@@ -260,7 +397,15 @@ export const AdminAppointmentsPage: React.FC = () => {
               placeholder="Cliente, email o servicio"
               containerClass="w-full sm:w-[200px]"
             />
-            {(filterDate || filterBarberId || filterStatus || searchTerm || sortBy) && (
+            <button
+              onClick={() => exportCSV(filtered)}
+              className="flex h-[40px] self-end items-center gap-1.5 rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"
+              title="Exportar a CSV"
+            >
+              <FiDownload className="text-sm" />
+              Exportar CSV
+            </button>
+            {(filterDateFrom || filterDateTo || filterBarberId || filterStatus || filterPaymentMethod || searchTerm || sortBy) && (
               <button
                 onClick={clearFilters}
                 className="h-[40px] self-end rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"
@@ -298,29 +443,50 @@ export const AdminAppointmentsPage: React.FC = () => {
                           <p className="text-[11px] text-[#8A8A8A] truncate">{appointment.clientEmail}</p>
                         )}
                       </div>
-                      <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
-                        {style.label}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {appointment.clientKind && (
+                          <span className="text-[10px] text-[#8A8A8A] border border-[#282828] rounded-full px-1.5 py-0.5">{appointment.clientKind === 'Registrado' ? 'Reg.' : 'Anón.'}</span>
+                        )}
+                        <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
+                          {style.label}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5 text-[13px]">
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Barbero</span>
-                        <span className="text-white">{barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}</span>
+                        <span className="text-white">{appointment.barberName ?? barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Servicio</span>
-                        <span className="text-white text-right max-w-[60%] truncate">{appointment.serviceName}</span>
+                        <span className="text-white text-right max-w-[60%] truncate">{appointment.serviceName} ({appointment.serviceDuration} min)</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Fecha</span>
                         <span className="text-white">{appointment.date}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#8A8A8A]">Hora</span>
-                        <span className="text-white">{formatTime(appointment.startTime)}</span>
+                        <span className="text-[#8A8A8A]">Horario</span>
+                        <span className="text-white">{formatTimeRange(appointment.startTime, appointment.endTime)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Pago</span>
+                        <span>{paymentBadge(appointment.paymentStatus)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Origen</span>
+                        <span>{originBadge(appointment.createdBy)}</span>
                       </div>
                     </div>
+
+                    {appointment.status === 'Cancelado' && (appointment.cancelReason || appointment.cancelledBy) && (
+                      <div className="text-[11px] text-[#8A8A8A] leading-relaxed">
+                        {appointment.cancelledBy && <span>Cancelado por {appointment.cancelledBy}</span>}
+                        {appointment.cancelledAt && <span> el {formatTimestamp(appointment.cancelledAt)}</span>}
+                        {appointment.cancelReason && <span> — Motivo: {appointment.cancelReason}</span>}
+                      </div>
+                    )}
 
                     {isActive && (
                       <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
@@ -357,12 +523,6 @@ export const AdminAppointmentsPage: React.FC = () => {
                         </button>
                       </div>
                     )}
-
-                    {appointment.status === 'Cancelado' && appointment.cancelReason && (
-                      <div className="text-[11px] text-[#8A8A8A] truncate" title={appointment.cancelReason}>
-                        Motivo: {appointment.cancelReason}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -373,6 +533,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
+                    <th className="pb-3 pr-2 w-6"></th>
                     <th className="pb-3 pr-4 font-medium">Cliente</th>
                     <th className="pb-3 pr-4 font-medium">Barbero</th>
                     <th className="pb-3 pr-4 font-medium">Servicio</th>
@@ -388,7 +549,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                     </th>
                     <th className="pb-3 pr-4 font-medium">
                       <button onClick={() => toggleSort('time')} className="flex items-center gap-1 hover:text-white transition-colors">
-                        Hora
+                        Horario
                         {sortBy === 'time' ? (
                           sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
                         ) : (
@@ -397,6 +558,8 @@ export const AdminAppointmentsPage: React.FC = () => {
                       </button>
                     </th>
                     <th className="pb-3 pr-4 font-medium">Estado</th>
+                    <th className="pb-3 pr-4 font-medium">Pago</th>
+                    <th className="pb-3 pr-4 font-medium">Origen</th>
                     <th className="pb-3 font-medium">Acciones</th>
                   </tr>
                 </thead>
@@ -404,20 +567,41 @@ export const AdminAppointmentsPage: React.FC = () => {
                   {filtered.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     const isActive = appointment.status === 'Confirmado';
+                    const isExpanded = expandedId === appointment.id;
                     return (
-                      <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
+                      <React.Fragment key={appointment.id}>
+                      <tr
+                        className={`border-b border-[#282828]/50 transition-colors ${isExpanded ? 'bg-[#1A1A1A]' : 'hover:bg-[#1A1A1A]/80'}`}
+                      >
+                        <td className="py-3 pr-2">
+                          <button
+                            onClick={() => setExpandedId(isExpanded ? null : appointment.id)}
+                            className="text-[#8A8A8A] hover:text-white transition-colors"
+                            aria-label={isExpanded ? 'Colapsar detalle' : 'Expandir detalle'}
+                          >
+                            {isExpanded ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />}
+                          </button>
+                        </td>
                         <td className="py-3 pr-4">
                           <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
-                          {appointment.clientEmail && (
-                            <div className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</div>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {appointment.clientEmail && (
+                              <span className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</span>
+                            )}
+                            {appointment.clientKind && (
+                              <span className="text-[10px] text-[#8A8A8A] border border-[#282828] rounded-full px-1.5">{appointment.clientKind === 'Registrado' ? 'Reg.' : 'Anón.'}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 pr-4 text-[#8A8A8A]">
-                          {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
+                          {appointment.barberName ?? barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
                         </td>
-                        <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
-                        <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
-                        <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
+                        <td className="py-3 pr-4 text-[#8A8A8A]">
+                          <span>{appointment.serviceName}</span>
+                          <span className="text-[11px] ml-1 text-[#6A6A6A]">({appointment.serviceDuration} min)</span>
+                        </td>
+                        <td className="py-3 pr-4 text-white whitespace-nowrap">{formatDate(appointment.date)}</td>
+                        <td className="py-3 pr-4 text-white whitespace-nowrap">{formatTimeRange(appointment.startTime, appointment.endTime)}</td>
                         <td className="py-3 pr-4">
                           <motion.span
                             key={`${appointment.id}-${appointment.status}`}
@@ -429,6 +613,13 @@ export const AdminAppointmentsPage: React.FC = () => {
                             {style.label}
                           </motion.span>
                         </td>
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-1.5">
+                            {paymentBadge(appointment.paymentStatus)}
+                            <span className="text-[10px] text-[#6A6A6A]">{methodLabel[appointment.paymentMethod] ?? appointment.paymentMethod}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-4">{originBadge(appointment.createdBy)}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-1.5">
                             {isActive && (
@@ -514,6 +705,69 @@ export const AdminAppointmentsPage: React.FC = () => {
                           </div>
                         </td>
                       </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-[#282828]/50">
+                          <td colSpan={10} className="px-6 pb-4 pt-2">
+                            <div className="grid grid-cols-3 gap-4 text-[13px]">
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Pago</h4>
+                                <div className="flex items-center gap-2">
+                                  {paymentBadge(appointment.paymentStatus)}
+                                  <span className="text-[#8A8A8A]">{methodLabel[appointment.paymentMethod] ?? appointment.paymentMethod}</span>
+                                </div>
+                                {appointment.paymentMethod === 'memberPass' && (
+                                  <p className="text-[11px] text-[#8A8A8A]">Pago por membresía</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Origen</h4>
+                                <div className="flex items-center gap-2">
+                                  {originBadge(appointment.createdBy)}
+                                </div>
+                                {appointment.createdBy?.userId && (
+                                  <p className="text-[11px] text-[#8A8A8A]">ID: {appointment.createdBy.userId}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Cliente</h4>
+                                <p className="text-white">{appointment.clientName} {appointment.clientLastname}</p>
+                                {appointment.clientEmail && <p className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</p>}
+                                {appointment.clientPhone && <p className="text-[11px] text-[#8A8A8A]">{appointment.clientPhone}</p>}
+                                {appointment.clientKind && (
+                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${appointment.clientKind === 'Registrado' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}`}>
+                                    {appointment.clientKind === 'Registrado' ? 'Cliente registrado' : 'Cliente anónimo'}
+                                  </span>
+                                )}
+                              </div>
+                              {appointment.status === 'Cancelado' && (
+                                <div className="space-y-2">
+                                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Cancelación</h4>
+                                  {appointment.cancelledBy && <p className="text-white">Por: {appointment.cancelledBy}</p>}
+                                  {appointment.cancelledAt && <p className="text-[11px] text-[#8A8A8A]">{formatTimestamp(appointment.cancelledAt)}</p>}
+                                  {appointment.cancelReason && <p className="text-[11px] text-red-400">Motivo: {appointment.cancelReason}</p>}
+                                </div>
+                              )}
+                              {appointment.statusHistory && appointment.statusHistory.length > 0 && (
+                                <div className="col-span-3 space-y-2">
+                                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Historial de cambios</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {appointment.statusHistory.map((entry, idx) => (
+                                      <div key={idx} className="flex items-center gap-2 rounded-[8px] border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[12px]">
+                                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusStyles[entry.status]?.bg ?? ''} ${statusStyles[entry.status]?.text ?? ''}`}>
+                                          {statusLabel[entry.status] ?? entry.status}
+                                        </span>
+                                        <span className="text-[#8A8A8A]">{formatTimestamp(entry.timestamp)}</span>
+                                        <span className="text-[#6A6A6A]">por {entry.actor}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

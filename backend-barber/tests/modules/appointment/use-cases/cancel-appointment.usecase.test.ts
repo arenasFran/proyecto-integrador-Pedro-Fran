@@ -85,7 +85,7 @@ describe('CancelAppointmentUseCase', () => {
 
     await expect(
       strictUseCase.execute('apt-1', 'client-1', 'Registrado')
-    ).rejects.toThrow(/anticipaciÃ³n/);
+    ).rejects.toThrow(/anticipación/);
   });
 
   it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {

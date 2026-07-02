@@ -93,9 +93,19 @@ export class MongoBarberRepository {
     });
   }
 
-  async findAllBarbersPaginated(page = 1, limit = 50): Promise<{ data: Barber[]; total: number; page: number; totalPages: number; limit: number }> {
+  async findAllBarbersPaginated(page = 1, limit = 50, search?: string): Promise<{ data: Barber[]; total: number; page: number; totalPages: number; limit: number }> {
     const skip = (page - 1) * limit;
-    const filter = { kind: { $in: ['Empleado', 'Admin'] } };
+    const filter: Record<string, unknown> = { kind: { $in: ['Empleado', 'Admin'] } };
+
+    if (search?.trim()) {
+      const regex = { $regex: search.trim(), $options: 'i' };
+      filter.$or = [
+        { name: regex },
+        { lastname: regex },
+        { email: regex },
+        { phone: regex },
+      ];
+    }
 
     const [docs, total] = await Promise.all([
       BarberModel.find(filter).skip(skip).limit(limit).lean(),

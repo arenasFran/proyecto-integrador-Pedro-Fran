@@ -118,10 +118,10 @@ describe('TwoFactor use cases', () => {
       expect(emailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'test@example.com',
-          subject: 'Tu cÃ³digo de verificaciÃ³n',
+          subject: 'Tu código de verificación',
         })
       );
-      expect(result.message).toMatch(/CÃ³digo enviado/);
+      expect(result.message).toMatch(/Código enviado/);
       jest.useRealTimers();
     });
   });

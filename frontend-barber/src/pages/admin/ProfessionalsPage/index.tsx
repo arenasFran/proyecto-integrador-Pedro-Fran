@@ -54,21 +54,10 @@ export const ProfessionalsPage: React.FC = () => {
     [professionals, currentTokenUser]
   );
 
-  const filteredProfessionals = useMemo(() => {
-    const query = searchTerm.trim().toLowerCase();
-    if (!query) return employees;
-    return employees.filter((p) =>
-      [p.name, p.lastname, p.email, p.phone, ...p.services]
-        .join(' ')
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [employees, searchTerm]);
-
-  const loadProfessionals = useCallback(async (pageNum?: number) => {
+  const loadProfessionals = useCallback(async (pageNum?: number, search?: string) => {
     setIsLoading(true);
     try {
-      await dispatch(fetchBarbersPaginated({ page: pageNum ?? 1, limit: PAGE_SIZE })).unwrap();
+      await dispatch(fetchBarbersPaginated({ page: pageNum ?? 1, limit: PAGE_SIZE, search })).unwrap();
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
     } finally {
@@ -79,13 +68,13 @@ export const ProfessionalsPage: React.FC = () => {
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
     setIsLoading(true);
-    dispatch(fetchBarbersPaginated({ page: newPage, limit: PAGE_SIZE }))
+    dispatch(fetchBarbersPaginated({ page: newPage, limit: PAGE_SIZE, search: searchTerm.trim() || undefined }))
       .unwrap()
       .catch((error) => {
         showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
       })
       .finally(() => setIsLoading(false));
-  }, [dispatch, showToast]);
+  }, [dispatch, showToast, searchTerm]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -93,6 +82,14 @@ export const ProfessionalsPage: React.FC = () => {
     }, 0);
     return () => window.clearTimeout(timeoutId);
   }, [loadProfessionals]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setPage(1);
+      void loadProfessionals(1, searchTerm.trim() || undefined);
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [searchTerm, loadProfessionals]);
 
   const openCreateModal = () => {
     setEditProfessional(null);
@@ -240,7 +237,7 @@ export const ProfessionalsPage: React.FC = () => {
 
         <div className="mt-8">
           <ProfessionalsList
-            professionals={filteredProfessionals}
+            professionals={employees}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
             onEdit={(p) => openEditModal(p)}

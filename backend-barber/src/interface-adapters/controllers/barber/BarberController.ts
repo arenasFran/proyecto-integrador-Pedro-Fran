@@ -111,7 +111,8 @@ export class BarberController {
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
       if (req.user?.kind === 'Admin' && page !== undefined && limit !== undefined) {
-        const result = await this.barberRepository.findAllBarbersPaginated(page, limit);
+        const search = req.query.search as string | undefined;
+        const result = await this.barberRepository.findAllBarbersPaginated(page, limit, search);
         return sendSuccess(res, {
           barbers: result.data.map((b) => this.toResponse(b)),
           total: result.total,

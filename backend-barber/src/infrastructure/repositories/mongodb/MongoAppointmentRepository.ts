@@ -14,6 +14,7 @@ export type AppointmentFilters = {
   paymentMethod?: string;
   dateFrom?: string;
   dateTo?: string;
+  searchTerm?: string;
   page?: number;
   limit?: number;
 };
@@ -108,6 +109,33 @@ export class MongoAppointmentRepository {
       query.date = {};
       if (filters.dateFrom) (query.date as Record<string, unknown>).$gte = filters.dateFrom;
       if (filters.dateTo) (query.date as Record<string, unknown>).$lte = filters.dateTo;
+    }
+    if (filters.searchTerm) {
+      const tokens = filters.searchTerm.trim().split(/\s+/);
+      const tokenOrs: Record<string, unknown>[] = [];
+      for (const token of tokens) {
+        if (!token) continue;
+        const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const suffix = /\d$/.test(token) ? '(?!\\d)' : '';
+        const pattern = `\\b${escaped}${suffix}`;
+        const regex = { $regex: pattern, $options: 'i' };
+        tokenOrs.push({
+          $or: [
+            { clientName: regex },
+            { clientLastname: regex },
+            { clientEmail: regex },
+            { serviceName: regex },
+          ],
+        });
+      }
+      if (tokenOrs.length > 0) {
+        const andConds: Record<string, unknown>[] = [];
+        if (query.$or) {
+          andConds.push({ $or: query.$or as Record<string, unknown>[] });
+          delete query.$or;
+        }
+        query.$and = [...andConds, ...tokenOrs];
+      }
     }
 
     const page = filters.page ?? 1;

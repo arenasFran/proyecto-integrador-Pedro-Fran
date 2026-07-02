@@ -77,11 +77,10 @@ describe('CreateAppointmentUseCase', () => {
     Service.create({
       id: TEST_SERVICE_ID,
       name: 'Corte de pelo',
-      description: 'Incluye barba/cejas/lavado/bebida a elecciÃ³n',
+      description: 'Incluye barba/cejas/lavado/bebida a elección',
       price: 490,
       imageUrl: 'https://placehold.co/400x300?text=Corte+de+pelo',
-      isActive: true,
-      isDeleted: false,
+      status: 'active',
     });
 
   const makeClient = () =>
@@ -351,7 +350,7 @@ describe('CreateAppointmentUseCase', () => {
         clientName: 'Juan',
         clientLastname: 'Perez',
       })
-    ).rejects.toThrow(/anticipaciÃ³n/);
+    ).rejects.toThrow(/anticipación/);
   });
 
   it('debe respetar clientId y createdBy ya asignados en el DTO (Registrado)', async () => {

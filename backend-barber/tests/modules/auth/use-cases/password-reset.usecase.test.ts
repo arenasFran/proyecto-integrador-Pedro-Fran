@@ -82,7 +82,7 @@ describe('Password reset use cases', () => {
       expect(emailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'test@example.com',
-          subject: 'Restablece tu contraseÃ±a',
+          subject: 'Restablece tu contraseña',
         })
       );
       expect(result.message).toMatch(/Si el email existe/);
@@ -133,7 +133,7 @@ describe('Password reset use cases', () => {
       });
 
       expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', 'hash');
-      expect(result.message).toMatch(/ContraseÃ±a restablecida/);
+      expect(result.message).toMatch(/Contraseña restablecida/);
     });
   });
 });

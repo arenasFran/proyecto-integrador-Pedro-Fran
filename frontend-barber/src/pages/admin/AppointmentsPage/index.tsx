@@ -9,10 +9,12 @@ import {
   FiClock,
   FiMoreVertical,
   FiScissors,
+  FiSettings,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
+import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppSelector } from '../../../store/hooks';
 import {
@@ -39,14 +41,16 @@ export const AdminAppointmentsPage: React.FC = () => {
   const barbers = useAppSelector((state) => state.barbers.list);
   const { showToast } = useToast();
 
-  const [filterDate, setFilterDate] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [filterBarberId, setFilterBarberId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [pageSize, setPageSize] = useState(15);
+  const [showCustomize, setShowCustomize] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
   const [page, setPage] = useState(1);
-  const PAGE_SIZE = 15;
 
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -67,8 +71,14 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
   };
 
+  const handleDateRangeChange = (desde: string, hasta: string) => {
+    setFilterDateFrom(desde);
+    setFilterDateTo(hasta);
+  };
+
   const clearFilters = () => {
-    setFilterDate('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
     setFilterBarberId('');
     setFilterStatus('');
     setSearchTerm('');
@@ -77,17 +87,16 @@ export const AdminAppointmentsPage: React.FC = () => {
     setPage(1);
   };
 
-  const todayStr = () => new Date().toISOString().slice(0, 10);
-
   const queryParams = useMemo(() => {
-    const params: { date?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
-    if (filterDate) params.date = filterDate;
+    const params: { dateFrom?: string; dateTo?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
+    if (filterDateFrom) params.dateFrom = filterDateFrom;
+    if (filterDateTo) params.dateTo = filterDateTo;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
     params.page = page;
-    params.limit = PAGE_SIZE;
+    params.limit = pageSize;
     return params;
-  }, [filterDate, filterBarberId, filterStatus, page]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, page, pageSize]);
 
   const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
@@ -134,7 +143,7 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filterDate, filterBarberId, filterStatus]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, pageSize]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
@@ -252,15 +261,37 @@ export const AdminAppointmentsPage: React.FC = () => {
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-          <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 md:mb-6">
-            <div className="w-full sm:w-[180px]">
-              <Input
-                label="Fecha"
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-              />
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <DateRangeFilter onChange={handleDateRangeChange} defaultPreset="semana" />
+            <button
+              onClick={() => setShowCustomize(!showCustomize)}
+              className={`flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] transition-colors ${showCustomize ? 'border-[#FF5C00] text-white' : 'border-[#282828] text-[#8A8A8A] hover:border-[#FF5C00]/50 hover:text-white'}`}
+              title="Personalizar lista"
+            >
+              <FiSettings className="text-sm" />
+              Personalizar
+            </button>
+          </div>
+
+          {showCustomize && (
+            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[12px] border border-[#282828] bg-[#1A1A1A] px-4 py-3">
+              <div className="flex items-center gap-2">
+                <label className="text-[12px] text-[#8A8A8A]">Filas por página</label>
+                <select
+                  value={pageSize}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  className="h-[34px] rounded-[8px] border border-[#282828] bg-[#121212] px-2 text-[13px] text-white outline-none focus:border-[#FF5C00]"
+                >
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
             </div>
+          )}
+
+          <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 md:mb-6">
             <div className="flex flex-col gap-1 w-full sm:w-[180px]">
               <label className="text-[13px] font-medium text-white">Barbero</label>
               <select
@@ -298,7 +329,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               placeholder="Cliente, email o servicio"
               containerClass="w-full sm:w-[200px]"
             />
-            {(filterDate || filterBarberId || filterStatus || searchTerm || sortBy) && (
+            {(filterDateFrom || filterDateTo || filterBarberId || filterStatus || searchTerm || sortBy) && (
               <button
                 onClick={clearFilters}
                 className="h-[40px] self-end rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"

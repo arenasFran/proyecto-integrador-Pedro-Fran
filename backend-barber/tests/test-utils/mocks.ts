@@ -72,6 +72,7 @@ export const makeMockGoogleAuthService = () => ({
 export const makeMockBarberRepository = () => ({
   findBarberById: jest.fn(),
   findAllBarbers: jest.fn(),
+  findAllBarbersPaginated: jest.fn(),
   createBarber: jest.fn(),
   updateBarber: jest.fn(),
   deactivateBarber: jest.fn(),

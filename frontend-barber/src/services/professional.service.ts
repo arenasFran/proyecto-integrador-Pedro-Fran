@@ -54,7 +54,7 @@ export const professionalService = {
     return response.data.barbers.map(mapProfessional);
   },
 
-  listPaginated: async (params: { page?: number; limit?: number }): Promise<{ barbers: Professional[]; total: number; page: number; totalPages: number; limit: number }> => {
+  listPaginated: async (params: { page?: number; limit?: number; search?: string }): Promise<{ barbers: Professional[]; total: number; page: number; totalPages: number; limit: number }> => {
     const response = await api.get<ProfessionalsResponse>('/api/barbers', { params });
     return {
       barbers: response.data.barbers.map(mapProfessional),

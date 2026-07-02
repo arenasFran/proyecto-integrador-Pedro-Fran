@@ -43,7 +43,7 @@ export const fetchBarbers = createAsyncThunk(
 
 export const fetchBarbersPaginated = createAsyncThunk(
   'barbers/fetchBarbersPaginated',
-  async (params: { page?: number; limit?: number }, { rejectWithValue }) => {
+  async (params: { page?: number; limit?: number; search?: string }, { rejectWithValue }) => {
     try {
       return await professionalService.listPaginated(params);
     } catch (error: unknown) {

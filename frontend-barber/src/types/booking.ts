@@ -64,6 +64,15 @@ export type Appointment = {
   updatedAt: string;
 };
 
+export type BarberBlock = {
+  id: string;
+  barberId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  createdBy?: string;
+};
+
 export type BookingStep = 'barber' | 'service' | 'datetime';
 
 export type BookingState = {

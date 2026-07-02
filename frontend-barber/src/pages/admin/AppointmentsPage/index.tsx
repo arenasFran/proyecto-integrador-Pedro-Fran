@@ -4,6 +4,7 @@ import {
   FiCalendar,
   FiCheck,
   FiChevronDown,
+  FiChevronRight,
   FiChevronUp,
   FiClock,
   FiMoreVertical,
@@ -20,7 +21,7 @@ import {
   useRescheduleAppointmentMutation,
   useUpdateAppointmentStatusMutation,
 } from '../../../services/appointmentApi';
-import type { Appointment, AppointmentStatus } from '../../../types/booking';
+import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -135,7 +136,44 @@ export const AdminAppointmentsPage: React.FC = () => {
     setPage(1);
   }, [filterDate, filterBarberId, filterStatus]);
 
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
+
+  const formatTimeRange = (start: string, end: string) => {
+    const short = (t: string) => { const [h, m] = t.split(':'); return `${h}:${m}`; };
+    return `${short(start)} - ${short(end)}`;
+  };
+
+  const paymentBadge = (ps: Appointment['paymentStatus']) => {
+    const isPaid = ps === 'Pagado';
+    return (
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${isPaid ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+        {isPaid ? 'Pagado' : 'Pendiente'}
+      </span>
+    );
+  };
+
+  const methodLabel: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+
+  const originBadge = (cb?: CreatedBy) => {
+    if (!cb) return <span className="text-[11px] text-[#8A8A8A]">—</span>;
+    const config: Record<string, { label: string; color: string }> = {
+      staff: { label: 'Admin', color: 'bg-purple-500/10 text-purple-400' },
+      registered: { label: 'Online', color: 'bg-blue-500/10 text-blue-400' },
+      anonymous: { label: 'Invitado', color: 'bg-gray-500/10 text-gray-400' },
+    };
+    const c = config[cb.type] ?? { label: cb.type, color: 'bg-gray-500/10 text-gray-400' };
+    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${c.color}`}>{c.label}</span>;
+  };
+
+  const formatTimestamp = (ts: string) => {
+    const d = new Date(ts);
+    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const statusLabel: Record<string, string> = {
+    Confirmado: 'Confirmado', Completado: 'Completado', Cancelado: 'Cancelado', NoShow: 'No asistió',
+  };
 
   const extractError = (err: unknown): string => {
     if (err instanceof Error) return err.message;
@@ -298,9 +336,14 @@ export const AdminAppointmentsPage: React.FC = () => {
                           <p className="text-[11px] text-[#8A8A8A] truncate">{appointment.clientEmail}</p>
                         )}
                       </div>
-                      <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
-                        {style.label}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {appointment.clientKind && (
+                          <span className="text-[10px] text-[#8A8A8A] border border-[#282828] rounded-full px-1.5 py-0.5">{appointment.clientKind === 'Registrado' ? 'Reg.' : 'Anón.'}</span>
+                        )}
+                        <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
+                          {style.label}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-1.5 text-[13px]">
@@ -310,17 +353,33 @@ export const AdminAppointmentsPage: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Servicio</span>
-                        <span className="text-white text-right max-w-[60%] truncate">{appointment.serviceName}</span>
+                        <span className="text-white text-right max-w-[60%] truncate">{appointment.serviceName} ({appointment.serviceDuration} min)</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Fecha</span>
                         <span className="text-white">{appointment.date}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-[#8A8A8A]">Hora</span>
-                        <span className="text-white">{formatTime(appointment.startTime)}</span>
+                        <span className="text-[#8A8A8A]">Horario</span>
+                        <span className="text-white">{formatTimeRange(appointment.startTime, appointment.endTime)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Pago</span>
+                        <span>{paymentBadge(appointment.paymentStatus)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8A8A8A]">Origen</span>
+                        <span>{originBadge(appointment.createdBy)}</span>
                       </div>
                     </div>
+
+                    {appointment.status === 'Cancelado' && (appointment.cancelReason || appointment.cancelledBy) && (
+                      <div className="text-[11px] text-[#8A8A8A] leading-relaxed">
+                        {appointment.cancelledBy && <span>Cancelado por {appointment.cancelledBy}</span>}
+                        {appointment.cancelledAt && <span> el {formatTimestamp(appointment.cancelledAt)}</span>}
+                        {appointment.cancelReason && <span> — Motivo: {appointment.cancelReason}</span>}
+                      </div>
+                    )}
 
                     {isActive && (
                       <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
@@ -357,12 +416,6 @@ export const AdminAppointmentsPage: React.FC = () => {
                         </button>
                       </div>
                     )}
-
-                    {appointment.status === 'Cancelado' && appointment.cancelReason && (
-                      <div className="text-[11px] text-[#8A8A8A] truncate" title={appointment.cancelReason}>
-                        Motivo: {appointment.cancelReason}
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -373,6 +426,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
+                    <th className="pb-3 pr-2 w-6"></th>
                     <th className="pb-3 pr-4 font-medium">Cliente</th>
                     <th className="pb-3 pr-4 font-medium">Barbero</th>
                     <th className="pb-3 pr-4 font-medium">Servicio</th>
@@ -388,7 +442,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                     </th>
                     <th className="pb-3 pr-4 font-medium">
                       <button onClick={() => toggleSort('time')} className="flex items-center gap-1 hover:text-white transition-colors">
-                        Hora
+                        Horario
                         {sortBy === 'time' ? (
                           sortDir === 'asc' ? <FiChevronUp className="text-[11px]" /> : <FiChevronDown className="text-[11px]" />
                         ) : (
@@ -397,6 +451,8 @@ export const AdminAppointmentsPage: React.FC = () => {
                       </button>
                     </th>
                     <th className="pb-3 pr-4 font-medium">Estado</th>
+                    <th className="pb-3 pr-4 font-medium">Pago</th>
+                    <th className="pb-3 pr-4 font-medium">Origen</th>
                     <th className="pb-3 font-medium">Acciones</th>
                   </tr>
                 </thead>
@@ -404,20 +460,41 @@ export const AdminAppointmentsPage: React.FC = () => {
                   {filtered.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     const isActive = appointment.status === 'Confirmado';
+                    const isExpanded = expandedId === appointment.id;
                     return (
-                      <tr key={appointment.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/80 transition-colors">
+                      <React.Fragment key={appointment.id}>
+                      <tr
+                        className={`border-b border-[#282828]/50 transition-colors ${isExpanded ? 'bg-[#1A1A1A]' : 'hover:bg-[#1A1A1A]/80'}`}
+                      >
+                        <td className="py-3 pr-2">
+                          <button
+                            onClick={() => setExpandedId(isExpanded ? null : appointment.id)}
+                            className="text-[#8A8A8A] hover:text-white transition-colors"
+                            aria-label={isExpanded ? 'Colapsar detalle' : 'Expandir detalle'}
+                          >
+                            {isExpanded ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />}
+                          </button>
+                        </td>
                         <td className="py-3 pr-4">
                           <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
-                          {appointment.clientEmail && (
-                            <div className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</div>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {appointment.clientEmail && (
+                              <span className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</span>
+                            )}
+                            {appointment.clientKind && (
+                              <span className="text-[10px] text-[#8A8A8A] border border-[#282828] rounded-full px-1.5">{appointment.clientKind === 'Registrado' ? 'Reg.' : 'Anón.'}</span>
+                            )}
+                          </div>
                         </td>
                         <td className="py-3 pr-4 text-[#8A8A8A]">
                           {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
                         </td>
-                        <td className="py-3 pr-4 text-[#8A8A8A]">{appointment.serviceName}</td>
-                        <td className="py-3 pr-4 text-white">{formatDate(appointment.date)}</td>
-                        <td className="py-3 pr-4 text-white">{formatTime(appointment.startTime)}</td>
+                        <td className="py-3 pr-4 text-[#8A8A8A]">
+                          <span>{appointment.serviceName}</span>
+                          <span className="text-[11px] ml-1 text-[#6A6A6A]">({appointment.serviceDuration} min)</span>
+                        </td>
+                        <td className="py-3 pr-4 text-white whitespace-nowrap">{formatDate(appointment.date)}</td>
+                        <td className="py-3 pr-4 text-white whitespace-nowrap">{formatTimeRange(appointment.startTime, appointment.endTime)}</td>
                         <td className="py-3 pr-4">
                           <motion.span
                             key={`${appointment.id}-${appointment.status}`}
@@ -429,6 +506,13 @@ export const AdminAppointmentsPage: React.FC = () => {
                             {style.label}
                           </motion.span>
                         </td>
+                        <td className="py-3 pr-4">
+                          <div className="flex items-center gap-1.5">
+                            {paymentBadge(appointment.paymentStatus)}
+                            <span className="text-[10px] text-[#6A6A6A]">{methodLabel[appointment.paymentMethod] ?? appointment.paymentMethod}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 pr-4">{originBadge(appointment.createdBy)}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-1.5">
                             {isActive && (
@@ -514,6 +598,69 @@ export const AdminAppointmentsPage: React.FC = () => {
                           </div>
                         </td>
                       </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-[#282828]/50">
+                          <td colSpan={10} className="px-6 pb-4 pt-2">
+                            <div className="grid grid-cols-3 gap-4 text-[13px]">
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Pago</h4>
+                                <div className="flex items-center gap-2">
+                                  {paymentBadge(appointment.paymentStatus)}
+                                  <span className="text-[#8A8A8A]">{methodLabel[appointment.paymentMethod] ?? appointment.paymentMethod}</span>
+                                </div>
+                                {appointment.paymentMethod === 'memberPass' && (
+                                  <p className="text-[11px] text-[#8A8A8A]">Pago por membresía</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Origen</h4>
+                                <div className="flex items-center gap-2">
+                                  {originBadge(appointment.createdBy)}
+                                </div>
+                                {appointment.createdBy?.userId && (
+                                  <p className="text-[11px] text-[#8A8A8A]">ID: {appointment.createdBy.userId}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Cliente</h4>
+                                <p className="text-white">{appointment.clientName} {appointment.clientLastname}</p>
+                                {appointment.clientEmail && <p className="text-[11px] text-[#8A8A8A]">{appointment.clientEmail}</p>}
+                                {appointment.clientPhone && <p className="text-[11px] text-[#8A8A8A]">{appointment.clientPhone}</p>}
+                                {appointment.clientKind && (
+                                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${appointment.clientKind === 'Registrado' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}`}>
+                                    {appointment.clientKind === 'Registrado' ? 'Cliente registrado' : 'Cliente anónimo'}
+                                  </span>
+                                )}
+                              </div>
+                              {appointment.status === 'Cancelado' && (
+                                <div className="space-y-2">
+                                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Cancelación</h4>
+                                  {appointment.cancelledBy && <p className="text-white">Por: {appointment.cancelledBy}</p>}
+                                  {appointment.cancelledAt && <p className="text-[11px] text-[#8A8A8A]">{formatTimestamp(appointment.cancelledAt)}</p>}
+                                  {appointment.cancelReason && <p className="text-[11px] text-red-400">Motivo: {appointment.cancelReason}</p>}
+                                </div>
+                              )}
+                              {appointment.statusHistory && appointment.statusHistory.length > 0 && (
+                                <div className="col-span-3 space-y-2">
+                                  <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Historial de cambios</h4>
+                                  <div className="flex flex-wrap gap-2">
+                                    {appointment.statusHistory.map((entry, idx) => (
+                                      <div key={idx} className="flex items-center gap-2 rounded-[8px] border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[12px]">
+                                        <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium ${statusStyles[entry.status]?.bg ?? ''} ${statusStyles[entry.status]?.text ?? ''}`}>
+                                          {statusLabel[entry.status] ?? entry.status}
+                                        </span>
+                                        <span className="text-[#8A8A8A]">{formatTimestamp(entry.timestamp)}</span>
+                                        <span className="text-[#6A6A6A]">por {entry.actor}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

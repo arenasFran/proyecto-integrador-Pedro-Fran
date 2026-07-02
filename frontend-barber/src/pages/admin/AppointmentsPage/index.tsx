@@ -291,30 +291,34 @@ export const AdminAppointmentsPage: React.FC = () => {
           )}
 
           <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 md:mb-6">
-            <div className="w-full sm:w-[180px]">
-              <Select
-                label="Barbero"
+            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
+              <label className="text-[13px] font-medium text-white">Barbero</label>
+              <select
                 value={filterBarberId}
-                onChange={setFilterBarberId}
-                options={[
-                  { value: '', label: 'Todos' },
-                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
-                ]}
-              />
+                onChange={(e) => setFilterBarberId(e.target.value)}
+                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
+              >
+                <option value="">Todos</option>
+                {barbers.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name} {b.lastname}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="w-full sm:w-[180px]">
-              <Select
-                label="Estado"
+            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
+              <label className="text-[13px] font-medium text-white">Estado</label>
+              <select
                 value={filterStatus}
-                onChange={setFilterStatus}
-                options={[
-                  { value: '', label: 'Todos' },
-                  { value: 'Confirmado', label: 'Confirmado' },
-                  { value: 'Completado', label: 'Completado' },
-                  { value: 'Cancelado', label: 'Cancelado' },
-                  { value: 'NoShow', label: 'No asistió' },
-                ]}
-              />
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
+              >
+                <option value="">Todos</option>
+                <option value="Confirmado">Confirmado</option>
+                <option value="Completado">Completado</option>
+                <option value="Cancelado">Cancelado</option>
+                <option value="NoShow">No asistió</option>
+              </select>
             </div>
             <Input
               label="Buscar"

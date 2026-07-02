@@ -3,7 +3,7 @@ import { ServiceController } from '../../../../src/interface-adapters/controller
 import { MongoServiceRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoServiceRepository';
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
 import { Service } from '../../../../src/domain/entities/Service';
-import { AppError } from '../../../../src/application/errors/AppError';
+import { AppError } from '../../../../src/domain/errors/AppError';
 import type { ServiceStatus } from '../../../../src/domain/entities/Service';
 
 describe('ServiceController', () => {
@@ -76,7 +76,7 @@ describe('ServiceController', () => {
     });
     serviceRepository.findAllAdmin.mockResolvedValue([service]);
 
-    const req = createMockReq();
+    const req = createMockReqFull({ query: {} });
     const res = createMockRes();
 
     await controller.getAllAdmin(req, res);
@@ -94,7 +94,7 @@ describe('ServiceController', () => {
   it('getAllAdmin debe responder 200 con array vacío si no hay servicios', async () => {
     serviceRepository.findAllAdmin.mockResolvedValue([]);
 
-    const req = createMockReq();
+    const req = createMockReqFull({ query: {} });
     const res = createMockRes();
 
     await controller.getAllAdmin(req, res);

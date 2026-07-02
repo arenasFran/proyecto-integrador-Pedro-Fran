@@ -126,7 +126,7 @@ describe('BarberController', () => {
       const barber = makeBarberEntity();
       barberRepository.findAllBarbers.mockResolvedValue([barber]);
 
-      const req = createMockReq();
+      const req = createMockReqFull({ query: {} });
       const res = createMockRes();
 
       await controller.getAll(req, res);
@@ -140,7 +140,7 @@ describe('BarberController', () => {
     it('debe manejar error y responder 500', async () => {
       barberRepository.findAllBarbers.mockRejectedValue(new Error('boom'));
 
-      const req = createMockReq();
+      const req = createMockReqFull({ query: {} });
       const res = createMockRes();
 
       await controller.getAll(req, res);

@@ -26,6 +26,19 @@ export type PaymentStatus = 'Pendiente' | 'Pagado';
 
 export type PaymentMethod = 'local' | 'online' | 'memberPass';
 
+export type StatusHistoryEntry = {
+  status: AppointmentStatus;
+  timestamp: string;
+  actor: string;
+};
+
+export type CreatedBy = {
+  type: 'staff' | 'registered' | 'anonymous';
+  userId?: string;
+};
+
+export type ClientKind = 'Registrado' | 'NoRegistrado';
+
 export type CreateAppointmentPayload = {
   barberId: string;
   serviceId: string;
@@ -60,6 +73,10 @@ export type Appointment = {
   paymentMethod: PaymentMethod;
   cancelReason?: string;
   cancelledAt?: string | null;
+  cancelledBy?: string;
+  createdBy?: CreatedBy;
+  statusHistory?: StatusHistoryEntry[];
+  clientKind?: ClientKind;
   createdAt: string;
   updatedAt: string;
 };

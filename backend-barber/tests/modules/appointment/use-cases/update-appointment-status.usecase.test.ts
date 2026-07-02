@@ -152,7 +152,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
     await expect(
       strictUseCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin')
-    ).rejects.toThrow(/anticipaciÃ³n/);
+    ).rejects.toThrow(/anticipación/);
   });
 
   it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {

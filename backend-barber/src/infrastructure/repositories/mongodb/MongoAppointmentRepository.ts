@@ -11,6 +11,7 @@ export type AppointmentFilters = {
   clientPhone?: string;
   date?: string;
   status?: AppointmentStatus;
+  paymentMethod?: string;
   dateFrom?: string;
   dateTo?: string;
   page?: number;
@@ -93,6 +94,9 @@ export class MongoAppointmentRepository {
     }
     if (filters.status) {
       query.status = filters.status;
+    }
+    if (filters.paymentMethod) {
+      query.paymentMethod = filters.paymentMethod;
     }
     if (filters.clientEmail || filters.clientPhone) {
       const orConditions: Record<string, unknown>[] = [];

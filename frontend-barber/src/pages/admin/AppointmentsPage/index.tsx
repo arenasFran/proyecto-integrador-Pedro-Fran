@@ -7,6 +7,7 @@ import {
   FiChevronRight,
   FiChevronUp,
   FiClock,
+  FiDownload,
   FiMoreVertical,
   FiScissors,
   FiSettings,
@@ -37,6 +38,40 @@ function formatTime(time: string) {
   return `${h}:${m}`;
 }
 
+const methodLabelExport: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+
+function exportCSV(appointments: Appointment[]) {
+  const headers = ['Fecha', 'Hora inicio', 'Hora fin', 'Cliente', 'Apellido', 'Email', 'Teléfono', 'Barbero', 'Servicio', 'Duración (min)', 'Precio', 'Estado', 'Estado de pago', 'Método de pago', 'Origen'];
+  const rows = appointments.map((a) => [
+    a.date,
+    a.startTime,
+    a.endTime,
+    a.clientName,
+    a.clientLastname,
+    a.clientEmail ?? '',
+    a.clientPhone ?? '',
+    a.barberName ?? '',
+    a.serviceName,
+    String(a.serviceDuration),
+    String(a.servicePrice),
+    a.status,
+    a.paymentStatus,
+    methodLabelExport[a.paymentMethod] ?? a.paymentMethod,
+    a.createdBy?.type === 'staff' ? 'Admin' : a.createdBy?.type === 'registered' ? 'Online' : a.createdBy?.type === 'anonymous' ? 'Invitado' : '',
+  ]);
+  const bom = '\uFEFF';
+  const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `turnos-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export const AdminAppointmentsPage: React.FC = () => {
   const barbers = useAppSelector((state) => state.barbers.list);
   const { showToast } = useToast();
@@ -45,6 +80,7 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterBarberId, setFilterBarberId] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [pageSize, setPageSize] = useState(15);
   const [showCustomize, setShowCustomize] = useState(false);
@@ -81,6 +117,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     setFilterDateTo('');
     setFilterBarberId('');
     setFilterStatus('');
+    setFilterPaymentMethod('');
     setSearchTerm('');
     setSortBy(null);
     setSortDir('asc');
@@ -93,6 +130,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     if (filterDateTo) params.dateTo = filterDateTo;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
+    if (filterPaymentMethod) params.paymentMethod = filterPaymentMethod;
     params.includeBarber = 'true';
     params.page = sortBy ? 1 : page;
     params.limit = sortBy ? 200 : pageSize;
@@ -143,7 +181,7 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, pageSize]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, pageSize]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
@@ -317,6 +355,19 @@ export const AdminAppointmentsPage: React.FC = () => {
                 ]}
               />
             </div>
+            <div className="w-full sm:w-[180px]">
+              <Select
+                label="Método de pago"
+                value={filterPaymentMethod}
+                onChange={setFilterPaymentMethod}
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'local', label: 'Local' },
+                  { value: 'online', label: 'Online' },
+                  { value: 'memberPass', label: 'Membresía' },
+                ]}
+              />
+            </div>
             <Input
               label="Buscar"
               type="text"
@@ -325,7 +376,15 @@ export const AdminAppointmentsPage: React.FC = () => {
               placeholder="Cliente, email o servicio"
               containerClass="w-full sm:w-[200px]"
             />
-            {(filterDateFrom || filterDateTo || filterBarberId || filterStatus || searchTerm || sortBy) && (
+            <button
+              onClick={() => exportCSV(filtered)}
+              className="flex h-[40px] self-end items-center gap-1.5 rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"
+              title="Exportar a CSV"
+            >
+              <FiDownload className="text-sm" />
+              Exportar CSV
+            </button>
+            {(filterDateFrom || filterDateTo || filterBarberId || filterStatus || filterPaymentMethod || searchTerm || sortBy) && (
               <button
                 onClick={clearFilters}
                 className="h-[40px] self-end rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"

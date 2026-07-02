@@ -115,6 +115,7 @@ export const DayCard: React.FC<DayCardProps> = ({ date, appointments, blocks, is
             {remaining > 0 && (
               <button
                 onClick={onShowMore}
+                
                 className="mt-auto text-[12px] text-[#FF5C00] font-medium hover:underline self-center px-1 pb-0.5 cursor-pointer"
               >
                 +{remaining} turno{remaining > 1 ? 's' : ''} más

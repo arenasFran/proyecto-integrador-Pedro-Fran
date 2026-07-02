@@ -58,12 +58,20 @@ describe('BarberController', () => {
     passwordHasher = { hash: jest.fn(), compare: jest.fn() };
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
+    const blockRepository = {
+      findByBarberAndDate: jest.fn(),
+      findByBarberAndDateRange: jest.fn(),
+      create: jest.fn(),
+      deleteById: jest.fn(),
+    };
+
     controller = new BarberController(
       barberRepository,
       userRepository,
       passwordHasher as any,
       getAvailableSlots,
-      deleteBarber
+      deleteBarber,
+      blockRepository as any
     );
   });
 

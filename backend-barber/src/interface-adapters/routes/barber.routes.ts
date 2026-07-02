@@ -4,7 +4,10 @@ import { authorize, authorizeSelfOrKinds } from '../middlewares/auth.middleware'
 import { validate } from '../middlewares/validation.middleware';
 import {
   barberIdParamSchema,
+  blockIdParamSchema,
+  blockQuerySchema,
   createBarberSchema,
+  createBlockSchema,
   scheduleSchema,
   slotsQuerySchema,
   updateBarberSchema,
@@ -41,6 +44,13 @@ export const createBarberRouter = (deps: {
     authorize('Admin'),
     validate({ body: createBarberSchema }),
     deps.barberController.create
+  );
+
+  router.get(
+    '/blocks',
+    authorize('Admin', 'Empleado'),
+    validate({ query: blockQuerySchema }),
+    deps.barberController.getAllBlocks
   );
 
   router.get(
@@ -83,6 +93,27 @@ export const createBarberRouter = (deps: {
     authorize('Admin'),
     validate({ params: barberIdParamSchema, body: scheduleSchema }),
     deps.barberController.updateSchedule
+  );
+
+  router.get(
+    '/:id/blocks',
+    authorize('Admin', 'Empleado'),
+    validate({ params: barberIdParamSchema, query: blockQuerySchema }),
+    deps.barberController.getBlocks
+  );
+
+  router.post(
+    '/:id/blocks',
+    authorize('Admin', 'Empleado'),
+    validate({ params: barberIdParamSchema, body: createBlockSchema }),
+    deps.barberController.createBlock
+  );
+
+  router.delete(
+    '/:id/blocks/:blockId',
+    authorize('Admin', 'Empleado'),
+    validate({ params: blockIdParamSchema }),
+    deps.barberController.deleteBlock
   );
 
   return router;

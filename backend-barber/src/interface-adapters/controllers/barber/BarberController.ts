@@ -10,6 +10,7 @@ import { Phone } from '../../../domain/value-objects/Phone';
 import { Password } from '../../../domain/value-objects/Password';
 import { BarberSchedule } from '../../../domain/entities/Barber';
 import { sendSuccess, sendError } from '../../../common/response';
+import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { AppError } from '../../../domain/errors/AppError';
 
 export class BarberController {
@@ -36,7 +37,8 @@ export class BarberController {
     private readonly userRepository: MongoUserRepository,
     private readonly passwordHasher: BcryptPasswordHasher,
     private readonly getAvailableSlots: GetAvailableSlotsUseCase,
-    private readonly deleteBarber: DeleteBarberUseCase
+    private readonly deleteBarber: DeleteBarberUseCase,
+    private readonly blockRepository: MongoBarberBlockRepository
   ) {}
 
   getAllPublic = async (_req: Request, res: Response) => {
@@ -288,6 +290,75 @@ export class BarberController {
       return sendSuccess(res, result, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener los slots');
+    }
+  };
+
+  getBlocks = async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const { dateFrom, dateTo } = req.query as { dateFrom: string; dateTo: string };
+      const blocks = await this.blockRepository.findByBarberAndDateRange(id, dateFrom, dateTo);
+      return sendSuccess(res, { blocks }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener bloques');
+    }
+  };
+
+  createBlock = async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+
+      if (req.user?.kind !== 'Admin' && id !== req.user?._id) {
+        throw new AppError('No podés bloquear el horario de otro barbero.', 403);
+      }
+
+      const { date, startTime, endTime } = req.body;
+
+      const block = await this.blockRepository.create({
+        barberId: id,
+        date,
+        startTime,
+        endTime,
+        createdBy: req.user?._id,
+      });
+
+      return sendSuccess(res, { block }, 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al crear bloque');
+    }
+  };
+
+  getAllBlocks = async (req: Request, res: Response) => {
+    try {
+      const { dateFrom, dateTo } = req.query as { dateFrom: string; dateTo: string };
+      const blocks = await this.blockRepository.findByDateRange(dateFrom, dateTo);
+      return sendSuccess(res, { blocks }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener bloques');
+    }
+  };
+
+  deleteBlock = async (req: Request, res: Response) => {
+    try {
+      const blockId = String(req.params.blockId);
+
+      const block = await this.blockRepository.findById(blockId);
+      if (!block) {
+        throw new AppError('Bloque no encontrado.', 404);
+      }
+
+      const isAdmin = req.user?.kind === 'Admin';
+      const isOwner = req.user?._id === block.createdBy;
+      const isSelfBarber = block.barberId === req.user?._id;
+
+      if (!isAdmin && !isOwner && !isSelfBarber) {
+        throw new AppError('No tenés permiso para eliminar este bloque.', 403);
+      }
+
+      await this.blockRepository.deleteById(blockId);
+      return sendSuccess(res, { message: 'Bloque eliminado' }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al eliminar bloque');
     }
   };
 }

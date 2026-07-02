@@ -40,7 +40,9 @@ export type AppointmentQueryParams = {
   date?: string;
   dateFrom?: string;
   dateTo?: string;
+  status?: string;
   paymentMethod?: string;
+  searchTerm?: string;
   page?: number;
   limit?: number;
   includeBarber?: string;

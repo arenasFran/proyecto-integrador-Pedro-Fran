@@ -17,7 +17,8 @@ import {
 import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { formatDate } from '../../../utils/formatDate';
-import { useAppSelector } from '../../../store/hooks';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { fetchBarbers } from '../../../store/slices/barbersSlice';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsPaginatedQuery,
@@ -73,8 +74,15 @@ function exportCSV(appointments: Appointment[]) {
 }
 
 export const AdminAppointmentsPage: React.FC = () => {
+  const dispatch = useAppDispatch();
   const barbers = useAppSelector((state) => state.barbers.list);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (barbers.length === 0) {
+      dispatch(fetchBarbers());
+    }
+  }, [dispatch, barbers.length]);
 
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
@@ -125,17 +133,18 @@ export const AdminAppointmentsPage: React.FC = () => {
   };
 
   const queryParams = useMemo(() => {
-    const params: { dateFrom?: string; dateTo?: string; barberId?: string; status?: string; page?: number; limit?: number; includeBarber?: string } = {};
+    const params: Record<string, string | number | undefined> = {};
     if (filterDateFrom) params.dateFrom = filterDateFrom;
     if (filterDateTo) params.dateTo = filterDateTo;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
     if (filterPaymentMethod) params.paymentMethod = filterPaymentMethod;
+    if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
     params.includeBarber = 'true';
     params.page = sortBy ? 1 : page;
     params.limit = sortBy ? 200 : pageSize;
     return params;
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, page, pageSize, sortBy]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy]);
   const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
   });
@@ -151,13 +160,25 @@ export const AdminAppointmentsPage: React.FC = () => {
   const filtered = useMemo(() => {
     let result = appointments;
     if (searchTerm.trim()) {
-      const q = searchTerm.trim().toLowerCase();
-      result = result.filter(
-        (a) =>
-          a.clientName.toLowerCase().includes(q) ||
-          a.clientLastname.toLowerCase().includes(q) ||
-          a.clientEmail?.toLowerCase().includes(q) ||
-          a.serviceName.toLowerCase().includes(q)
+      const tokens = searchTerm.trim().split(/\s+/);
+      result = result.filter((a) =>
+        tokens.every((token) => {
+          const lowerToken = token.toLowerCase();
+          const wordBoundary = (val: string) => {
+            const idx = val.toLowerCase().indexOf(lowerToken);
+            if (idx === -1) return false;
+            if (idx > 0 && /\w/.test(val[idx - 1])) return false;
+            if (/\d$/.test(token)) {
+              const end = idx + token.length;
+              if (end < val.length && /\d/.test(val[end])) return false;
+            }
+            return true;
+          };
+          return wordBoundary(a.clientName) ||
+            wordBoundary(a.clientLastname) ||
+            wordBoundary(a.clientEmail ?? '') ||
+            wordBoundary(a.serviceName);
+        })
       );
     }
     if (sortBy) {

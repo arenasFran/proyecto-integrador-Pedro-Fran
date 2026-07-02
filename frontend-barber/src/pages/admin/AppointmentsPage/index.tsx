@@ -88,11 +88,12 @@ export const AdminAppointmentsPage: React.FC = () => {
   };
 
   const queryParams = useMemo(() => {
-    const params: { dateFrom?: string; dateTo?: string; barberId?: string; status?: string; page?: number; limit?: number } = {};
+    const params: { dateFrom?: string; dateTo?: string; barberId?: string; status?: string; page?: number; limit?: number; includeBarber?: string } = {};
     if (filterDateFrom) params.dateFrom = filterDateFrom;
     if (filterDateTo) params.dateTo = filterDateTo;
     if (filterBarberId) params.barberId = filterBarberId;
     if (filterStatus) params.status = filterStatus;
+    params.includeBarber = 'true';
     params.page = sortBy ? 1 : page;
     params.limit = sortBy ? 200 : pageSize;
     return params;
@@ -291,34 +292,30 @@ export const AdminAppointmentsPage: React.FC = () => {
           )}
 
           <div className="flex flex-wrap items-end gap-2 md:gap-3 mb-4 md:mb-6">
-            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
-              <label className="text-[13px] font-medium text-white">Barbero</label>
-              <select
+            <div className="w-full sm:w-[180px]">
+              <Select
+                label="Barbero"
                 value={filterBarberId}
-                onChange={(e) => setFilterBarberId(e.target.value)}
-                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-              >
-                <option value="">Todos</option>
-                {barbers.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name} {b.lastname}
-                  </option>
-                ))}
-              </select>
+                onChange={setFilterBarberId}
+                options={[
+                  { value: '', label: 'Todos' },
+                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                ]}
+              />
             </div>
-            <div className="flex flex-col gap-1 w-full sm:w-[180px]">
-              <label className="text-[13px] font-medium text-white">Estado</label>
-              <select
+            <div className="w-full sm:w-[180px]">
+              <Select
+                label="Estado"
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-[40px] rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20"
-              >
-                <option value="">Todos</option>
-                <option value="Confirmado">Confirmado</option>
-                <option value="Completado">Completado</option>
-                <option value="Cancelado">Cancelado</option>
-                <option value="NoShow">No asistió</option>
-              </select>
+                onChange={setFilterStatus}
+                options={[
+                  { value: '', label: 'Todos' },
+                  { value: 'Confirmado', label: 'Confirmado' },
+                  { value: 'Completado', label: 'Completado' },
+                  { value: 'Cancelado', label: 'Cancelado' },
+                  { value: 'NoShow', label: 'No asistió' },
+                ]}
+              />
             </div>
             <Input
               label="Buscar"
@@ -379,7 +376,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                     <div className="flex flex-col gap-1.5 text-[13px]">
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Barbero</span>
-                        <span className="text-white">{barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}</span>
+                        <span className="text-white">{appointment.barberName ?? barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Servicio</span>
@@ -517,7 +514,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 pr-4 text-[#8A8A8A]">
-                          {barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
+                          {appointment.barberName ?? barbers.find((b) => b.id === appointment.barberId)?.name ?? appointment.barberId.slice(-6)}
                         </td>
                         <td className="py-3 pr-4 text-[#8A8A8A]">
                           <span>{appointment.serviceName}</span>

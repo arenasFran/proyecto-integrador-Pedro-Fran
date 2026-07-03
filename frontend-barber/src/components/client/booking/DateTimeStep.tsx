@@ -60,8 +60,8 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
 
   return (
     <AnimatedContainer animation="fadeInUp">
-      <div className="p-4 space-y-4">
-        <p className="text-[12px] text-[#8A8A8A]">Elegí la fecha y el horario</p>
+      <div className="p-6 space-y-5">
+        <p className="text-[13px] text-[#8A8A8A]">Elegí la fecha y el horario</p>
         <div className="grid gap-4 md:grid-cols-[1fr_1.2fr]">
           <BookingCalendar
             selectedDate={selectedDate}

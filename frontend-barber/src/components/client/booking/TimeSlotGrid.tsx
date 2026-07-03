@@ -17,11 +17,11 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
-        <h3 className="text-[13px] font-semibold text-white mb-3">Horarios</h3>
+      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-5">
+        <h3 className="text-[14px] font-semibold text-white mb-3">Horarios</h3>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-[36px] animate-pulse rounded-[8px] bg-[#242424]" />
+            <div key={i} className="h-[38px] animate-pulse rounded-[8px] bg-[#242424]" />
           ))}
         </div>
       </div>
@@ -30,11 +30,11 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
 
   if (!selectedTime && slots.length === 0) {
     return (
-      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
-        <h3 className="text-[13px] font-semibold text-white mb-3">Horarios</h3>
+      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-5">
+        <h3 className="text-[14px] font-semibold text-white mb-3">Horarios</h3>
         <div className="flex flex-col items-center gap-3 py-5">
-          <FiClock className="w-6 h-6 text-[#8A8A8A]" />
-          <p className="text-[12px] text-[#8A8A8A]">Seleccioná una fecha</p>
+          <FiClock className="w-7 h-7 text-[#8A8A8A]" />
+          <p className="text-[13px] text-[#8A8A8A]">Seleccioná una fecha</p>
         </div>
       </div>
     );
@@ -42,21 +42,21 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
 
   if (slots.length === 0) {
     return (
-      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
-        <h3 className="text-[13px] font-semibold text-white mb-3">Horarios</h3>
+      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-5">
+        <h3 className="text-[14px] font-semibold text-white mb-3">Horarios</h3>
         <div className="flex flex-col items-center gap-3 py-5">
-          <FiClock className="w-6 h-6 text-[#8A8A8A]" />
-          <p className="text-[12px] text-[#8A8A8A]">Sin horarios disponibles</p>
+          <FiClock className="w-7 h-7 text-[#8A8A8A]" />
+          <p className="text-[13px] text-[#8A8A8A]">Sin horarios disponibles</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
-      <h3 className="text-[13px] font-semibold text-white mb-3">
+    <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-5">
+      <h3 className="text-[14px] font-semibold text-white mb-3">
         Horarios
-        <span className="ml-1.5 text-[11px] font-normal text-[#8A8A8A]">({slots.length} disponibles)</span>
+        <span className="ml-1.5 text-[12px] font-normal text-[#8A8A8A]">({slots.length} disponibles)</span>
       </h3>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
         {slots.map((time, index) => {
@@ -71,7 +71,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className={`
-                rounded-[8px] py-2 px-3 text-[13px] font-medium transition-all duration-200
+                rounded-[8px] py-2.5 px-3 text-[14px] font-medium transition-all duration-200
                 ${isSelected
                   ? 'bg-[#FF5C00] text-white shadow-[0_0_10px_rgba(255,92,0,0.3)]'
                   : 'bg-[#242424] text-white hover:bg-[#2A2A2A] border border-[#282828]'

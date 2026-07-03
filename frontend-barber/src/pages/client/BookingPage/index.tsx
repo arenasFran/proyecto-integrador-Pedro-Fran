@@ -174,8 +174,8 @@ export const BookingPage: React.FC = () => {
     <div className="min-h-screen bg-[#050505] text-white">
       <PublicHeader />
 
-      <div className="relative mx-auto max-w-xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
-          <AnimatedContainer animation="fadeInDown" className="text-center mb-6">
+      <div className="relative mx-auto max-w-2xl px-6 pb-32 pt-8 sm:px-8 sm:pt-10">
+          <AnimatedContainer animation="fadeInDown" className="text-center mb-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[11px] text-[#8A8A8A] mb-3">
               <FiScissors className="text-[#FF5C00]" />
               Reservá tu turno online

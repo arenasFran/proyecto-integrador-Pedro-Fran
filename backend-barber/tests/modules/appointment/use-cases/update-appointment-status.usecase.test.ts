@@ -22,6 +22,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
       paymentStatus: 'Pendiente',
       paymentMethod: 'local',
       statusHistory: [{ status: 'Confirmado', timestamp: new Date(), actor: 'system' }],
+      version: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

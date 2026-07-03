@@ -141,56 +141,25 @@ export const AdminAppointmentsPage: React.FC = () => {
     if (filterPaymentMethod) params.paymentMethod = filterPaymentMethod;
     if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
     params.includeBarber = 'true';
-    params.page = sortBy ? 1 : page;
-    params.limit = sortBy ? 200 : pageSize;
+    params.page = page;
+    params.limit = pageSize;
+    if (sortBy) {
+      params.sortBy = sortBy;
+      params.sortDir = sortDir;
+    }
     return params;
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy, sortDir]);
   const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
   });
 
   const appointments = paginatedData?.appointments ?? [];
   const totalResults = paginatedData?.total ?? 0;
-  const totalPages = sortBy ? 1 : (paginatedData?.totalPages ?? 1);
+  const totalPages = paginatedData?.totalPages ?? 1;
 
   const [cancelAppointment, { isLoading: isCancelling }] = useCancelAppointmentMutation();
   const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
   const [rescheduleAppointment, { isLoading: isRescheduling }] = useRescheduleAppointmentMutation();
-
-  const filtered = useMemo(() => {
-    let result = appointments;
-    if (searchTerm.trim()) {
-      const tokens = searchTerm.trim().split(/\s+/);
-      result = result.filter((a) =>
-        tokens.every((token) => {
-          const lowerToken = token.toLowerCase();
-          const wordBoundary = (val: string) => {
-            const idx = val.toLowerCase().indexOf(lowerToken);
-            if (idx === -1) return false;
-            if (idx > 0 && /\w/.test(val[idx - 1])) return false;
-            if (/\d$/.test(token)) {
-              const end = idx + token.length;
-              if (end < val.length && /\d/.test(val[end])) return false;
-            }
-            return true;
-          };
-          return wordBoundary(a.clientName) ||
-            wordBoundary(a.clientLastname) ||
-            wordBoundary(a.clientEmail ?? '') ||
-            wordBoundary(a.serviceName);
-        })
-      );
-    }
-    if (sortBy) {
-      result = [...result].sort((a, b) => {
-        const valA = sortBy === 'date' ? a.date : a.startTime;
-        const valB = sortBy === 'date' ? b.date : b.startTime;
-        const cmp = valA.localeCompare(valB);
-        return sortDir === 'asc' ? cmp : -cmp;
-      });
-    }
-    return result;
-  }, [appointments, searchTerm, sortBy, sortDir]);
 
   const stats = useMemo(() => {
     const total = totalResults;
@@ -202,7 +171,7 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, pageSize]);
+  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, pageSize, sortBy, sortDir]);
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
@@ -398,7 +367,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               containerClass="w-full sm:w-[200px]"
             />
             <button
-              onClick={() => exportCSV(filtered)}
+              onClick={() => exportCSV(appointments)}
               className="flex h-[40px] self-end items-center gap-1.5 rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"
               title="Exportar a CSV"
             >
@@ -419,7 +388,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             <div className="flex items-center justify-center py-20">
               <Spinner size="lg" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : appointments.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-[#8A8A8A]">
               <FiCalendar className="text-4xl mb-3" />
               <p className="text-[15px]">No se encontraron turnos</p>
@@ -429,7 +398,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             <>
             {/* Mobile cards */}
             <div className="flex flex-col gap-3 md:hidden">
-              {filtered.map((appointment) => {
+              {appointments.map((appointment) => {
                 const style = statusStyles[appointment.status];
                 const isActive = appointment.status === 'Confirmado';
                 return (
@@ -564,7 +533,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((appointment) => {
+                  {appointments.map((appointment) => {
                     const style = statusStyles[appointment.status];
                     const isActive = appointment.status === 'Confirmado';
                     const isExpanded = expandedId === appointment.id;

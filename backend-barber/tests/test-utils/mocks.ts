@@ -94,7 +94,18 @@ export const makeMockServiceRepository = () => ({
 export const makeMockClientRepository = () => ({
   findByEmail: jest.fn(),
   findByPhone: jest.fn(),
+  findByBoth: jest.fn(),
   createUnregistered: jest.fn(),
+});
+
+export const makeMockBarberBlockRepository = () => ({
+  findByBarberAndDate: jest.fn(),
+  findByBarberAndDateRange: jest.fn(),
+  create: jest.fn(),
+  deleteById: jest.fn(),
+  deleteByBarberId: jest.fn(),
+  findByDateRange: jest.fn(),
+  findById: jest.fn(),
 });
 
 export const makeMockPasswordResetRepository = () => ({

@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
-import type { Appointment } from '../types/booking';
+import type { Appointment, CreateAppointmentPayload } from '../types/booking';
 import type { AppointmentQueryParams, PaginatedAppointmentsResponse } from './appointment.service';
 
 type QueryParams = AppointmentQueryParams;
@@ -10,6 +10,15 @@ export const appointmentApi = createApi({
   baseQuery: axiosBaseQuery,
   tagTypes: ['Appointments', 'Appointment'],
   endpoints: (builder) => ({
+    createAppointment: builder.mutation<{ message: string; appointment: Appointment }, CreateAppointmentPayload>({
+      query: (data) => ({
+        url: '/api/appointments',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['Appointments'],
+    }),
+
     getAppointments: builder.query<Appointment[], QueryParams | void>({
       query: (params) => ({
         url: '/api/appointments',
@@ -77,6 +86,7 @@ export const appointmentApi = createApi({
 });
 
 export const {
+  useCreateAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,
   useGetAppointmentByIdQuery,

@@ -3,6 +3,7 @@ import { GetAvailableSlotsUseCase } from '../application/use-cases/barber/GetAva
 import { DeleteBarberUseCase } from '../application/use-cases/barber/DeleteBarberUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
@@ -26,20 +27,23 @@ export const buildBarberRouter = () => {
   const userRepository = new MongoUserRepository();
   const appointmentRepository = new MongoAppointmentRepository();
   const tempLockRepository = new MongoTempLockRepository();
+  const blockRepository = new MongoBarberBlockRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
   const slotService = new SlotService();
-  const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository);
-  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, emailService);
+  const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository, blockRepository);
+  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService);
 
   const barberController = new BarberController(
     barberRepository,
     userRepository,
     passwordHasher,
     getAvailableSlots,
-    deleteBarber
+    deleteBarber,
+    blockRepository,
+    appointmentRepository
   );
 
   const authenticate = createAuthenticate(tokenService);

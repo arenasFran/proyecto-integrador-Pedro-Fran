@@ -1,5 +1,6 @@
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { AppError } from '../../../domain/errors/AppError';
 import { OccupiedSlot, SlotService, SlotsResult } from '../../../domain/services/SlotService';
@@ -12,7 +13,8 @@ export class GetAvailableSlotsUseCase {
     private readonly barberRepository: MongoBarberRepository,
     private readonly slotService: SlotService,
     private readonly appointmentRepository: MongoAppointmentRepository,
-    private readonly tempLockRepository: MongoTempLockRepository
+    private readonly tempLockRepository: MongoTempLockRepository,
+    private readonly blockRepository: MongoBarberBlockRepository
   ) {}
 
   async execute(barberId: string, date: string): Promise<SlotsResult> {
@@ -30,6 +32,7 @@ export class GetAvailableSlotsUseCase {
 
     const appointments = await this.appointmentRepository.findByBarberAndDate(barberId, date);
     const tempLocks = await this.tempLockRepository.findByBarberAndDate(barberId, date);
+    const blocks = await this.blockRepository.findByBarberAndDate(barberId, date);
 
     const occupiedSlots: OccupiedSlot[] = [
       ...appointments.map((apt) => ({
@@ -46,6 +49,11 @@ export class GetAvailableSlotsUseCase {
           status: 'TempLock' as const,
         };
       }),
+      ...blocks.map((b) => ({
+        startTime: b.startTime,
+        endTime: b.endTime,
+        status: 'Bloqueado' as const,
+      })),
     ];
 
     return this.slotService.execute(date, barber.schedule, barber.slotDuration, occupiedSlots);

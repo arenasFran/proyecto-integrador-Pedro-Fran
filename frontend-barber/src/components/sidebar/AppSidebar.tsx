@@ -12,6 +12,7 @@ interface SidebarProps {
 
 const adminNavItems = [
   { to: '/admin/dashboard', icon: FiBarChart2, label: 'Métricas' },
+  { to: '/admin/profesionales', icon: FiUsers, label: 'Profesionales' },
   { to: '/admin/turnos',     icon: FiList, label: 'Turnos' },
   { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
   { to: '/admin/servicios', icon: FiScissors, label: 'Servicios' },

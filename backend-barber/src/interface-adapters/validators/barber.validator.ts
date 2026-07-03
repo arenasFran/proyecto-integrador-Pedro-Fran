@@ -80,6 +80,27 @@ export const slotsQuerySchema = Joi.object({
   date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
 });
 
+export const createBlockSchema = Joi.object({
+  date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+  startTime: Joi.string().pattern(TIME_REGEX).required(),
+  endTime: Joi.string().pattern(TIME_REGEX).required(),
+}).custom((value, helpers) => {
+  if (value.startTime >= value.endTime) {
+    return helpers.message({ 'any.custom': 'startTime debe ser anterior a endTime' });
+  }
+  return value;
+});
+
+export const blockIdParamSchema = Joi.object({
+  id: Joi.string().required(),
+  blockId: Joi.string().required(),
+});
+
+export const blockQuerySchema = Joi.object({
+  dateFrom: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+  dateTo: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).required(),
+});
+
 export const updateBarberMeSchema = Joi.object({
   email: Joi.string().pattern(EMAIL_REGEX).optional(),
   password: Joi.string().min(6).optional(),

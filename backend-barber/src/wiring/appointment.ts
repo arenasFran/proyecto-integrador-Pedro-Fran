@@ -6,6 +6,7 @@ import { MongoAppointmentRepository } from '../infrastructure/repositories/mongo
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
+import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
@@ -19,6 +20,7 @@ export const buildAppointmentRouter = () => {
   const serviceRepository = new MongoServiceRepository();
   const clientRepository = new MongoClientRepository();
   const tempLockRepository = new MongoTempLockRepository();
+  const blockRepository = new MongoBarberBlockRepository();
   const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
@@ -28,7 +30,8 @@ export const buildAppointmentRouter = () => {
     serviceRepository,
     clientRepository,
     emailService,
-    tempLockRepository
+    tempLockRepository,
+    blockRepository
   );
   const cancelMinHoursBefore = Number(process.env.CANCEL_MIN_HOURS_BEFORE) || 2;
 
@@ -42,7 +45,8 @@ export const buildAppointmentRouter = () => {
     appointmentRepository,
     barberRepository,
     serviceRepository,
-    emailService
+    emailService,
+    blockRepository
   );
 
   const appointmentController = new AppointmentController(

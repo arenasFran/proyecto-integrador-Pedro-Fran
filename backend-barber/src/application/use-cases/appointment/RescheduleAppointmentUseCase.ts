@@ -1,6 +1,7 @@
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
+import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
@@ -14,6 +15,7 @@ import {
   toMinutes,
   doesOverlap,
   getNowInTimezone,
+  getNowDateInTimezone,
   validateAppointmentSlot,
 } from '../../../domain/utils/time';
 import { VALID_TRANSITIONS } from '../../../domain/types/appointment';
@@ -23,7 +25,8 @@ export class RescheduleAppointmentUseCase {
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly barberRepository: MongoBarberRepository,
     private readonly serviceRepository: MongoServiceRepository,
-    private readonly emailService: IEmailService
+    private readonly emailService: IEmailService,
+    private readonly blockRepository: MongoBarberBlockRepository
   ) {}
 
   async execute(
@@ -107,6 +110,14 @@ export class RescheduleAppointmentUseCase {
       }
     }
 
+    // RN04b — Colisión con bloques del barbero
+    const blocks = await this.blockRepository.findByBarberAndDate(dto.barberId, dto.date);
+    for (const block of blocks) {
+      if (doesOverlap(dto.startTime, endTime, block.startTime, block.endTime)) {
+        throw new AppError('El horario seleccionado está bloqueado para este barbero.', 409);
+      }
+    }
+
     // RN15 — Límite de 1 turno activo total (excluyéndose a sí mismo)
     let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
     if (appointment.clientId) {
@@ -118,7 +129,7 @@ export class RescheduleAppointmentUseCase {
       );
     }
     const filtered = activeAppointments.filter((a) => a.id !== id);
-    const now = new Date();
+    const now = getNowDateInTimezone();
     const hasActive = filtered.some((a) => {
       if (a.status !== 'Confirmado') return false;
       const appointmentEnd = new Date(`${a.date}T${a.endTime}:00`);
@@ -136,10 +147,14 @@ export class RescheduleAppointmentUseCase {
       startTime: dto.startTime,
       endTime,
       barberId: dto.barberId,
+      version: appointment.version,
     });
 
     if (!updated) {
-      throw new AppError('Error al actualizar el turno.', 500);
+      throw new AppError(
+        'El turno fue modificado por otro usuario. Recargá e intentá de nuevo.',
+        409
+      );
     }
 
     // RN17 — Email notification (async)

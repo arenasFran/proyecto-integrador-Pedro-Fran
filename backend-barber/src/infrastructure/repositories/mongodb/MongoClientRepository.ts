@@ -32,6 +32,12 @@ export class MongoClientRepository {
     return toClientEntity(doc);
   }
 
+  async findByBoth(email: string, phone: string): Promise<Client | null> {
+    const doc = await UnregisteredClient.findOne({ contactEmail: email, phone }).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
   async createUnregistered(data: UnregisteredClientData): Promise<Client> {
     const doc = await UnregisteredClient.create({
       name: data.name,

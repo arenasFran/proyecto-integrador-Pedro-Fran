@@ -5,7 +5,7 @@ import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/enti
 import { Email } from '../../../../src/domain/value-objects/Email';
 import { Phone } from '../../../../src/domain/value-objects/Phone';
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
-import { makeMockBarberRepository, makeMockUserRepository } from '../../../test-utils/mocks';
+import { makeMockBarberRepository, makeMockUserRepository, makeMockAppointmentRepository } from '../../../test-utils/mocks';
 import { DeleteBarberUseCase } from '../../../../src/application/use-cases/barber/DeleteBarberUseCase';
 
 const createScheduleDay = () => ({
@@ -58,12 +58,22 @@ describe('BarberController', () => {
     passwordHasher = { hash: jest.fn(), compare: jest.fn() };
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
+    const blockRepository = {
+      findByBarberAndDate: jest.fn(),
+      findByBarberAndDateRange: jest.fn(),
+      create: jest.fn(),
+      deleteById: jest.fn(),
+    };
+    const appointmentRepository = makeMockAppointmentRepository();
+
     controller = new BarberController(
       barberRepository,
       userRepository,
       passwordHasher as any,
       getAvailableSlots,
-      deleteBarber
+      deleteBarber,
+      blockRepository as any,
+      appointmentRepository as any
     );
   });
 

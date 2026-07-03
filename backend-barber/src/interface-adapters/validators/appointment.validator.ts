@@ -29,6 +29,8 @@ export const appointmentQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
   includeBarber: Joi.string().valid('true'),
+  sortBy: Joi.string().valid('date', 'startTime'),
+  sortDir: Joi.string().valid('asc', 'desc'),
 });
 
 export const appointmentIdParamSchema = Joi.object({

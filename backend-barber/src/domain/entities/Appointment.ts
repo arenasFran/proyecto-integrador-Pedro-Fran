@@ -29,6 +29,7 @@ export type AppointmentProps = {
   cancelledBy?: string;
   createdBy?: CreatedBy;
   statusHistory: StatusHistoryEntry[];
+  version: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -66,6 +67,7 @@ export class Appointment {
   get cancelledBy(): string | undefined { return this.props.cancelledBy; }
   get createdBy(): CreatedBy | undefined { return this.props.createdBy ? { ...this.props.createdBy } : undefined; }
   get statusHistory(): StatusHistoryEntry[] { return [...this.props.statusHistory]; }
+  get version(): number { return this.props.version; }
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
   get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
 

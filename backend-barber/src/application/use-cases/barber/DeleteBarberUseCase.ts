@@ -1,5 +1,6 @@
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
@@ -9,6 +10,7 @@ export class DeleteBarberUseCase {
     private readonly barberRepository: MongoBarberRepository,
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly tempLockRepository: MongoTempLockRepository,
+    private readonly blockRepository: MongoBarberBlockRepository,
     private readonly emailService: IEmailService,
   ) {}
 
@@ -20,6 +22,7 @@ export class DeleteBarberUseCase {
 
     await this.barberRepository.deactivateBarber(barberId);
     await this.tempLockRepository.deleteMany({ barberId });
+    await this.blockRepository.deleteByBarberId(barberId);
 
     const { data: futureAppointments } = await this.appointmentRepository.findMany({
       barberId,

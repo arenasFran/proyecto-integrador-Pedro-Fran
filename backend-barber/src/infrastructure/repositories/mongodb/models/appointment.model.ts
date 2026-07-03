@@ -33,6 +33,7 @@ export interface IAppointmentDocument extends Document {
   cancelledBy?: string;
   createdBy?: ICreatedBy;
   statusHistory: IStatusHistoryEntry[];
+  version: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -146,6 +147,10 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     statusHistory: {
       type: [statusHistoryEntrySchema],
       default: [],
+    },
+    version: {
+      type: Number,
+      default: 0,
     },
   },
   {

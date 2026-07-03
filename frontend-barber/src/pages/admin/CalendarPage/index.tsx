@@ -1,10 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
+import { getAccessToken } from '../../../services/api';
 import { DayCard } from './DayCard';
 import { DayDetailModal } from './DayDetailModal';
-import type { Appointment } from '../../../types/booking';
+import { BlockModal } from './BlockModal';
+import { QuickCreateModal } from './QuickCreateModal';
+import type { Appointment, BarberBlock } from '../../../types/booking';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAY_ABBR = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
@@ -63,6 +66,10 @@ interface DayColumn {
 export const CalendarPage: React.FC = () => {
   const [startDate, setStartDate] = useState(() => getMonday(new Date()));
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [creatingDate, setCreatingDate] = useState<string | null>(null);
+  const [blockingDate, setBlockingDate] = useState<string | null>(null);
+  const [blocksByDate, setBlocksByDate] = useState<Map<string, BarberBlock[]>>(new Map());
+  const [blocksRefreshKey, setBlocksRefreshKey] = useState(0);
 
   const today = useMemo(() => startOfDay(new Date()), []);
 
@@ -88,10 +95,38 @@ export const CalendarPage: React.FC = () => {
       existing.push(a);
       map.set(a.date, existing);
     }
+    for (const apps of map.values()) {
+      apps.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    }
     return map;
   }, [appointments]);
 
   const selectedAppointments = selectedDate ? appointmentsByDate.get(selectedDate) ?? [] : [];
+  const selectedBlocks = selectedDate ? blocksByDate.get(selectedDate) ?? [] : [];
+
+  useEffect(() => {
+    const fetchBlocks = async () => {
+      try {
+        const token = getAccessToken();
+        const res = await fetch(`/api/barbers/blocks?dateFrom=${dateFrom}&dateTo=${dateTo}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const map = new Map<string, BarberBlock[]>();
+          for (const block of data.blocks as BarberBlock[]) {
+            const existing = map.get(block.date) ?? [];
+            existing.push(block);
+            map.set(block.date, existing);
+          }
+          setBlocksByDate(map);
+        }
+      } catch {
+        // ignore fetch errors
+      }
+    };
+    fetchBlocks();
+  }, [dateFrom, dateTo, blocksRefreshKey]);
 
   const goPrev = () => {
     setStartDate(addDays(startDate, -DAYS_TO_SHOW));
@@ -196,8 +231,11 @@ export const CalendarPage: React.FC = () => {
                             key={col.dateStr}
                             date={col.date}
                             appointments={col.dayApps}
+                            blocks={blocksByDate.get(col.dateStr) ?? []}
                             isToday={isSameDay(col.date, today)}
                             onShowMore={() => setSelectedDate(col.dateStr)}
+                            onCreateTurno={() => setCreatingDate(col.dateStr)}
+                            onCreateBlock={() => setBlockingDate(col.dateStr)}
                           />
                         );
                       })}
@@ -212,8 +250,11 @@ export const CalendarPage: React.FC = () => {
                     key={col.dateStr}
                     date={col.date}
                     appointments={col.dayApps}
+                    blocks={blocksByDate.get(col.dateStr) ?? []}
                     isToday={isSameDay(col.date, today)}
                     onShowMore={() => setSelectedDate(col.dateStr)}
+                    onCreateTurno={() => setCreatingDate(col.dateStr)}
+                    onCreateBlock={() => setBlockingDate(col.dateStr)}
                   />
                 ))}
               </div>
@@ -226,8 +267,35 @@ export const CalendarPage: React.FC = () => {
         isOpen={selectedDate !== null}
         date={selectedDate ?? ''}
         appointments={selectedAppointments}
+        blocks={selectedBlocks}
         onClose={() => setSelectedDate(null)}
+        onBlockDeleted={() => setBlocksRefreshKey(k => k + 1)}
       />
+
+      {creatingDate && (
+        <QuickCreateModal
+          key={creatingDate}
+          dateStr={creatingDate}
+          onClose={() => setCreatingDate(null)}
+        />
+      )}
+
+      {blockingDate && (
+        <BlockModal
+          key={blockingDate}
+          dateStr={blockingDate}
+          onClose={() => setBlockingDate(null)}
+          onBlockCreated={(block) => {
+            setBlocksByDate((prev) => {
+              const next = new Map(prev);
+              const existing = next.get(block.date) ?? [];
+              existing.push(block);
+              next.set(block.date, existing);
+              return next;
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

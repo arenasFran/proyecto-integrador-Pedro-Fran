@@ -3,9 +3,21 @@ import { DatePicker } from './DatePicker';
 
 export type PresetKey = 'hoy' | 'ayer' | 'semana' | 'semanaPasada' | 'mes' | 'year' | 'personalizado';
 
+export function detectPreset(desde: string, hasta: string): PresetKey {
+  const PRESET_KEYS: PresetKey[] = ['hoy', 'ayer', 'semana', 'semanaPasada', 'mes', 'year'];
+  for (const key of PRESET_KEYS) {
+    const { desde: pd, hasta: ph } = resolvePreset(key);
+    if (pd === desde && ph === hasta) return key;
+  }
+  return 'personalizado';
+}
+
 interface DateRangeFilterProps {
   onChange: (desde: string, hasta: string) => void;
   defaultPreset?: PresetKey;
+  skipMountEffect?: boolean;
+  initialCustomDesde?: string;
+  initialCustomHasta?: string;
 }
 
 const PRESETS: { key: PresetKey; label: string }[] = [
@@ -64,21 +76,22 @@ function resolvePreset(p: PresetKey): { desde: string; hasta: string } {
   }
 }
 
-export default function DateRangeFilter({ onChange, defaultPreset = 'semana' }: DateRangeFilterProps) {
+export default function DateRangeFilter({ onChange, defaultPreset = 'semana', skipMountEffect, initialCustomDesde = '', initialCustomHasta = '' }: DateRangeFilterProps) {
   const [preset, setPreset] = useState<PresetKey>(defaultPreset);
-  const [customDesde, setCustomDesde] = useState('');
-  const [customHasta, setCustomHasta] = useState('');
+  const [customDesde, setCustomDesde] = useState(initialCustomDesde);
+  const [customHasta, setCustomHasta] = useState(initialCustomHasta);
+  const [activePicker, setActivePicker] = useState<'desde' | 'hasta' | null>(null);
   const initialised = useRef(false);
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; });
 
   useEffect(() => {
-    if (!initialised.current) {
+    if (!initialised.current && !skipMountEffect) {
       initialised.current = true;
       const { desde, hasta } = resolvePreset(defaultPreset);
       onChangeRef.current(desde, hasta);
     }
-  }, [defaultPreset]);
+  }, [defaultPreset, skipMountEffect]);
 
   const handlePreset = (key: PresetKey) => {
     if (key === 'personalizado') {
@@ -86,6 +99,7 @@ export default function DateRangeFilter({ onChange, defaultPreset = 'semana' }: 
       return;
     }
     setPreset(key);
+    setActivePicker(null);
     const { desde, hasta } = resolvePreset(key);
     onChange(desde, hasta);
   };
@@ -117,9 +131,19 @@ export default function DateRangeFilter({ onChange, defaultPreset = 'semana' }: 
 
       {isCustom && (
         <div className="flex flex-wrap items-center gap-2 ml-2 w-full sm:w-auto">
-          <DatePicker value={customDesde} onChange={setCustomDesde} />
+          <DatePicker
+            value={customDesde}
+            onChange={(v) => { setCustomDesde(v); setActivePicker(null); }}
+            open={activePicker === 'desde'}
+            onOpenChange={(o) => setActivePicker(o ? 'desde' : null)}
+          />
           <span className="text-[#8A8A8A] text-sm shrink-0">—</span>
-          <DatePicker value={customHasta} onChange={setCustomHasta} />
+          <DatePicker
+            value={customHasta}
+            onChange={(v) => { setCustomHasta(v); setActivePicker(null); }}
+            open={activePicker === 'hasta'}
+            onOpenChange={(o) => setActivePicker(o ? 'hasta' : null)}
+          />
           <button
             onClick={applyCustom}
             className="px-3 py-2 bg-[#FF5C00] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shrink-0"

@@ -13,7 +13,7 @@ interface StatsCardsProps {
   onStatusClick?: (status: string) => void;
 }
 
-const Card: React.FC<{ label: string; value: number; color: string; compact: boolean; onClick?: () => void }> = ({ label, value, color, compact, onClick }) => {
+const Card: React.FC<{ label: string; value: number; color: string; compact?: boolean; onClick?: () => void }> = ({ label, value, color, compact, onClick }) => {
   const content = (
     <>
       <p className="text-[12px] text-[#8A8A8A] truncate">{label}</p>

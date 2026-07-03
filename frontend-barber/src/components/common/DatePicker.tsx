@@ -7,13 +7,21 @@ interface DatePickerProps {
   onChange: (value: string) => void;
   label?: string;
   className?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const DAY_LABELS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 const MONTH_LABELS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, className }) => {
-  const [open, setOpen] = useState(false);
+export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, className, open: controlledOpen, onOpenChange }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpen = (v: boolean | ((prev: boolean) => boolean)) => {
+    const next = typeof v === 'function' ? v(open) : v;
+    if (onOpenChange) onOpenChange(next);
+    if (controlledOpen === undefined) setInternalOpen(next);
+  };
   const [viewDate, setViewDate] = useState(() => {
     const d = value ? new Date(value + 'T12:00:00') : new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);

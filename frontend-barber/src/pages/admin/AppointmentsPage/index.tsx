@@ -7,25 +7,35 @@ import {
   FiChevronRight,
   FiChevronUp,
   FiClock,
+  FiCopy,
   FiDownload,
+  FiInfo,
   FiMoreVertical,
+  FiPlus,
+  FiRepeat,
   FiScissors,
+  FiSend,
   FiSettings,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchBarbers } from '../../../store/slices/barbersSlice';
 import {
   useCancelAppointmentMutation,
+  useChangeBarberMutation,
   useGetAppointmentsPaginatedQuery,
+  useMarkAsPaidMutation,
   useRescheduleAppointmentMutation,
+  useSendReminderMutation,
   useUpdateAppointmentStatusMutation,
 } from '../../../services/appointmentApi';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
+import { AppointmentDetailModal } from './AppointmentDetailModal';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -175,6 +185,51 @@ export const AdminAppointmentsPage: React.FC = () => {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Appointment | null>(null);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCreateDate, setQuickCreateDate] = useState('');
+  const [changeBarberTarget, setChangeBarberTarget] = useState<Appointment | null>(null);
+  const [changeBarberNewId, setChangeBarberNewId] = useState('');
+
+  const [markAsPaid, { isLoading: isMarkingPaid }] = useMarkAsPaidMutation();
+  const [sendReminder, { isLoading: isSendingReminder }] = useSendReminderMutation();
+  const [changeBarber, { isLoading: isChangingBarber }] = useChangeBarberMutation();
+
+  const handleMarkAsPaid = async (id: string) => {
+    try {
+      await markAsPaid({ id }).unwrap();
+      showToast('Pago registrado con éxito');
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
+  };
+
+  const handleSendReminder = async (id: string) => {
+    try {
+      await sendReminder({ id }).unwrap();
+      showToast('Recordatorio enviado con éxito');
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
+  };
+
+  const handleDuplicate = (appointment: Appointment) => {
+    setDetailTarget(null);
+    setQuickCreateDate(appointment.date);
+    setShowQuickCreate(true);
+  };
+
+  const handleChangeBarberConfirm = async () => {
+    if (!changeBarberTarget || !changeBarberNewId) return;
+    try {
+      await changeBarber({ id: changeBarberTarget.id, barberId: changeBarberNewId }).unwrap();
+      showToast('Barbero cambiado con éxito');
+      setChangeBarberTarget(null);
+      setChangeBarberNewId('');
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
+  };
 
   const formatTimeRange = (start: string, end: string) => {
     const short = (t: string) => { const [h, m] = t.split(':'); return `${h}:${m}`; };
@@ -285,7 +340,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             
           </div>
 
-          <StatsCards stats={stats} />
+          <StatsCards stats={stats} onStatusClick={(s) => { setFilterStatus(s); setPage(1); }} />
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
@@ -419,6 +474,14 @@ export const AdminAppointmentsPage: React.FC = () => {
                         <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
                           {style.label}
                         </span>
+                        <button
+                          onClick={() => setDetailTarget(appointment)}
+                          className="text-[#8A8A8A] hover:text-[#FF5C00] transition-colors shrink-0"
+                          aria-label="Ver detalle completo"
+                          title="Ver detalle completo"
+                        >
+                          <FiInfo className="text-sm" />
+                        </button>
                       </div>
                     </div>
 
@@ -458,7 +521,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                     )}
 
                     {isActive && (
-                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
                         <button
                           onClick={() => handleStatusChange(appointment.id, 'Completado')}
                           disabled={isUpdatingStatus}
@@ -481,6 +544,36 @@ export const AdminAppointmentsPage: React.FC = () => {
                           title="Marcar como no asistió"
                         >
                           <FiXCircle className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { handleMarkAsPaid(appointment.id); }}
+                          disabled={isMarkingPaid || appointment.paymentStatus === 'Pagado'}
+                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-30"
+                          title={appointment.paymentStatus === 'Pagado' ? 'Ya pagado' : 'Marcar como pagado'}
+                        >
+                          <FiCheck className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { handleDuplicate(appointment); }}
+                          className="rounded-[8px] border border-purple-500/30 p-1.5 text-purple-400 hover:bg-purple-500/10 transition-colors"
+                          title="Duplicar turno"
+                        >
+                          <FiCopy className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { handleSendReminder(appointment.id); }}
+                          disabled={isSendingReminder}
+                          className="rounded-[8px] border border-cyan-500/30 p-1.5 text-cyan-400 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
+                          title="Enviar recordatorio"
+                        >
+                          <FiSend className="text-sm" />
+                        </button>
+                        <button
+                          onClick={() => { setChangeBarberTarget(appointment); setChangeBarberNewId(''); }}
+                          className="rounded-[8px] border border-orange-500/30 p-1.5 text-orange-400 hover:bg-orange-500/10 transition-colors"
+                          title="Cambiar barbero"
+                        >
+                          <FiRepeat className="text-sm" />
                         </button>
                         <button
                           onClick={() => { setCancelTarget(appointment); setCancelReason(''); }}
@@ -543,13 +636,23 @@ export const AdminAppointmentsPage: React.FC = () => {
                         className={`border-b border-[#282828]/50 transition-colors ${isExpanded ? 'bg-[#1A1A1A]' : 'hover:bg-[#1A1A1A]/80'}`}
                       >
                         <td className="py-3 pr-2">
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : appointment.id)}
-                            className="text-[#8A8A8A] hover:text-white transition-colors"
-                            aria-label={isExpanded ? 'Colapsar detalle' : 'Expandir detalle'}
-                          >
-                            {isExpanded ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setExpandedId(isExpanded ? null : appointment.id)}
+                              className="text-[#8A8A8A] hover:text-white transition-colors"
+                              aria-label={isExpanded ? 'Colapsar detalle' : 'Expandir detalle'}
+                            >
+                              {isExpanded ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />}
+                            </button>
+                            <button
+                              onClick={() => setDetailTarget(appointment)}
+                              className="text-[#8A8A8A] hover:text-[#FF5C00] transition-colors"
+                              aria-label="Ver detalle completo"
+                              title="Ver detalle completo"
+                            >
+                              <FiInfo className="text-sm" />
+                            </button>
+                          </div>
                         </td>
                         <td className="py-3 pr-4">
                           <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
@@ -651,6 +754,36 @@ export const AdminAppointmentsPage: React.FC = () => {
                                         aria-label="Marcar como no asistió"
                                       >
                                         <FiXCircle className="text-sm" /> No asistió
+                                      </button>
+                                      <button
+                                        onClick={() => { handleMarkAsPaid(appointment.id); setActiveMenu(null); setMenuRect(null); }}
+                                        disabled={isMarkingPaid || appointment.paymentStatus === 'Pagado'}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-30"
+                                        aria-label="Marcar como pagado"
+                                      >
+                                        <FiCheck className="text-sm" /> {appointment.paymentStatus === 'Pagado' ? 'Ya pagado' : 'Marcar pagado'}
+                                      </button>
+                                      <button
+                                        onClick={() => { handleDuplicate(appointment); setActiveMenu(null); setMenuRect(null); }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-purple-400 hover:bg-[#242424] transition-colors"
+                                        aria-label="Duplicar turno"
+                                      >
+                                        <FiCopy className="text-sm" /> Duplicar
+                                      </button>
+                                      <button
+                                        onClick={() => { handleSendReminder(appointment.id); setActiveMenu(null); setMenuRect(null); }}
+                                        disabled={isSendingReminder}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-cyan-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                        aria-label="Enviar recordatorio"
+                                      >
+                                        <FiSend className="text-sm" /> Recordatorio
+                                      </button>
+                                      <button
+                                        onClick={() => { setChangeBarberTarget(appointment); setChangeBarberNewId(''); setActiveMenu(null); setMenuRect(null); }}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-orange-400 hover:bg-[#242424] transition-colors"
+                                        aria-label="Cambiar barbero"
+                                      >
+                                        <FiRepeat className="text-sm" /> Cambiar barbero
                                       </button>
                                       <hr className="border-[#282828] my-1" />
                                       <button
@@ -838,6 +971,72 @@ export const AdminAppointmentsPage: React.FC = () => {
         variant="danger"
         loading={isUpdatingStatus}
       />
+
+      <AppointmentDetailModal
+        appointment={detailTarget}
+        isOpen={detailTarget !== null}
+        onClose={() => setDetailTarget(null)}
+        onComplete={(id) => { handleStatusChange(id, 'Completado'); setDetailTarget(null); }}
+        onNoShow={(id) => { setConfirmTarget({ id, action: 'NoShow' }); setDetailTarget(null); }}
+        onCancel={(appt) => { setCancelTarget(appt); setCancelReason(''); setDetailTarget(null); }}
+        onReschedule={(appt) => { setRescheduleTarget(appt); setRescheduleDate(appt.date); setRescheduleTime(appt.startTime); setRescheduleBarberId(appt.barberId); setDetailTarget(null); }}
+        onMarkAsPaid={handleMarkAsPaid}
+        onDuplicate={handleDuplicate}
+        onSendReminder={handleSendReminder}
+        onChangeBarber={(appt) => { setChangeBarberTarget(appt); setChangeBarberNewId(''); setDetailTarget(null); }}
+        isCompleting={isUpdatingStatus}
+        isMarkingNoShow={isUpdatingStatus}
+        isMarkingPaid={isMarkingPaid}
+        isSendingReminder={isSendingReminder}
+      />
+
+      {changeBarberTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+            <h3 className="text-[18px] font-bold text-white mb-2">Cambiar barbero</h3>
+            <p className="text-[13px] text-[#8A8A8A] mb-4">
+              {changeBarberTarget.clientName} {changeBarberTarget.clientLastname} &mdash; {formatDate(changeBarberTarget.date)} {formatTime(changeBarberTarget.startTime)}
+            </p>
+            <Select
+              label="Nuevo barbero"
+              value={changeBarberNewId}
+              onChange={setChangeBarberNewId}
+              options={[
+                { value: '', label: 'Seleccionar barbero' },
+                ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+              ]}
+            />
+            <div className="flex gap-3 mt-6">
+              <Button variant="secondary" onClick={() => setChangeBarberTarget(null)}>
+                Volver
+              </Button>
+              <Button
+                onClick={handleChangeBarberConfirm}
+                loading={isChangingBarber}
+                disabled={!changeBarberNewId}
+              >
+                Confirmar cambio
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQuickCreate && (
+        <QuickCreateModal
+          dateStr={quickCreateDate}
+          onClose={() => setShowQuickCreate(false)}
+        />
+      )}
+
+      <button
+        onClick={() => { setQuickCreateDate(new Date().toISOString().slice(0, 10)); setShowQuickCreate(true); }}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF5C00] text-white shadow-lg hover:bg-[#FF5C00]/90 transition-colors cursor-pointer"
+        aria-label="Nuevo turno"
+        title="Nuevo turno"
+      >
+        <FiPlus className="text-2xl" />
+      </button>
     </div>
   );
 };

@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiCalendar,
@@ -16,7 +17,7 @@ import {
   FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast, DatePicker } from '../../../components/common';
-import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import DateRangeFilter, { detectPreset } from '../../../components/common/DateRangeFilter';
 import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -90,17 +91,34 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
   }, [dispatch, barbers.length]);
 
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
-  const [filterBarberId, setFilterBarberId] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const filterDateFrom = searchParams.get('dateFrom') ?? '';
+  const filterDateTo = searchParams.get('dateTo') ?? '';
+  const filterBarberId = searchParams.get('barberId') ?? '';
+  const filterStatus = searchParams.get('status') ?? '';
+  const filterPaymentMethod = searchParams.get('paymentMethod') ?? '';
+  const searchTerm = searchParams.get('search') ?? '';
+  const page = Number(searchParams.get('page') ?? '1');
+  const sortBy = (searchParams.get('sortBy') as 'date' | 'time' | null) ?? null;
+  const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') ?? 'asc';
+
+  const updateParams = useCallback((updates: Record<string, string | undefined>, resetPage = true) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) next.set(key, value);
+        else next.delete(key);
+      }
+      if (resetPage) next.delete('page');
+      return next;
+    });
+  }, [setSearchParams]);
+
   const [pageSize, setPageSize] = useState(15);
   const [showCustomize, setShowCustomize] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
-  const [page, setPage] = useState(1);
 
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -109,33 +127,20 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
 
-  const [sortBy, setSortBy] = useState<'date' | 'time' | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-
   const toggleSort = (column: 'date' | 'time') => {
     if (sortBy === column) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      updateParams({ sortDir: sortDir === 'asc' ? 'desc' : 'asc' }, false);
     } else {
-      setSortBy(column);
-      setSortDir('asc');
+      updateParams({ sortBy: column, sortDir: 'asc' }, false);
     }
   };
 
   const handleDateRangeChange = (desde: string, hasta: string) => {
-    setFilterDateFrom(desde);
-    setFilterDateTo(hasta);
+    updateParams({ dateFrom: desde, dateTo: hasta });
   };
 
   const clearFilters = () => {
-    setFilterDateFrom('');
-    setFilterDateTo('');
-    setFilterBarberId('');
-    setFilterStatus('');
-    setFilterPaymentMethod('');
-    setSearchTerm('');
-    setSortBy(null);
-    setSortDir('asc');
-    setPage(1);
+    setSearchParams(new URLSearchParams());
   };
 
   const queryParams = useMemo(() => {
@@ -155,7 +160,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
     return params;
   }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy, sortDir]);
-  const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
+  const { data: paginatedData, isLoading } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
   });
 
@@ -175,10 +180,6 @@ export const AdminAppointmentsPage: React.FC = () => {
     return { total, confirmed, completed, cancelled };
   }, [appointments, totalResults]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, pageSize, sortBy, sortDir]);
-
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
   const [detailTarget, setDetailTarget] = useState<Appointment | null>(null);
@@ -194,15 +195,6 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [markAsPaid, { isLoading: isMarkingPaid }] = useMarkAsPaidMutation();
   const [sendReminder, { isLoading: isSendingReminder }] = useSendReminderMutation();
   const [changeBarber, { isLoading: isChangingBarber }] = useChangeBarberMutation();
-
-  const handleMarkAsPaid = async (id: string) => {
-    try {
-      await markAsPaid({ id }).unwrap();
-      showToast('Pago registrado con éxito');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  };
 
   const handleSendReminder = async (id: string) => {
     try {
@@ -340,12 +332,18 @@ export const AdminAppointmentsPage: React.FC = () => {
             
           </div>
 
-          <StatsCards stats={stats} onStatusClick={(s) => { setFilterStatus(s); setPage(1); }} />
+          <StatsCards stats={stats} onStatusClick={(s) => { updateParams({ status: s || undefined }); }} />
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <DateRangeFilter onChange={handleDateRangeChange} defaultPreset="semana" />
+            <DateRangeFilter
+              onChange={handleDateRangeChange}
+              defaultPreset={filterDateFrom && filterDateTo ? detectPreset(filterDateFrom, filterDateTo) : 'semana'}
+              skipMountEffect={!!(filterDateFrom || filterDateTo)}
+              initialCustomDesde={filterDateFrom}
+              initialCustomHasta={filterDateTo}
+            />
             <button
               onClick={() => setShowCustomize(!showCustomize)}
               className={`flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] transition-colors ${showCustomize ? 'border-[#FF5C00] text-white' : 'border-[#282828] text-[#8A8A8A] hover:border-[#FF5C00]/50 hover:text-white'}`}
@@ -362,7 +360,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 <label className="text-[12px] text-[#8A8A8A]">Filas por página</label>
                 <select
                   value={pageSize}
-                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); updateParams({ page: '1' }); }}
                   className="h-[34px] rounded-[8px] border border-[#282828] bg-[#121212] px-2 text-[13px] text-white outline-none focus:border-[#FF5C00]"
                 >
                   <option value={10}>10</option>
@@ -379,7 +377,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Select
                 label="Barbero"
                 value={filterBarberId}
-                onChange={setFilterBarberId}
+                onChange={(v) => updateParams({ barberId: v })}
                 options={[
                   { value: '', label: 'Todos' },
                   ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
@@ -390,7 +388,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Select
                 label="Estado"
                 value={filterStatus}
-                onChange={setFilterStatus}
+                onChange={(v) => updateParams({ status: v })}
                 options={[
                   { value: '', label: 'Todos' },
                   { value: 'Confirmado', label: 'Confirmado' },
@@ -404,7 +402,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Select
                 label="Método de pago"
                 value={filterPaymentMethod}
-                onChange={setFilterPaymentMethod}
+                onChange={(v) => updateParams({ paymentMethod: v })}
                 options={[
                   { value: '', label: 'Todos' },
                   { value: 'local', label: 'Local' },
@@ -417,7 +415,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               label="Buscar"
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => updateParams({ search: e.target.value })}
               placeholder="Cliente, email o servicio"
               containerClass="w-full sm:w-[200px]"
             />
@@ -813,7 +811,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={(n) => updateParams({ page: String(n) }, false)} />
             </>
           )}
         </AnimatedContainer>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiCalendar, FiUser, FiPhone, FiMail } from 'react-icons/fi';
-import { Modal, Select, Input, Button } from '../../../components/common';
+import { FiUser, FiPhone, FiMail, FiX } from 'react-icons/fi';
+import { Modal, Select, Input, Button, DatePicker } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
@@ -115,18 +115,18 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
   return (
     <Modal isOpen onClose={onClose} title={undefined} size="md">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-[18px] font-bold text-white">Nuevo turno</h2>
-        <label className="flex items-center gap-1.5 rounded-[10px] border border-[#282828] px-3 py-1.5 text-[13px] text-[#FF5C00] hover:border-[#FF5C00]/50 transition-colors cursor-pointer">
-          <FiCalendar className="text-sm" />
-          {selectedDate}
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className="absolute opacity-0 w-0 h-0 pointer-events-none"
-          />
-        </label>
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-[18px] font-bold text-white">Nuevo turno</h2>
+          <DatePicker value={selectedDate} onChange={handleDateChange} />
+        </div>
+        <button
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          aria-label="Cerrar"
+        >
+          <FiX className="w-5 h-5" />
+        </button>
       </div>
       <div className="flex flex-col gap-4">
         <Select

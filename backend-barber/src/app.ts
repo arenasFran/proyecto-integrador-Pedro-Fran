@@ -4,7 +4,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
-import { buildBarberRouter, buildServiceRouter, buildTempLockRouter, buildUserRouter } from "./wiring";
+import { buildBarberRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter } from "./wiring";
 import { createAnalyticsRouter } from "./interface-adapters/routes/analytics.routes";
 import { createAuthenticate } from "./interface-adapters/middlewares/auth.middleware";
 import { buildTokenService } from "./wiring/auth";
@@ -86,6 +86,7 @@ app.use("/api/services", buildServiceRouter({ authenticate: serviceAuth }));
 app.use("/api/appointments", buildAppointmentRouter());
 app.use("/api/appointments/temp-lock", buildTempLockRouter());
 app.use("/api/users", buildUserRouter());
+app.use("/api/upload", buildUploadRouter());
 const analyticsAuth = createAuthenticate(tokenService);
 app.use("/api/analytics", createAnalyticsRouter(analyticsAuth));
 

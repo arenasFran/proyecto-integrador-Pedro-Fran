@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { DatePicker } from './DatePicker';
 
 export type PresetKey = 'hoy' | 'ayer' | 'semana' | 'semanaPasada' | 'mes' | 'year' | 'personalizado';
 
@@ -116,19 +117,9 @@ export default function DateRangeFilter({ onChange, defaultPreset = 'semana' }: 
 
       {isCustom && (
         <div className="flex flex-wrap items-center gap-2 ml-2 w-full sm:w-auto">
-          <input
-            type="date"
-            value={customDesde}
-            onChange={(e) => setCustomDesde(e.target.value)}
-            className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF5C00] min-w-0 flex-1 sm:flex-none"
-          />
+          <DatePicker value={customDesde} onChange={setCustomDesde} />
           <span className="text-[#8A8A8A] text-sm shrink-0">—</span>
-          <input
-            type="date"
-            value={customHasta}
-            onChange={(e) => setCustomHasta(e.target.value)}
-            className="bg-[#1A1A1A] border border-[#282828] rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#FF5C00] min-w-0 flex-1 sm:flex-none"
-          />
+          <DatePicker value={customHasta} onChange={setCustomHasta} />
           <button
             onClick={applyCustom}
             className="px-3 py-2 bg-[#FF5C00] text-white rounded-xl text-sm font-medium hover:opacity-90 transition-opacity shrink-0"

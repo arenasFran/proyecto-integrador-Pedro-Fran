@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MdContentCut } from 'react-icons/md';
 import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { getErrorMessage } from '../../../utils/errorMessages';
 import { useFormValidation } from '../../../hooks/useFormValidation';
@@ -295,9 +294,7 @@ export const LoginPage: React.FC = () => {
         className="w-full max-w-md"
       >
         <motion.div variants={itemVariants} className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-[#FF5C00]/10 rounded-2xl mb-4">
-            <MdContentCut className="w-8 h-8 text-[#FF5C00]" />
-          </div>
+          <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-56 w-auto mx-auto mb-3" />
           <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
             Iniciar sesión
           </h1>
@@ -462,7 +459,7 @@ export const LoginPage: React.FC = () => {
                   </span>
                   <div className="h-px flex-1 bg-[#282828]" />
                 </div>
-                <div ref={googleButtonRef} className="flex justify-center" />
+                <div ref={googleButtonRef} className="flex justify-center w-full overflow-hidden" />
                 {!googleClientId && (
                   <p className="text-[11px] text-[#8A8A8A] text-center">
                     Configurá VITE_GOOGLE_CLIENT_ID para usar Google Sign-In.

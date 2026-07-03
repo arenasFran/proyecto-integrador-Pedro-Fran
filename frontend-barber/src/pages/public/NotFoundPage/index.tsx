@@ -14,7 +14,7 @@ export const NotFoundPage: React.FC = () => {
           onClick={() => navigate('/')}
         >
           <FiScissors className="text-[#FF5C00]" />
-          ELITE CUT
+          Barbería SA
         </div>
       </header>
 

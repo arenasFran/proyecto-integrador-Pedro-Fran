@@ -57,10 +57,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
               if (tokenKind === 'Admin') navigate('/admin/dashboard');
               else navigate('/reservar');
             }}
-            className="flex items-center gap-2 text-[14px] font-semibold text-white hover:text-[#FF5C00] transition-colors"
+            className="flex items-center gap-2"
           >
-            <FiScissors className="text-[#FF5C00]" />
-            Barbería SA
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
+            <span className="text-[15px] font-bold text-white">Barbería SA</span>
           </button>
         </div>
 

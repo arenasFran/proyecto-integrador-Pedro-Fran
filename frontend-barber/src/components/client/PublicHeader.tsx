@@ -39,14 +39,9 @@ export const PublicHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-[#282828] bg-[#121212]">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-[14px] font-semibold text-white hover:text-[#FF5C00] transition-colors"
-        >
-          <div className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-[#FF5C00]/10">
-            <FiScissors className="text-[#FF5C00] text-sm" />
-          </div>
-          ELITE CUT
+        <Link to="/" className="flex items-center gap-2">
+          <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
+          <span className="text-[15px] font-bold text-white">Barbería SA</span>
         </Link>
 
         <div className="flex items-center gap-3">

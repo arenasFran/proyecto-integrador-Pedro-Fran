@@ -88,11 +88,9 @@ export const LandingPage: React.FC = () => {
         className="sticky top-0 z-50 border-b border-[#282828] bg-[#121212]/80 backdrop-blur-lg"
       >
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 text-[14px] font-semibold text-white">
-            <div className="flex items-center justify-center w-8 h-8 rounded-[10px] bg-[#FF5C00]/10">
-              <FiScissors className="text-[#FF5C00] text-sm" />
-            </div>
-            ELITE CUT
+          <Link to="/" className="flex items-center gap-2">
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
+            <span className="text-[15px] font-bold text-white">Barbería SA</span>
           </Link>
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
@@ -257,12 +255,12 @@ export const LandingPage: React.FC = () => {
       <footer className="border-t border-[#282828] bg-[#050505]">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-            <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
-              <FiScissors className="text-[#FF5C00]" />
-              ELITE CUT
+            <div className="flex items-center gap-2">
+              <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
+              <span className="text-[15px] font-bold text-white">Barbería SA</span>
             </div>
             <p className="text-[12px] text-[#8A8A8A]">
-              &copy; {new Date().getFullYear()} Elite Cut. Todos los derechos reservados.
+              &copy; {new Date().getFullYear()} Barbería SA. Todos los derechos reservados.
             </p>
           </div>
         </div>

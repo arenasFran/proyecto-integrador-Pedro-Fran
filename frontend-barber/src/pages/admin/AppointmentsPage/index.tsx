@@ -190,6 +190,10 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [quickCreateDate, setQuickCreateDate] = useState('');
   const [changeBarberTarget, setChangeBarberTarget] = useState<Appointment | null>(null);
   const [changeBarberNewId, setChangeBarberNewId] = useState('');
+  const [combinedActionTarget, setCombinedActionTarget] = useState<{
+    appointment: Appointment;
+    primaryAction: 'Completado' | 'Pagado';
+  } | null>(null);
 
   const [markAsPaid, { isLoading: isMarkingPaid }] = useMarkAsPaidMutation();
   const [sendReminder, { isLoading: isSendingReminder }] = useSendReminderMutation();
@@ -523,9 +527,8 @@ export const AdminAppointmentsPage: React.FC = () => {
                     {isActive && (
                       <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
                         <button
-                          onClick={() => handleStatusChange(appointment.id, 'Completado')}
-                          disabled={isUpdatingStatus}
-                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+                          onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Completado' }); }}
+                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors"
                           title="Marcar como completado"
                         >
                           <FiCheck className="text-sm" />
@@ -544,36 +547,6 @@ export const AdminAppointmentsPage: React.FC = () => {
                           title="Marcar como no asistió"
                         >
                           <FiXCircle className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => { handleMarkAsPaid(appointment.id); }}
-                          disabled={isMarkingPaid || appointment.paymentStatus === 'Pagado'}
-                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-30"
-                          title={appointment.paymentStatus === 'Pagado' ? 'Ya pagado' : 'Marcar como pagado'}
-                        >
-                          <FiCheck className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => { handleDuplicate(appointment); }}
-                          className="rounded-[8px] border border-purple-500/30 p-1.5 text-purple-400 hover:bg-purple-500/10 transition-colors"
-                          title="Duplicar turno"
-                        >
-                          <FiCopy className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => { handleSendReminder(appointment.id); }}
-                          disabled={isSendingReminder}
-                          className="rounded-[8px] border border-cyan-500/30 p-1.5 text-cyan-400 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
-                          title="Enviar recordatorio"
-                        >
-                          <FiSend className="text-sm" />
-                        </button>
-                        <button
-                          onClick={() => { setChangeBarberTarget(appointment); setChangeBarberNewId(''); }}
-                          className="rounded-[8px] border border-orange-500/30 p-1.5 text-orange-400 hover:bg-orange-500/10 transition-colors"
-                          title="Cambiar barbero"
-                        >
-                          <FiRepeat className="text-sm" />
                         </button>
                         <button
                           onClick={() => { setCancelTarget(appointment); setCancelReason(''); }}
@@ -726,9 +699,8 @@ export const AdminAppointmentsPage: React.FC = () => {
                                       }}
                                     >
                                         <button
-                                          onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); setMenuRect(null); }}
-                                          disabled={isUpdatingStatus}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                          onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Completado' }); setActiveMenu(null); setMenuRect(null); }}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors"
                                           aria-label="Marcar como completado"
                                         >
                                           <FiCheck className="text-sm" /> Completado
@@ -754,36 +726,6 @@ export const AdminAppointmentsPage: React.FC = () => {
                                         aria-label="Marcar como no asistió"
                                       >
                                         <FiXCircle className="text-sm" /> No asistió
-                                      </button>
-                                      <button
-                                        onClick={() => { handleMarkAsPaid(appointment.id); setActiveMenu(null); setMenuRect(null); }}
-                                        disabled={isMarkingPaid || appointment.paymentStatus === 'Pagado'}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-30"
-                                        aria-label="Marcar como pagado"
-                                      >
-                                        <FiCheck className="text-sm" /> {appointment.paymentStatus === 'Pagado' ? 'Ya pagado' : 'Marcar pagado'}
-                                      </button>
-                                      <button
-                                        onClick={() => { handleDuplicate(appointment); setActiveMenu(null); setMenuRect(null); }}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-purple-400 hover:bg-[#242424] transition-colors"
-                                        aria-label="Duplicar turno"
-                                      >
-                                        <FiCopy className="text-sm" /> Duplicar
-                                      </button>
-                                      <button
-                                        onClick={() => { handleSendReminder(appointment.id); setActiveMenu(null); setMenuRect(null); }}
-                                        disabled={isSendingReminder}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-cyan-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                        aria-label="Enviar recordatorio"
-                                      >
-                                        <FiSend className="text-sm" /> Recordatorio
-                                      </button>
-                                      <button
-                                        onClick={() => { setChangeBarberTarget(appointment); setChangeBarberNewId(''); setActiveMenu(null); setMenuRect(null); }}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-orange-400 hover:bg-[#242424] transition-colors"
-                                        aria-label="Cambiar barbero"
-                                      >
-                                        <FiRepeat className="text-sm" /> Cambiar barbero
                                       </button>
                                       <hr className="border-[#282828] my-1" />
                                       <button
@@ -972,15 +914,90 @@ export const AdminAppointmentsPage: React.FC = () => {
         loading={isUpdatingStatus}
       />
 
+      {combinedActionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+            {combinedActionTarget.primaryAction === 'Completado' ? (
+              <>
+                <h3 className="text-[18px] font-bold text-white mb-2">Completar turno</h3>
+                <p className="text-[13px] text-[#8A8A8A] mb-4">
+                  {combinedActionTarget.appointment.clientName} {combinedActionTarget.appointment.clientLastname} &mdash; ¿el cliente ya pagó?
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={async () => {
+                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isUpdatingStatus}
+                  >
+                    Solo completar
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
+                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
+                      showToast('Turno completado y pago registrado');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isUpdatingStatus || isMarkingPaid}
+                    variant="secondary"
+                  >
+                    Completar y marcar pagado
+                  </Button>
+                  <Button variant="secondary" onClick={() => setCombinedActionTarget(null)}>
+                    Volver
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-[18px] font-bold text-white mb-2">Registrar pago</h3>
+                <p className="text-[13px] text-[#8A8A8A] mb-4">
+                  {combinedActionTarget.appointment.clientName} {combinedActionTarget.appointment.clientLastname} &mdash; ¿el servicio ya se completó?
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={async () => {
+                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
+                      showToast('Pago registrado con éxito');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isMarkingPaid}
+                  >
+                    Solo marcar pagado
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
+                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
+                      showToast('Turno completado y pago registrado');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isUpdatingStatus || isMarkingPaid}
+                    variant="secondary"
+                  >
+                    Marcar pagado y completar
+                  </Button>
+                  <Button variant="secondary" onClick={() => setCombinedActionTarget(null)}>
+                    Volver
+                  </Button>
+                </div>
+              </>
+            )}
+          </AnimatedContainer>
+        </div>
+      )}
+
       <AppointmentDetailModal
         appointment={detailTarget}
         isOpen={detailTarget !== null}
         onClose={() => setDetailTarget(null)}
-        onComplete={(id) => { handleStatusChange(id, 'Completado'); setDetailTarget(null); }}
+        onComplete={(appt) => { setCombinedActionTarget({ appointment: appt, primaryAction: 'Completado' }); setDetailTarget(null); }}
         onNoShow={(id) => { setConfirmTarget({ id, action: 'NoShow' }); setDetailTarget(null); }}
         onCancel={(appt) => { setCancelTarget(appt); setCancelReason(''); setDetailTarget(null); }}
         onReschedule={(appt) => { setRescheduleTarget(appt); setRescheduleDate(appt.date); setRescheduleTime(appt.startTime); setRescheduleBarberId(appt.barberId); setDetailTarget(null); }}
-        onMarkAsPaid={handleMarkAsPaid}
+        onMarkAsPaid={(appt) => { setCombinedActionTarget({ appointment: appt, primaryAction: 'Pagado' }); setDetailTarget(null); }}
         onDuplicate={handleDuplicate}
         onSendReminder={handleSendReminder}
         onChangeBarber={(appt) => { setChangeBarberTarget(appt); setChangeBarberNewId(''); setDetailTarget(null); }}

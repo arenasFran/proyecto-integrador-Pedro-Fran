@@ -17,6 +17,7 @@ import request from 'supertest';
 import app from '../../../src/app';
 import AppointmentModel from '../../../src/infrastructure/repositories/mongodb/models/appointment.model';
 import ServiceModel from '../../../src/infrastructure/repositories/mongodb/models/service.model';
+import { Employee } from '../../../src/infrastructure/repositories/mongodb/models/barber.model';
 import {
   signToken,
   seedBarber,
@@ -34,6 +35,8 @@ const describeIfMongo = isMongoReady ? describe : describe.skip;
 describeIfMongo('Appointment routes — integración real', () => {
   beforeEach(async () => {
     await ServiceModel.deleteMany({});
+    await Employee.deleteMany({});
+    await AppointmentModel.deleteMany({});
   });
 
   describe('POST /api/appointments — booking completo', () => {
@@ -427,6 +430,117 @@ describeIfMongo('Appointment routes — integración real', () => {
       expect(res.status).toBe(200);
       expect(res.body.appointment.date).toBe(newDate);
       expect(res.body.appointment.startTime).toBe('14:00');
+    });
+  });
+
+  describe('PATCH /api/appointments/:id/payment — marcar pagado', () => {
+    it('admin marca turno como pagado', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, status: 'Confirmado' });
+
+      const res = await request(app)
+        .patch(`/api/appointments/${appointmentId}/payment`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+
+      const updated = await AppointmentModel.findById(appointmentId);
+      expect(updated!.paymentStatus).toBe('Pagado');
+    });
+
+    it('rechaza si el turno no existe', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+
+      const res = await request(app)
+        .patch(`/api/appointments/${new mongoose.Types.ObjectId().toString()}/payment`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(404);
+    });
+
+    it('rechaza si no es admin ni empleado', async () => {
+      const { clientId, email } = await seedRegisteredClient();
+      const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
+
+      const res = await request(app)
+        .patch(`/api/appointments/${new mongoose.Types.ObjectId().toString()}/payment`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(403);
+    });
+  });
+
+  describe('POST /api/appointments/:id/send-reminder — enviar recordatorio', () => {
+    it('admin envía recordatorio', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientEmail: 'cliente@test.com' });
+
+      const res = await request(app)
+        .post(`/api/appointments/${appointmentId}/send-reminder`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.message).toMatch(/Recordatorio enviado/);
+    });
+
+    it('rechaza si el turno no tiene email', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId, serviceId, clientEmail: '' });
+
+      const res = await request(app)
+        .post(`/api/appointments/${appointmentId}/send-reminder`)
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe('PATCH /api/appointments/:id/change-barber — cambiar barbero', () => {
+    it('admin cambia barbero exitosamente', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+      const { barberId: oldBarberId } = await seedBarber({ email: 'viejo@test.com', name: 'Viejo', phone: '098765431' });
+      const { barberId: newBarberId } = await seedBarber({ email: 'nuevo@test.com', name: 'Nuevo', phone: '098765433' });
+      const { serviceId } = await seedService();
+      const { appointmentId } = await seedAppointment({ barberId: oldBarberId, serviceId, status: 'Confirmado' });
+
+      const res = await request(app)
+        .patch(`/api/appointments/${appointmentId}/change-barber`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ barberId: newBarberId });
+
+      expect(res.status).toBe(200);
+
+      const updated = await AppointmentModel.findById(appointmentId);
+      expect(updated!.barberId.toString()).toBe(newBarberId);
+    });
+
+    it('rechaza si el nuevo barbero está ocupado en ese horario', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+      const { barberId: oldBarberId } = await seedBarber({ email: 'viejo2@test.com', name: 'Viejo2', phone: '098765434' });
+      const { barberId: newBarberId } = await seedBarber({ email: 'ocupado@test.com', name: 'Ocupado', phone: '098765435' });
+      const { serviceId } = await seedService();
+      const date = getFutureDate(15);
+      const { appointmentId } = await seedAppointment({ barberId: oldBarberId, serviceId, date, startTime: '10:00', status: 'Confirmado' });
+      await seedAppointment({ barberId: newBarberId, serviceId, date, startTime: '10:00', status: 'Confirmado' });
+
+      const res = await request(app)
+        .patch(`/api/appointments/${appointmentId}/change-barber`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ barberId: newBarberId });
+
+      expect(res.status).toBe(409);
     });
   });
 

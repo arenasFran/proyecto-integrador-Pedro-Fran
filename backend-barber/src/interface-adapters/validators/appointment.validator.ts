@@ -67,5 +67,10 @@ export const updateAppointmentStatusSchema = Joi.object({
     then: Joi.required(),
     otherwise: Joi.forbidden(),
   }),
+  paymentStatus: Joi.string().valid('Pagado').optional(),
+});
+
+export const changeBarberSchema = Joi.object({
+  barberId: Joi.string().required(),
 });
 

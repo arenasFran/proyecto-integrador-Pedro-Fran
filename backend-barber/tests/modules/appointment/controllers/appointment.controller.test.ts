@@ -5,6 +5,9 @@ import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../../src/application/use-cases/appointment/RescheduleAppointmentUseCase';
+import { UpdatePaymentStatusUseCase } from '../../../../src/application/use-cases/appointment/UpdatePaymentStatusUseCase';
+import { SendReminderUseCase } from '../../../../src/application/use-cases/appointment/SendReminderUseCase';
+import { ChangeBarberUseCase } from '../../../../src/application/use-cases/appointment/ChangeBarberUseCase';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
 import { makeMockAppointmentRepository, makeMockBarberRepository } from '../../../test-utils/mocks';
@@ -16,6 +19,9 @@ describe('AppointmentController', () => {
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
   let rescheduleAppointment: jest.Mocked<RescheduleAppointmentUseCase>;
+  let updatePaymentStatus: jest.Mocked<UpdatePaymentStatusUseCase>;
+  let sendReminder: jest.Mocked<SendReminderUseCase>;
+  let changeBarber: jest.Mocked<ChangeBarberUseCase>;
   let controller: AppointmentController;
 
   beforeEach(() => {
@@ -25,13 +31,19 @@ describe('AppointmentController', () => {
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
     rescheduleAppointment = { execute: jest.fn() } as unknown as jest.Mocked<RescheduleAppointmentUseCase>;
+    updatePaymentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdatePaymentStatusUseCase>;
+    sendReminder = { execute: jest.fn() } as unknown as jest.Mocked<SendReminderUseCase>;
+    changeBarber = { execute: jest.fn() } as unknown as jest.Mocked<ChangeBarberUseCase>;
     controller = new AppointmentController(
       appointmentRepository,
       barberRepository,
       createAppointment,
       cancelAppointment,
       updateAppointmentStatus,
-      rescheduleAppointment
+      rescheduleAppointment,
+      updatePaymentStatus,
+      sendReminder,
+      changeBarber
     );
   });
 
@@ -339,6 +351,87 @@ describe('AppointmentController', () => {
       await controller.reschedule(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('markAsPaid', () => {
+    it('debe marcar como pagado y responder 200', async () => {
+      updatePaymentStatus.execute.mockResolvedValue({ message: 'Pago registrado con éxito' });
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.markAsPaid(req, res);
+
+      expect(updatePaymentStatus.execute).toHaveBeenCalledWith('apt-1', 'admin-1', 'Admin');
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe manejar error al marcar pagado', async () => {
+      updatePaymentStatus.execute.mockRejectedValue(new AppError('Turno no encontrado', 404));
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.markAsPaid(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+  });
+
+  describe('sendReminderEmail', () => {
+    it('debe enviar recordatorio y responder 200', async () => {
+      sendReminder.execute.mockResolvedValue({ message: 'Recordatorio enviado con éxito' });
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.sendReminderEmail(req, res);
+
+      expect(sendReminder.execute).toHaveBeenCalledWith('apt-1', 'admin-1', 'Admin');
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe manejar error al enviar recordatorio', async () => {
+      sendReminder.execute.mockRejectedValue(new AppError('Error', 400));
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.sendReminderEmail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+  });
+
+  describe('changeBarberHandler', () => {
+    it('debe cambiar barbero y responder 200', async () => {
+      changeBarber.execute.mockResolvedValue({ message: 'Barbero cambiado' });
+      const req = createMockReq({ barberId: 'barber-2' });
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.changeBarberHandler(req, res);
+
+      expect(changeBarber.execute).toHaveBeenCalledWith('apt-1', 'barber-2', 'admin-1', 'Admin');
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe manejar error al cambiar barbero', async () => {
+      changeBarber.execute.mockRejectedValue(new AppError('Conflicto de horario', 409));
+      const req = createMockReq({ barberId: 'barber-2' });
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).params = { id: 'apt-1' };
+      const res = createMockRes();
+
+      await controller.changeBarberHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
     });
   });
 

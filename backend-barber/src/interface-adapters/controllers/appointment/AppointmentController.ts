@@ -3,6 +3,9 @@ import { CreateAppointmentUseCase } from '../../../application/use-cases/appoint
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
+import { UpdatePaymentStatusUseCase } from '../../../application/use-cases/appointment/UpdatePaymentStatusUseCase';
+import { SendReminderUseCase } from '../../../application/use-cases/appointment/SendReminderUseCase';
+import { ChangeBarberUseCase } from '../../../application/use-cases/appointment/ChangeBarberUseCase';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { sendSuccess, sendError } from '../../../common/response';
@@ -16,7 +19,10 @@ export class AppointmentController {
     private readonly createAppointment: CreateAppointmentUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
-    private readonly rescheduleAppointment: RescheduleAppointmentUseCase
+    private readonly rescheduleAppointment: RescheduleAppointmentUseCase,
+    private readonly updatePaymentStatus: UpdatePaymentStatusUseCase,
+    private readonly sendReminder: SendReminderUseCase,
+    private readonly changeBarberUseCase: ChangeBarberUseCase
   ) {}
 
   create = async (req: Request, res: Response) => {
@@ -177,6 +183,50 @@ export class AppointmentController {
       return sendSuccess(res, result, 200);
     } catch (error) {
       return sendError(res, error, 'Error al reagendar el turno');
+    }
+  };
+
+  markAsPaid = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+      const result = await this.updatePaymentStatus.execute(
+        id,
+        req.user!._id,
+        req.user!.kind
+      );
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al registrar el pago');
+    }
+  };
+
+  sendReminderEmail = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+      const result = await this.sendReminder.execute(
+        id,
+        req.user!._id,
+        req.user!.kind
+      );
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al enviar recordatorio');
+    }
+  };
+
+  changeBarberHandler = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+      const { barberId } = req.body;
+      const result = await this.changeBarberUseCase.execute(
+        id,
+        barberId,
+        req.user!._id,
+        req.user!.kind
+      );
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al cambiar el barbero');
     }
   };
 }

@@ -145,7 +145,7 @@ export async function seedAppointment(overrides: {
     clientName: 'Juan',
     clientLastname: 'Perez',
     clientPhone: '099333333',
-    clientEmail: overrides.clientEmail || 'cliente@test.com',
+    clientEmail: overrides.clientEmail !== undefined ? overrides.clientEmail : 'cliente@test.com',
     serviceId: overrides.serviceId || SERVICE_ID,
     serviceName: 'Corte de pelo',
     servicePrice: 490,

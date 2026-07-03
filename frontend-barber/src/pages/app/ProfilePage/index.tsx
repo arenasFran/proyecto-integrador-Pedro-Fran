@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiSettings, FiUser } from 'react-icons/fi';
 import { AnimatedContainer, BarberAvatar, Button, ImageUpload, Input, PasswordInput, Spinner } from '../../../components/common';
+import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
@@ -50,6 +51,8 @@ export const ProfilePage: React.FC = () => {
 
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadKey, setUploadKey] = useState(0);
+  const [justSavedUpload, setJustSavedUpload] = useState(false);
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
@@ -134,10 +137,16 @@ export const ProfilePage: React.FC = () => {
       }
     }
 
-    // TODO: Subir photoFile a Cloudinary/S3 y usar la URL retornada como photoUrl
     setIsSaving(true);
 
     try {
+      let photoUrl = formData.photoUrl != null ? String(formData.photoUrl).trim() || null : null;
+
+      if (photoFile) {
+        photoUrl = await uploadAvatar(photoFile);
+        setPhotoFile(null);
+      }
+
       if (isBarber) {
         const payload: Record<string, unknown> = {
           email: String(formData.email ?? '').trim(),
@@ -147,7 +156,7 @@ export const ProfilePage: React.FC = () => {
           phone: String(formData.phone ?? '').trim(),
           services: formData.services,
           age: formData.age ?? null,
-          photoUrl: formData.photoUrl ?? null,
+          photoUrl,
           slotDuration: Number(formData.slotDuration ?? 30),
           maxAdvanceDays: formData.maxAdvanceDays,
         };
@@ -157,7 +166,11 @@ export const ProfilePage: React.FC = () => {
         }
 
         await dispatch(updateBarberMe(payload)).unwrap();
+        setEditedFields({});
         setPassword('');
+        setPhotoFile(null);
+        setJustSavedUpload(true);
+        setUploadKey((k) => k + 1);
         setPageMessage('Perfil actualizado con éxito.');
       } else {
         await dispatch(updateCurrentUser({
@@ -166,9 +179,13 @@ export const ProfilePage: React.FC = () => {
           name: String(formData.name ?? '').trim() || undefined,
           lastname: String(formData.lastname ?? '').trim() || undefined,
           phone: String(formData.phone ?? '').trim() || undefined,
-          photoUrl: formData.photoUrl != null ? String(formData.photoUrl).trim() || null : undefined,
+          photoUrl: photoUrl ?? undefined,
         })).unwrap();
+        setEditedFields({});
         setPassword('');
+        setPhotoFile(null);
+        setJustSavedUpload(true);
+        setUploadKey((k) => k + 1);
         setPageMessage('Perfil actualizado con éxito.');
       }
     } catch (error: unknown) {
@@ -278,10 +295,12 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 <PasswordInput label="Nueva contraseña (opcional)" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />
                 <ImageUpload
-                  currentUrl={formData.photoUrl ? String(formData.photoUrl) : null}
+                  key={uploadKey}
+                  currentUrl={justSavedUpload ? null : (formData.photoUrl ? String(formData.photoUrl) : null)}
                   onFileSelect={(file) => {
+                    setJustSavedUpload(false);
                     setPhotoFile(file);
-                    if (file) setEditedFields((prev) => ({ ...prev, photoUrl: null }));
+                    setEditedFields((prev) => ({ ...prev, photoUrl: null }));
                   }}
                   helperText={photoFile ? 'Archivo seleccionado.' : 'Arrastrá una imagen o hacé clic para subir'}
                 />

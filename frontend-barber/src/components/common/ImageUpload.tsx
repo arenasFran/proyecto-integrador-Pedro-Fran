@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FiUpload, FiX } from 'react-icons/fi';
 
 type ImageUploadProps = {
@@ -18,6 +18,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [localPreview, setLocalPreview] = useState<string | null>(null);
 
   const previewUrl = localPreview ?? currentUrl ?? null;
+
+  useEffect(() => {
+    if (currentUrl) {
+      setLocalPreview(null);
+    }
+  }, [currentUrl]);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();

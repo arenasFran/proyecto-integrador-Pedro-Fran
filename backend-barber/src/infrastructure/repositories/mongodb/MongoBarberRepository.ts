@@ -132,6 +132,10 @@ export class MongoBarberRepository {
   }
 
   async updateBarber(id: string, update: BarberUpdate): Promise<Barber | null> {
+    if ('password' in update && update.passwordHash === undefined) {
+      throw new Error('Password must be pre-hashed. Use passwordHash field.');
+    }
+
     const data: Record<string, unknown> = { ...update };
     if (update.passwordHash !== undefined) {
       data.password = update.passwordHash;

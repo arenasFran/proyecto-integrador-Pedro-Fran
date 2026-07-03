@@ -268,7 +268,12 @@ export class BarberController {
   updateMe = async (req: Request, res: Response) => {
     try {
       const id = req.user!._id;
-      const { schedule: scheduleData, ...profileData } = req.body;
+      const { schedule: scheduleData, password, ...profileData } = req.body;
+
+      if (password) {
+        Password.create(password);
+        profileData.passwordHash = await this.passwordHasher.hash(password);
+      }
 
       const updated = await this.barberRepository.updateBarber(id, profileData);
 

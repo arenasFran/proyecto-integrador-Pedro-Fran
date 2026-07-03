@@ -12,6 +12,9 @@ import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
 import { BarberController } from '../interface-adapters/controllers/barber/BarberController';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
 import { createBarberRouter } from '../interface-adapters/routes/barber.routes';
+import { CloudinaryService } from '../infrastructure/services/CloudinaryService';
+import { UploadController } from '../interface-adapters/controllers/upload/UploadController';
+import { createUploadRouter } from '../interface-adapters/routes/upload.routes';
 import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { ServiceController } from '../interface-adapters/controllers/service/ServiceController';
 import { createServiceRouter } from '../interface-adapters/routes/service.routes';
@@ -61,6 +64,7 @@ export const buildServiceRouter = (deps?: { authenticate?: ReturnType<typeof cre
 export const buildUserRouter = () => {
   const config = getConfig();
   const userRepository = new MongoUserRepository();
+  const passwordHasher = new BcryptPasswordHasher();
   const tokenService = new JwtTokenService({
     accessSecret: config.jwtAccessSecret,
     refreshSecret: config.jwtRefreshSecret,
@@ -71,10 +75,19 @@ export const buildUserRouter = () => {
     audience: config.jwtAudience,
   });
 
-  const userController = new UserController(userRepository);
+  const userController = new UserController(userRepository, passwordHasher);
   const authenticate = createAuthenticate(tokenService);
 
   return createUserRouter({ authenticate, userController });
+};
+
+export const buildUploadRouter = () => {
+  const cloudinaryService = new CloudinaryService();
+  const uploadController = new UploadController(cloudinaryService);
+  const tokenService = buildTokenService();
+  const authenticate = createAuthenticate(tokenService);
+
+  return createUploadRouter({ authenticate, uploadController });
 };
 
 export const buildTempLockRouter = () => {

@@ -4,6 +4,7 @@ import { MongoBarberRepository } from '../../../infrastructure/repositories/mong
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
+import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
@@ -25,6 +26,7 @@ import {
   toMinutes,
   doesOverlap,
   getNowInTimezone,
+  getNowDateInTimezone,
   validateAppointmentSlot,
 } from '../../../domain/utils/time';
 
@@ -35,7 +37,8 @@ export class CreateAppointmentUseCase {
     private readonly serviceRepository: MongoServiceRepository,
     private readonly clientRepository: MongoClientRepository,
     private readonly emailService: IEmailService,
-    private readonly tempLockRepository: MongoTempLockRepository
+    private readonly tempLockRepository: MongoTempLockRepository,
+    private readonly blockRepository: MongoBarberBlockRepository
   ) {}
 
   async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
@@ -90,7 +93,7 @@ export class CreateAppointmentUseCase {
     // RN15 — Máximo 1 turno activo por cliente
     await this.validateMaxOneActive(dto, undefined, !!dto.clientId);
 
-    const now = new Date();
+    const now = getNowDateInTimezone();
     const appointment = Appointment.create({
       id: '',
       barberId: dto.barberId,
@@ -111,6 +114,7 @@ export class CreateAppointmentUseCase {
       paymentMethod: 'local',
       createdBy: dto.createdBy,
       statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+      version: 0,
       createdAt: now,
       updatedAt: now,
     });
@@ -125,6 +129,14 @@ export class CreateAppointmentUseCase {
       if (existing.status === 'Cancelado') continue;
       if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
         throw new AppError('El horario seleccionado ya está ocupado.', 409);
+      }
+    }
+
+    // RN04b — Colisión con bloques del barbero
+    const blocks = await this.blockRepository.findByBarberAndDate(dto.barberId, dto.date);
+    for (const block of blocks) {
+      if (doesOverlap(dto.startTime, endTime, block.startTime, block.endTime)) {
+        throw new AppError('El horario seleccionado está bloqueado para este barbero.', 409);
       }
     }
 
@@ -167,22 +179,16 @@ export class CreateAppointmentUseCase {
   private async findOrCreateUnregisteredClient(
     dto: CreateAppointmentDTO
   ): Promise<import('../../../domain/entities/Client').Client> {
-    let client = null;
-    if (dto.clientEmail) {
-      client = await this.clientRepository.findByEmail(dto.clientEmail);
+    if (dto.clientEmail && dto.clientPhone) {
+      const client = await this.clientRepository.findByBoth(dto.clientEmail, dto.clientPhone);
+      if (client) return client;
     }
-    if (!client && dto.clientPhone) {
-      client = await this.clientRepository.findByPhone(dto.clientPhone);
-    }
-    if (!client) {
-      client = await this.clientRepository.createUnregistered({
-        name: dto.clientName,
-        lastname: dto.clientLastname,
-        phone: dto.clientPhone,
-        contactEmail: dto.clientEmail,
-      });
-    }
-    return client;
+    return this.clientRepository.createUnregistered({
+      name: dto.clientName,
+      lastname: dto.clientLastname,
+      phone: dto.clientPhone,
+      contactEmail: dto.clientEmail,
+    });
   }
 
   async validateMaxOneActive(
@@ -202,7 +208,7 @@ export class CreateAppointmentUseCase {
       ? activeAppointments.filter((a) => a.id !== excludeAppointmentId)
       : activeAppointments;
 
-    const now = new Date();
+    const now = getNowDateInTimezone();
     const hasActive = filtered.some((a) => {
       if (a.status !== 'Confirmado') return false;
       const appointmentEnd = new Date(`${a.date}T${a.endTime}:00`);

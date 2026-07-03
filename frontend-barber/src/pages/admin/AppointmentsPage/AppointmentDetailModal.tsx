@@ -67,11 +67,11 @@ interface AppointmentDetailModalProps {
   appointment: Appointment | null;
   isOpen: boolean;
   onClose: () => void;
-  onComplete: (id: string) => void;
+  onComplete: (appointment: Appointment) => void;
   onNoShow: (id: string) => void;
   onCancel: (appointment: Appointment) => void;
   onReschedule: (appointment: Appointment) => void;
-  onMarkAsPaid: (id: string) => void;
+  onMarkAsPaid: (appointment: Appointment) => void;
   onDuplicate: (appointment: Appointment) => void;
   onSendReminder: (id: string) => void;
   onChangeBarber: (appointment: Appointment) => void;
@@ -191,7 +191,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
             </div>
             {isActive && !isPaid && (
               <button
-                onClick={() => onMarkAsPaid(appointment.id)}
+                onClick={() => onMarkAsPaid(appointment)}
                 disabled={isMarkingPaid}
                 className="flex items-center gap-1.5 rounded-[8px] border border-green-500/30 px-3 py-1.5 text-[12px] text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50 mt-2"
               >
@@ -257,13 +257,13 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         {isActive && (
           <div className="flex flex-wrap gap-2 pt-2 border-t border-[#282828]">
             <button
-              onClick={() => onComplete(appointment.id)}
-              disabled={isCompleting}
-              className="flex items-center gap-1.5 rounded-[10px] border border-green-500/30 px-3 py-2 text-[12px] font-medium text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
-            >
-              {isCompleting ? <Spinner size="sm" /> : <FiCheck className="text-sm" />}
-              Completar
-            </button>
+                onClick={() => onComplete(appointment)}
+                disabled={isCompleting}
+                className="flex items-center gap-1.5 rounded-[10px] border border-green-500/30 px-3 py-2 text-[12px] font-medium text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+              >
+                {isCompleting ? <Spinner size="sm" /> : <FiCheck className="text-sm" />}
+                Completar
+              </button>
             <button
               onClick={() => onNoShow(appointment.id)}
               disabled={isMarkingNoShow}
@@ -293,14 +293,16 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
               <FiCopy className="text-sm" />
               Duplicar
             </button>
-            <button
-              onClick={() => onSendReminder(appointment.id)}
-              disabled={isSendingReminder}
-              className="flex items-center gap-1.5 rounded-[10px] border border-cyan-500/30 px-3 py-2 text-[12px] font-medium text-cyan-400 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
-            >
-              {isSendingReminder ? <Spinner size="sm" /> : <FiSend className="text-sm" />}
-              Recordatorio
-            </button>
+            {appointment.clientEmail && (
+              <button
+                onClick={() => onSendReminder(appointment.id)}
+                disabled={isSendingReminder}
+                className="flex items-center gap-1.5 rounded-[10px] border border-cyan-500/30 px-3 py-2 text-[12px] font-medium text-cyan-400 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
+              >
+                {isSendingReminder ? <Spinner size="sm" /> : <FiSend className="text-sm" />}
+                Recordatorio
+              </button>
+            )}
             <button
               onClick={() => onChangeBarber(appointment)}
               className="flex items-center gap-1.5 rounded-[10px] border border-orange-500/30 px-3 py-2 text-[12px] font-medium text-orange-400 hover:bg-orange-500/10 transition-colors"

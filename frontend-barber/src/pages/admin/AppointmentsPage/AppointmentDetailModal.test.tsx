@@ -118,8 +118,23 @@ describe('AppointmentDetailModal', () => {
     expect(screen.getByText('Reprogramar')).toBeDefined();
     expect(screen.getByText('Cancelar')).toBeDefined();
     expect(screen.getByText('Duplicar')).toBeDefined();
-    expect(screen.getByText('Recordatorio')).toBeDefined();
     expect(screen.getByText('Cambiar barbero')).toBeDefined();
+  });
+
+  it('muestra boton Recordatorio solo si el cliente tiene email', () => {
+    renderWithProviders(
+      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
+    );
+    expect(screen.getByText('Recordatorio')).toBeDefined();
+  });
+
+  it('oculta boton Recordatorio si el cliente no tiene email', () => {
+    renderWithProviders(
+      <AppointmentDetailModal {...defaultProps}
+        appointment={{ ...baseAppointment, clientEmail: undefined }}
+      />
+    );
+    expect(screen.queryByText('Recordatorio')).toBeNull();
   });
 
   it('muestra boton Marcar pagado para turno Pendiente', () => {
@@ -164,27 +179,27 @@ describe('AppointmentDetailModal', () => {
     expect(screen.getByText(/Por: admin/)).toBeDefined();
   });
 
-  it('llama onComplete al hacer click en Completar', async () => {
+  it('llama onComplete con el appointment al hacer click en Completar', async () => {
     const user = userEvent.setup();
     const onComplete = vi.fn();
     renderWithProviders(
       <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onComplete={onComplete} />
     );
     await user.click(screen.getByText('Completar'));
-    expect(onComplete).toHaveBeenCalledWith('apt-1');
+    expect(onComplete).toHaveBeenCalledWith(baseAppointment);
   });
 
-  it('llama onMarkAsPaid al hacer click en Marcar pagado', async () => {
+  it('llama onMarkAsPaid con el appointment al hacer click en Marcar pagado', async () => {
     const user = userEvent.setup();
     const onMarkAsPaid = vi.fn();
     renderWithProviders(
       <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onMarkAsPaid={onMarkAsPaid} />
     );
     await user.click(screen.getByText('Marcar pagado'));
-    expect(onMarkAsPaid).toHaveBeenCalledWith('apt-1');
+    expect(onMarkAsPaid).toHaveBeenCalledWith(baseAppointment);
   });
 
-  it('llama onDuplicate al hacer click en Duplicar', async () => {
+  it('llama onDuplicate con el appointment al hacer click en Duplicar', async () => {
     const user = userEvent.setup();
     const onDuplicate = vi.fn();
     renderWithProviders(
@@ -194,7 +209,7 @@ describe('AppointmentDetailModal', () => {
     expect(onDuplicate).toHaveBeenCalledWith(baseAppointment);
   });
 
-  it('llama onSendReminder al hacer click en Recordatorio', async () => {
+  it('llama onSendReminder con el id al hacer click en Recordatorio', async () => {
     const user = userEvent.setup();
     const onSendReminder = vi.fn();
     renderWithProviders(

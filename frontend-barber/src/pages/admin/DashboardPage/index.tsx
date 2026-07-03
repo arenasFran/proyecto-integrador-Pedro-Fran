@@ -136,7 +136,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2">
             <AnimatedContainer animation="fadeInUp" delay={0.2}>
-              <KpiCards data={overview ?? null} loading={loading} error={error} />
+              <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} />
             </AnimatedContainer>
           </div>
           <div>
@@ -145,6 +145,8 @@ export default function DashboardPage() {
                 data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
                 loading={loading}
                 error={error}
+                desde={desde}
+                hasta={hasta}
               />
             </AnimatedContainer>
           </div>

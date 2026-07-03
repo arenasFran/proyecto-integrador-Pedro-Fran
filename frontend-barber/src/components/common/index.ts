@@ -18,3 +18,4 @@ export { BarberAvatar } from './BarberAvatar';
 export { ImageUpload } from './ImageUpload';
 export { StatsCards } from './StatsCards';
 export type { Stats } from './StatsCards';
+export { DatePicker } from './DatePicker';

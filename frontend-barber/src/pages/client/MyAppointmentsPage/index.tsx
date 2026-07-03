@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, Pagination, Select, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, Input, Pagination, Select, useToast, DatePicker } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import {
   useCancelAppointmentMutation,
@@ -273,11 +273,10 @@ export const MyAppointmentsPage: React.FC = () => {
               {rescheduleTarget.serviceName} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4">
-              <Input
+              <DatePicker
                 label="Nueva fecha"
-                type="date"
                 value={rescheduleDate}
-                onChange={(e) => setRescheduleDate(e.target.value)}
+                onChange={setRescheduleDate}
               />
               <Input
                 label="Nueva hora"

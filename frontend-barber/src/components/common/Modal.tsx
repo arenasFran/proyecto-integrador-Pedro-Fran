@@ -5,7 +5,7 @@ import { FiX } from 'react-icons/fi';
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title: string;
+  title?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
@@ -56,16 +56,18 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#282828]">
-          <h2 className="text-[18px] font-bold text-white">{title}</h2>
-          <button
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
-            aria-label="Cerrar"
-          >
-            <FiX className="w-5 h-5" />
-          </button>
-        </div>
+        {title && (
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#282828]">
+            <h2 className="text-[18px] font-bold text-white">{title}</h2>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+              aria-label="Cerrar"
+            >
+              <FiX className="w-5 h-5" />
+            </button>
+          </div>
+        )}
         <div className="px-6 py-5">{children}</div>
       </motion.div>
     </div>

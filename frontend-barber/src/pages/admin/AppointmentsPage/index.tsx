@@ -15,7 +15,7 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast, DatePicker } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
 import { formatDate } from '../../../utils/formatDate';
@@ -856,11 +856,10 @@ export const AdminAppointmentsPage: React.FC = () => {
               {rescheduleTarget.clientName} {rescheduleTarget.clientLastname} &mdash; actual: {formatDate(rescheduleTarget.date)} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4">
-              <Input
+              <DatePicker
                 label="Nueva fecha"
-                type="date"
                 value={rescheduleDate}
-                onChange={(e) => setRescheduleDate(e.target.value)}
+                onChange={setRescheduleDate}
               />
               <Input
                 label="Nueva hora"

@@ -7,14 +7,10 @@ import {
   FiChevronRight,
   FiChevronUp,
   FiClock,
-  FiCopy,
   FiDownload,
   FiInfo,
   FiMoreVertical,
-  FiPlus,
-  FiRepeat,
   FiScissors,
-  FiSend,
   FiSettings,
   FiX,
   FiXCircle,
@@ -1046,14 +1042,6 @@ export const AdminAppointmentsPage: React.FC = () => {
         />
       )}
 
-      <button
-        onClick={() => { setQuickCreateDate(new Date().toISOString().slice(0, 10)); setShowQuickCreate(true); }}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#FF5C00] text-white shadow-lg hover:bg-[#FF5C00]/90 transition-colors cursor-pointer"
-        aria-label="Nuevo turno"
-        title="Nuevo turno"
-      >
-        <FiPlus className="text-2xl" />
-      </button>
     </div>
   );
 };

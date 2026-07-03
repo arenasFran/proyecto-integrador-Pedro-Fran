@@ -42,7 +42,8 @@ export const buildBarberRouter = () => {
     passwordHasher,
     getAvailableSlots,
     deleteBarber,
-    blockRepository
+    blockRepository,
+    appointmentRepository
   );
 
   const authenticate = createAuthenticate(tokenService);

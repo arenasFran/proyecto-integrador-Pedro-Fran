@@ -138,3 +138,10 @@ export const getNowInTimezone = (): { date: string; minutes: number } => {
   return { date, minutes };
 };
 
+export const getNowDateInTimezone = (): Date => {
+  const { date, minutes } = getNowInTimezone();
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return new Date(`${date}T${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:00`);
+};
+

@@ -3,7 +3,7 @@ import { AppError } from '../../../../src/domain/errors/AppError';
 import { Appointment } from '../../../../src/domain/entities/Appointment';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { SlotService } from '../../../../src/domain/services/SlotService';
-import { makeMockBarberRepository, makeMockAppointmentRepository, makeMockTempLockRepository } from '../../../test-utils/mocks';
+import { makeMockBarberRepository, makeMockAppointmentRepository, makeMockTempLockRepository, makeMockBarberBlockRepository } from '../../../test-utils/mocks';
 
 describe('GetAvailableSlotsUseCase', () => {
   const createScheduleDay = (overrides?: Partial<BarberSchedule['monday']>) => ({
@@ -59,6 +59,7 @@ describe('GetAvailableSlotsUseCase', () => {
       paymentStatus: 'Pendiente',
       paymentMethod: 'local',
       statusHistory: [],
+      version: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -66,6 +67,7 @@ describe('GetAvailableSlotsUseCase', () => {
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
+  let blockRepository: ReturnType<typeof makeMockBarberBlockRepository>;
   let slotService: SlotService;
   let useCase: GetAvailableSlotsUseCase;
 
@@ -74,8 +76,10 @@ describe('GetAvailableSlotsUseCase', () => {
     appointmentRepository = makeMockAppointmentRepository();
     tempLockRepository = makeMockTempLockRepository();
     tempLockRepository.findByBarberAndDate.mockResolvedValue([]);
+    blockRepository = makeMockBarberBlockRepository();
+    blockRepository.findByBarberAndDate.mockResolvedValue([]);
     slotService = new SlotService();
-    useCase = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository);
+    useCase = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository, blockRepository as any);
   });
 
   it('debe fallar con fecha invalida', async () => {

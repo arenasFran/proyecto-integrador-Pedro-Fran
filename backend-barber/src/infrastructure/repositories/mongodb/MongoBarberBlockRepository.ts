@@ -1,25 +1,32 @@
+import mongoose from 'mongoose';
 import { BarberBlockModel } from './models/barberBlock.model';
 import type { BarberBlockProps } from '../../../domain/entities/BarberBlock';
-import type { FlattenMaps } from 'mongoose';
-
-type LeanDoc = FlattenMaps<BarberBlockProps & { _id: unknown }>;
 
 export class MongoBarberBlockRepository {
   async findByBarberAndDate(barberId: string, date: string): Promise<BarberBlockProps[]> {
-    const docs = await BarberBlockModel.find({ barberId, date }).lean();
-    return docs.map((doc) => this.toProps(doc));
+    const docs = await BarberBlockModel.find({
+      barberId: new mongoose.Types.ObjectId(barberId),
+      date,
+    }).lean();
+    return docs.map((doc: any) => this.toProps(doc));
   }
 
   async findByBarberAndDateRange(barberId: string, dateFrom: string, dateTo: string): Promise<BarberBlockProps[]> {
     const docs = await BarberBlockModel.find({
-      barberId,
+      barberId: new mongoose.Types.ObjectId(barberId),
       date: { $gte: dateFrom, $lte: dateTo },
     }).lean();
-    return docs.map((doc) => this.toProps(doc));
+    return docs.map((doc: any) => this.toProps(doc));
   }
 
   async create(data: Omit<BarberBlockProps, 'id'>): Promise<BarberBlockProps> {
-    const doc = await BarberBlockModel.create(data);
+    const doc = await BarberBlockModel.create({
+      barberId: new mongoose.Types.ObjectId(data.barberId),
+      date: data.date,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      createdBy: data.createdBy,
+    });
     return this.toProps(doc.toObject());
   }
 
@@ -28,26 +35,28 @@ export class MongoBarberBlockRepository {
   }
 
   async deleteByBarberId(barberId: string): Promise<void> {
-    await BarberBlockModel.deleteMany({ barberId });
+    await BarberBlockModel.deleteMany({
+      barberId: new mongoose.Types.ObjectId(barberId),
+    });
   }
 
   async findByDateRange(dateFrom: string, dateTo: string): Promise<BarberBlockProps[]> {
     const docs = await BarberBlockModel.find({
       date: { $gte: dateFrom, $lte: dateTo },
     }).lean();
-    return docs.map((doc) => this.toProps(doc));
+    return docs.map((doc: any) => this.toProps(doc));
   }
 
   async findById(id: string): Promise<BarberBlockProps | null> {
     const doc = await BarberBlockModel.findById(id).lean();
     if (!doc) return null;
-    return this.toProps(doc);
+    return this.toProps(doc as any);
   }
 
-  private toProps(doc: LeanDoc): BarberBlockProps {
+  private toProps(doc: any): BarberBlockProps {
     return {
       id: String(doc._id),
-      barberId: doc.barberId,
+      barberId: String(doc.barberId),
       date: doc.date,
       startTime: doc.startTime,
       endTime: doc.endTime,

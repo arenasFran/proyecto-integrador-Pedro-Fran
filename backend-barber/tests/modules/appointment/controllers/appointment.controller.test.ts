@@ -177,6 +177,7 @@ describe('AppointmentController', () => {
           paymentStatus: 'Pendiente',
           paymentMethod: 'local',
           statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+          version: 0,
           createdAt: now,
           updatedAt: now,
         })
@@ -224,6 +225,7 @@ describe('AppointmentController', () => {
           paymentStatus: 'Pendiente',
           paymentMethod: 'local',
           statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+          version: 0,
           createdAt: now,
           updatedAt: now,
         })

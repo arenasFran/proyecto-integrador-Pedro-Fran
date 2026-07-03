@@ -6,7 +6,7 @@ import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/enti
 import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { Service } from '../../../../src/domain/entities/Service';
 import { Client } from '../../../../src/domain/entities/Client';
-import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockServiceRepository, makeMockClientRepository, makeMockTempLockRepository, makeMockEmailService } from '../../../test-utils/mocks';
+import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockServiceRepository, makeMockClientRepository, makeMockTempLockRepository, makeMockEmailService, makeMockBarberBlockRepository } from '../../../test-utils/mocks';
 
 describe('CreateAppointmentUseCase', () => {
   const createScheduleDay = () => ({
@@ -64,6 +64,7 @@ describe('CreateAppointmentUseCase', () => {
       paymentStatus: 'Pendiente',
       paymentMethod: 'local',
       statusHistory: [{ status: 'Confirmado', timestamp: new Date(), actor: 'system' }],
+      version: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -98,6 +99,7 @@ describe('CreateAppointmentUseCase', () => {
   let clientRepository: ReturnType<typeof makeMockClientRepository>;
   let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
   let emailService: jest.Mocked<IEmailService>;
+  let blockRepository: ReturnType<typeof makeMockBarberBlockRepository>;
   let useCase: CreateAppointmentUseCase;
 
   beforeEach(() => {
@@ -111,6 +113,8 @@ describe('CreateAppointmentUseCase', () => {
     clientRepository.createUnregistered.mockResolvedValue({ id: 'client-1' } as any);
     tempLockRepository = makeMockTempLockRepository();
     emailService = makeMockEmailService();
+    blockRepository = makeMockBarberBlockRepository();
+    blockRepository.findByBarberAndDate.mockResolvedValue([]);
 
     useCase = new CreateAppointmentUseCase(
       appointmentRepository,
@@ -118,7 +122,8 @@ describe('CreateAppointmentUseCase', () => {
       serviceRepository,
       clientRepository,
       emailService,
-      tempLockRepository
+      tempLockRepository,
+      blockRepository as any
     );
   });
 

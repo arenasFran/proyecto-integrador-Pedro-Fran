@@ -45,7 +45,7 @@ export class AppointmentController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; searchTerm?: string; page?: number; limit?: number } = {};
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; searchTerm?: string; page?: number; limit?: number; sortBy?: 'date' | 'startTime'; sortDir?: 'asc' | 'desc' } = {};
 
       if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
@@ -60,6 +60,8 @@ export class AppointmentController {
       if (req.query.status) query.status = req.query.status as AppointmentStatus;
       if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod as string;
       if (req.query.searchTerm) query.searchTerm = req.query.searchTerm as string;
+      if (req.query.sortBy === 'date' || req.query.sortBy === 'startTime') query.sortBy = req.query.sortBy;
+      if (req.query.sortDir === 'asc' || req.query.sortDir === 'desc') query.sortDir = req.query.sortDir;
 
       const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;

@@ -1,12 +1,19 @@
 import mongoose, { Schema } from 'mongoose';
 import type { BarberBlockProps } from '../../../../domain/entities/BarberBlock';
 
-export type BarberBlockDocument = mongoose.Document & BarberBlockProps;
+export interface IBarberBlockDocument extends mongoose.Document {
+  barberId: mongoose.Types.ObjectId;
+  date: string;
+  startTime: string;
+  endTime: string;
+  createdBy?: string;
+}
 
-const barberBlockSchema = new Schema<BarberBlockDocument>(
+const barberBlockSchema = new Schema<IBarberBlockDocument>(
   {
     barberId: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'Barber',
       required: true,
     },
     date: {
@@ -30,6 +37,6 @@ const barberBlockSchema = new Schema<BarberBlockDocument>(
   }
 );
 
-barberBlockSchema.index({ barberId: 1, date: 1, startTime: 1 });
+barberBlockSchema.index({ barberId: 1, date: 1, startTime: 1 }, { unique: true });
 
-export const BarberBlockModel = mongoose.model<BarberBlockDocument>('BarberBlock', barberBlockSchema);
+export const BarberBlockModel = mongoose.model<IBarberBlockDocument>('BarberBlock', barberBlockSchema);

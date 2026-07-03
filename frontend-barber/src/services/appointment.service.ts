@@ -46,6 +46,8 @@ export type AppointmentQueryParams = {
   page?: number;
   limit?: number;
   includeBarber?: string;
+  sortBy?: 'date' | 'startTime';
+  sortDir?: 'asc' | 'desc';
 };
 
 export type PaginatedAppointmentsResponse = {

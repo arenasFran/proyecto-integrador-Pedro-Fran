@@ -17,6 +17,8 @@ export type AppointmentFilters = {
   searchTerm?: string;
   page?: number;
   limit?: number;
+  sortBy?: 'date' | 'startTime';
+  sortDir?: 'asc' | 'desc';
 };
 
 export type PaginatedResult<T> = {
@@ -70,6 +72,7 @@ const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
     cancelledBy: doc.cancelledBy,
     createdBy: doc.createdBy,
     statusHistory: (doc.statusHistory || []),
+    version: doc.version ?? 0,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   });
@@ -142,9 +145,13 @@ export class MongoAppointmentRepository {
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
+    const sortField = filters.sortBy ?? 'date';
+    const sortOrder = filters.sortDir === 'asc' ? 1 : -1;
+    const sortObj: Record<string, 1 | -1> = { [sortField]: sortOrder, startTime: sortOrder === 1 ? 1 : -1 };
+
     const [docs, total] = await Promise.all([
       AppointmentModel.find(query)
-        .sort({ date: -1, startTime: -1 })
+        .sort(sortObj)
         .skip(skip)
         .limit(limit)
         .lean(),
@@ -234,7 +241,7 @@ export class MongoAppointmentRepository {
     }
   }
 
-  async update(id: string, data: UpdateAppointmentData): Promise<Appointment | null> {
+  async update(id: string, data: UpdateAppointmentData & { version?: number }): Promise<Appointment | null> {
     const updateData: Record<string, unknown> = {};
 
     if (data.date !== undefined) updateData.date = data.date;
@@ -247,8 +254,14 @@ export class MongoAppointmentRepository {
       updateData.paymentMethod = data.paymentMethod;
     }
 
-    const doc = await AppointmentModel.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (data.version !== undefined) {
+      filter.version = data.version;
+      updateData.version = data.version + 1;
+    }
+
+    const doc = await AppointmentModel.findOneAndUpdate(
+      filter,
       { $set: updateData, $currentDate: { updatedAt: true } },
       { returnDocument: 'after' }
     ).lean();
@@ -257,17 +270,26 @@ export class MongoAppointmentRepository {
     return toAppointmentEntity(doc);
   }
 
-  async updateClientId(id: string, clientId: string): Promise<Appointment | null> {
-    const doc = await AppointmentModel.findByIdAndUpdate(
-      id,
-      { $set: { clientId: new mongoose.Types.ObjectId(clientId) }, $currentDate: { updatedAt: true } },
+  async updateClientId(id: string, clientId: string, version?: number): Promise<Appointment | null> {
+    const filter: Record<string, unknown> = { _id: id };
+    const update: Record<string, unknown> = {
+      $set: { clientId: new mongoose.Types.ObjectId(clientId) },
+      $currentDate: { updatedAt: true },
+    };
+    if (version !== undefined) {
+      filter.version = version;
+      update.$inc = { version: 1 };
+    }
+    const doc = await AppointmentModel.findOneAndUpdate(
+      filter,
+      update,
       { returnDocument: 'after' }
     ).lean();
     if (!doc) return null;
     return toAppointmentEntity(doc);
   }
 
-  async updateStatus(id: string, data: UpdateStatusData): Promise<Appointment | null> {
+  async updateStatus(id: string, data: UpdateStatusData & { version?: number }): Promise<Appointment | null> {
     const updateData: Record<string, unknown> = {
       status: data.status,
     };
@@ -285,13 +307,18 @@ export class MongoAppointmentRepository {
       updateData.cancelledBy = data.cancelledBy;
     }
 
+    const filter: Record<string, unknown> = { _id: id };
     const update: Record<string, unknown> = { $set: updateData };
     if (data.statusHistoryEntry) {
       update.$push = { statusHistory: data.statusHistoryEntry };
     }
+    if (data.version !== undefined) {
+      filter.version = data.version;
+      update.$inc = { version: 1 };
+    }
 
-    const doc = await AppointmentModel.findByIdAndUpdate(
-      id,
+    const doc = await AppointmentModel.findOneAndUpdate(
+      filter,
       update,
       { returnDocument: 'after' }
     ).lean();

@@ -11,7 +11,9 @@ import { Password } from '../../../domain/value-objects/Password';
 import { BarberSchedule } from '../../../domain/entities/Barber';
 import { sendSuccess, sendError } from '../../../common/response';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { AppError } from '../../../domain/errors/AppError';
+import { doesOverlap } from '../../../domain/utils/time';
 
 export class BarberController {
   private toResponse(barber: Barber) {
@@ -38,7 +40,8 @@ export class BarberController {
     private readonly passwordHasher: BcryptPasswordHasher,
     private readonly getAvailableSlots: GetAvailableSlotsUseCase,
     private readonly deleteBarber: DeleteBarberUseCase,
-    private readonly blockRepository: MongoBarberBlockRepository
+    private readonly blockRepository: MongoBarberBlockRepository,
+    private readonly appointmentRepository: MongoAppointmentRepository
   ) {}
 
   getAllPublic = async (_req: Request, res: Response) => {
@@ -314,6 +317,15 @@ export class BarberController {
       }
 
       const { date, startTime, endTime } = req.body;
+
+      // Validar que no haya turnos confirmados en el horario a bloquear
+      const appointments = await this.appointmentRepository.findByBarberAndDate(id, date);
+      for (const apt of appointments) {
+        if (apt.status === 'Cancelado') continue;
+        if (doesOverlap(startTime, endTime, apt.startTime, apt.endTime)) {
+          throw new AppError('Hay turnos confirmados en ese horario. No se puede bloquear.', 409);
+        }
+      }
 
       const block = await this.blockRepository.create({
         barberId: id,

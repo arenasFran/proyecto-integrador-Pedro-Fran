@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiMessageCircle, FiUser } from 'react-icons/fi';
 import { Button } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
@@ -197,27 +197,23 @@ export const LandingPage: React.FC = () => {
       </motion.header>
 
       {/* ─── HERO ─── */}
-      <section className="relative min-h-screen flex items-end">
-        <div className="absolute inset-0">
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{ backgroundImage: "url('/hero.jpg')" }}
+      <section className="relative min-h-screen flex items-end overflow-hidden">
+        <div className="absolute inset-0 bg-[#050505]">
+          <img
+            src="/hero.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain object-center"
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              background: 'linear-gradient(180deg, rgba(5,5,5,0.35) 0%, rgba(5,5,5,0.15) 30%, rgba(5,5,5,0.55) 68%, rgba(5,5,5,0.97) 100%)',
-            }}
-          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/30 via-transparent to-[#050505]/70" />
         </div>
 
         <motion.div
           variants={staggerVariants}
           initial="hidden"
           animate="visible"
-          className="relative w-full px-[5vw] pb-24 grid grid-cols-1 lg:grid-cols-[1.3fr_0.7fr] gap-10 items-end"
+          className="relative w-full px-[5vw] pb-24"
         >
-          <div>
+          <div className="max-w-3xl">
             <motion.span variants={fadeUp} className="text-[11px] uppercase tracking-widest text-[#FF5C00] inline-flex items-center gap-2">
               <span className="w-4 h-px bg-[#FF5C00] inline-block" />
               Barbería de barrio, oficio de verdad
@@ -242,21 +238,6 @@ export const LandingPage: React.FC = () => {
                 Ver servicios
               </Button>
             </motion.div>
-          </div>
-
-          <div className="hidden lg:block justify-self-end text-right border-r border-white/20 pr-6">
-            <div className="mb-5">
-              <b className="text-4xl font-extrabold text-[#FF5C00] block tracking-[-0.02em]">+8</b>
-              <span className="text-xs text-[#8A8A8A] tracking-wide">años en el barrio</span>
-            </div>
-            <div className="mb-5">
-              <b className="text-4xl font-extrabold text-[#FF5C00] block tracking-[-0.02em]">4.9</b>
-              <span className="text-xs text-[#8A8A8A] tracking-wide">puntaje de clientes</span>
-            </div>
-            <div>
-              <b className="text-4xl font-extrabold text-[#FF5C00] block tracking-[-0.02em]">15min</b>
-              <span className="text-xs text-[#8A8A8A] tracking-wide">de espera promedio</span>
-            </div>
           </div>
         </motion.div>
 
@@ -444,10 +425,9 @@ export const LandingPage: React.FC = () => {
           >
             <ul className="list-none p-0 mb-8">
               {[
-                { label: 'Dirección', value: 'Av. Principal 1234, Montevideo' },
-                { label: 'Horario', value: 'Mar. a sáb. 10:00–20:00', sub: '· Lun. cerrado' },
-                { label: 'Teléfono', value: '+598 99 123 456' },
-                { label: 'Email', value: 'hola@srbarberia.uy', muted: true },
+                { label: 'Dirección', value: 'Avenida Artigas 397' },
+                { label: 'Horario', value: 'Lunes a Sábado 09:00 a 19:00', sub: '· Domingo cerrado' },
+                { label: 'Teléfono', value: '+598 92 757 877' },
               ].map((item) => (
                 <li key={item.label} className="flex gap-4 py-4 border-b border-white/10 text-[15px]">
                   <b className="text-[11px] uppercase tracking-wide text-[#FF5C00] min-w-[110px] shrink-0 pt-0.5">
@@ -461,16 +441,29 @@ export const LandingPage: React.FC = () => {
               ))}
             </ul>
             <div className="flex gap-4">
-              {['IG', 'WA', 'FB'].map((label) => (
-                <a
-                  key={label}
-                  href="#"
-                  aria-label={label}
-                  className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-[13px] hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
-                >
-                  {label}
-                </a>
-              ))}
+              <a
+                href="https://www.instagram.com/barberiasantiagoabbona/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-[#FF5C00] hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
+              >
+                <FiInstagram className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                aria-label="WhatsApp"
+                className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-white/85 hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
+              >
+                <FiMessageCircle className="w-5 h-5" />
+              </a>
+              <a
+                href="#"
+                aria-label="Facebook"
+                className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-white/85 hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
+              >
+                <span className="text-[13px] font-semibold">FB</span>
+              </a>
             </div>
           </motion.div>
 
@@ -535,7 +528,7 @@ export const LandingPage: React.FC = () => {
           </div>
           <div>
             <h4 className="text-[11px] uppercase tracking-wide text-[#8A8A8A] mb-4">Seguinos</h4>
-            <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Instagram</a>
+            <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Instagram</a>
             <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">WhatsApp</a>
             <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Facebook</a>
           </div>

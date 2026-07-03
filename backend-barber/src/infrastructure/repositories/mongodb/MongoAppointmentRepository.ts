@@ -32,7 +32,7 @@ export type PaginatedResult<T> = {
 export type CreateAppointmentData = Omit<AppointmentProps, 'id' | 'createdAt' | 'updatedAt'>;
 
 export type UpdateStatusData = {
-  status: AppointmentStatus;
+  status?: AppointmentStatus;
   paymentStatus?: PaymentStatus;
   cancelReason?: string;
   cancelledAt?: Date;
@@ -290,10 +290,11 @@ export class MongoAppointmentRepository {
   }
 
   async updateStatus(id: string, data: UpdateStatusData & { version?: number }): Promise<Appointment | null> {
-    const updateData: Record<string, unknown> = {
-      status: data.status,
-    };
+    const updateData: Record<string, unknown> = {};
 
+    if (data.status !== undefined) {
+      updateData.status = data.status;
+    }
     if (data.paymentStatus !== undefined) {
       updateData.paymentStatus = data.paymentStatus;
     }

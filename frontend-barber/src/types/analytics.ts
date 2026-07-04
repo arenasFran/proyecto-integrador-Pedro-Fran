@@ -2,6 +2,7 @@ export interface OverviewData {
   totalReservas: number;
   duracionTotalMinutos: number;
   ingresosTotales: number;
+  ingresosPendientes: number;
   nuevosClientes: number;
   estadisticasPorEstado: Record<string, number>;
 }

@@ -22,7 +22,7 @@ export type Service = {
 
 export type AppointmentStatus = 'Confirmado' | 'Cancelado' | 'Completado' | 'NoShow';
 
-export type PaymentStatus = 'Pendiente' | 'Pagado';
+export type PaymentStatus = 'Pendiente' | 'Pagado' | 'Cancelado';
 
 export type PaymentMethod = 'local' | 'online' | 'memberPass';
 

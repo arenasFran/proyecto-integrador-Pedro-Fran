@@ -42,6 +42,7 @@ export type AppointmentQueryParams = {
   dateTo?: string;
   status?: string;
   paymentMethod?: string;
+  paymentStatus?: string;
   searchTerm?: string;
   page?: number;
   limit?: number;

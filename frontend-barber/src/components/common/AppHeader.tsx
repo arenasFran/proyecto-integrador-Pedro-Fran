@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiChevronDown, FiLogOut, FiMenu, FiPlus, FiScissors, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiLogOut, FiMenu, FiPlus, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';

@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
+import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetClientesRecurrentesQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientesListQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
-import type { OverviewData } from '../../../../types/analytics';
+import type { OverviewData, ClienteData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
+import { ClientHistoryModal } from './ClientHistoryModal';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -63,18 +64,106 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta }: { isOpen: boole
   );
 }
 
-function NewClientsModal({ isOpen, onClose, desde, hasta, count }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; count: number }) {
+const kindBadge = (kind: string) => {
+  if (kind === 'Registrado') return <span className="text-[10px] font-medium bg-purple-500/10 text-purple-400 rounded-full px-2 py-0.5">Registrado</span>;
+  return <span className="text-[10px] font-medium bg-gray-500/10 text-gray-400 rounded-full px-2 py-0.5">Anónimo</span>;
+};
+
+function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; navigate: (path: string) => void }) {
+  const { data: clientes = [], isLoading } = useGetClientesListQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+
+  const nuevos = useMemo(() => clientes.filter(c => c.firstVisit >= desde && c.firstVisit <= hasta), [clientes, desde, hasta]);
+  const registrados = useMemo(() => nuevos.filter(c => c.kind === 'Registrado').length, [nuevos]);
+  const anonimos = useMemo(() => nuevos.length - registrados, [nuevos, registrados]);
+
+  const tendencia = useMemo(() => {
+    const weeks: Record<string, number> = {};
+    for (const c of nuevos) {
+      const d = new Date(c.firstVisit);
+      const weekStart = new Date(d);
+      weekStart.setDate(d.getDate() - d.getDay() + 1);
+      const key = weekStart.toISOString().slice(0, 10);
+      weeks[key] = (weeks[key] ?? 0) + 1;
+    }
+    return Object.entries(weeks).sort(([a], [b]) => a.localeCompare(b));
+  }, [nuevos]);
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nuevos clientes" size="md">
-      <div className="flex flex-col items-center gap-4 py-4">
-        <div className="text-[48px] font-bold text-[#FF5C00]">{count}</div>
-        <p className="text-[#8A8A8A] text-sm text-center">
-          Clientes nuevos en el período seleccionado.
-        </p>
-        <p className="text-[12px] text-[#6A6A6A] text-center">
-          {desde} — {hasta}
-        </p>
-      </div>
+    <Modal isOpen={isOpen} onClose={onClose} title="Nuevos clientes" size="lg">
+      {isLoading ? (
+        <div className="flex justify-center py-8"><Spinner size="lg" /></div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
+              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Nuevos</span>
+              <span className="text-[28px] font-bold text-[#FF5C00]">{nuevos.length}</span>
+            </div>
+            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
+              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Registrados</span>
+              <span className="text-[28px] font-bold text-purple-400">{registrados}</span>
+            </div>
+            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
+              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Anónimos</span>
+              <span className="text-[28px] font-bold text-gray-400">{anonimos}</span>
+            </div>
+          </div>
+
+          {tendencia.length > 0 && (
+            <div>
+              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Tendencia semanal</span>
+              <div className="flex items-end gap-1.5 mt-1.5 h-16">
+                {tendencia.map(([week, count]) => {
+                  const maxCount = Math.max(...tendencia.map(([, c]) => c), 1);
+                  const height = (count / maxCount) * 100;
+                  const label = week.slice(5);
+                  return (
+                    <div key={week} className="flex flex-col items-center gap-0.5 flex-1">
+                      <span className="text-[9px] text-[#8A8A8A]">{count}</span>
+                      <div className="w-full rounded-t-[3px] bg-[#FF5C00]" style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }} />
+                      <span className="text-[8px] text-[#6A6A6A]">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Lista de nuevos clientes</span>
+              <span className="text-[11px] text-[#8A8A8A]">{nuevos.length} clientes</span>
+            </div>
+            {nuevos.length === 0 ? (
+              <p className="text-[13px] text-[#8A8A8A] text-center py-4">No hay nuevos clientes en este período.</p>
+            ) : (
+              <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
+                {nuevos.slice(0, 20).map((c) => (
+                  <div key={c.key} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-[12px]">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-white truncate">{c.clientName} {c.clientLastname}</span>
+                      {kindBadge(c.kind)}
+                    </div>
+                    <span className="text-[#8A8A8A] shrink-0 ml-2">{c.clientPhone ?? ''}</span>
+                  </div>
+                ))}
+                {nuevos.length > 20 && (
+                  <p className="text-[11px] text-[#8A8A8A] text-center pt-1">... y {nuevos.length - 20} más</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => { onClose(); navigate('/admin/clientes'); }}
+            className="flex items-center justify-center gap-2 rounded-[10px] bg-[#FF5C00] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#E55300] transition-colors"
+          >
+            <FiUserPlus size={16} />
+            Ver todos los clientes
+            <FiArrowRight size={16} />
+          </button>
+        </div>
+      )}
     </Modal>
   );
 }
@@ -169,6 +258,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
+  const [historyClient, setHistoryClient] = useState<ClienteData | null>(null);
 
   const { data: retornoData } = useGetClientesRecurrentesQuery(
     { desde, hasta },
@@ -258,7 +348,8 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
       </div>
       <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} />
       <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} />
-      <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} count={data?.nuevosClientes ?? 0} />
+      <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
+      {historyClient && <ClientHistoryModal isOpen={!!historyClient} onClose={() => setHistoryClient(null)} client={historyClient} />}
     </>
   );
 }

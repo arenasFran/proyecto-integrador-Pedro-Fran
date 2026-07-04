@@ -1,6 +1,8 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type {
+  ClienteData,
+  ClientAppointmentEntry,
   ClientesRecurrentesData,
   DistribucionData,
   DiaSemanaEntry,
@@ -78,6 +80,19 @@ export const analyticsApi = createApi({
     getAvailableYears: builder.query<number[], void>({
       query: () => ({ url: '/api/analytics/years' }),
     }),
+
+    getClientesList: builder.query<ClienteData[], { desde: string; hasta: string }>({
+      query: (params) => ({
+        url: '/api/analytics/clientes',
+        params,
+      }),
+    }),
+
+    getClientAppointments: builder.query<ClientAppointmentEntry[], string>({
+      query: (clientKey) => ({
+        url: `/api/analytics/clientes/${clientKey}/turnos`,
+      }),
+    }),
   }),
 });
 
@@ -91,4 +106,6 @@ export const {
   useGetDiasSemanaQuery,
   useGetClientesRecurrentesQuery,
   useGetIngresosPorServicioQuery,
+  useGetClientesListQuery,
+  useGetClientAppointmentsQuery,
 } = analyticsApi;

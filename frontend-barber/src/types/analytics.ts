@@ -56,6 +56,31 @@ export interface IngresoServicioEntry {
   ingresos: number;
 }
 
+export interface ClienteData {
+  key: string;
+  clientId: string | null;
+  clientName: string;
+  clientLastname: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  kind: 'Registrado' | 'NoRegistrado';
+  totalVisits: number;
+  totalSpent: number;
+  firstVisit: string;
+  lastVisit: string;
+}
+
+export interface ClientAppointmentEntry {
+  date: string;
+  startTime: string;
+  endTime: string;
+  serviceName: string;
+  servicePrice: number;
+  status: string;
+  paymentStatus: string;
+  barberId: string;
+}
+
 export interface ReportFilters {
   granularidad: Granularidad;
   barberId?: string;

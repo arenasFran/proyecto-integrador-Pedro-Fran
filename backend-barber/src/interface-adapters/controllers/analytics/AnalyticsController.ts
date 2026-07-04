@@ -181,6 +181,7 @@ export class AnalyticsController {
       const result = await this.repository.getClientesList(desde, hasta);
       return sendSuccess(res, result);
     } catch (error) {
+      console.error('[getClientesList] Error:', error instanceof Error ? error.message : error);
       return sendError(res, error, 'Error al obtener lista de clientes');
     }
   };

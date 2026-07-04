@@ -16,7 +16,7 @@ import {
   FiRefreshCw,
   FiRepeat,
 } from 'react-icons/fi';
-import { Modal, Button, Spinner } from '../../../components/common';
+import { Modal, Spinner } from '../../../components/common';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
 import { formatDate } from '../../../utils/formatDate';
 

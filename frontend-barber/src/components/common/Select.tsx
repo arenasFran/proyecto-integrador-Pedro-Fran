@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useId } from 'react';
+import { useState, useRef, useEffect, useId } from 'react';
 import { FiChevronDown } from 'react-icons/fi';
 
 export interface SelectOption {

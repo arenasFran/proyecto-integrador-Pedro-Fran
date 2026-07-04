@@ -10,6 +10,7 @@ const mockService1: Service = {
   description: 'Corte de cabello clásico',
   price: 1500,
   imageUrl: '',
+  status: 'active',
 };
 
 const mockService2: Service = {
@@ -18,6 +19,7 @@ const mockService2: Service = {
   description: 'Arreglo de barba',
   price: 800,
   imageUrl: '',
+  status: 'active',
 };
 
 const mockServices = [mockService1, mockService2];

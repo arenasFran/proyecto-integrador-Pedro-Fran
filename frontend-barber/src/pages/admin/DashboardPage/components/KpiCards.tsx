@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle } from 'react-icons/fi';
+import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetClientesRecurrentesQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import type { OverviewData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
@@ -159,7 +159,9 @@ const CARDS_CONFIG = [
   { key: 'duracion', label: 'Duración total', icon: FiClock, format: (v: number) => formatDuration(v), clickable: false },
   { key: 'ingresos', label: 'Ingresos totales', icon: FiDollarSign, format: (v: number) => formatCurrency(v), clickable: true },
   { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true },
+  { key: 'tasaCancelacion', label: 'Tasa cancelación', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false },
   { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true },
+  { key: 'retorno', label: 'Clientes recurrentes', icon: FiRefreshCw, format: (v: number) => `${v}%`, clickable: false },
 ];
 
 export default function KpiCards({ data, loading, error, desde, hasta }: KpiCardsProps) {
@@ -167,6 +169,11 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
+
+  const { data: retornoData } = useGetClientesRecurrentesQuery(
+    { desde, hasta },
+    { skip: !desde || !hasta },
+  );
 
   if (error) {
     return (
@@ -176,9 +183,12 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
     );
   }
 
+  const totalCancelados = data ? (data.estadisticasPorEstado.cancelado ?? 0) + (data.estadisticasPorEstado.noshow ?? 0) : 0;
+  const tasaCancelacion = data && data.totalReservas > 0 ? Math.round((totalCancelados / data.totalReservas) * 100) : 0;
+
   const values = data
-    ? [data.totalReservas, data.duracionTotalMinutos, data.ingresosTotales, data.ingresosPendientes, data.nuevosClientes]
-    : [null, null, null, null, null];
+    ? [data.totalReservas, data.duracionTotalMinutos, data.ingresosTotales, data.ingresosPendientes, tasaCancelacion, data.nuevosClientes, retornoData?.tasaRetorno ?? null]
+    : [null, null, null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
@@ -199,7 +209,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
 
   return (
     <>
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         {CARDS_CONFIG.map((card, idx) => {
           if (!card.clickable) {
             return (

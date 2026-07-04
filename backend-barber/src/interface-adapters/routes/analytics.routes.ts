@@ -3,7 +3,16 @@ import { AnalyticsController } from '../controllers/analytics/AnalyticsControlle
 import { MongoAnalyticsRepository } from '../../infrastructure/repositories/mongodb/MongoAnalyticsRepository';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
-import { overviewQuerySchema, heatmapQuerySchema, distribucionQuerySchema, reservasGananciasQuerySchema } from '../validators/analytics.validator';
+import {
+  overviewQuerySchema,
+  heatmapQuerySchema,
+  distribucionQuerySchema,
+  reservasGananciasQuerySchema,
+  horasQuerySchema,
+  diasSemanaQuerySchema,
+  clientesRecurrentesQuerySchema,
+  ingresosServicioQuerySchema,
+} from '../validators/analytics.validator';
 
 export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
   const controller = new AnalyticsController(new MongoAnalyticsRepository());
@@ -46,6 +55,38 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
     authorize('Admin'),
     validate({ query: reservasGananciasQuerySchema }),
     controller.getReservasGananciasHandler,
+  );
+
+  router.get(
+    '/charts/horas',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: horasQuerySchema }),
+    controller.getHorasDistributionHandler,
+  );
+
+  router.get(
+    '/charts/dias-semana',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: diasSemanaQuerySchema }),
+    controller.getDiasSemanaDistributionHandler,
+  );
+
+  router.get(
+    '/charts/clientes-recurrentes',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: clientesRecurrentesQuerySchema }),
+    controller.getClientesRecurrentesHandler,
+  );
+
+  router.get(
+    '/charts/ingresos-servicio',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: ingresosServicioQuerySchema }),
+    controller.getIngresosPorServicioHandler,
   );
 
   return router;

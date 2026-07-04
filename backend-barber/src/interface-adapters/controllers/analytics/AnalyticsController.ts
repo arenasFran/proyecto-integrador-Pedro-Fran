@@ -120,6 +120,58 @@ export class AnalyticsController {
     }
   };
 
+  getHorasDistributionHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta, barberId } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const result = await this.repository.getHorasDistribution(desde, hasta, barberId);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener distribución por hora');
+    }
+  };
+
+  getDiasSemanaDistributionHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta, barberId } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const result = await this.repository.getDiasSemanaDistribution(desde, hasta, barberId);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener distribución por día de semana');
+    }
+  };
+
+  getClientesRecurrentesHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const result = await this.repository.getClientesRecurrentes(desde, hasta);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener tasa de retorno de clientes');
+    }
+  };
+
+  getIngresosPorServicioHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const result = await this.repository.getIngresosPorServicio(desde, hasta);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener ingresos por servicio');
+    }
+  };
+
   getReservasGananciasHandler = async (req: Request, res: Response) => {
     try {
       const { desde, hasta, granularidad, barberId, serviceId, status } = req.query as Record<string, string | undefined>;

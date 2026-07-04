@@ -12,6 +12,7 @@ import {
   diasSemanaQuerySchema,
   clientesRecurrentesQuerySchema,
   ingresosServicioQuerySchema,
+  clientesListQuerySchema,
 } from '../validators/analytics.validator';
 
 export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
@@ -87,6 +88,21 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
     authorize('Admin'),
     validate({ query: ingresosServicioQuerySchema }),
     controller.getIngresosPorServicioHandler,
+  );
+
+  router.get(
+    '/clientes',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: clientesListQuerySchema }),
+    controller.getClientesListHandler,
+  );
+
+  router.get(
+    '/clientes/:clientKey/turnos',
+    authenticate,
+    authorize('Admin'),
+    controller.getClientAppointmentsHandler,
   );
 
   return router;

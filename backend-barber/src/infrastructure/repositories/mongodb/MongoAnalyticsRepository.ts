@@ -33,6 +33,31 @@ export type ReservasGananciasEntry = {
   ganancias: number;
 };
 
+export type ClienteListEntry = {
+  key: string;
+  clientId: string | null;
+  clientName: string;
+  clientLastname: string;
+  clientPhone?: string;
+  clientEmail?: string;
+  kind: 'Registrado' | 'NoRegistrado';
+  totalVisits: number;
+  totalSpent: number;
+  firstVisit: string;
+  lastVisit: string;
+};
+
+export type ClientAppointmentEntry = {
+  date: string;
+  startTime: string;
+  endTime: string;
+  serviceName: string;
+  servicePrice: number;
+  status: string;
+  paymentStatus: string;
+  barberId: mongoose.Types.ObjectId;
+};
+
 export type ReservasGananciasFilters = {
   desde: string;
   hasta: string;
@@ -361,6 +386,122 @@ export class MongoAnalyticsRepository {
         },
       },
       { $sort: { ingresos: -1 } },
+    ] as mongoose.PipelineStage[];
+
+    return AppointmentModel.aggregate(pipeline);
+  }
+
+  async getClientesList(desde: string, hasta: string): Promise<ClienteListEntry[]> {
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+
+    const pipeline = [
+      DATE_CONVERSION_STAGE,
+      {
+        $match: {
+          dateObj: { $gte: desdeDate, $lte: hastaDate },
+          status: { $in: STATUS_CATEGORIES.countsAsActivity },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $ne: ['$clientId', undefined] },
+              { $concat: ['reg_', { $toString: '$clientId' }] },
+              { $cond: [{ $ne: ['$clientPhone', undefined] }, { $concat: ['anon_', '$clientPhone'] }, 'anon_unknown'] },
+            ],
+          },
+          originalClientId: { $first: '$clientId' },
+          clientName: { $first: '$clientName' },
+          clientLastname: { $first: '$clientLastname' },
+          clientPhone: { $first: '$clientPhone' },
+          clientEmail: { $first: '$clientEmail' },
+          totalVisits: { $sum: 1 },
+          totalSpent: {
+            $sum: {
+              $cond: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, '$servicePrice', 0],
+            },
+          },
+          firstVisit: { $min: '$date' },
+          lastVisit: { $max: '$date' },
+        },
+      },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'originalClientId',
+          foreignField: '_id',
+          as: 'registeredInfo',
+        },
+      },
+      {
+        $addFields: {
+          clientEmail: {
+            $cond: [
+              { $gt: [{ $size: '$registeredInfo' }, 0] },
+              { $ifNull: [{ $arrayElemAt: ['$registeredInfo.email', 0] }, '$clientEmail'] },
+              '$clientEmail',
+            ],
+          },
+          kind: {
+            $cond: [{ $ne: ['$originalClientId', undefined] }, 'Registrado', 'NoRegistrado'],
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          key: '$_id',
+          clientId: { $toString: '$originalClientId' },
+          clientName: 1,
+          clientLastname: 1,
+          clientPhone: 1,
+          clientEmail: 1,
+          kind: 1,
+          totalVisits: 1,
+          totalSpent: 1,
+          firstVisit: 1,
+          lastVisit: 1,
+          registeredInfo: 0,
+          originalClientId: 0,
+        },
+      },
+      { $sort: { lastVisit: -1 } },
+    ] as mongoose.PipelineStage[];
+
+    return AppointmentModel.aggregate(pipeline);
+  }
+
+  async getClientAppointments(clientKey: string): Promise<ClientAppointmentEntry[]> {
+    const matchStage: Record<string, unknown> = {};
+
+    if (clientKey.startsWith('reg_')) {
+      const oid = new mongoose.Types.ObjectId(clientKey.slice(4));
+      matchStage.clientId = oid;
+    } else if (clientKey.startsWith('anon_')) {
+      matchStage.clientPhone = clientKey.slice(5);
+      matchStage.clientId = { $exists: false };
+    } else {
+      return [];
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      { $sort: { date: -1, startTime: -1 } },
+      {
+        $project: {
+          _id: 0,
+          date: 1,
+          startTime: 1,
+          endTime: 1,
+          serviceName: 1,
+          servicePrice: 1,
+          status: 1,
+          paymentStatus: 1,
+          barberId: 1,
+        },
+      },
     ] as mongoose.PipelineStage[];
 
     return AppointmentModel.aggregate(pipeline);

@@ -172,6 +172,32 @@ export class AnalyticsController {
     }
   };
 
+  getClientesListHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const result = await this.repository.getClientesList(desde, hasta);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener lista de clientes');
+    }
+  };
+
+  getClientAppointmentsHandler = async (req: Request, res: Response) => {
+    try {
+      const clientKey = req.params.clientKey as string;
+      if (!clientKey) {
+        return sendError(res, new Error('Debe proporcionar clientKey.'), 'Parámetros inválidos');
+      }
+      const result = await this.repository.getClientAppointments(clientKey);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener turnos del cliente');
+    }
+  };
+
   getReservasGananciasHandler = async (req: Request, res: Response) => {
     try {
       const { desde, hasta, granularidad, barberId, serviceId, status } = req.query as Record<string, string | undefined>;

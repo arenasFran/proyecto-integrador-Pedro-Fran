@@ -4,9 +4,7 @@ import { Employee } from '../repositories/mongodb/models/barber.model';
 import { RegisteredClient } from '../repositories/mongodb/models/client.model';
 import AppointmentModel from '../repositories/mongodb/models/appointment.model';
 
-const TEST_PREFIX = 'SEED_';
-
-// Servicios reales del sistema (sin duration en config, se agrega acá para el seed)
+// ── Servicios ──────────────────────────────────────────────
 const SEED_SERVICES = [
   { id: 'svc-1', name: 'Corte de pelo',   price: 490, duration: 50 },
   { id: 'svc-2', name: 'Corte a máquina',  price: 350, duration: 30 },
@@ -14,34 +12,64 @@ const SEED_SERVICES = [
   { id: 'svc-4', name: 'Promo x2',         price: 450, duration: 70 },
 ];
 
-// Distribución ponderada: ~40% Corte pelo, ~25% Corte máquina, ~20% Barba, ~15% Promo
 const SERVICE_CYCLE = [0, 0, 1, 2, 0, 1, 3, 0, 2, 1, 0, 0, 1, 2, 3, 0, 1, 0, 2, 1];
 
-// ── Barberos ──────────────────────────────────────────────
+// ── Barberos ───────────────────────────────────────────────
 const BARBERS = [
-  { email: 'seed-barber1@elitecut.com',  name: 'Analytics', lastname: 'Test' },
-  { email: 'seed-barber2@elitecut.com',  name: 'Pepe',      lastname: 'TestOne' },
-  { email: 'seed-barber3@elitecut.com',  name: 'Maria',     lastname: 'TestTwo' },
+  { email: 'seed-carlos@elitecut.com',  name: 'Carlos', lastname: 'Mendoza' },
+  { email: 'seed-pedro@elitecut.com',   name: 'Pedro',  lastname: 'Giménez' },
+  { email: 'seed-martin@elitecut.com',  name: 'Martín', lastname: 'Ortiz' },
 ];
 
-const CLIENT_EMAIL = 'seed-reg@test.com';
+// ── Clientes registrados (se crean en la colección RegisteredClient) ──
+const REGISTERED_CLIENTS = [
+  { name: 'Sofía',     lastname: 'García',     email: 'sofia.garcia@email.com',     phone: '099100001' },
+  { name: 'Mateo',     lastname: 'Rodríguez',  email: 'mateo.rodriguez@email.com',  phone: '099100002' },
+  { name: 'Isabella',  lastname: 'López',      email: 'isabella.lopez@email.com',   phone: '099100003' },
+  { name: 'Benjamín',  lastname: 'Martínez',   email: 'benjamin.martinez@email.com',phone: '099100004' },
+  { name: 'Valentina', lastname: 'González',   email: 'valentina.gonzalez@email.com',phone: '099100005' },
+  { name: 'Santiago',  lastname: 'Pérez',      email: 'santiago.perez@email.com',   phone: '099100006' },
+];
 
-// ── Data de turnos ────────────────────────────────────────
-// Sin price/duration, se resuelven desde SEED_SERVICES según serviceCycle
+// ── Perfiles anónimos (se reutilizan para simular recurrencia) ──
+const ANONYMOUS_PROFILES = [
+  { name: 'Juan',      lastname: 'García',    phone: '099300001' },
+  { name: 'Carlos',    lastname: 'Rodríguez', phone: '099300002' },
+  { name: 'Miguel',    lastname: 'Martínez',  phone: '099300003' },
+  { name: 'Diego',     lastname: 'López',     phone: '099300004' },
+  { name: 'Alejandro', lastname: 'González',  phone: '099300005' },
+  { name: 'Facundo',   lastname: 'Pérez',     phone: '099300006' },
+  { name: 'Lautaro',   lastname: 'Silva',     phone: '099300007' },
+  { name: 'Emilia',    lastname: 'Díaz',      phone: '099300008' },
+  { name: 'Valentina', lastname: 'Torres',    phone: '099300009' },
+  { name: 'Camila',    lastname: 'Romero',    phone: '099300010' },
+  { name: 'Lucía',     lastname: 'Álvarez',   phone: '099300011' },
+  { name: 'Martina',   lastname: 'Moreno',    phone: '099300012' },
+  { name: 'Florencia', lastname: 'Muñoz',     phone: '099300013' },
+  { name: 'Agustina',  lastname: 'Rojas',     phone: '099300014' },
+  { name: 'Julieta',   lastname: 'Castillo',  phone: '099300015' },
+];
+
+// ── Data de turnos ─────────────────────────────────────────
+// registeredClientIdx = índice en REGISTERED_CLIENTS (opcional)
+// Sin registeredClientIdx → se asigna perfil anónimo cíclico
 type RawTurno = {
   barberIdx: number;
   date: string;
   startTime: string;
   endTime: string;
   status: string;
-  isRegistered?: boolean;
+  registeredClientIdx?: number;
 };
+
+// Contador global para asignar perfiles anónimos cíclicamente
+let anonymousCycle = 0;
 
 const TURNOS: RawTurno[] = [
   // ── Enero ──────────────────────────────────────────
   { barberIdx: 0, date: '2026-01-05', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-01-05', startTime: '10:00', endTime: '10:30', status: 'Completado' },
-  { barberIdx: 1, date: '2026-01-07', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 1, date: '2026-01-07', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 0 },
   { barberIdx: 1, date: '2026-01-07', startTime: '10:00', endTime: '10:40', status: 'Completado' },
   { barberIdx: 2, date: '2026-01-09', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-01-12', startTime: '09:00', endTime: '09:30', status: 'Completado' },
@@ -49,7 +77,7 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 0, date: '2026-01-12', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-01-15', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-01-15', startTime: '09:00', endTime: '09:30', status: 'NoShow' },
-  { barberIdx: 2, date: '2026-01-19', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-01-19', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 1 },
   { barberIdx: 2, date: '2026-01-19', startTime: '10:00', endTime: '10:45', status: 'Completado' },
   { barberIdx: 0, date: '2026-01-22', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-01-26', startTime: '09:00', endTime: '09:30', status: 'Completado' },
@@ -59,11 +87,11 @@ const TURNOS: RawTurno[] = [
 
   // ── Febrero ────────────────────────────────────────
   { barberIdx: 0, date: '2026-02-02', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-02-02', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-02-02', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 2 },
   { barberIdx: 1, date: '2026-02-04', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-02-04', startTime: '10:00', endTime: '10:40', status: 'Completado' },
   { barberIdx: 2, date: '2026-02-06', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-02-09', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-02-09', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 3 },
   { barberIdx: 0, date: '2026-02-09', startTime: '10:00', endTime: '10:50', status: 'Completado' },
   { barberIdx: 1, date: '2026-02-11', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-02-13', startTime: '09:00', endTime: '09:30', status: 'Completado' },
@@ -77,12 +105,12 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 1, date: '2026-02-18', startTime: '14:00', endTime: '14:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-02-20', startTime: '09:00', endTime: '09:30', status: 'Cancelado' },
   { barberIdx: 2, date: '2026-02-23', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 2, date: '2026-02-23', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-02-23', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 4 },
   { barberIdx: 0, date: '2026-02-25', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-02-25', startTime: '10:00', endTime: '10:30', status: 'Completado' },
 
   // ── Marzo ──────────────────────────────────────────
-  { barberIdx: 0, date: '2026-03-02', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-03-02', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 5 },
   { barberIdx: 0, date: '2026-03-02', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-03-02', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-03-04', startTime: '09:00', endTime: '09:30', status: 'Completado' },
@@ -90,7 +118,7 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 2, date: '2026-03-06', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-03-06', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-03-09', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-03-09', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-03-09', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 0 },
   { barberIdx: 0, date: '2026-03-09', startTime: '11:00', endTime: '11:45', status: 'Completado' },
   { barberIdx: 1, date: '2026-03-11', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-03-13', startTime: '09:00', endTime: '09:30', status: 'Completado' },
@@ -98,7 +126,7 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 0, date: '2026-03-16', startTime: '10:00', endTime: '10:30', status: 'Cancelado' },
   { barberIdx: 0, date: '2026-03-16', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-03-18', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 1, date: '2026-03-18', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 1, date: '2026-03-18', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 1 },
   { barberIdx: 1, date: '2026-03-18', startTime: '11:00', endTime: '11:30', status: 'NoShow' },
   { barberIdx: 1, date: '2026-03-18', startTime: '14:00', endTime: '14:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-03-20', startTime: '09:00', endTime: '09:30', status: 'Completado' },
@@ -106,7 +134,7 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 0, date: '2026-03-23', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-03-23', startTime: '10:00', endTime: '10:30', status: 'Cancelado' },
   { barberIdx: 1, date: '2026-03-25', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 2, date: '2026-03-27', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-03-27', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 2 },
   { barberIdx: 2, date: '2026-03-27', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-03-30', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-03-30', startTime: '10:00', endTime: '10:30', status: 'Completado' },
@@ -116,12 +144,12 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 0, date: '2026-04-01', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-04-03', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-04-06', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 2, date: '2026-04-06', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-04-06', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 3 },
   { barberIdx: 2, date: '2026-04-06', startTime: '11:00', endTime: '11:30', status: 'Confirmado' },
   { barberIdx: 0, date: '2026-04-08', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-04-10', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-04-10', startTime: '10:00', endTime: '10:30', status: 'Cancelado' },
-  { barberIdx: 0, date: '2026-04-13', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-04-13', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 4 },
   { barberIdx: 0, date: '2026-04-13', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-04-13', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-04-13', startTime: '14:00', endTime: '14:30', status: 'Completado' },
@@ -132,14 +160,14 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 2, date: '2026-04-22', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-04-22', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-04-24', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-04-27', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-04-27', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 3 },
   { barberIdx: 0, date: '2026-04-27', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-04-27', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-04-29', startTime: '09:00', endTime: '09:30', status: 'Completado' },
 
   // ── Mayo ───────────────────────────────────────────
   { barberIdx: 0, date: '2026-05-04', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-05-04', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-05-04', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 5 },
   { barberIdx: 0, date: '2026-05-04', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-04', startTime: '14:00', endTime: '14:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-04', startTime: '15:00', endTime: '15:30', status: 'Completado' },
@@ -151,21 +179,21 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 0, date: '2026-05-11', startTime: '10:00', endTime: '10:40', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-11', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-05-13', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 1, date: '2026-05-13', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 1, date: '2026-05-13', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 0 },
   { barberIdx: 2, date: '2026-05-15', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-05-15', startTime: '10:00', endTime: '10:30', status: 'NoShow' },
   { barberIdx: 0, date: '2026-05-18', startTime: '09:00', endTime: '09:30', status: 'Cancelado' },
-  { barberIdx: 0, date: '2026-05-18', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-05-18', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 1 },
   { barberIdx: 0, date: '2026-05-18', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-18', startTime: '14:00', endTime: '14:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-18', startTime: '15:00', endTime: '15:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-18', startTime: '16:00', endTime: '16:30', status: 'Confirmado' },
   { barberIdx: 1, date: '2026-05-20', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-05-20', startTime: '10:00', endTime: '10:30', status: 'Completado' },
-  { barberIdx: 2, date: '2026-05-22', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-05-22', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 2 },
   { barberIdx: 2, date: '2026-05-22', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-05-25', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-05-25', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-05-25', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 2 },
   { barberIdx: 1, date: '2026-05-27', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-05-27', startTime: '10:00', endTime: '10:30', status: 'Completado' },
 
@@ -179,7 +207,7 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 2, date: '2026-06-03', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-08', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-08', startTime: '10:00', endTime: '10:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-06-08', startTime: '11:00', endTime: '11:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-06-08', startTime: '11:00', endTime: '11:30', status: 'Completado', registeredClientIdx: 5 },
   { barberIdx: 0, date: '2026-06-08', startTime: '14:00', endTime: '14:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-08', startTime: '15:00', endTime: '15:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-08', startTime: '16:00', endTime: '16:30', status: 'Completado' },
@@ -200,13 +228,13 @@ const TURNOS: RawTurno[] = [
   { barberIdx: 0, date: '2026-06-15', startTime: '14:00', endTime: '14:20', status: 'Completado' },
   { barberIdx: 1, date: '2026-06-17', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-06-17', startTime: '09:00', endTime: '09:30', status: 'NoShow' },
-  { barberIdx: 0, date: '2026-06-20', startTime: '09:00', endTime: '10:00', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-06-20', startTime: '09:00', endTime: '10:00', status: 'Completado', registeredClientIdx: 4 },
   { barberIdx: 0, date: '2026-06-20', startTime: '10:00', endTime: '10:30', status: 'NoShow' },
-  { barberIdx: 1, date: '2026-06-22', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 1, date: '2026-06-22', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 0 },
   { barberIdx: 2, date: '2026-06-22', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-06-22', startTime: '10:00', endTime: '10:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-24', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 0, date: '2026-06-24', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 0, date: '2026-06-24', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 3 },
   { barberIdx: 0, date: '2026-06-24', startTime: '11:00', endTime: '11:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-24', startTime: '14:00', endTime: '14:30', status: 'Completado' },
   { barberIdx: 0, date: '2026-06-24', startTime: '15:00', endTime: '15:30', status: 'Cancelado' },
@@ -219,12 +247,12 @@ const TURNOS: RawTurno[] = [
 
   // ── Julio (pocos, para tendencia) ───────────────────
   { barberIdx: 1, date: '2026-07-01', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 2, date: '2026-07-01', startTime: '09:00', endTime: '09:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-07-01', startTime: '09:00', endTime: '09:30', status: 'Completado', registeredClientIdx: 5 },
   { barberIdx: 1, date: '2026-07-08', startTime: '09:00', endTime: '09:30', status: 'Cancelado' },
   { barberIdx: 2, date: '2026-07-08', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 1, date: '2026-07-15', startTime: '09:00', endTime: '09:30', status: 'Completado' },
   { barberIdx: 2, date: '2026-07-15', startTime: '09:00', endTime: '09:30', status: 'Completado' },
-  { barberIdx: 2, date: '2026-07-15', startTime: '10:00', endTime: '10:30', status: 'Completado', isRegistered: true },
+  { barberIdx: 2, date: '2026-07-15', startTime: '10:00', endTime: '10:30', status: 'Completado', registeredClientIdx: 4 },
   { barberIdx: 1, date: '2026-07-22', startTime: '09:00', endTime: '09:30', status: 'Completado' },
 ];
 
@@ -253,14 +281,29 @@ async function getOrCreateBarber(email: string, name: string, lastname: string):
   return barber._id as mongoose.Types.ObjectId;
 }
 
-async function getOrCreateRegisteredClient(): Promise<mongoose.Types.ObjectId> {
-  const existing = await RegisteredClient.findOne({ email: CLIENT_EMAIL });
-  if (existing) return existing._id as mongoose.Types.ObjectId;
-  const client = await RegisteredClient.create({
-    email: CLIENT_EMAIL, name: 'Test', lastname: 'Registered',
-    phone: '099999996', password: 'not-used', authProvider: 'local',
-  });
-  return client._id as mongoose.Types.ObjectId;
+async function getOrCreateRegisteredClients(): Promise<mongoose.Types.ObjectId[]> {
+  const ids: mongoose.Types.ObjectId[] = [];
+  for (const profile of REGISTERED_CLIENTS) {
+    const existing = await RegisteredClient.findOne({ email: profile.email });
+    if (existing) {
+      ids.push(existing._id as mongoose.Types.ObjectId);
+    } else {
+      const client = await RegisteredClient.create({
+        email: profile.email,
+        name: profile.name,
+        lastname: profile.lastname,
+        phone: profile.phone,
+        password: 'not-used',
+        authProvider: 'local',
+      });
+      ids.push(client._id as mongoose.Types.ObjectId);
+    }
+  }
+  return ids;
+}
+
+function getAnonymousProfile(index: number) {
+  return ANONYMOUS_PROFILES[index % ANONYMOUS_PROFILES.length];
 }
 
 async function seedAll() {
@@ -272,8 +315,8 @@ async function seedAll() {
   );
   console.log(`${BARBERS.length} barberos listos`);
 
-  const registeredClientId = await getOrCreateRegisteredClient();
-  console.log('Cliente registrado de prueba listo');
+  const registeredClientIds = await getOrCreateRegisteredClients();
+  console.log(`${REGISTERED_CLIENTS.length} clientes registrados listos`);
 
   let count = 0;
   const countsByService = new Map<string, number>();
@@ -285,12 +328,31 @@ async function seedAll() {
     const serviceIdx = SERVICE_CYCLE[count % SERVICE_CYCLE.length];
     const service = SEED_SERVICES[serviceIdx];
 
+    let clientName: string;
+    let clientLastname: string;
+    let clientPhone: string | undefined;
+    let clientId: mongoose.Types.ObjectId | undefined;
+
+    if (t.registeredClientIdx !== undefined) {
+      const profile = REGISTERED_CLIENTS[t.registeredClientIdx];
+      clientName = profile.name;
+      clientLastname = profile.lastname;
+      clientPhone = profile.phone;
+      clientId = registeredClientIds[t.registeredClientIdx];
+    } else {
+      const profile = getAnonymousProfile(anonymousCycle++);
+      clientName = profile.name;
+      clientLastname = profile.lastname;
+      clientPhone = profile.phone;
+      clientId = undefined;
+    }
+
     await AppointmentModel.create({
       barberId: barberIds[t.barberIdx],
-      clientName: `${TEST_PREFIX}${count}`,
-      clientLastname: 'Seed',
-      clientId: t.isRegistered ? registeredClientId : undefined,
-      clientPhone: t.isRegistered ? undefined : '099999995',
+      clientName,
+      clientLastname,
+      clientId,
+      clientPhone,
       serviceId: service.id,
       serviceName: service.name,
       servicePrice: service.price,
@@ -326,14 +388,12 @@ async function seedAll() {
 
 async function cleanupTestData() {
   await mongoose.connect(process.env.MONGO_URI as string);
-  const appsViejo = await AppointmentModel.deleteMany({ clientName: /^TEST_/ });
-  const appsNuevo = await AppointmentModel.deleteMany({ clientName: { $regex: `^${TEST_PREFIX}` } });
-  const totalApps = appsViejo.deletedCount + appsNuevo.deletedCount;
-  await RegisteredClient.deleteMany({ email: CLIENT_EMAIL });
-  await Employee.deleteMany({
-    email: { $regex: /analytics-test|seed-/ },
-  });
-  console.log(`Limpieza completada: ${totalApps} turnos eliminados`);
+  const seedBarbers = await Employee.find({ email: { $regex: /^seed-/ } });
+  const seedBarberIds = seedBarbers.map(b => b._id);
+  const appsDeleted = await AppointmentModel.deleteMany({ barberId: { $in: seedBarberIds } });
+  await Employee.deleteMany({ email: { $regex: /^seed-/ } });
+  await RegisteredClient.deleteMany({ email: { $regex: /(^seed-reg@|@email\.com$)/ } });
+  console.log(`Limpieza completada: ${appsDeleted.deletedCount} turnos eliminados, barberos y clientes seed eliminados`);
 }
 
 const COMMAND = process.argv[2];

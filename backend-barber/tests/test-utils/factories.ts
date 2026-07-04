@@ -83,7 +83,7 @@ export async function seedAdmin(overrides?: {
     password: passwordHash,
     name: 'Admin',
     lastname: 'Test',
-    phone: overrides?.phone || '099111111',
+    phone: overrides?.phone || `099${String(Date.now()).slice(-6)}`,
     services: [],
     isActive: true,
     slotDuration: 30,

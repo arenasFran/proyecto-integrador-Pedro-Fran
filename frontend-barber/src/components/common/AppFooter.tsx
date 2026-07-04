@@ -22,7 +22,7 @@ export const AppFooter: React.FC = () => {
   };
 
   return (
-    <footer className="bg-[#1A1A1A] border-t border-[#282828] px-[5vw] pt-14 pb-8">
+    <footer className="bg-[#1A1A1A] border-t border-[#282828] px-[5vw] pt-6 pb-8">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr] gap-10 pb-11 border-b border-white/10">
         <div>
           <button onClick={() => navigate('/')} className="flex items-center gap-2 mb-3">

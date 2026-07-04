@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiMessageCircle, FiUser } from 'react-icons/fi';
-import { Button } from '../../../components/common';
+import { AppFooter, Button } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
 import { getTokenUser } from '../../../utils/token';
@@ -27,27 +27,27 @@ const fadeUp = {
 
 const services = [
   {
-    name: 'Corte clásico',
+    name: 'Corte de pelo',
     desc: 'Tijera y máquina, terminación prolija, lavado incluido.',
-    price: '$ 450',
+    price: '$ 490',
     bgPosition: '20% 78%',
   },
   {
-    name: 'Barba y perfilado',
+    name: 'Corte a máquina',
     desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
-    price: '$ 380',
+    price: '$ 350',
     bgPosition: '60% 10%',
   },
   {
-    name: 'Corte + barba',
+    name: 'Barba.',
     desc: 'El combo de siempre, a un precio mejor que separado.',
     price: '$ 720',
     bgPosition: '80% 55%',
   },
   {
-    name: 'Afeitado tradicional',
+    name: 'Combo x2',
     desc: 'Espuma, navaja y paciencia. El servicio de la casa.',
-    price: '$ 400',
+    price: '$ 450 c/u',
     bgPosition: '40% 95%',
   },
 ];
@@ -263,7 +263,7 @@ export const LandingPage: React.FC = () => {
             Servicios
           </h2>
           <p className="text-[#8A8A8A] mt-3 text-base leading-relaxed">
-            Cuatro cosas, bien hechas. Sin menú de 40 ítems ni promos confusas.
+            Cuatro cosas, bien hecha y todas traen bebida incluída.
           </p>
         </motion.div>
 
@@ -450,20 +450,6 @@ export const LandingPage: React.FC = () => {
               >
                 <FiInstagram className="w-5 h-5" />
               </a>
-              <a
-                href="#"
-                aria-label="WhatsApp"
-                className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-white/85 hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
-              >
-                <FiMessageCircle className="w-5 h-5" />
-              </a>
-              <a
-                href="#"
-                aria-label="Facebook"
-                className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-white/85 hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
-              >
-                <span className="text-[13px] font-semibold">FB</span>
-              </a>
             </div>
           </motion.div>
 
@@ -493,51 +479,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer className="bg-[#1A1A1A] border-t border-[#282828] px-[5vw] pt-14 pb-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr] gap-10 pb-11 border-b border-white/10">
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-12 w-auto" />
-              <span className="text-[15px] font-bold text-white">Barbería SA</span>
-            </div>
-            <p className="text-[#8A8A8A] text-sm leading-relaxed max-w-[280px]">
-              Oficio de barbero, agenda de hoy. Reservá tu turno en menos de un minuto.
-            </p>
-          </div>
-          <div>
-            <h4 className="text-[11px] uppercase tracking-wide text-[#8A8A8A] mb-4">Navegar</h4>
-            <button onClick={() => scrollTo('servicios')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
-              Servicios
-            </button>
-            <button onClick={() => navigate('/reservar')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
-              Reservar
-            </button>
-          </div>
-          <div>
-            <h4 className="text-[11px] uppercase tracking-wide text-[#8A8A8A] mb-4">Cuenta</h4>
-            <button onClick={() => navigate('/login')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
-              Iniciar sesión
-            </button>
-            <button onClick={() => navigate('/register')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
-              Registrarse
-            </button>
-            <button onClick={() => navigate('/mis-turnos')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
-              Mis turnos
-            </button>
-          </div>
-          <div>
-            <h4 className="text-[11px] uppercase tracking-wide text-[#8A8A8A] mb-4">Seguinos</h4>
-            <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Instagram</a>
-            <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">WhatsApp</a>
-            <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Facebook</a>
-          </div>
-        </div>
-        <div className="flex justify-between items-center pt-6 text-xs text-[#8A8A8A] flex-wrap gap-3">
-          <span>&copy; {new Date().getFullYear()} Barbería SA. Todos los derechos reservados.</span>
-          <span>Montevideo, Uruguay</span>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 };

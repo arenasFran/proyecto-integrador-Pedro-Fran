@@ -1,9 +1,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
-import { AnimatedContainer } from '../../../components/common';
+import { AnimatedContainer, AppFooter } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
-import { PublicFooter } from '../../../components/client/PublicFooter';
 import {
   AccordionStep,
   ClientDataOverlay,
@@ -274,7 +273,7 @@ export const BookingPage: React.FC = () => {
         onClose={() => setShowClientForm(false)}
       />
 
-      <PublicFooter />
+      <AppFooter />
     </div>
   );
 };

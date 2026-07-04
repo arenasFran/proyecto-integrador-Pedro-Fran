@@ -140,8 +140,8 @@ export const LandingPage: React.FC = () => {
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-[5vw]">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
-            <span className="text-[15px] font-bold text-white">Barbería SA</span>
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-12 sm:h-16 w-auto" />
+            <span className="hidden sm:inline text-[15px] font-bold text-white">Barbería SA</span>
           </Link>
 
           <div className="flex items-center gap-3">

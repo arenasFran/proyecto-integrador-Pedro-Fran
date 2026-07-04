@@ -76,18 +76,6 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
   const registrados = useMemo(() => nuevos.filter(c => c.kind === 'Registrado').length, [nuevos]);
   const anonimos = useMemo(() => nuevos.length - registrados, [nuevos, registrados]);
 
-  const tendencia = useMemo(() => {
-    const weeks: Record<string, number> = {};
-    for (const c of nuevos) {
-      const d = new Date(c.firstVisit);
-      const weekStart = new Date(d);
-      weekStart.setDate(d.getDate() - d.getDay() + 1);
-      const key = weekStart.toISOString().slice(0, 10);
-      weeks[key] = (weeks[key] ?? 0) + 1;
-    }
-    return Object.entries(weeks).sort(([a], [b]) => a.localeCompare(b));
-  }, [nuevos]);
-
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Nuevos clientes" size="lg">
       {isLoading ? (
@@ -108,26 +96,6 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
               <span className="text-[28px] font-bold text-gray-400">{anonimos}</span>
             </div>
           </div>
-
-          {tendencia.length > 0 && (
-            <div>
-              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Tendencia semanal</span>
-              <div className="flex items-end gap-1.5 mt-1.5 h-16">
-                {tendencia.map(([week, count]) => {
-                  const maxCount = Math.max(...tendencia.map(([, c]) => c), 1);
-                  const height = (count / maxCount) * 100;
-                  const label = week.slice(5);
-                  return (
-                    <div key={week} className="flex flex-col items-center gap-0.5 flex-1">
-                      <span className="text-[9px] text-[#8A8A8A]">{count}</span>
-                      <div className="w-full rounded-t-[3px] bg-[#FF5C00]" style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }} />
-                      <span className="text-[8px] text-[#6A6A6A]">{label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div>
             <div className="flex items-center justify-between mb-2">

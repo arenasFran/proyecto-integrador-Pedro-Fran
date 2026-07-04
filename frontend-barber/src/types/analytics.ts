@@ -31,6 +31,31 @@ export interface DistribucionData {
 
 export type Granularidad = 'diario' | 'semanal' | 'mensual' | 'anual';
 
+export interface HoraEntry {
+  hora: number;
+  cantidad: number;
+}
+
+export interface DiaSemanaEntry {
+  dia: number;
+  diaNombre: string;
+  cantidad: number;
+}
+
+export interface ClientesRecurrentesData {
+  totalClientes: number;
+  recurrentes: number;
+  tasaRetorno: number;
+  nuevos: number;
+}
+
+export interface IngresoServicioEntry {
+  serviceId: string;
+  serviceName: string;
+  cantidad: number;
+  ingresos: number;
+}
+
 export interface ReportFilters {
   granularidad: Granularidad;
   barberId?: string;

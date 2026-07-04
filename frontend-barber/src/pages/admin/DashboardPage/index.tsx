@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { FiBarChart2, FiCalendar, FiGrid, FiPieChart } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiGrid, FiPieChart, FiClock, FiDollarSign } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
@@ -12,13 +12,19 @@ import HeatmapChart from './components/HeatmapChart';
 import ReservasChart from './components/ReservasChart';
 import GananciasChart from './components/GananciasChart';
 import DistribucionDonut from './components/DistribucionDonut';
+import HourDistributionChart from './components/HourDistributionChart';
+import DayOfWeekChart from './components/DayOfWeekChart';
+import BarberComparisonTable from './components/BarberComparisonTable';
+import RevenueByServiceChart from './components/RevenueByServiceChart';
 
-type TabKey = 'resumen' | 'tendencia' | 'distribucion';
+type TabKey = 'resumen' | 'tendencia' | 'distribucion' | 'horario' | 'servicios';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType }[] = [
   { key: 'resumen', label: 'Resumen', icon: FiGrid },
   { key: 'tendencia', label: 'Tendencia', icon: FiBarChart2 },
   { key: 'distribucion', label: 'Distribución', icon: FiPieChart },
+  { key: 'horario', label: 'Horario', icon: FiClock },
+  { key: 'servicios', label: 'Servicios', icon: FiDollarSign },
 ];
 
 function getThisMonthRange() {
@@ -133,22 +139,18 @@ export default function DashboardPage() {
           <AnimatedContainer animation="fadeInUp" delay={0.15}>
             <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
           </AnimatedContainer>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2">
-            <AnimatedContainer animation="fadeInUp" delay={0.2}>
-              <KpiCards data={overview ?? null} loading={loading} error={error} />
-            </AnimatedContainer>
-          </div>
-          <div>
-            <AnimatedContainer animation="fadeInUp" delay={0.3}>
-              <StatusBreakdown
-                data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
-                loading={loading}
-                error={error}
-              />
-            </AnimatedContainer>
-          </div>
-        </div>
+          <AnimatedContainer animation="fadeInUp" delay={0.2}>
+            <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} />
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
+            <StatusBreakdown
+              data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
+              loading={loading}
+              error={error}
+              desde={desde}
+              hasta={hasta}
+            />
+          </AnimatedContainer>
         </>
       )}
 
@@ -167,8 +169,30 @@ export default function DashboardPage() {
       )}
 
       {activeTab === 'distribucion' && (
+        <div className="flex flex-col gap-5">
+          <AnimatedContainer animation="fadeInUp" delay={0.2}>
+            <DistribucionDonut />
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
+            <BarberComparisonTable />
+          </AnimatedContainer>
+        </div>
+      )}
+
+      {activeTab === 'horario' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <AnimatedContainer animation="fadeInUp" delay={0.2}>
+            <HourDistributionChart />
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
+            <DayOfWeekChart />
+          </AnimatedContainer>
+        </div>
+      )}
+
+      {activeTab === 'servicios' && (
         <AnimatedContainer animation="fadeInUp" delay={0.2}>
-          <DistribucionDonut />
+          <RevenueByServiceChart />
         </AnimatedContainer>
       )}
     </div>

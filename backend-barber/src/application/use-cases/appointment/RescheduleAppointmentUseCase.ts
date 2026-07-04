@@ -1,4 +1,4 @@
-import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
@@ -156,6 +156,16 @@ export class RescheduleAppointmentUseCase {
         409
       );
     }
+
+    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
+    const actor = (userKind && actorMap[userKind]) || 'cliente';
+    await this.appointmentRepository.updateStatus(id, {
+      statusHistoryEntry: {
+        status: updated.status,
+        timestamp: new Date(),
+        actor: `${actor} (reprogramado)`,
+      },
+    });
 
     // RN17 — Email notification (async)
     const clientEmail = updated.clientEmail;

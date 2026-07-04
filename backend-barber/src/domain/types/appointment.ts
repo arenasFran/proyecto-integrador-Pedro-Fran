@@ -1,6 +1,6 @@
 export type AppointmentStatus = 'Confirmado' | 'Completado' | 'Cancelado' | 'NoShow';
 
-export type PaymentStatus = 'Pendiente' | 'Pagado';
+export type PaymentStatus = 'Pendiente' | 'Pagado' | 'Cancelado';
 
 export type PaymentMethod = 'local' | 'online' | 'memberPass';
 

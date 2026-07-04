@@ -1,6 +1,19 @@
 import Joi from 'joi';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const OBJECT_ID = /^[a-fA-F0-9]{24}$/;
+
+const rangeValidation = (value: { desde: string; hasta: string; }, helpers: Joi.CustomHelpers) => {
+  if (value.desde > value.hasta) {
+    return helpers.message({ custom: '"desde" no puede ser posterior a "hasta".' });
+  }
+  const diffMs = new Date(value.hasta).getTime() - new Date(value.desde).getTime();
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  if (diffDays > 731) {
+    return helpers.message({ custom: 'El rango máximo permitido es de 2 años.' });
+  }
+  return value;
+};
 
 export const overviewQuerySchema = Joi.object({
   preset: Joi.string().valid('hoy', 'ayer', 'semana', 'mes', 'year'),
@@ -29,19 +42,7 @@ export const overviewQuerySchema = Joi.object({
 export const distribucionQuerySchema = Joi.object({
   desde: Joi.string().pattern(ISO_DATE).required(),
   hasta: Joi.string().pattern(ISO_DATE).required(),
-}).custom((value, helpers) => {
-  if (value.desde > value.hasta) {
-    return helpers.message({ custom: '"desde" no puede ser posterior a "hasta".' });
-  }
-  const diffMs = new Date(value.hasta).getTime() - new Date(value.desde).getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  if (diffDays > 731) {
-    return helpers.message({ custom: 'El rango máximo permitido es de 2 años.' });
-  }
-  return value;
-});
-
-const OBJECT_ID = /^[a-fA-F0-9]{24}$/;
+}).custom(rangeValidation);
 
 export const reservasGananciasQuerySchema = Joi.object({
   desde: Joi.string().pattern(ISO_DATE).required(),
@@ -50,17 +51,34 @@ export const reservasGananciasQuerySchema = Joi.object({
   barberId: Joi.string().pattern(OBJECT_ID),
   serviceId: Joi.string(),
   status: Joi.string(),
-}).custom((value, helpers) => {
-  if (value.desde > value.hasta) {
-    return helpers.message({ custom: '"desde" no puede ser posterior a "hasta".' });
-  }
-  const diffMs = new Date(value.hasta).getTime() - new Date(value.desde).getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  if (diffDays > 731) {
-    return helpers.message({ custom: 'El rango máximo permitido es de 2 años.' });
-  }
-  return value;
-});
+}).custom(rangeValidation);
+
+export const horasQuerySchema = Joi.object({
+  desde: Joi.string().pattern(ISO_DATE).required(),
+  hasta: Joi.string().pattern(ISO_DATE).required(),
+  barberId: Joi.string().pattern(OBJECT_ID),
+}).custom(rangeValidation);
+
+export const diasSemanaQuerySchema = Joi.object({
+  desde: Joi.string().pattern(ISO_DATE).required(),
+  hasta: Joi.string().pattern(ISO_DATE).required(),
+  barberId: Joi.string().pattern(OBJECT_ID),
+}).custom(rangeValidation);
+
+export const clientesRecurrentesQuerySchema = Joi.object({
+  desde: Joi.string().pattern(ISO_DATE).required(),
+  hasta: Joi.string().pattern(ISO_DATE).required(),
+}).custom(rangeValidation);
+
+export const ingresosServicioQuerySchema = Joi.object({
+  desde: Joi.string().pattern(ISO_DATE).required(),
+  hasta: Joi.string().pattern(ISO_DATE).required(),
+}).custom(rangeValidation);
+
+export const clientesListQuerySchema = Joi.object({
+  desde: Joi.string().pattern(ISO_DATE).required(),
+  hasta: Joi.string().pattern(ISO_DATE).required(),
+}).custom(rangeValidation);
 
 const CURRENT_YEAR = new Date().getFullYear();
 

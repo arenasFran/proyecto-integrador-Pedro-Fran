@@ -91,12 +91,10 @@ export class UpdateAppointmentStatusUseCase {
 
     const updateData: UpdateStatusData = {
       status: appointment.status,
+      paymentStatus: appointment.paymentStatus,
       statusHistoryEntry: lastEntry,
     };
 
-    if (dto.status === 'Completado') {
-      updateData.paymentStatus = 'Pagado';
-    }
     if (appointment.cancelReason) {
       updateData.cancelReason = appointment.cancelReason;
     }

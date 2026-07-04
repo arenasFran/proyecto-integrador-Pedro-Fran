@@ -32,7 +32,7 @@ describe('QuickCreateModal', () => {
   it('renders modal title with date', () => {
     renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
     expect(screen.getByText(/nuevo turno/i)).toBeInTheDocument();
-    expect(screen.getByText(/2026-07-05/i)).toBeInTheDocument();
+    expect(screen.getByText(/05\/07\/2026/i)).toBeInTheDocument();
   });
 
   it('renders all required form fields', () => {

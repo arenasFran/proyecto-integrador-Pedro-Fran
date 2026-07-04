@@ -5,14 +5,15 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
   helperText?: string;
   icon?: React.ReactNode;
+  containerClass?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, helperText, icon, className = '', ...props }, ref) => {
+  ({ label, error, helperText, icon, className = '', containerClass, ...props }, ref) => {
     const generatedId = useId();
     const inputId = props.id ?? generatedId;
     return (
-      <div className="flex flex-col gap-1">
+      <div className={`flex flex-col gap-1 ${containerClass ?? ''}`}>
         <label className="text-[13px] font-medium text-white" htmlFor={inputId}>
           {label}
           {props.required && (

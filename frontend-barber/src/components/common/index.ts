@@ -19,3 +19,4 @@ export { ImageUpload } from './ImageUpload';
 export { StatsCards } from './StatsCards';
 export type { Stats } from './StatsCards';
 export { AppFooter } from './AppFooter';
+export { DatePicker } from './DatePicker';

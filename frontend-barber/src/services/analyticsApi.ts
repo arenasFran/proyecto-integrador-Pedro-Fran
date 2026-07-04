@@ -1,9 +1,15 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type {
+  ClienteData,
+  ClientAppointmentEntry,
+  ClientesRecurrentesData,
   DistribucionData,
+  DiaSemanaEntry,
   Granularidad,
   HeatmapEntry,
+  HoraEntry,
+  IngresoServicioEntry,
   OverviewData,
   ReservasGananciasEntry,
 } from '../types/analytics';
@@ -36,6 +42,34 @@ export const analyticsApi = createApi({
       }),
     }),
 
+    getHoras: builder.query<HoraEntry[], { desde: string; hasta: string; barberId?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/charts/horas',
+        params,
+      }),
+    }),
+
+    getDiasSemana: builder.query<DiaSemanaEntry[], { desde: string; hasta: string; barberId?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/charts/dias-semana',
+        params,
+      }),
+    }),
+
+    getClientesRecurrentes: builder.query<ClientesRecurrentesData, { desde: string; hasta: string }>({
+      query: (params) => ({
+        url: '/api/analytics/charts/clientes-recurrentes',
+        params,
+      }),
+    }),
+
+    getIngresosPorServicio: builder.query<IngresoServicioEntry[], { desde: string; hasta: string }>({
+      query: (params) => ({
+        url: '/api/analytics/charts/ingresos-servicio',
+        params,
+      }),
+    }),
+
     getDistribucion: builder.query<DistribucionData, { desde: string; hasta: string }>({
       query: (params) => ({
         url: '/api/analytics/charts/distribucion',
@@ -46,6 +80,19 @@ export const analyticsApi = createApi({
     getAvailableYears: builder.query<number[], void>({
       query: () => ({ url: '/api/analytics/years' }),
     }),
+
+    getClientesList: builder.query<ClienteData[], { desde: string; hasta: string }>({
+      query: (params) => ({
+        url: '/api/analytics/clientes',
+        params,
+      }),
+    }),
+
+    getClientAppointments: builder.query<ClientAppointmentEntry[], string>({
+      query: (clientKey) => ({
+        url: `/api/analytics/clientes/${clientKey}/turnos`,
+      }),
+    }),
   }),
 });
 
@@ -55,4 +102,10 @@ export const {
   useGetReservasGananciasQuery,
   useGetDistribucionQuery,
   useGetAvailableYearsQuery,
+  useGetHorasQuery,
+  useGetDiasSemanaQuery,
+  useGetClientesRecurrentesQuery,
+  useGetIngresosPorServicioQuery,
+  useGetClientesListQuery,
+  useGetClientAppointmentsQuery,
 } = analyticsApi;

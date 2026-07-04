@@ -82,6 +82,31 @@ export const appointmentApi = createApi({
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
     }),
+
+    markAsPaid: builder.mutation<{ message: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/api/appointments/${id}/payment`,
+        method: 'PATCH',
+      }),
+      invalidatesTags: ['Appointments', 'Appointment'],
+    }),
+
+    sendReminder: builder.mutation<{ message: string }, { id: string }>({
+      query: ({ id }) => ({
+        url: `/api/appointments/${id}/send-reminder`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Appointments'],
+    }),
+
+    changeBarber: builder.mutation<{ message: string }, { id: string; barberId: string }>({
+      query: ({ id, barberId }) => ({
+        url: `/api/appointments/${id}/change-barber`,
+        method: 'PATCH',
+        data: { barberId },
+      }),
+      invalidatesTags: ['Appointments', 'Appointment'],
+    }),
   }),
 });
 
@@ -93,4 +118,7 @@ export const {
   useCancelAppointmentMutation,
   useUpdateAppointmentStatusMutation,
   useRescheduleAppointmentMutation,
+  useMarkAsPaidMutation,
+  useSendReminderMutation,
+  useChangeBarberMutation,
 } = appointmentApi;

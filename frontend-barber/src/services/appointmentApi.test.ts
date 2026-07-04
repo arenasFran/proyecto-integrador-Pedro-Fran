@@ -87,6 +87,34 @@ describe('appointmentApi', () => {
         data: { date: '2025-06-17', startTime: '11:00', barberId: 'b1' },
       });
     });
+
+    it('markAsPaid envía PATCH al nuevo endpoint', async () => {
+      mockApi.mockResolvedValueOnce({ data: { message: 'Pagado' } });
+      const store = createStore();
+      await store.dispatch(appointmentApi.endpoints.markAsPaid.initiate({ id: 'apt-1' }));
+      expect(mockApi).toHaveBeenCalledWith({
+        url: '/api/appointments/apt-1/payment', method: 'PATCH',
+      });
+    });
+
+    it('sendReminder envía POST al nuevo endpoint', async () => {
+      mockApi.mockResolvedValueOnce({ data: { message: 'Recordatorio enviado' } });
+      const store = createStore();
+      await store.dispatch(appointmentApi.endpoints.sendReminder.initiate({ id: 'apt-1' }));
+      expect(mockApi).toHaveBeenCalledWith({
+        url: '/api/appointments/apt-1/send-reminder', method: 'POST',
+      });
+    });
+
+    it('changeBarber envía PATCH con barberId', async () => {
+      mockApi.mockResolvedValueOnce({ data: { message: 'Barbero cambiado' } });
+      const store = createStore();
+      await store.dispatch(appointmentApi.endpoints.changeBarber.initiate({ id: 'apt-1', barberId: 'barber-2' }));
+      expect(mockApi).toHaveBeenCalledWith({
+        url: '/api/appointments/apt-1/change-barber', method: 'PATCH',
+        data: { barberId: 'barber-2' },
+      });
+    });
   });
 
   describe('manejo de errores', () => {

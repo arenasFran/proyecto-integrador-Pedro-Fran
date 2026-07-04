@@ -3,11 +3,14 @@ import { CreateAppointmentUseCase } from '../../../application/use-cases/appoint
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
+import { UpdatePaymentStatusUseCase } from '../../../application/use-cases/appointment/UpdatePaymentStatusUseCase';
+import { SendReminderUseCase } from '../../../application/use-cases/appointment/SendReminderUseCase';
+import { ChangeBarberUseCase } from '../../../application/use-cases/appointment/ChangeBarberUseCase';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
-import type { AppointmentStatus } from '../../../domain/types/appointment';
+import type { AppointmentStatus, PaymentStatus } from '../../../domain/types/appointment';
 
 export class AppointmentController {
   constructor(
@@ -16,7 +19,10 @@ export class AppointmentController {
     private readonly createAppointment: CreateAppointmentUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
-    private readonly rescheduleAppointment: RescheduleAppointmentUseCase
+    private readonly rescheduleAppointment: RescheduleAppointmentUseCase,
+    private readonly updatePaymentStatus: UpdatePaymentStatusUseCase,
+    private readonly sendReminder: SendReminderUseCase,
+    private readonly changeBarberUseCase: ChangeBarberUseCase
   ) {}
 
   create = async (req: Request, res: Response) => {
@@ -45,7 +51,7 @@ export class AppointmentController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; searchTerm?: string; page?: number; limit?: number; sortBy?: 'date' | 'startTime'; sortDir?: 'asc' | 'desc' } = {};
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; paymentStatus?: PaymentStatus; searchTerm?: string; page?: number; limit?: number; sortBy?: 'date' | 'startTime'; sortDir?: 'asc' | 'desc' } = {};
 
       if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
@@ -59,6 +65,7 @@ export class AppointmentController {
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
       if (req.query.status) query.status = req.query.status as AppointmentStatus;
       if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod as string;
+      if (req.query.paymentStatus) query.paymentStatus = req.query.paymentStatus as PaymentStatus;
       if (req.query.searchTerm) query.searchTerm = req.query.searchTerm as string;
       if (req.query.sortBy === 'date' || req.query.sortBy === 'startTime') query.sortBy = req.query.sortBy;
       if (req.query.sortDir === 'asc' || req.query.sortDir === 'desc') query.sortDir = req.query.sortDir;
@@ -177,6 +184,50 @@ export class AppointmentController {
       return sendSuccess(res, result, 200);
     } catch (error) {
       return sendError(res, error, 'Error al reagendar el turno');
+    }
+  };
+
+  markAsPaid = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+      const result = await this.updatePaymentStatus.execute(
+        id,
+        req.user!._id,
+        req.user!.kind
+      );
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al registrar el pago');
+    }
+  };
+
+  sendReminderEmail = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+      const result = await this.sendReminder.execute(
+        id,
+        req.user!._id,
+        req.user!.kind
+      );
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al enviar recordatorio');
+    }
+  };
+
+  changeBarberHandler = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+      const { barberId } = req.body;
+      const result = await this.changeBarberUseCase.execute(
+        id,
+        barberId,
+        req.user!._id,
+        req.user!.kind
+      );
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al cambiar el barbero');
     }
   };
 }

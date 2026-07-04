@@ -245,6 +245,90 @@ describeIfMongo('MongoAnalyticsRepository', () => {
     });
   });
 
+  describe('getHorasDistribution', () => {
+    it('agrupa por hora extrayendo los 2 primeros caracteres de startTime', async () => {
+      const result = await repository.getHorasDistribution(DESDE, HASTA);
+
+      expect(result.length).toBe(1);
+      expect(result[0]).toEqual({ hora: 10, cantidad: 7 });
+    });
+
+    it('filtra por barberId', async () => {
+      const result = await repository.getHorasDistribution(DESDE, HASTA, barber1Id.toString());
+
+      expect(result.length).toBe(1);
+      expect(result[0]).toEqual({ hora: 10, cantidad: 4 });
+    });
+
+    it('devuelve array vacío para rango sin datos', async () => {
+      const result = await repository.getHorasDistribution('2030-01-01', '2030-01-31');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getDiasSemanaDistribution', () => {
+    it('agrupa por día de la semana con nombre en español (solo días con datos)', async () => {
+      const result = await repository.getDiasSemanaDistribution(DESDE, HASTA);
+
+      expect(result.length).toBe(5);
+      const jueves = result.find(r => r.diaNombre === 'Jueves');
+      expect(jueves).toBeDefined();
+      expect(jueves!.cantidad).toBe(2);
+      const martes = result.find(r => r.diaNombre === 'Martes');
+      expect(martes).toBeDefined();
+      expect(martes!.cantidad).toBe(2);
+    });
+
+    it('filtra por barberId', async () => {
+      const result = await repository.getDiasSemanaDistribution(DESDE, HASTA, barber1Id.toString());
+
+      expect(result.length).toBe(4);
+      const jueves = result.find(r => r.diaNombre === 'Jueves');
+      expect(jueves!.cantidad).toBe(1);
+    });
+
+    it('devuelve array vacío para rango sin datos', async () => {
+      const result = await repository.getDiasSemanaDistribution('2030-01-01', '2030-01-31');
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getClientesRecurrentes', () => {
+    it('calcula tasa de retorno con clientes que tienen 2+ visitas', async () => {
+      const result = await repository.getClientesRecurrentes(DESDE, HASTA);
+
+      expect(result.totalClientes).toBe(5);
+      expect(result.recurrentes).toBe(2);
+      expect(result.tasaRetorno).toBe(40);
+      expect(result.nuevos).toBe(5);
+    });
+
+    it('devuelve ceros para rango sin datos', async () => {
+      const result = await repository.getClientesRecurrentes('2030-01-01', '2030-01-31');
+
+      expect(result.totalClientes).toBe(0);
+      expect(result.recurrentes).toBe(0);
+      expect(result.tasaRetorno).toBe(0);
+      expect(result.nuevos).toBe(0);
+    });
+  });
+
+  describe('getIngresosPorServicio', () => {
+    it('agrupa ingresos por serviceName ordenado descendente', async () => {
+      const result = await repository.getIngresosPorServicio(DESDE, HASTA);
+
+      expect(result.length).toBe(1);
+      expect(result[0].serviceName).toBe('Corte');
+      expect(result[0].cantidad).toBe(7);
+      expect(result[0].ingresos).toBe(1580);
+    });
+
+    it('devuelve array vacío para rango sin datos', async () => {
+      const result = await repository.getIngresosPorServicio('2030-01-01', '2030-01-31');
+      expect(result).toEqual([]);
+    });
+  });
+
   describe('getAvailableYears', () => {
     it('devuelve años únicos ordenados descendentemente', async () => {
       const result = await repository.getAvailableYears();

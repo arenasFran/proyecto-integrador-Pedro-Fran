@@ -2,6 +2,9 @@ import { CreateAppointmentUseCase } from '../application/use-cases/appointment/C
 import { CancelAppointmentUseCase } from '../application/use-cases/appointment/CancelAppointmentUseCase';
 import { UpdateAppointmentStatusUseCase } from '../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
 import { RescheduleAppointmentUseCase } from '../application/use-cases/appointment/RescheduleAppointmentUseCase';
+import { UpdatePaymentStatusUseCase } from '../application/use-cases/appointment/UpdatePaymentStatusUseCase';
+import { SendReminderUseCase } from '../application/use-cases/appointment/SendReminderUseCase';
+import { ChangeBarberUseCase } from '../application/use-cases/appointment/ChangeBarberUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
@@ -48,6 +51,18 @@ export const buildAppointmentRouter = () => {
     emailService,
     blockRepository
   );
+  const updatePaymentStatus = new UpdatePaymentStatusUseCase(
+    appointmentRepository
+  );
+  const sendReminder = new SendReminderUseCase(
+    appointmentRepository,
+    barberRepository,
+    emailService
+  );
+  const changeBarber = new ChangeBarberUseCase(
+    appointmentRepository,
+    barberRepository
+  );
 
   const appointmentController = new AppointmentController(
     appointmentRepository,
@@ -55,7 +70,10 @@ export const buildAppointmentRouter = () => {
     createAppointment,
     cancelAppointment,
     updateAppointmentStatus,
-    rescheduleAppointment
+    rescheduleAppointment,
+    updatePaymentStatus,
+    sendReminder,
+    changeBarber
   );
 
   const authenticate = createAuthenticate(tokenService);

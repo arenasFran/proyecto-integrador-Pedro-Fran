@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp } from 'react-icons/fi';
 import { Spinner } from '../../../components/common/Spinner';
-import { DateRangeFilter } from '../../../components/common/DateRangeFilter';
+import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { ClientHistoryModal } from '../DashboardPage/components/ClientHistoryModal';
 import type { ClienteData } from '../../../types/analytics';
@@ -71,7 +71,7 @@ export default function ClientsPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <DateRangeFilter desde={desde} hasta={hasta} onDesdeChange={setDesde} onHastaChange={setHasta} />
+        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} skipMountEffect />
         <div className="relative flex-1 max-w-xs">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6A6A6A]" size={16} />
           <input

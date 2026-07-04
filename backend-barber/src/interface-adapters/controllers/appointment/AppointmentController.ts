@@ -10,7 +10,7 @@ import { MongoAppointmentRepository } from '../../../infrastructure/repositories
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
-import type { AppointmentStatus } from '../../../domain/types/appointment';
+import type { AppointmentStatus, PaymentStatus } from '../../../domain/types/appointment';
 
 export class AppointmentController {
   constructor(
@@ -51,7 +51,7 @@ export class AppointmentController {
 
   getAll = async (req: Request, res: Response) => {
     try {
-      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; searchTerm?: string; page?: number; limit?: number; sortBy?: 'date' | 'startTime'; sortDir?: 'asc' | 'desc' } = {};
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; paymentStatus?: PaymentStatus; searchTerm?: string; page?: number; limit?: number; sortBy?: 'date' | 'startTime'; sortDir?: 'asc' | 'desc' } = {};
 
       if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
@@ -65,6 +65,7 @@ export class AppointmentController {
       if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
       if (req.query.status) query.status = req.query.status as AppointmentStatus;
       if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod as string;
+      if (req.query.paymentStatus) query.paymentStatus = req.query.paymentStatus as PaymentStatus;
       if (req.query.searchTerm) query.searchTerm = req.query.searchTerm as string;
       if (req.query.sortBy === 'date' || req.query.sortBy === 'startTime') query.sortBy = req.query.sortBy;
       if (req.query.sortDir === 'asc' || req.query.sortDir === 'desc') query.sortDir = req.query.sortDir;

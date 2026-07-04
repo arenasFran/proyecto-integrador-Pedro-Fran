@@ -55,11 +55,14 @@ function originBadge(cb?: CreatedBy) {
 }
 
 function paymentBadge(ps: Appointment['paymentStatus']) {
-  const isPaid = ps === 'Pagado';
+  const styles: Record<string, { bg: string; text: string }> = {
+    Pendiente: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+    Pagado: { bg: 'bg-green-500/10', text: 'text-green-400' },
+    Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400' },
+  };
+  const s = styles[ps] ?? styles.Pendiente;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${isPaid ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-      {isPaid ? 'Pagado' : 'Pendiente'}
-    </span>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}>{ps}</span>
   );
 }
 

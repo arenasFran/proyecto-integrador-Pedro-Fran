@@ -88,8 +88,10 @@ export default function DateRangeFilter({ onChange, defaultPreset = 'semana', sk
   useEffect(() => {
     if (!initialised.current && !skipMountEffect) {
       initialised.current = true;
-      const { desde, hasta } = resolvePreset(defaultPreset);
-      onChangeRef.current(desde, hasta);
+      if (typeof onChangeRef.current === 'function') {
+        const { desde, hasta } = resolvePreset(defaultPreset);
+        onChangeRef.current(desde, hasta);
+      }
     }
   }, [defaultPreset, skipMountEffect]);
 

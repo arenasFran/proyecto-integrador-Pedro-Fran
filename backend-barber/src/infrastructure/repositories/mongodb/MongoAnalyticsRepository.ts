@@ -215,6 +215,157 @@ export class MongoAnalyticsRepository {
     return result.map(r => r.year);
   }
 
+  async getHorasDistribution(desde: string, hasta: string, barberId?: string): Promise<{ hora: number; cantidad: number }[]> {
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+
+    const matchStage: Record<string, unknown> = {
+      dateObj: { $gte: desdeDate, $lte: hastaDate },
+      status: { $in: STATUS_CATEGORIES.countsAsActivity },
+    };
+    if (barberId) matchStage.barberId = new mongoose.Types.ObjectId(barberId);
+
+    const pipeline = [
+      DATE_CONVERSION_STAGE,
+      { $match: matchStage },
+      {
+        $group: {
+          _id: { $substrCP: ['$startTime', 0, 2] },
+          cantidad: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, hora: { $toInt: '$_id' }, cantidad: 1 } },
+      { $sort: { hora: 1 } },
+    ] as mongoose.PipelineStage[];
+
+    return AppointmentModel.aggregate(pipeline);
+  }
+
+  async getDiasSemanaDistribution(desde: string, hasta: string, barberId?: string): Promise<{ dia: number; diaNombre: string; cantidad: number }[]> {
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+
+    const matchStage: Record<string, unknown> = {
+      dateObj: { $gte: desdeDate, $lte: hastaDate },
+      status: { $in: STATUS_CATEGORIES.countsAsActivity },
+    };
+    if (barberId) matchStage.barberId = new mongoose.Types.ObjectId(barberId);
+
+    const DIAS_NOMBRE = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+    const pipeline = [
+      DATE_CONVERSION_STAGE,
+      { $match: matchStage },
+      {
+        $group: {
+          _id: { $dayOfWeek: '$dateObj' },
+          cantidad: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          dia: '$_id',
+          diaNombre: { $arrayElemAt: [DIAS_NOMBRE, { $subtract: ['$_id', 1] }] },
+          cantidad: 1,
+        },
+      },
+      { $sort: { dia: 1 } },
+    ] as mongoose.PipelineStage[];
+
+    return AppointmentModel.aggregate(pipeline);
+  }
+
+  async getClientesRecurrentes(desde: string, hasta: string): Promise<{ totalClientes: number; recurrentes: number; tasaRetorno: number; nuevos: number }> {
+    const pipeline = [
+      DATE_CONVERSION_STAGE,
+      { $match: { dateObj: { $gte: new Date(desde), $lte: new Date(hasta) }, status: { $in: STATUS_CATEGORIES.countsAsActivity } } },
+      {
+        $group: {
+          _id: { $ifNull: ['$clientId', '$clientPhone'] },
+          visitas: { $sum: 1 },
+          primerTurno: { $min: '$date' },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          visitas: 1,
+          esRecurrente: { $gte: ['$visitas', 2] },
+          esNuevo: { $and: [{ $gte: ['$primerTurno', desde] }, { $lte: ['$primerTurno', hasta] }] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalClientes: { $sum: 1 },
+          recurrentes: { $sum: { $cond: ['$esRecurrente', 1, 0] } },
+          nuevos: { $sum: { $cond: ['$esNuevo', 1, 0] } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          totalClientes: 1,
+          recurrentes: 1,
+          tasaRetorno: {
+            $cond: [
+              { $gt: ['$totalClientes', 0] },
+              { $round: [{ $multiply: [{ $divide: ['$recurrentes', '$totalClientes'] }, 100] }, 1] },
+              0,
+            ],
+          },
+          nuevos: 1,
+        },
+      },
+    ] as mongoose.PipelineStage[];
+
+    const result = await AppointmentModel.aggregate(pipeline);
+    return result[0] ?? { totalClientes: 0, recurrentes: 0, tasaRetorno: 0, nuevos: 0 };
+  }
+
+  async getIngresosPorServicio(desde: string, hasta: string): Promise<{ serviceId: string; serviceName: string; cantidad: number; ingresos: number }[]> {
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+
+    const pipeline = [
+      DATE_CONVERSION_STAGE,
+      {
+        $match: {
+          dateObj: { $gte: desdeDate, $lte: hastaDate },
+          status: { $in: STATUS_CATEGORIES.countsAsActivity },
+        },
+      },
+      {
+        $group: {
+          _id: { serviceId: '$serviceId', serviceName: '$serviceName' },
+          cantidad: { $sum: 1 },
+          ingresos: {
+            $sum: {
+              $cond: [
+                { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                '$servicePrice',
+                0,
+              ],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          serviceId: '$_id.serviceId',
+          serviceName: '$_id.serviceName',
+          cantidad: 1,
+          ingresos: 1,
+        },
+      },
+      { $sort: { ingresos: -1 } },
+    ] as mongoose.PipelineStage[];
+
+    return AppointmentModel.aggregate(pipeline);
+  }
+
   async getReservasGanancias(filters: ReservasGananciasFilters): Promise<ReservasGananciasEntry[]> {
     const desdeDate = new Date(filters.desde);
     const hastaDate = new Date(filters.hasta);

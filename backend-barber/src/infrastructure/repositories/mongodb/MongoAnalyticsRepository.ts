@@ -407,9 +407,9 @@ export class MongoAnalyticsRepository {
         $group: {
           _id: {
             $cond: [
-              { $ne: ['$clientId', undefined] },
+              { $ne: [{ $type: '$clientId' }, 'missing'] },
               { $concat: ['reg_', { $toString: '$clientId' }] },
-              { $cond: [{ $ne: ['$clientPhone', undefined] }, { $concat: ['anon_', '$clientPhone'] }, 'anon_unknown'] },
+              { $cond: [{ $ne: [{ $type: '$clientPhone' }, 'missing'] }, { $concat: ['anon_', '$clientPhone'] }, 'anon_unknown'] },
             ],
           },
           originalClientId: { $first: '$clientId' },
@@ -445,7 +445,7 @@ export class MongoAnalyticsRepository {
             ],
           },
           kind: {
-            $cond: [{ $ne: ['$originalClientId', undefined] }, 'Registrado', 'NoRegistrado'],
+            $cond: [{ $ne: ['$originalClientId', null] }, 'Registrado', 'NoRegistrado'],
           },
         },
       },
@@ -453,7 +453,13 @@ export class MongoAnalyticsRepository {
         $project: {
           _id: 0,
           key: '$_id',
-          clientId: { $toString: '$originalClientId' },
+          clientId: {
+            $cond: [
+              { $ne: [{ $type: '$originalClientId' }, 'missing'] },
+              { $toString: '$originalClientId' },
+              null,
+            ],
+          },
           clientName: 1,
           clientLastname: 1,
           clientPhone: 1,
@@ -463,8 +469,6 @@ export class MongoAnalyticsRepository {
           totalSpent: 1,
           firstVisit: 1,
           lastVisit: 1,
-          registeredInfo: 0,
-          originalClientId: 0,
         },
       },
       { $sort: { lastVisit: -1 } },

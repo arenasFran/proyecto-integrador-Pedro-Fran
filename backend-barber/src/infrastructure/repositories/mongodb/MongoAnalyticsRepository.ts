@@ -10,6 +10,7 @@ export type OverviewResult = {
   totalReservas: number;
   duracionTotalMinutos: number;
   ingresosTotales: number;
+  ingresosPendientes: number;
   nuevosClientes: number;
   estadisticasPorEstado: Record<string, number>;
 };
@@ -69,6 +70,10 @@ export class MongoAnalyticsRepository {
             { $match: { status: { $in: STATUS_CATEGORIES.countsAsRevenue } } },
             { $group: { _id: null, total: { $sum: '$servicePrice' } } },
           ],
+          ingresosPendientes: [
+            { $match: { paymentStatus: 'Pendiente', status: { $in: STATUS_CATEGORIES.countsAsDuration } } },
+            { $group: { _id: null, total: { $sum: '$servicePrice' } } },
+          ],
           estadisticasPorEstado: [
             { $group: { _id: '$status', count: { $sum: 1 } } },
           ],
@@ -77,7 +82,7 @@ export class MongoAnalyticsRepository {
     ] as mongoose.PipelineStage[];
 
     const facetResult = await AppointmentModel.aggregate(facetPipeline);
-    const data = facetResult[0] || { totalReservas: [], duracionTotalMinutos: [], ingresosTotales: [], estadisticasPorEstado: [] };
+    const data = facetResult[0] || { totalReservas: [], duracionTotalMinutos: [], ingresosTotales: [], ingresosPendientes: [], estadisticasPorEstado: [] };
 
     const registeredPipeline = [
       { $match: { clientId: { $exists: true } } } as mongoose.PipelineStage,
@@ -109,6 +114,7 @@ export class MongoAnalyticsRepository {
       totalReservas: (data.totalReservas as Array<{ count: number }>)[0]?.count ?? 0,
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
       ingresosTotales: (data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0,
+      ingresosPendientes: (data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0,
       nuevosClientes: (registrados[0]?.total ?? 0) + (noRegistrados[0]?.total ?? 0),
       estadisticasPorEstado,
     };

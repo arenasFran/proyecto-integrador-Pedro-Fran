@@ -11,6 +11,7 @@ export type AppointmentFilters = {
   clientPhone?: string;
   date?: string;
   status?: AppointmentStatus;
+  paymentStatus?: PaymentStatus;
   paymentMethod?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -101,6 +102,17 @@ export class MongoAppointmentRepository {
     }
     if (filters.paymentMethod) {
       query.paymentMethod = filters.paymentMethod;
+    }
+    if (filters.paymentStatus) {
+      query.paymentStatus = filters.paymentStatus;
+      if (filters.paymentStatus === 'Pendiente') {
+        if (filters.status) {
+          const statusQ = Array.isArray(query.status) ? query.status : [query.status as string];
+          query.status = { $in: statusQ, $nin: ['Cancelado', 'NoShow'] };
+        } else {
+          query.status = { $nin: ['Cancelado', 'NoShow'] };
+        }
+      }
     }
     if (filters.clientEmail || filters.clientPhone) {
       const orConditions: Record<string, unknown>[] = [];

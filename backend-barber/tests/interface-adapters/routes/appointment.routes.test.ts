@@ -561,7 +561,7 @@ describeIfMongo('Appointment routes — integración real', () => {
 
       const updated = await AppointmentModel.findById(appointmentId);
       expect(updated!.status).toBe('Completado');
-      expect(updated!.paymentStatus).toBe('Pagado');
+      expect(updated!.paymentStatus).toBe('Pendiente');
     });
 
     it('admin cancela con razón', async () => {

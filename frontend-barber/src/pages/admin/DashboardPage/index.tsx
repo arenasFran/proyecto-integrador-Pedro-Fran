@@ -133,24 +133,18 @@ export default function DashboardPage() {
           <AnimatedContainer animation="fadeInUp" delay={0.15}>
             <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
           </AnimatedContainer>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2">
-            <AnimatedContainer animation="fadeInUp" delay={0.2}>
-              <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} />
-            </AnimatedContainer>
-          </div>
-          <div>
-            <AnimatedContainer animation="fadeInUp" delay={0.3}>
-              <StatusBreakdown
-                data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
-                loading={loading}
-                error={error}
-                desde={desde}
-                hasta={hasta}
-              />
-            </AnimatedContainer>
-          </div>
-        </div>
+          <AnimatedContainer animation="fadeInUp" delay={0.2}>
+            <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} />
+          </AnimatedContainer>
+          <AnimatedContainer animation="fadeInUp" delay={0.3}>
+            <StatusBreakdown
+              data={overview ? { estadisticasPorEstado: overview.estadisticasPorEstado } : null}
+              loading={loading}
+              error={error}
+              desde={desde}
+              hasta={hasta}
+            />
+          </AnimatedContainer>
         </>
       )}
 

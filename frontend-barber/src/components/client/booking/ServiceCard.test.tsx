@@ -10,6 +10,7 @@ const mockService: Service = {
   description: 'Corte clásico',
   price: 1500,
   imageUrl: '',
+  status: 'active',
 };
 
 describe('ServiceCard', () => {

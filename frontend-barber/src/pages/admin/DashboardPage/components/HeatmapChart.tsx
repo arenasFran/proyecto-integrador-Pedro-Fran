@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Select } from '../../../../components/common/Select';
+import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
 
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -36,6 +37,7 @@ function formatDate(dateStr: string): string {
 export default function HeatmapChart() {
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
   const [tooltip, setTooltip] = useState<{ fecha: string; cantidad: number; x: number; y: number } | null>(null);
+  const [modalDate, setModalDate] = useState<string | null>(null);
 
   const { data: availableYears = [], isLoading: yearsLoading } = useGetAvailableYearsQuery();
   const mostRecentYear = availableYears[0];
@@ -173,6 +175,11 @@ export default function HeatmapChart() {
                       <div
                         key={`${wi}-${di}`}
                         className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, maxCantidad) : 'transparent'} cursor-pointer relative`}
+                        onClick={() => {
+                          if (day.date) {
+                            setModalDate(day.date);
+                          }
+                        }}
                         onMouseEnter={(e) => {
                           if (day.date) {
                             const rect = (e.target as HTMLElement).getBoundingClientRect();
@@ -210,6 +217,13 @@ export default function HeatmapChart() {
         <div className="w-3 h-3 rounded-sm bg-[#FF5C00]" />
         <span className="text-[#8A8A8A] text-xs">Más</span>
       </div>
+
+      <AppointmentListModal
+        isOpen={modalDate !== null}
+        onClose={() => setModalDate(null)}
+        title={`Turnos del ${modalDate ? formatDate(modalDate) : ''}`}
+        params={{ dateFrom: modalDate ?? undefined, dateTo: modalDate ?? undefined }}
+      />
     </div>
   );
 }

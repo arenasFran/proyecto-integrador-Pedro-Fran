@@ -11,6 +11,7 @@ import {
   createAppointmentSchema,
   rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
+  changeBarberSchema,
 } from '../validators/appointment.validator';
 
 const anonymousLimiter = rateLimit({
@@ -74,6 +75,30 @@ export const createAppointmentRouter = (deps: {
     deps.authenticate,
     validate({ params: appointmentIdParamSchema, body: rescheduleAppointmentSchema }),
     deps.appointmentController.reschedule
+  );
+
+  router.patch(
+    '/:id/payment',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ params: appointmentIdParamSchema }),
+    deps.appointmentController.markAsPaid
+  );
+
+  router.post(
+    '/:id/send-reminder',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ params: appointmentIdParamSchema }),
+    deps.appointmentController.sendReminderEmail
+  );
+
+  router.patch(
+    '/:id/change-barber',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ params: appointmentIdParamSchema, body: changeBarberSchema }),
+    deps.appointmentController.changeBarberHandler
   );
 
   return router;

@@ -58,7 +58,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'Completado',
-      paymentStatus: 'Pagado',
+      paymentStatus: 'Pendiente',
       statusHistoryEntry: { status: 'Completado', timestamp: expect.any(Date), actor: 'empleado' },
     });
     expect(result.message).toMatch(/Completado/);
@@ -80,6 +80,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
       cancelReason: 'No asistio',
       cancelledAt: expect.any(Date),
       cancelledBy: 'admin',
+      paymentStatus: 'Cancelado',
       statusHistoryEntry: { status: 'Cancelado', timestamp: expect.any(Date), actor: 'admin' },
     });
     expect(result.message).toMatch(/Cancelado/);
@@ -120,6 +121,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'NoShow',
+      paymentStatus: 'Cancelado',
       statusHistoryEntry: { status: 'NoShow', timestamp: expect.any(Date), actor: 'empleado' },
     });
     expect(result.message).toMatch(/NoShow/);

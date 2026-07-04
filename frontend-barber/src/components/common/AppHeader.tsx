@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiChevronDown, FiLogOut, FiMenu, FiScissors, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiLogOut, FiMenu, FiPlus, FiScissors, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';
@@ -9,9 +9,10 @@ import api from '../../services/api';
 
 interface AppHeaderProps {
   onToggleSidebar?: () => void;
+  onQuickCreate?: () => void;
 }
 
-export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {} }) => {
+export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}, onQuickCreate }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -64,6 +65,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
           </button>
         </div>
 
+        {tokenKind === 'Admin' && onQuickCreate && (
+          <button
+            onClick={onQuickCreate}
+            className="mr-2 flex items-center gap-1.5 rounded-[10px] border border-[#FF5C00]/30 px-3 py-1.5 text-[13px] text-[#FF5C00] hover:bg-[#FF5C00]/10 transition-colors"
+          >
+            <FiPlus className="text-sm" />
+            <span className="hidden sm:inline">Nuevo turno</span>
+          </button>
+        )}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}

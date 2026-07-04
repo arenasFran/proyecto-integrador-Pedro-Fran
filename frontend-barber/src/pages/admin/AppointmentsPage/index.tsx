@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiCalendar,
@@ -8,24 +9,30 @@ import {
   FiChevronUp,
   FiClock,
   FiDownload,
+  FiInfo,
   FiMoreVertical,
   FiScissors,
   FiSettings,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast } from '../../../components/common';
-import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast, DatePicker } from '../../../components/common';
+import DateRangeFilter, { detectPreset } from '../../../components/common/DateRangeFilter';
+import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
 import { formatDate } from '../../../utils/formatDate';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { fetchBarbers } from '../../../store/slices/barbersSlice';
 import {
   useCancelAppointmentMutation,
+  useChangeBarberMutation,
   useGetAppointmentsPaginatedQuery,
+  useMarkAsPaidMutation,
   useRescheduleAppointmentMutation,
+  useSendReminderMutation,
   useUpdateAppointmentStatusMutation,
 } from '../../../services/appointmentApi';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
+import { AppointmentDetailModal } from './AppointmentDetailModal';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -84,17 +91,34 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
   }, [dispatch, barbers.length]);
 
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
-  const [filterBarberId, setFilterBarberId] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterPaymentMethod, setFilterPaymentMethod] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const filterDateFrom = searchParams.get('dateFrom') ?? '';
+  const filterDateTo = searchParams.get('dateTo') ?? '';
+  const filterBarberId = searchParams.get('barberId') ?? '';
+  const filterStatus = searchParams.get('status') ?? '';
+  const filterPaymentMethod = searchParams.get('paymentMethod') ?? '';
+  const searchTerm = searchParams.get('search') ?? '';
+  const page = Number(searchParams.get('page') ?? '1');
+  const sortBy = (searchParams.get('sortBy') as 'date' | 'time' | null) ?? null;
+  const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') ?? 'asc';
+
+  const updateParams = useCallback((updates: Record<string, string | undefined>, resetPage = true) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) next.set(key, value);
+        else next.delete(key);
+      }
+      if (resetPage) next.delete('page');
+      return next;
+    });
+  }, [setSearchParams]);
+
   const [pageSize, setPageSize] = useState(15);
   const [showCustomize, setShowCustomize] = useState(false);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
-  const [page, setPage] = useState(1);
 
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState('');
@@ -103,33 +127,20 @@ export const AdminAppointmentsPage: React.FC = () => {
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
 
-  const [sortBy, setSortBy] = useState<'date' | 'time' | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
-
   const toggleSort = (column: 'date' | 'time') => {
     if (sortBy === column) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+      updateParams({ sortDir: sortDir === 'asc' ? 'desc' : 'asc' }, false);
     } else {
-      setSortBy(column);
-      setSortDir('asc');
+      updateParams({ sortBy: column, sortDir: 'asc' }, false);
     }
   };
 
   const handleDateRangeChange = (desde: string, hasta: string) => {
-    setFilterDateFrom(desde);
-    setFilterDateTo(hasta);
+    updateParams({ dateFrom: desde, dateTo: hasta });
   };
 
   const clearFilters = () => {
-    setFilterDateFrom('');
-    setFilterDateTo('');
-    setFilterBarberId('');
-    setFilterStatus('');
-    setFilterPaymentMethod('');
-    setSearchTerm('');
-    setSortBy(null);
-    setSortDir('asc');
-    setPage(1);
+    setSearchParams(new URLSearchParams());
   };
 
   const queryParams = useMemo(() => {
@@ -149,7 +160,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     }
     return params;
   }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy, sortDir]);
-  const { data: paginatedData, isLoading, isFetching, error } = useGetAppointmentsPaginatedQuery(queryParams, {
+  const { data: paginatedData, isLoading } = useGetAppointmentsPaginatedQuery(queryParams, {
     pollingInterval: 30000,
   });
 
@@ -169,12 +180,48 @@ export const AdminAppointmentsPage: React.FC = () => {
     return { total, confirmed, completed, cancelled };
   }, [appointments, totalResults]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, pageSize, sortBy, sortDir]);
-
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Appointment | null>(null);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCreateDate, setQuickCreateDate] = useState('');
+  const [changeBarberTarget, setChangeBarberTarget] = useState<Appointment | null>(null);
+  const [changeBarberNewId, setChangeBarberNewId] = useState('');
+  const [combinedActionTarget, setCombinedActionTarget] = useState<{
+    appointment: Appointment;
+    primaryAction: 'Completado' | 'Pagado';
+  } | null>(null);
+
+  const [markAsPaid, { isLoading: isMarkingPaid }] = useMarkAsPaidMutation();
+  const [sendReminder, { isLoading: isSendingReminder }] = useSendReminderMutation();
+  const [changeBarber, { isLoading: isChangingBarber }] = useChangeBarberMutation();
+
+  const handleSendReminder = async (id: string) => {
+    try {
+      await sendReminder({ id }).unwrap();
+      showToast('Recordatorio enviado con éxito');
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
+  };
+
+  const handleDuplicate = (appointment: Appointment) => {
+    setDetailTarget(null);
+    setQuickCreateDate(appointment.date);
+    setShowQuickCreate(true);
+  };
+
+  const handleChangeBarberConfirm = async () => {
+    if (!changeBarberTarget || !changeBarberNewId) return;
+    try {
+      await changeBarber({ id: changeBarberTarget.id, barberId: changeBarberNewId }).unwrap();
+      showToast('Barbero cambiado con éxito');
+      setChangeBarberTarget(null);
+      setChangeBarberNewId('');
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
+  };
 
   const formatTimeRange = (start: string, end: string) => {
     const short = (t: string) => { const [h, m] = t.split(':'); return `${h}:${m}`; };
@@ -182,11 +229,14 @@ export const AdminAppointmentsPage: React.FC = () => {
   };
 
   const paymentBadge = (ps: Appointment['paymentStatus']) => {
-    const isPaid = ps === 'Pagado';
+    const styles: Record<string, { bg: string; text: string }> = {
+      Pendiente: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+      Pagado: { bg: 'bg-green-500/10', text: 'text-green-400' },
+      Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400' },
+    };
+    const s = styles[ps] ?? styles.Pendiente;
     return (
-      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${isPaid ? 'bg-green-500/10 text-green-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
-        {isPaid ? 'Pagado' : 'Pendiente'}
-      </span>
+      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}>{ps}</span>
     );
   };
 
@@ -285,12 +335,18 @@ export const AdminAppointmentsPage: React.FC = () => {
             
           </div>
 
-          <StatsCards stats={stats} />
+          <StatsCards stats={stats} onStatusClick={(s) => { updateParams({ status: s || undefined }); }} />
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
           <div className="flex flex-wrap items-center gap-2 mb-4">
-            <DateRangeFilter onChange={handleDateRangeChange} defaultPreset="semana" />
+            <DateRangeFilter
+              onChange={handleDateRangeChange}
+              defaultPreset={filterDateFrom && filterDateTo ? detectPreset(filterDateFrom, filterDateTo) : 'semana'}
+              skipMountEffect={!!(filterDateFrom || filterDateTo)}
+              initialCustomDesde={filterDateFrom}
+              initialCustomHasta={filterDateTo}
+            />
             <button
               onClick={() => setShowCustomize(!showCustomize)}
               className={`flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-[12px] transition-colors ${showCustomize ? 'border-[#FF5C00] text-white' : 'border-[#282828] text-[#8A8A8A] hover:border-[#FF5C00]/50 hover:text-white'}`}
@@ -307,7 +363,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 <label className="text-[12px] text-[#8A8A8A]">Filas por página</label>
                 <select
                   value={pageSize}
-                  onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+                  onChange={(e) => { setPageSize(Number(e.target.value)); updateParams({ page: '1' }); }}
                   className="h-[34px] rounded-[8px] border border-[#282828] bg-[#121212] px-2 text-[13px] text-white outline-none focus:border-[#FF5C00]"
                 >
                   <option value={10}>10</option>
@@ -324,7 +380,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Select
                 label="Barbero"
                 value={filterBarberId}
-                onChange={setFilterBarberId}
+                onChange={(v) => updateParams({ barberId: v })}
                 options={[
                   { value: '', label: 'Todos' },
                   ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
@@ -335,7 +391,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Select
                 label="Estado"
                 value={filterStatus}
-                onChange={setFilterStatus}
+                onChange={(v) => updateParams({ status: v })}
                 options={[
                   { value: '', label: 'Todos' },
                   { value: 'Confirmado', label: 'Confirmado' },
@@ -349,7 +405,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               <Select
                 label="Método de pago"
                 value={filterPaymentMethod}
-                onChange={setFilterPaymentMethod}
+                onChange={(v) => updateParams({ paymentMethod: v })}
                 options={[
                   { value: '', label: 'Todos' },
                   { value: 'local', label: 'Local' },
@@ -362,7 +418,7 @@ export const AdminAppointmentsPage: React.FC = () => {
               label="Buscar"
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => updateParams({ search: e.target.value })}
               placeholder="Cliente, email o servicio"
               containerClass="w-full sm:w-[200px]"
             />
@@ -419,6 +475,14 @@ export const AdminAppointmentsPage: React.FC = () => {
                         <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
                           {style.label}
                         </span>
+                        <button
+                          onClick={() => setDetailTarget(appointment)}
+                          className="text-[#8A8A8A] hover:text-[#FF5C00] transition-colors shrink-0"
+                          aria-label="Ver detalle completo"
+                          title="Ver detalle completo"
+                        >
+                          <FiInfo className="text-sm" />
+                        </button>
                       </div>
                     </div>
 
@@ -458,11 +522,10 @@ export const AdminAppointmentsPage: React.FC = () => {
                     )}
 
                     {isActive && (
-                      <div className="flex items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5 pt-1 border-t border-[#282828]/50">
                         <button
-                          onClick={() => handleStatusChange(appointment.id, 'Completado')}
-                          disabled={isUpdatingStatus}
-                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50"
+                          onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Completado' }); }}
+                          className="rounded-[8px] border border-green-500/30 p-1.5 text-green-400 hover:bg-green-500/10 transition-colors"
                           title="Marcar como completado"
                         >
                           <FiCheck className="text-sm" />
@@ -543,13 +606,23 @@ export const AdminAppointmentsPage: React.FC = () => {
                         className={`border-b border-[#282828]/50 transition-colors ${isExpanded ? 'bg-[#1A1A1A]' : 'hover:bg-[#1A1A1A]/80'}`}
                       >
                         <td className="py-3 pr-2">
-                          <button
-                            onClick={() => setExpandedId(isExpanded ? null : appointment.id)}
-                            className="text-[#8A8A8A] hover:text-white transition-colors"
-                            aria-label={isExpanded ? 'Colapsar detalle' : 'Expandir detalle'}
-                          >
-                            {isExpanded ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />}
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => setExpandedId(isExpanded ? null : appointment.id)}
+                              className="text-[#8A8A8A] hover:text-white transition-colors"
+                              aria-label={isExpanded ? 'Colapsar detalle' : 'Expandir detalle'}
+                            >
+                              {isExpanded ? <FiChevronDown className="text-sm" /> : <FiChevronRight className="text-sm" />}
+                            </button>
+                            <button
+                              onClick={() => setDetailTarget(appointment)}
+                              className="text-[#8A8A8A] hover:text-[#FF5C00] transition-colors"
+                              aria-label="Ver detalle completo"
+                              title="Ver detalle completo"
+                            >
+                              <FiInfo className="text-sm" />
+                            </button>
+                          </div>
                         </td>
                         <td className="py-3 pr-4">
                           <div className="font-medium text-white">{appointment.clientName} {appointment.clientLastname}</div>
@@ -623,9 +696,8 @@ export const AdminAppointmentsPage: React.FC = () => {
                                       }}
                                     >
                                         <button
-                                          onClick={() => { handleStatusChange(appointment.id, 'Completado'); setActiveMenu(null); setMenuRect(null); }}
-                                          disabled={isUpdatingStatus}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
+                                          onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Completado' }); setActiveMenu(null); setMenuRect(null); }}
+                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors"
                                           aria-label="Marcar como completado"
                                         >
                                           <FiCheck className="text-sm" /> Completado
@@ -742,7 +814,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-            <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+            <Pagination currentPage={page} totalPages={totalPages} onPageChange={(n) => updateParams({ page: String(n) }, false)} />
             </>
           )}
         </AnimatedContainer>
@@ -785,11 +857,10 @@ export const AdminAppointmentsPage: React.FC = () => {
               {rescheduleTarget.clientName} {rescheduleTarget.clientLastname} &mdash; actual: {formatDate(rescheduleTarget.date)} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4">
-              <Input
+              <DatePicker
                 label="Nueva fecha"
-                type="date"
                 value={rescheduleDate}
-                onChange={(e) => setRescheduleDate(e.target.value)}
+                onChange={setRescheduleDate}
               />
               <Input
                 label="Nueva hora"
@@ -838,6 +909,139 @@ export const AdminAppointmentsPage: React.FC = () => {
         variant="danger"
         loading={isUpdatingStatus}
       />
+
+      {combinedActionTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+            {combinedActionTarget.primaryAction === 'Completado' ? (
+              <>
+                <h3 className="text-[18px] font-bold text-white mb-2">Completar turno</h3>
+                <p className="text-[13px] text-[#8A8A8A] mb-4">
+                  {combinedActionTarget.appointment.clientName} {combinedActionTarget.appointment.clientLastname} &mdash; ¿el cliente ya pagó?
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={async () => {
+                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isUpdatingStatus}
+                  >
+                    Solo completar
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
+                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
+                      showToast('Turno completado y pago registrado');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isUpdatingStatus || isMarkingPaid}
+                    variant="secondary"
+                  >
+                    Completar y marcar pagado
+                  </Button>
+                  <Button variant="secondary" onClick={() => setCombinedActionTarget(null)}>
+                    Volver
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-[18px] font-bold text-white mb-2">Registrar pago</h3>
+                <p className="text-[13px] text-[#8A8A8A] mb-4">
+                  {combinedActionTarget.appointment.clientName} {combinedActionTarget.appointment.clientLastname} &mdash; ¿el servicio ya se completó?
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button
+                    onClick={async () => {
+                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
+                      showToast('Pago registrado con éxito');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isMarkingPaid}
+                  >
+                    Solo marcar pagado
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
+                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
+                      showToast('Turno completado y pago registrado');
+                      setCombinedActionTarget(null);
+                    }}
+                    loading={isUpdatingStatus || isMarkingPaid}
+                    variant="secondary"
+                  >
+                    Marcar pagado y completar
+                  </Button>
+                  <Button variant="secondary" onClick={() => setCombinedActionTarget(null)}>
+                    Volver
+                  </Button>
+                </div>
+              </>
+            )}
+          </AnimatedContainer>
+        </div>
+      )}
+
+      <AppointmentDetailModal
+        appointment={detailTarget}
+        isOpen={detailTarget !== null}
+        onClose={() => setDetailTarget(null)}
+        onComplete={(appt) => { setCombinedActionTarget({ appointment: appt, primaryAction: 'Completado' }); setDetailTarget(null); }}
+        onNoShow={(id) => { setConfirmTarget({ id, action: 'NoShow' }); setDetailTarget(null); }}
+        onCancel={(appt) => { setCancelTarget(appt); setCancelReason(''); setDetailTarget(null); }}
+        onReschedule={(appt) => { setRescheduleTarget(appt); setRescheduleDate(appt.date); setRescheduleTime(appt.startTime); setRescheduleBarberId(appt.barberId); setDetailTarget(null); }}
+        onMarkAsPaid={(appt) => { setCombinedActionTarget({ appointment: appt, primaryAction: 'Pagado' }); setDetailTarget(null); }}
+        onDuplicate={handleDuplicate}
+        onSendReminder={handleSendReminder}
+        onChangeBarber={(appt) => { setChangeBarberTarget(appt); setChangeBarberNewId(''); setDetailTarget(null); }}
+        isCompleting={isUpdatingStatus}
+        isMarkingNoShow={isUpdatingStatus}
+        isMarkingPaid={isMarkingPaid}
+        isSendingReminder={isSendingReminder}
+      />
+
+      {changeBarberTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+            <h3 className="text-[18px] font-bold text-white mb-2">Cambiar barbero</h3>
+            <p className="text-[13px] text-[#8A8A8A] mb-4">
+              {changeBarberTarget.clientName} {changeBarberTarget.clientLastname} &mdash; {formatDate(changeBarberTarget.date)} {formatTime(changeBarberTarget.startTime)}
+            </p>
+            <Select
+              label="Nuevo barbero"
+              value={changeBarberNewId}
+              onChange={setChangeBarberNewId}
+              options={[
+                { value: '', label: 'Seleccionar barbero' },
+                ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+              ]}
+            />
+            <div className="flex gap-3 mt-6">
+              <Button variant="secondary" onClick={() => setChangeBarberTarget(null)}>
+                Volver
+              </Button>
+              <Button
+                onClick={handleChangeBarberConfirm}
+                loading={isChangingBarber}
+                disabled={!changeBarberNewId}
+              >
+                Confirmar cambio
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showQuickCreate && (
+        <QuickCreateModal
+          dateStr={quickCreateDate}
+          onClose={() => setShowQuickCreate(false)}
+        />
+      )}
+
     </div>
   );
 };

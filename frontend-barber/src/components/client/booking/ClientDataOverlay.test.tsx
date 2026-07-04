@@ -10,7 +10,7 @@ const mockBarber: BarberPublic = {
 };
 
 const mockService: Service = {
-  id: '1', name: 'Corte', description: 'Corte clásico', price: 1500, imageUrl: '',
+  id: '1', name: 'Corte', description: 'Corte clásico', price: 1500, imageUrl: '', status: 'active',
 };
 
 const defaultProps = {

@@ -6,8 +6,6 @@ import {
   createEmptySchedule,
   days,
   mapScheduleToForm,
-  normalizeServices,
-  scheduleFromForm,
   validateSchedule,
   type ScheduleDayForm,
 } from '../../utils/schedule-helpers';
@@ -316,7 +314,7 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
                 </tr>
               </thead>
               <tbody>
-                {days.map((day, idx) => (
+                {days.map((day, _idx) => (
                   <tr key={day.key} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/50 transition-colors">
                     <td className="py-2.5 pr-3">
                       <span className="text-white font-medium">{day.label}</span>

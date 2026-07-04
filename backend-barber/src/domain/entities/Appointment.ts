@@ -85,6 +85,7 @@ export class Appointment {
       throw new AppError(`No se puede cancelar un turno en estado ${this.props.status}.`, 400);
     }
     this.props.status = 'Cancelado';
+    this.props.paymentStatus = 'Cancelado';
     this.props.cancelReason = reason;
     this.props.cancelledAt = new Date();
     this.props.cancelledBy = cancelledBy;
@@ -116,6 +117,7 @@ export class Appointment {
       throw new AppError(`No se puede marcar como NoShow un turno en estado ${this.props.status}.`, 400);
     }
     this.props.status = 'NoShow';
+    this.props.paymentStatus = 'Cancelado';
     this.addStatusHistoryEntry('NoShow', actor || 'system');
     this.props.updatedAt = new Date();
   }

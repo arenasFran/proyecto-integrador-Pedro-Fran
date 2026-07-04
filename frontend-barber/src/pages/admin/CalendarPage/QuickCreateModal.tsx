@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiUser, FiPhone, FiMail } from 'react-icons/fi';
-import { Modal, Select, Input, Button } from '../../../components/common';
+import { FiUser, FiPhone, FiMail, FiX } from 'react-icons/fi';
+import { Modal, Select, Input, Button, DatePicker } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
@@ -17,6 +17,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const [barberId, setBarberId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedDate, setSelectedDate] = useState(dateStr);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [clientName, setClientName] = useState('');
   const [clientLastname, setClientLastname] = useState('');
@@ -36,9 +37,21 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     setServiceId('');
     setSelectedTime('');
     setAvailableSlots([]);
-    if (id && dateStr) {
+    if (id && selectedDate) {
       professionalService
-        .getSlots(id, dateStr)
+        .getSlots(id, selectedDate)
+        .then((res) => setAvailableSlots(res.slots))
+        .catch(() => setAvailableSlots([]));
+    }
+  };
+
+  const handleDateChange = (newDate: string) => {
+    setSelectedDate(newDate);
+    setSelectedTime('');
+    setAvailableSlots([]);
+    if (barberId && newDate) {
+      professionalService
+        .getSlots(barberId, newDate)
         .then((res) => setAvailableSlots(res.slots))
         .catch(() => setAvailableSlots([]));
     }
@@ -83,7 +96,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
       await createAppointment({
         barberId,
         serviceId,
-        date: dateStr,
+        date: selectedDate,
         startTime: selectedTime,
         clientName: clientName.trim(),
         clientLastname: clientLastname.trim(),
@@ -101,7 +114,20 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   };
 
   return (
-    <Modal isOpen onClose={onClose} title={`Nuevo turno - ${dateStr}`} size="md">
+    <Modal isOpen onClose={onClose} title={undefined} size="md">
+      <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-[18px] font-bold text-white">Nuevo turno</h2>
+          <DatePicker value={selectedDate} onChange={handleDateChange} />
+        </div>
+        <button
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+          aria-label="Cerrar"
+        >
+          <FiX className="w-5 h-5" />
+        </button>
+      </div>
       <div className="flex flex-col gap-4">
         <Select
           label="Barbero"

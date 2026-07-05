@@ -199,22 +199,22 @@ export const ServicesPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4">
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Total</p>
-              <p className="mt-2 text-[24px] font-bold text-white">{services.length}</p>
+          <div className="mt-6 grid gap-3 grid-cols-2 sm:grid-cols-4">
+            <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 sm:p-4">
+              <p className="text-[11px] sm:text-[12px] text-[#8A8A8A]">Total</p>
+              <p className="mt-1.5 text-[18px] sm:text-[24px] font-bold text-white">{services.length}</p>
             </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Activos</p>
-              <p className="mt-2 text-[24px] font-bold text-green-400">{services.filter((s) => s.status === 'active').length}</p>
+            <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 sm:p-4">
+              <p className="text-[11px] sm:text-[12px] text-[#8A8A8A]">Activos</p>
+              <p className="mt-1.5 text-[18px] sm:text-[24px] font-bold text-green-400">{services.filter((s) => s.status === 'active').length}</p>
             </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Inactivos</p>
-              <p className="mt-2 text-[24px] font-bold text-red-400">{services.filter((s) => s.status === 'inactive').length}</p>
+            <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 sm:p-4">
+              <p className="text-[11px] sm:text-[12px] text-[#8A8A8A]">Inactivos</p>
+              <p className="mt-1.5 text-[18px] sm:text-[24px] font-bold text-red-400">{services.filter((s) => s.status === 'inactive').length}</p>
             </div>
-            <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
-              <p className="text-[12px] text-[#8A8A8A]">Eliminados</p>
-              <p className="mt-2 text-[24px] font-bold text-gray-400">{deletedServices.length}</p>
+            <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 sm:p-4">
+              <p className="text-[11px] sm:text-[12px] text-[#8A8A8A]">Eliminados</p>
+              <p className="mt-1.5 text-[18px] sm:text-[24px] font-bold text-gray-400">{deletedServices.length}</p>
             </div>
           </div>
         </AnimatedContainer>

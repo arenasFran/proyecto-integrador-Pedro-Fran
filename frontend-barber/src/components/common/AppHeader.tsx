@@ -83,7 +83,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
               <FiUser className="text-[#FF5C00] text-sm" />
             </div>
             <span className="truncate max-w-[90px] sm:max-w-[120px] md:max-w-[200px]">
-              {user?.name ? `${user.name} ${user.lastname}` : user?.email ?? tokenUser?.email ?? 'Admin'}
+              {user?.name ? `${user.name}` : user?.email ?? tokenUser?.email ?? 'Admin'}
             </span>
             <FiChevronDown className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>

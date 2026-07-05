@@ -26,14 +26,8 @@ const employeeNavItems = [
   { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
-const userNavItems = [
-  { to: '/reservar', icon: FiScissors, label: 'Agendar' },
-  { to: '/mis-turnos', icon: FiCalendar, label: 'Mis turnos' },
-  { to: '/perfil', icon: FiUser, label: 'Perfil' },
-];
-
 export const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, onCloseMobile, mobileOpen, kind }) => {
-  const navItems = kind === 'Admin' ? adminNavItems : kind === 'Empleado' ? employeeNavItems : userNavItems;
+  const navItems = kind === 'Admin' ? adminNavItems : employeeNavItems;
   return (
     <>
       {mobileOpen && (

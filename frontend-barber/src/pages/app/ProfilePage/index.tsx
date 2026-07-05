@@ -49,7 +49,6 @@ export const ProfilePage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
@@ -81,7 +80,7 @@ export const ProfilePage: React.FC = () => {
   const schedule = useMemo(() => {
     if (!isBarber) return createEmptySchedule();
     if (editedSchedule) return editedSchedule;
-    if (barberData?.schedule) return mapScheduleToForm(barberData.schedule as any);
+    if (barberData?.schedule) return mapScheduleToForm(barberData.schedule);
     return createEmptySchedule();
   }, [isBarber, editedSchedule, barberData]);
 
@@ -103,7 +102,7 @@ export const ProfilePage: React.FC = () => {
   const handleDayChange = (day: DayKey, field: keyof ScheduleDayForm) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      const base = editedSchedule ?? (barberData?.schedule ? mapScheduleToForm(barberData.schedule as any) : createEmptySchedule());
+      const base = editedSchedule ?? (barberData?.schedule ? mapScheduleToForm(barberData.schedule) : createEmptySchedule());
       setEditedSchedule({
         ...base,
         [day]: {
@@ -134,7 +133,6 @@ export const ProfilePage: React.FC = () => {
       }
     }
 
-    // TODO: Subir photoFile a Cloudinary/S3 y usar la URL retornada como photoUrl
     setIsSaving(true);
 
     try {
@@ -280,10 +278,9 @@ export const ProfilePage: React.FC = () => {
                 <ImageUpload
                   currentUrl={formData.photoUrl ? String(formData.photoUrl) : null}
                   onFileSelect={(file) => {
-                    setPhotoFile(file);
                     if (file) setEditedFields((prev) => ({ ...prev, photoUrl: null }));
                   }}
-                  helperText={photoFile ? 'Archivo seleccionado.' : 'Arrastrá una imagen o hacé clic para subir'}
+                  helperText="Arrastrá una imagen o hacé clic para subir"
                 />
               </>
             )}

@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheckCircle, FiXCircle, FiX } from 'react-icons/fi';
-
-type ToastType = 'success' | 'error';
+import { ToastContext } from './toastContext';
+import type { ToastType } from './toastContext';
 
 interface ToastItem {
   id: string;
@@ -10,25 +10,16 @@ interface ToastItem {
   type: ToastType;
 }
 
-interface ToastContextValue {
-  showToast: (message: string, type?: ToastType) => void;
-}
-
-const ToastContext = createContext<ToastContextValue>({ showToast: () => {} });
-
-export const useToast = () => useContext(ToastContext);
-
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const showToast = useCallback((message: string, type: ToastType = 'success') => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2);
     setToasts(prev => [...prev, { id, message, type }]);
-    if (type === 'success') {
-      setTimeout(() => {
-        setToasts(prev => prev.filter(t => t.id !== id));
-      }, 3000);
-    }
+    const duration = type === 'error' ? 5000 : 3000;
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, duration);
   }, []);
 
   const removeToast = useCallback((id: string) => {

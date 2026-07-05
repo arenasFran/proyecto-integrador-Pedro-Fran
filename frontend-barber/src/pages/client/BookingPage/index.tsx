@@ -25,8 +25,6 @@ import {
   resetBooking,
 } from '../../../store/slices/bookingSlice';
 import { useGetServicesQuery } from '../../../services/service.api';
-import { authApi } from '../../../services/authApi';
-import { getAccessToken } from '../../../services/api';
 import { formatDate } from '../../../utils/formatDate';
 import type { BookingStep, BarberPublic } from '../../../types/booking';
 
@@ -74,6 +72,14 @@ export const BookingPage: React.FC = () => {
 
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
+  const allStepsComplete = areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime);
+  const [prevComplete, setPrevComplete] = React.useState(allStepsComplete);
+  if (allStepsComplete !== prevComplete) {
+    setPrevComplete(allStepsComplete);
+    if (allStepsComplete) {
+      setShowClientForm(true);
+    }
+  }
 
   useEffect(() => {
     dispatch(fetchPublicBarbers());
@@ -103,23 +109,10 @@ export const BookingPage: React.FC = () => {
   }, [authUser, clientName, clientLastname, clientPhone, clientEmail, dispatch]);
 
   useEffect(() => {
-    if (!authUser && getAccessToken()) {
-      dispatch(authApi.endpoints.getProfile.initiate());
-    }
-  }, [authUser, dispatch]);
-
-  useEffect(() => {
     if (currentStep === 'datetime' && !selectedDate && selectedBarber) {
       dispatch(setSelectedDate(getTodayString()));
     }
   }, [currentStep, selectedDate, selectedBarber, dispatch]);
-
-  useEffect(() => {
-    if (areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime)) {
-      setShowClientForm(true);
-    }
-     
-  }, [selectedBarber, selectedService, selectedDate, selectedTime]);
 
   const handleStepToggle = useCallback(
     (step: BookingStep) => {

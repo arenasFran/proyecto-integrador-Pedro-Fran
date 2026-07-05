@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React from 'react';
 import { motion } from 'framer-motion';
 import {
   FiCalendar,
@@ -16,298 +15,40 @@ import {
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards, useToast, DatePicker } from '../../../components/common';
-import DateRangeFilter, { detectPreset } from '../../../components/common/DateRangeFilter';
+import { AnimatedContainer, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards } from '../../../components/common';
+import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { detectPreset } from '../../../components/common/dateRangeUtils';
 import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
 import { formatDate } from '../../../utils/formatDate';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchBarbers } from '../../../store/slices/barbersSlice';
-import {
-  useCancelAppointmentMutation,
-  useChangeBarberMutation,
-  useGetAppointmentsPaginatedQuery,
-  useMarkAsPaidMutation,
-  useRescheduleAppointmentMutation,
-  useSendReminderMutation,
-  useUpdateAppointmentStatusMutation,
-} from '../../../services/appointmentApi';
-import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
 import { AppointmentDetailModal } from './AppointmentDetailModal';
-
-const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
-  Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
-  Completado: { bg: 'bg-green-500/10', text: 'text-green-400', label: 'Completado' },
-  Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Cancelado' },
-  NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
-};
-
-function formatTime(time: string) {
-  const [h, m] = time.split(':');
-  return `${h}:${m}`;
-}
-
-const methodLabelExport: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
-
-function exportCSV(appointments: Appointment[]) {
-  const headers = ['Fecha', 'Hora inicio', 'Hora fin', 'Cliente', 'Apellido', 'Email', 'Teléfono', 'Barbero', 'Servicio', 'Duración (min)', 'Precio', 'Estado', 'Estado de pago', 'Método de pago', 'Origen'];
-  const rows = appointments.map((a) => [
-    a.date,
-    a.startTime,
-    a.endTime,
-    a.clientName,
-    a.clientLastname,
-    a.clientEmail ?? '',
-    a.clientPhone ?? '',
-    a.barberName ?? '',
-    a.serviceName,
-    String(a.serviceDuration),
-    String(a.servicePrice),
-    a.status,
-    a.paymentStatus,
-    methodLabelExport[a.paymentMethod] ?? a.paymentMethod,
-    a.createdBy?.type === 'staff' ? 'Admin' : a.createdBy?.type === 'registered' ? 'Online' : a.createdBy?.type === 'anonymous' ? 'Invitado' : '',
-  ]);
-  const bom = '\uFEFF';
-  const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');
-  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `turnos-${new Date().toISOString().slice(0, 10)}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+import { CancelModal } from './CancelModal';
+import { RescheduleModal } from './RescheduleModal';
+import { ChangeBarberModal } from './ChangeBarberModal';
+import { CombinedActionModal } from './CombinedActionModal';
+import { useAdminAppointments } from './useAdminAppointments';
+import { statusStyles, methodLabel, statusLabel, formatTimeRange, paymentBadge, originBadge, formatTimestamp, exportCSV } from './helpers';
 
 export const AdminAppointmentsPage: React.FC = () => {
-  const dispatch = useAppDispatch();
-  const barbers = useAppSelector((state) => state.barbers.list);
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    if (barbers.length === 0) {
-      dispatch(fetchBarbers());
-    }
-  }, [dispatch, barbers.length]);
-
-  const [searchParams, setSearchParams] = useSearchParams();
-
-  const filterDateFrom = searchParams.get('dateFrom') ?? '';
-  const filterDateTo = searchParams.get('dateTo') ?? '';
-  const filterBarberId = searchParams.get('barberId') ?? '';
-  const filterStatus = searchParams.get('status') ?? '';
-  const filterPaymentMethod = searchParams.get('paymentMethod') ?? '';
-  const searchTerm = searchParams.get('search') ?? '';
-  const page = Number(searchParams.get('page') ?? '1');
-  const sortBy = (searchParams.get('sortBy') as 'date' | 'time' | null) ?? null;
-  const sortDir = (searchParams.get('sortDir') as 'asc' | 'desc') ?? 'asc';
-
-  const updateParams = useCallback((updates: Record<string, string | undefined>, resetPage = true) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      for (const [key, value] of Object.entries(updates)) {
-        if (value) next.set(key, value);
-        else next.delete(key);
-      }
-      if (resetPage) next.delete('page');
-      return next;
-    });
-  }, [setSearchParams]);
-
-  const [pageSize, setPageSize] = useState(15);
-  const [showCustomize, setShowCustomize] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
-
-  const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState('');
-  const [rescheduleTime, setRescheduleTime] = useState('');
-  const [rescheduleBarberId, setRescheduleBarberId] = useState('');
-
-  const toggleSort = (column: 'date' | 'time') => {
-    if (sortBy === column) {
-      updateParams({ sortDir: sortDir === 'asc' ? 'desc' : 'asc' }, false);
-    } else {
-      updateParams({ sortBy: column, sortDir: 'asc' }, false);
-    }
-  };
-
-  const handleDateRangeChange = (desde: string, hasta: string) => {
-    updateParams({ dateFrom: desde, dateTo: hasta });
-  };
-
-  const clearFilters = () => {
-    setSearchParams(new URLSearchParams());
-  };
-
-  const queryParams = useMemo(() => {
-    const params: Record<string, string | number | undefined> = {};
-    if (filterDateFrom) params.dateFrom = filterDateFrom;
-    if (filterDateTo) params.dateTo = filterDateTo;
-    if (filterBarberId) params.barberId = filterBarberId;
-    if (filterStatus) params.status = filterStatus;
-    if (filterPaymentMethod) params.paymentMethod = filterPaymentMethod;
-    if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
-    params.includeBarber = 'true';
-    params.page = page;
-    params.limit = pageSize;
-    if (sortBy) {
-      params.sortBy = sortBy;
-      params.sortDir = sortDir;
-    }
-    return params;
-  }, [filterDateFrom, filterDateTo, filterBarberId, filterStatus, filterPaymentMethod, searchTerm, page, pageSize, sortBy, sortDir]);
-  const { data: paginatedData, isLoading } = useGetAppointmentsPaginatedQuery(queryParams, {
-    pollingInterval: 30000,
-  });
-
-  const appointments = paginatedData?.appointments ?? [];
-  const totalResults = paginatedData?.total ?? 0;
-  const totalPages = paginatedData?.totalPages ?? 1;
-
-  const [cancelAppointment, { isLoading: isCancelling }] = useCancelAppointmentMutation();
-  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
-  const [rescheduleAppointment, { isLoading: isRescheduling }] = useRescheduleAppointmentMutation();
-
-  const stats = useMemo(() => {
-    const total = totalResults;
-    const confirmed = appointments.filter((a) => a.status === 'Confirmado').length;
-    const completed = appointments.filter((a) => a.status === 'Completado').length;
-    const cancelled = appointments.filter((a) => a.status === 'Cancelado').length;
-    return { total, confirmed, completed, cancelled };
-  }, [appointments, totalResults]);
-
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
-  const [detailTarget, setDetailTarget] = useState<Appointment | null>(null);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const [quickCreateDate, setQuickCreateDate] = useState('');
-  const [changeBarberTarget, setChangeBarberTarget] = useState<Appointment | null>(null);
-  const [changeBarberNewId, setChangeBarberNewId] = useState('');
-  const [combinedActionTarget, setCombinedActionTarget] = useState<{
-    appointment: Appointment;
-    primaryAction: 'Completado' | 'Pagado';
-  } | null>(null);
-
-  const [markAsPaid, { isLoading: isMarkingPaid }] = useMarkAsPaidMutation();
-  const [sendReminder, { isLoading: isSendingReminder }] = useSendReminderMutation();
-  const [changeBarber, { isLoading: isChangingBarber }] = useChangeBarberMutation();
-
-  const handleSendReminder = async (id: string) => {
-    try {
-      await sendReminder({ id }).unwrap();
-      showToast('Recordatorio enviado con éxito');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  };
-
-  const handleDuplicate = (appointment: Appointment) => {
-    setDetailTarget(null);
-    setQuickCreateDate(appointment.date);
-    setShowQuickCreate(true);
-  };
-
-  const handleChangeBarberConfirm = async () => {
-    if (!changeBarberTarget || !changeBarberNewId) return;
-    try {
-      await changeBarber({ id: changeBarberTarget.id, barberId: changeBarberNewId }).unwrap();
-      showToast('Barbero cambiado con éxito');
-      setChangeBarberTarget(null);
-      setChangeBarberNewId('');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  };
-
-  const formatTimeRange = (start: string, end: string) => {
-    const short = (t: string) => { const [h, m] = t.split(':'); return `${h}:${m}`; };
-    return `${short(start)} - ${short(end)}`;
-  };
-
-  const paymentBadge = (ps: Appointment['paymentStatus']) => {
-    const styles: Record<string, { bg: string; text: string }> = {
-      Pendiente: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
-      Pagado: { bg: 'bg-green-500/10', text: 'text-green-400' },
-      Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400' },
-    };
-    const s = styles[ps] ?? styles.Pendiente;
-    return (
-      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.bg} ${s.text}`}>{ps}</span>
-    );
-  };
-
-  const methodLabel: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
-
-  const originBadge = (cb?: CreatedBy) => {
-    if (!cb) return <span className="text-[11px] text-[#8A8A8A]">—</span>;
-    const config: Record<string, { label: string; color: string }> = {
-      staff: { label: 'Admin', color: 'bg-purple-500/10 text-purple-400' },
-      registered: { label: 'Online', color: 'bg-blue-500/10 text-blue-400' },
-      anonymous: { label: 'Invitado', color: 'bg-gray-500/10 text-gray-400' },
-    };
-    const c = config[cb.type] ?? { label: cb.type, color: 'bg-gray-500/10 text-gray-400' };
-    return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${c.color}`}>{c.label}</span>;
-  };
-
-  const formatTimestamp = (ts: string) => {
-    const d = new Date(ts);
-    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  };
-
-  const statusLabel: Record<string, string> = {
-    Confirmado: 'Confirmado', Completado: 'Completado', Cancelado: 'Cancelado', NoShow: 'No asistió',
-  };
-
-  const extractError = (err: unknown): string => {
-    if (err instanceof Error) return err.message;
-    if (err && typeof err === 'object' && 'data' in err) return String((err as { data: unknown }).data);
-    return 'Error inesperado';
-  };
-
-  const handleCancelConfirm = async () => {
-    if (!cancelTarget) return;
-    try {
-      await cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }).unwrap();
-      showToast('Turno cancelado con éxito');
-      setCancelTarget(null);
-      setCancelReason('');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  };
-
-  const handleStatusChange = async (id: string, status: 'Completado' | 'NoShow') => {
-    try {
-      await updateStatus({ id, status }).unwrap();
-      const label = status === 'Completado' ? 'completado' : 'marcado como no asistió';
-      showToast(`Turno ${label} con éxito`);
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  };
-
-  const handleRescheduleConfirm = async () => {
-    if (!rescheduleTarget || !rescheduleDate || !rescheduleTime || !rescheduleBarberId) return;
-    try {
-      await rescheduleAppointment({
-        id: rescheduleTarget.id,
-        date: rescheduleDate,
-        startTime: rescheduleTime,
-        barberId: rescheduleBarberId,
-      }).unwrap();
-      showToast('Turno reprogramado con éxito');
-      setRescheduleTarget(null);
-      setRescheduleDate('');
-      setRescheduleTime('');
-      setRescheduleBarberId('');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  };
+  const {
+    barbers, appointments, totalPages, isLoading,
+    filterDateFrom, filterDateTo, filterBarberId,
+    filterStatus, filterPaymentMethod, searchTerm, page, sortBy, sortDir,
+    pageSize, showCustomize, activeMenu, menuRect,
+    cancelTarget, cancelReason, rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId,
+    expandedId, confirmTarget, detailTarget, showQuickCreate, quickCreateDate,
+    changeBarberTarget, changeBarberNewId, combinedActionTarget,
+    isCancelling, isUpdatingStatus, isRescheduling, isMarkingPaid, isSendingReminder, isChangingBarber,
+    stats,
+    setPageSize, setShowCustomize, setActiveMenu, setMenuRect,
+    setCancelTarget, setCancelReason, setRescheduleTarget,
+    setRescheduleDate, setRescheduleTime, setRescheduleBarberId,
+    setExpandedId, setConfirmTarget, setDetailTarget, setShowQuickCreate,
+    setChangeBarberTarget, setChangeBarberNewId, setCombinedActionTarget,
+    toggleSort, handleDateRangeChange, clearFilters, updateParams,
+    handleCancelConfirm, handleStatusChange, handleRescheduleConfirm,
+    handleSendReminder, handleDuplicate, handleChangeBarberConfirm,
+    handleCompleteOnly, handleCompleteAndPaid, handleMarkPaidOnly,
+  } = useAdminAppointments();
 
   return (
     <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
@@ -331,10 +72,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                 Visualizá, cancelá, reprogramá y cambiá el estado de los turnos de forma centralizada.
               </p>
             </div>
-
-            
           </div>
-
           <StatsCards stats={stats} onStatusClick={(s) => { updateParams({ status: s || undefined }); }} />
         </AnimatedContainer>
 
@@ -820,79 +558,28 @@ export const AdminAppointmentsPage: React.FC = () => {
         </AnimatedContainer>
       </div>
 
-      {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-            <h3 className="text-[18px] font-bold text-white mb-2">Cancelar turno</h3>
-            <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {cancelTarget.clientName} {cancelTarget.clientLastname} &mdash; {formatDate(cancelTarget.date)} a las {formatTime(cancelTarget.startTime)}
-            </p>
-            <Input
-              label="Motivo de cancelación (opcional)"
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="Ej: El cliente no pudo asistir"
-            />
-            <div className="flex gap-3 mt-6">
-              <Button variant="secondary" onClick={() => setCancelTarget(null)}>
-                Volver
-              </Button>
-              <Button
-                onClick={handleCancelConfirm}
-                loading={isCancelling}
-                variant="danger"
-              >
-                Confirmar cancelación
-              </Button>
-            </div>
-          </AnimatedContainer>
-        </div>
-      )}
+      <CancelModal
+        target={cancelTarget}
+        reason={cancelReason}
+        isCancelling={isCancelling}
+        onReasonChange={setCancelReason}
+        onConfirm={handleCancelConfirm}
+        onClose={() => setCancelTarget(null)}
+      />
 
-      {rescheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-            <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
-            <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {rescheduleTarget.clientName} {rescheduleTarget.clientLastname} &mdash; actual: {formatDate(rescheduleTarget.date)} {formatTime(rescheduleTarget.startTime)}
-            </p>
-            <div className="flex flex-col gap-4">
-              <DatePicker
-                label="Nueva fecha"
-                value={rescheduleDate}
-                onChange={setRescheduleDate}
-              />
-              <Input
-                label="Nueva hora"
-                type="time"
-                value={rescheduleTime}
-                onChange={(e) => setRescheduleTime(e.target.value)}
-              />
-              <Select
-                label="Barbero"
-                value={rescheduleBarberId}
-                onChange={setRescheduleBarberId}
-                options={[
-                  { value: '', label: 'Seleccionar barbero' },
-                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
-                ]}
-              />
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>
-                Volver
-              </Button>
-              <Button
-                onClick={handleRescheduleConfirm}
-                loading={isRescheduling}
-                disabled={!rescheduleDate || !rescheduleTime || !rescheduleBarberId}
-              >
-                Confirmar reprogramación
-              </Button>
-            </div>
-          </AnimatedContainer>
-        </div>
-      )}
+      <RescheduleModal
+        target={rescheduleTarget}
+        date={rescheduleDate}
+        time={rescheduleTime}
+        barberId={rescheduleBarberId}
+        isRescheduling={isRescheduling}
+        barbers={barbers}
+        onDateChange={setRescheduleDate}
+        onTimeChange={setRescheduleTime}
+        onBarberChange={setRescheduleBarberId}
+        onConfirm={handleRescheduleConfirm}
+        onClose={() => setRescheduleTarget(null)}
+      />
 
       <ConfirmModal
         isOpen={confirmTarget !== null}
@@ -910,80 +597,15 @@ export const AdminAppointmentsPage: React.FC = () => {
         loading={isUpdatingStatus}
       />
 
-      {combinedActionTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-            {combinedActionTarget.primaryAction === 'Completado' ? (
-              <>
-                <h3 className="text-[18px] font-bold text-white mb-2">Completar turno</h3>
-                <p className="text-[13px] text-[#8A8A8A] mb-4">
-                  {combinedActionTarget.appointment.clientName} {combinedActionTarget.appointment.clientLastname} &mdash; ¿el cliente ya pagó?
-                </p>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    onClick={async () => {
-                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
-                      setCombinedActionTarget(null);
-                    }}
-                    loading={isUpdatingStatus}
-                  >
-                    Solo completar
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
-                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
-                      showToast('Turno completado y pago registrado');
-                      setCombinedActionTarget(null);
-                    }}
-                    loading={isUpdatingStatus || isMarkingPaid}
-                    variant="secondary"
-                  >
-                    Completar y marcar pagado
-                  </Button>
-                  <Button variant="secondary" onClick={() => setCombinedActionTarget(null)}>
-                    Volver
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3 className="text-[18px] font-bold text-white mb-2">Registrar pago</h3>
-                <p className="text-[13px] text-[#8A8A8A] mb-4">
-                  {combinedActionTarget.appointment.clientName} {combinedActionTarget.appointment.clientLastname} &mdash; ¿el servicio ya se completó?
-                </p>
-                <div className="flex flex-col gap-2">
-                  <Button
-                    onClick={async () => {
-                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
-                      showToast('Pago registrado con éxito');
-                      setCombinedActionTarget(null);
-                    }}
-                    loading={isMarkingPaid}
-                  >
-                    Solo marcar pagado
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      await handleStatusChange(combinedActionTarget.appointment.id, 'Completado');
-                      await markAsPaid({ id: combinedActionTarget.appointment.id }).unwrap();
-                      showToast('Turno completado y pago registrado');
-                      setCombinedActionTarget(null);
-                    }}
-                    loading={isUpdatingStatus || isMarkingPaid}
-                    variant="secondary"
-                  >
-                    Marcar pagado y completar
-                  </Button>
-                  <Button variant="secondary" onClick={() => setCombinedActionTarget(null)}>
-                    Volver
-                  </Button>
-                </div>
-              </>
-            )}
-          </AnimatedContainer>
-        </div>
-      )}
+      <CombinedActionModal
+        target={combinedActionTarget}
+        isUpdatingStatus={isUpdatingStatus}
+        isMarkingPaid={isMarkingPaid}
+        onCompleteOnly={handleCompleteOnly}
+        onCompleteAndPaid={handleCompleteAndPaid}
+        onMarkPaidOnly={handleMarkPaidOnly}
+        onClose={() => setCombinedActionTarget(null)}
+      />
 
       <AppointmentDetailModal
         appointment={detailTarget}
@@ -1003,37 +625,15 @@ export const AdminAppointmentsPage: React.FC = () => {
         isSendingReminder={isSendingReminder}
       />
 
-      {changeBarberTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-            <h3 className="text-[18px] font-bold text-white mb-2">Cambiar barbero</h3>
-            <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {changeBarberTarget.clientName} {changeBarberTarget.clientLastname} &mdash; {formatDate(changeBarberTarget.date)} {formatTime(changeBarberTarget.startTime)}
-            </p>
-            <Select
-              label="Nuevo barbero"
-              value={changeBarberNewId}
-              onChange={setChangeBarberNewId}
-              options={[
-                { value: '', label: 'Seleccionar barbero' },
-                ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
-              ]}
-            />
-            <div className="flex gap-3 mt-6">
-              <Button variant="secondary" onClick={() => setChangeBarberTarget(null)}>
-                Volver
-              </Button>
-              <Button
-                onClick={handleChangeBarberConfirm}
-                loading={isChangingBarber}
-                disabled={!changeBarberNewId}
-              >
-                Confirmar cambio
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ChangeBarberModal
+        target={changeBarberTarget}
+        newBarberId={changeBarberNewId}
+        isChangingBarber={isChangingBarber}
+        barbers={barbers}
+        onBarberChange={setChangeBarberNewId}
+        onConfirm={handleChangeBarberConfirm}
+        onClose={() => setChangeBarberTarget(null)}
+      />
 
       {showQuickCreate && (
         <QuickCreateModal
@@ -1041,7 +641,6 @@ export const AdminAppointmentsPage: React.FC = () => {
           onClose={() => setShowQuickCreate(false)}
         />
       )}
-
     </div>
   );
 };

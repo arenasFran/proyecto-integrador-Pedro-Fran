@@ -1,4 +1,5 @@
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
@@ -12,6 +13,7 @@ export type UpdateAppointmentStatusDTO = {
 export class UpdateAppointmentStatusUseCase {
   constructor(
     private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
     private readonly cancelMinHoursBefore: number
   ) {}
@@ -106,6 +108,15 @@ export class UpdateAppointmentStatusUseCase {
     }
 
     await this.appointmentRepository.updateStatus(id, updateData);
+
+    // Restaurar cupón de membresía si se cancela
+    if (dto.status === 'Cancelado' && appointment.paymentMethod === 'memberPass' && appointment.clientId) {
+      const membership = await this.membershipRepository.findActiveByUser(appointment.clientId).catch(() => null);
+      if (membership) {
+        membership.restoreCoupon();
+        await this.membershipRepository.save(membership);
+      }
+    }
 
     // RN17 — Email notification (async, non-blocking)
     const clientEmail = appointment.clientEmail;

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Select } from '../../../../components/common/Select';
 import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
@@ -41,12 +41,9 @@ export default function HeatmapChart() {
 
   const { data: availableYears = [], isLoading: yearsLoading } = useGetAvailableYearsQuery();
   const mostRecentYear = availableYears[0];
-
-  useEffect(() => {
-    if (mostRecentYear !== undefined && selectedYear === undefined) {
-      setSelectedYear(mostRecentYear);
-    }
-  }, [mostRecentYear, selectedYear, setSelectedYear]);
+  if (selectedYear === undefined && mostRecentYear !== undefined) {
+    setSelectedYear(mostRecentYear);
+  }
 
   const params = selectedYear ? { year: selectedYear } : { lastYear: true as const };
   const { data = [], isFetching, isLoading, error: rtkError } = useGetHeatmapQuery(params, {

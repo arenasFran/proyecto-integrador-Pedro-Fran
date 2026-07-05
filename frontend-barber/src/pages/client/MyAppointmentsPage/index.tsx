@@ -4,6 +4,7 @@ import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input, Pagination, Select, useToast, DatePicker } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
+import { formatTime } from '../../../utils/formatTime';
 import {
   useCancelAppointmentMutation,
   useGetAppointmentsQuery,
@@ -19,11 +20,6 @@ const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label:
   Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400', label: 'Cancelado' },
   NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
 };
-
-function formatTime(time: string) {
-  const [h, m] = time.split(':');
-  return `${h}:${m}`;
-}
 
 export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -94,9 +90,11 @@ export const MyAppointmentsPage: React.FC = () => {
     [pastAppointments, pastPage]
   );
 
-  useEffect(() => {
+  const [prevAppLength, setPrevAppLength] = useState(appointments.length);
+  if (appointments.length !== prevAppLength) {
+    setPrevAppLength(appointments.length);
     setPastPage(1);
-  }, [appointments.length]);
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">

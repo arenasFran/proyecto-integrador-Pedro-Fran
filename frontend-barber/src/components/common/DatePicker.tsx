@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FiCalendar } from 'react-icons/fi';
 import { formatDate } from '../../utils/formatDate';
 
@@ -17,27 +17,23 @@ const MONTH_LABELS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Ju
 export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, className, open: controlledOpen, onOpenChange }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
+  const setOpenRef = useRef<(v: boolean | ((prev: boolean) => boolean)) => void>(() => {});
   const setOpen = (v: boolean | ((prev: boolean) => boolean)) => {
     const next = typeof v === 'function' ? v(open) : v;
     if (onOpenChange) onOpenChange(next);
     if (controlledOpen === undefined) setInternalOpen(next);
   };
-  const [viewDate, setViewDate] = useState(() => {
-    const d = value ? new Date(value + 'T12:00:00') : new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
+  useEffect(() => { setOpenRef.current = setOpen; });
+  const [monthOffset, setMonthOffset] = useState(0);
+  const viewDate = useMemo(() => {
+    const base = value ? new Date(value + 'T12:00:00') : new Date();
+    return new Date(base.getFullYear(), base.getMonth() + monthOffset, 1);
+  }, [value, monthOffset]);
   const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (value) {
-      const d = new Date(value + 'T12:00:00');
-      setViewDate(new Date(d.getFullYear(), d.getMonth(), 1));
-    }
-  }, [value]);
 
   const handleClickOutside = useCallback((e: MouseEvent) => {
     if (ref.current && !ref.current.contains(e.target as Node)) {
-      setOpen(false);
+      setOpenRef.current(false);
     }
   }, []);
 
@@ -59,6 +55,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, 
   const handleDayClick = (day: number) => {
     const newDate = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     onChange(newDate);
+    setMonthOffset(0);
     setOpen(false);
   };
 
@@ -81,7 +78,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, 
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"
-              onClick={() => setViewDate(new Date(calYear, calMonth - 1, 1))}
+              onClick={() => setMonthOffset(o => o - 1)}
               className="flex h-7 w-7 items-center justify-center rounded-[6px] text-[#8A8A8A] hover:text-white hover:bg-[#282828] transition-colors text-sm"
             >
               &#8249;
@@ -91,7 +88,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, 
             </span>
             <button
               type="button"
-              onClick={() => setViewDate(new Date(calYear, calMonth + 1, 1))}
+              onClick={() => setMonthOffset(o => o + 1)}
               className="flex h-7 w-7 items-center justify-center rounded-[6px] text-[#8A8A8A] hover:text-white hover:bg-[#282828] transition-colors text-sm"
             >
               &#8250;

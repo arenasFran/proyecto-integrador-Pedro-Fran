@@ -94,15 +94,16 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
     professional ? wizardFormFromProfessional(professional) : createEmptyWizardForm()
   );
   const [isSaving, setIsSaving] = useState(false);
-
-  React.useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
     if (isOpen) {
       setStep(1);
       setForm(
         professional ? wizardFormFromProfessional(professional) : createEmptyWizardForm()
       );
     }
-  }, [isOpen, professional]);
+  }
 
   const handleFieldChange = (field: keyof Omit<WizardFormState, 'schedule' | 'photoFile'>) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -314,7 +315,7 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
                 </tr>
               </thead>
               <tbody>
-                {days.map((day, _idx) => (
+                {days.map((day) => (
                   <tr key={day.key} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A]/50 transition-colors">
                     <td className="py-2.5 pr-3">
                       <span className="text-white font-medium">{day.label}</span>

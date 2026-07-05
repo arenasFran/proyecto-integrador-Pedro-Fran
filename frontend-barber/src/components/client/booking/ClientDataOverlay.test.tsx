@@ -23,9 +23,13 @@ const defaultProps = {
   clientLastname: '',
   clientPhone: '',
   clientEmail: '',
+  paymentMethod: 'local' as const,
+  hasActiveMembership: false,
+  remainingCoupons: 0,
   isConfirming: false,
   confirmError: null,
   onChange: vi.fn(),
+  onPaymentMethodChange: vi.fn(),
   onSubmit: vi.fn(),
   onClose: vi.fn(),
 };
@@ -68,5 +72,37 @@ describe('ClientDataOverlay', () => {
   it('debe mostrar "Tus datos" cuando isLoggedIn es true', () => {
     render(<ClientDataOverlay {...defaultProps} isLoggedIn={true} />);
     expect(screen.getByText('Tus datos')).toBeInTheDocument();
+  });
+
+  describe('selector de método de pago', () => {
+    it('debe mostrar opción "Usar membresía" si hasActiveMembership es true', () => {
+      render(<ClientDataOverlay {...defaultProps} hasActiveMembership={true} remainingCoupons={3} />);
+      expect(screen.getByText('Usar membresía')).toBeInTheDocument();
+    });
+
+    it('debe ocultar opción "Usar membresía" si hasActiveMembership es false', () => {
+      render(<ClientDataOverlay {...defaultProps} hasActiveMembership={false} />);
+      expect(screen.queryByText('Usar membresía')).not.toBeInTheDocument();
+    });
+
+    it('debe mostrar cupones restantes en la opción de membresía', () => {
+      render(<ClientDataOverlay {...defaultProps} hasActiveMembership={true} remainingCoupons={3} />);
+      expect(screen.getByText('Te quedan 3 cupones')).toBeInTheDocument();
+    });
+
+    it('debe llamar onPaymentMethodChange al seleccionar membresía', async () => {
+      const onPaymentMethodChange = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <ClientDataOverlay
+          {...defaultProps}
+          hasActiveMembership={true}
+          remainingCoupons={2}
+          onPaymentMethodChange={onPaymentMethodChange}
+        />
+      );
+      await user.click(screen.getByText('Usar membresía'));
+      expect(onPaymentMethodChange).toHaveBeenCalledWith('memberPass');
+    });
   });
 });

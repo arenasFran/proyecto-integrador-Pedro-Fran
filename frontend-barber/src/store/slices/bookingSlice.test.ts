@@ -73,9 +73,9 @@ const mockService = { id: 's1', name: 'Corte', description: '', price: 500, imag
 
 function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
   return configureStore({
-    reducer: { booking: reducer } as any,
-    preloadedState: preloaded ? { booking: preloaded } : { booking: initialState },
-  } as any);
+    reducer: { booking: reducer },
+    preloadedState: preloaded ? { booking: preloaded as ReturnType<typeof reducer> } : { booking: initialState },
+  });
 }
 
 describe('bookingSlice', () => {

@@ -104,7 +104,7 @@ export default function ClientsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-white truncate">
+                    <p className="text-[14px] font-semibold text-white break-words">
                       {c.clientName} {c.clientLastname}
                     </p>
                     {c.clientPhone && (

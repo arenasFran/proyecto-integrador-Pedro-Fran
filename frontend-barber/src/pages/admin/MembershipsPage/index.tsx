@@ -118,7 +118,7 @@ export default function MembershipsPage() {
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <FiUser className="text-[#FF5C00] text-sm shrink-0" />
                     <div className="min-w-0">
-                      <p className="text-[14px] font-semibold text-white truncate">
+                      <p className="text-[14px] font-semibold text-white break-words">
                         {m.user?.name ?? '—'} {m.user?.lastname ?? ''}
                       </p>
                       {m.user?.email && (

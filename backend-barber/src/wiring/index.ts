@@ -90,6 +90,8 @@ export const buildUploadRouter = () => {
   return createUploadRouter({ authenticate, uploadController });
 };
 
+export { buildMembershipRouter } from './membership';
+
 export const buildTempLockRouter = () => {
   const tempLockRepository = new MongoTempLockRepository();
   const tempLockController = new TempLockController(tempLockRepository);

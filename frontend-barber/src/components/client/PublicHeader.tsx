@@ -41,7 +41,7 @@ export const PublicHeader: React.FC = () => {
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
-          <span className="text-[15px] font-bold text-white">Barbería SA</span>
+          <span className="hidden sm:inline text-[15px] font-bold text-white">Barbería SA</span>
         </Link>
 
         <div className="flex items-center gap-3">

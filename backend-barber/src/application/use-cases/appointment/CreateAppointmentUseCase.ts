@@ -3,6 +3,7 @@ import { MongoAppointmentRepository } from '../../../infrastructure/repositories
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
+import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { IEmailService } from '../../ports/IEmailService';
@@ -19,6 +20,7 @@ type CreateAppointmentDTO = {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  paymentMethod?: 'local' | 'online' | 'memberPass';
   tempLockId?: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
 };
@@ -38,7 +40,8 @@ export class CreateAppointmentUseCase {
     private readonly clientRepository: MongoClientRepository,
     private readonly emailService: IEmailService,
     private readonly tempLockRepository: MongoTempLockRepository,
-    private readonly blockRepository: MongoBarberBlockRepository
+    private readonly blockRepository: MongoBarberBlockRepository,
+    private readonly membershipRepository: MongoMembershipRepository
   ) {}
 
   async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
@@ -94,6 +97,19 @@ export class CreateAppointmentUseCase {
     await this.validateMaxOneActive(dto, undefined, !!dto.clientId);
 
     const now = getNowDateInTimezone();
+    const paymentMethod = dto.paymentMethod || 'local';
+
+    let membershipToRedeem: Awaited<ReturnType<typeof this.membershipRepository.findActiveByUser>> = null;
+    if (paymentMethod === 'memberPass') {
+      if (!dto.clientId) {
+        throw new AppError('Debés iniciar sesión para usar la membresía.', 400);
+      }
+      membershipToRedeem = await this.membershipRepository.findActiveByUser(dto.clientId);
+      if (!membershipToRedeem) {
+        throw new AppError('No tenés una membresía activa.', 400);
+      }
+    }
+
     const appointment = Appointment.create({
       id: '',
       barberId: dto.barberId,
@@ -110,8 +126,8 @@ export class CreateAppointmentUseCase {
       startTime: dto.startTime,
       endTime,
       status: 'Confirmado',
-      paymentStatus: 'Pendiente',
-      paymentMethod: 'local',
+      paymentStatus: paymentMethod === 'memberPass' ? 'Pagado' : 'Pendiente',
+      paymentMethod,
       createdBy: dto.createdBy,
       statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
       version: 0,
@@ -149,6 +165,12 @@ export class CreateAppointmentUseCase {
       if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
         throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
       }
+    }
+
+    // Canjear cupón de membresía (después de todas las validaciones)
+    if (membershipToRedeem) {
+      membershipToRedeem.redeemCoupon();
+      await this.membershipRepository.save(membershipToRedeem);
     }
 
     // Crear el turno

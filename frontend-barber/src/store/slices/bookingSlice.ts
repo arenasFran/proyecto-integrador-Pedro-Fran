@@ -4,6 +4,7 @@ import { appointmentService, tempLockService } from '../../services/appointment.
 import { appointmentApi } from '../../services/appointmentApi';
 import type {
   BarberPublic,
+  PaymentMethod,
   Service,
   Appointment,
   BookingStep,
@@ -36,6 +37,7 @@ interface BookingFlowState {
   clientLastname: string;
   clientPhone: string;
   clientEmail: string;
+  paymentMethod: PaymentMethod;
 }
 
 interface BookingState {
@@ -69,6 +71,7 @@ const initialState: BookingState = {
     clientLastname: '',
     clientPhone: '',
     clientEmail: '',
+    paymentMethod: 'local',
   },
 };
 
@@ -119,6 +122,7 @@ export const submitAppointment = createAsyncThunk(
         clientLastname: flow.clientLastname,
         clientPhone: flow.clientPhone,
         clientEmail: flow.clientEmail,
+        paymentMethod: flow.paymentMethod,
         tempLockId,
       };
       const response = await appointmentService.create(payload);
@@ -166,6 +170,9 @@ const bookingSlice = createSlice({
     },
     setSelectedTime: (state, action: PayloadAction<string | null>) => {
       state.flow.selectedTime = action.payload;
+    },
+    setPaymentMethod: (state, action: PayloadAction<PaymentMethod>) => {
+      state.flow.paymentMethod = action.payload;
     },
     setClientData: (
       state,
@@ -245,6 +252,7 @@ export const {
   setSelectedService,
   setSelectedDate,
   setSelectedTime,
+  setPaymentMethod,
   setClientData,
   clearBookingError,
   resetBooking,

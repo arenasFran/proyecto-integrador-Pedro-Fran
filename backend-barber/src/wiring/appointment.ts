@@ -8,6 +8,7 @@ import { ChangeBarberUseCase } from '../application/use-cases/appointment/Change
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
+import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
@@ -27,6 +28,8 @@ export const buildAppointmentRouter = () => {
   const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
+  const membershipRepository = new MongoMembershipRepository();
+
   const createAppointment = new CreateAppointmentUseCase(
     appointmentRepository,
     barberRepository,
@@ -34,12 +37,13 @@ export const buildAppointmentRouter = () => {
     clientRepository,
     emailService,
     tempLockRepository,
-    blockRepository
+    blockRepository,
+    membershipRepository
   );
   const cancelMinHoursBefore = Number(process.env.CANCEL_MIN_HOURS_BEFORE) || 2;
 
   const cancelAppointment = new CancelAppointmentUseCase(
-    appointmentRepository, emailService, cancelMinHoursBefore
+    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore
   );
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
     appointmentRepository, emailService, cancelMinHoursBefore

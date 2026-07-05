@@ -1,4 +1,5 @@
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
@@ -6,6 +7,7 @@ import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
 export class CancelAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
     private readonly cancelMinHoursBefore: number
   ) {}
@@ -81,6 +83,15 @@ export class CancelAppointmentUseCase {
     }
 
     await this.appointmentRepository.updateStatus(id, updateData);
+
+    // Restaurar cupón de membresía si corresponde
+    if (appointment.paymentMethod === 'memberPass' && appointment.clientId) {
+      const membership = await this.membershipRepository.findActiveByUser(appointment.clientId).catch(() => null);
+      if (membership) {
+        membership.restoreCoupon();
+        await this.membershipRepository.save(membership);
+      }
+    }
 
     // RN17 — Email notification (async, non-blocking)
     const clientEmail = appointment.clientEmail;

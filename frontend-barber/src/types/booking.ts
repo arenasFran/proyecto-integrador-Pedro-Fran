@@ -48,6 +48,7 @@ export type CreateAppointmentPayload = {
   clientLastname: string;
   clientPhone: string;
   clientEmail: string;
+  paymentMethod?: PaymentMethod;
   tempLockId?: string;
 };
 

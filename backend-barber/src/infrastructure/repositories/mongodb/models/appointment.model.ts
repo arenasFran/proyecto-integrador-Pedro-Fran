@@ -120,7 +120,7 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     },
     paymentStatus: {
       type: String,
-      enum: ['Pendiente', 'Pagado'],
+      enum: ['Pendiente', 'Pagado', 'Cancelado'],
       default: 'Pendiente',
     },
     paymentMethod: {

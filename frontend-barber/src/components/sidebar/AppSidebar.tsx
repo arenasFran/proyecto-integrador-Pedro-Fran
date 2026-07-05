@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { FiBarChart2, FiCalendar, FiChevronLeft, FiChevronRight, FiList, FiScissors, FiUser, FiUserCheck, FiUsers, FiX } from 'react-icons/fi';
+import { FiAward, FiBarChart2, FiCalendar, FiChevronLeft, FiChevronRight, FiList, FiScissors, FiUser, FiUserCheck, FiUsers, FiX } from 'react-icons/fi';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -17,6 +17,7 @@ const adminNavItems = [
   { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
   { to: '/admin/servicios', icon: FiScissors, label: 'Servicios' },
   { to: '/admin/clientes', icon: FiUserCheck, label: 'Clientes' },
+  { to: '/admin/membresias', icon: FiAward, label: 'Membresías' },
   { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
@@ -29,6 +30,7 @@ const employeeNavItems = [
 const userNavItems = [
   { to: '/reservar', icon: FiScissors, label: 'Agendar' },
   { to: '/mis-turnos', icon: FiCalendar, label: 'Mis turnos' },
+  { to: '/mi-membresia', icon: FiAward, label: 'Mi Membresía' },
   { to: '/perfil', icon: FiUser, label: 'Perfil' },
 ];
 

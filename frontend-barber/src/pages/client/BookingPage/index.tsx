@@ -18,16 +18,18 @@ import {
   setSelectedService,
   setSelectedDate,
   setSelectedTime,
+  setPaymentMethod,
   setClientData,
   setCurrentStep,
   submitAppointment,
   resetBooking,
 } from '../../../store/slices/bookingSlice';
 import { useGetServicesQuery } from '../../../services/service.api';
+import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 import { authApi } from '../../../services/authApi';
 import { getAccessToken } from '../../../services/api';
 import { formatDate } from '../../../utils/formatDate';
-import type { BookingStep, BarberPublic } from '../../../types/booking';
+import type { BookingStep, BarberPublic, PaymentMethod } from '../../../types/booking';
 
 const getTodayString = (): string => {
   const d = new Date();
@@ -68,8 +70,20 @@ export const BookingPage: React.FC = () => {
       clientLastname,
       clientPhone,
       clientEmail,
+      paymentMethod,
     },
   } = useAppSelector((state) => state.booking);
+
+  const { data: myMembership } = useGetMyMembershipQuery(undefined, {
+    skip: !authUser,
+  });
+  const activeMembership = myMembership?.active ?? null;
+  const hasActiveMembership = activeMembership
+    ? activeMembership.status === 'active' && new Date(activeMembership.endDate) > new Date()
+    : false;
+  const remainingCoupons = activeMembership
+    ? Math.max(0, activeMembership.couponsTotal - activeMembership.couponsUsed)
+    : 0;
 
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
@@ -148,6 +162,13 @@ export const BookingPage: React.FC = () => {
       dispatch(setSelectedBarber(barbers[0]));
     }
   }, [barbers, dispatch]);
+
+  const handlePaymentMethodChange = useCallback(
+    (method: PaymentMethod) => {
+      dispatch(setPaymentMethod(method));
+    },
+    [dispatch]
+  );
 
   const handleSubmit = useCallback(() => {
     dispatch(submitAppointment());
@@ -265,10 +286,14 @@ export const BookingPage: React.FC = () => {
         clientLastname={clientLastname}
         clientPhone={clientPhone}
         clientEmail={clientEmail}
+        paymentMethod={paymentMethod}
+        hasActiveMembership={hasActiveMembership}
+        remainingCoupons={remainingCoupons}
         isConfirming={isConfirming}
         confirmError={confirmError}
         isLoggedIn={!!authUser}
         onChange={(data) => dispatch(setClientData(data))}
+        onPaymentMethodChange={handlePaymentMethodChange}
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
       />

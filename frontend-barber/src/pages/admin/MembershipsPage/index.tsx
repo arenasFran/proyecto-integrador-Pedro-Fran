@@ -110,7 +110,47 @@ export default function MembershipsPage() {
         </AnimatedContainer>
       ) : (
         <AnimatedContainer animation="fadeInUp" delay={0.1}>
-          <div className="overflow-x-auto rounded-[12px] border border-[#282828]">
+          {/* Mobile cards */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {memberships.map((m) => (
+              <div key={m.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <FiUser className="text-[#FF5C00] text-sm shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[14px] font-semibold text-white truncate">
+                        {m.user?.name ?? '—'} {m.user?.lastname ?? ''}
+                      </p>
+                      {m.user?.email && (
+                        <p className="text-[11px] text-[#8A8A8A] truncate">{m.user.email}</p>
+                      )}
+                    </div>
+                  </div>
+                  {statusBadge(m.status)}
+                </div>
+                <div className="flex flex-col gap-1.5 text-[13px]">
+                  <div className="flex justify-between">
+                    <span className="text-[#8A8A8A]">Cupones</span>
+                    <span className="text-white font-medium">{m.couponsUsed}<span className="text-[#8A8A8A]"> / {m.couponsTotal}</span></span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#8A8A8A]">Vigencia</span>
+                    <span className="text-white flex items-center gap-1">
+                      <FiCalendar size={12} className="text-[#FF5C00]" />
+                      {formatDate(m.startDate)} - {formatDate(m.endDate)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#8A8A8A]">Creada</span>
+                    <span className="text-white">{formatDate(m.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto rounded-[12px] border border-[#282828]">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#121212] border-b border-[#282828]">

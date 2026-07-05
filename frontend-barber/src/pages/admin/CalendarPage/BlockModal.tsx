@@ -60,7 +60,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({ dateStr, onClose, onBloc
         setBarberId(currentUser.id);
       }
     }).catch(() => {});
-  }, []);
+  }, [isAdmin, currentUser?.id]);
 
   useEffect(() => {
     if (!barberId) return;

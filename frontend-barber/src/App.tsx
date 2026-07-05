@@ -7,6 +7,7 @@ import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider } from './components/common';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -67,6 +68,7 @@ function App() {
             <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
           </div>
+          <ErrorBoundary>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<BookingPage />} />
@@ -102,6 +104,7 @@ function App() {
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          </ErrorBoundary>
         </Router>
         </ToastProvider>
       </AppInitializer>

@@ -1,15 +1,45 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type { Appointment, CreateAppointmentPayload } from '../types/booking';
-import type { AppointmentQueryParams, PaginatedAppointmentsResponse } from './appointment.service';
+import type { PaginatedAppointmentsResponse } from './appointment.service';
 
-type QueryParams = AppointmentQueryParams;
+type QueryParams = {
+  barberId?: string;
+  clientId?: string;
+  date?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  status?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  searchTerm?: string;
+  page?: number;
+  limit?: number;
+  includeBarber?: string;
+  sortBy?: 'date' | 'startTime';
+  sortDir?: 'asc' | 'desc';
+};
 
 export const appointmentApi = createApi({
   reducerPath: 'appointmentApi',
   baseQuery: axiosBaseQuery,
   tagTypes: ['Appointments', 'Appointment'],
   endpoints: (builder) => ({
+    acquireTempLock: builder.mutation<{ tempLockId: string }, { barberId: string; date: string; startTime: string }>({
+      query: (data) => ({
+        url: '/api/appointments/temp-lock',
+        method: 'POST',
+        data,
+      }),
+    }),
+
+    releaseTempLock: builder.mutation<void, string>({
+      query: (tempLockId) => ({
+        url: `/api/appointments/temp-lock/${tempLockId}`,
+        method: 'DELETE',
+      }),
+    }),
+
     createAppointment: builder.mutation<{ message: string; appointment: Appointment }, CreateAppointmentPayload>({
       query: (data) => ({
         url: '/api/appointments',
@@ -111,6 +141,8 @@ export const appointmentApi = createApi({
 });
 
 export const {
+  useAcquireTempLockMutation,
+  useReleaseTempLockMutation,
   useCreateAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,

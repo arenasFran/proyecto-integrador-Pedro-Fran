@@ -23,7 +23,7 @@ interface ClientDataOverlayProps {
   onClose: () => void;
 }
 
-function validateField(field: string, value: string, isLoggedIn?: boolean): string | undefined {
+function validateField(field: string, value: string): string | undefined {
   switch (field) {
     case 'name':
       if (!value.trim()) return 'El nombre es obligatorio';
@@ -34,7 +34,6 @@ function validateField(field: string, value: string, isLoggedIn?: boolean): stri
       if (value.trim().length < 2) return 'Mínimo 2 caracteres';
       return undefined;
     case 'phone':
-      if (isLoggedIn && !value.trim()) return undefined;
       if (!value.trim()) return 'El teléfono es obligatorio';
       if (value.trim().length < 7) return 'Mínimo 7 dígitos';
       return undefined;
@@ -75,13 +74,13 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
     return errors[field];
   };
 
-  const phoneValid = isLoggedIn ? clientPhone.trim().length >= 7 || clientPhone.trim().length === 0 : clientPhone.trim().length >= 7;
+  const phoneValid = clientPhone.trim().length >= 7;
   const hasError = Object.values(errors).some(Boolean);
   const isValid = clientName.trim().length >= 2 && clientLastname.trim().length >= 2 && phoneValid && clientEmail.includes('@') && !hasError;
 
   const handleBlur = (field: string, value: string) => {
     setTouched(prev => ({ ...prev, [field]: true }));
-    const error = validateField(field, value, isLoggedIn);
+    const error = validateField(field, value);
     setErrors(prev => ({ ...prev, [field]: error || '' }));
   };
 
@@ -95,7 +94,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
     onChange(data);
 
     if (touched[field]) {
-      const error = validateField(field, value, isLoggedIn);
+    const error = validateField(field, value);
       setErrors(prev => ({ ...prev, [field]: error || '' }));
     }
   };
@@ -171,7 +170,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
                 />
                 <Input
                   label="Teléfono"
-                  required={!isLoggedIn}
+                  required
                   icon={<FiPhone className="w-3.5 h-3.5 text-[#8A8A8A]" />}
                   type="tel"
                   value={clientPhone}

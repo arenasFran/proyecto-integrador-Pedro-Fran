@@ -18,24 +18,27 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
 
   const desde = useMemo(() => {
     const d = new Date();
-    return `${d.getFullYear()}-01-01`;
+    d.setFullYear(d.getFullYear() - 1);
+    return d.toISOString().split('T')[0];
   }, []);
   const hasta = useMemo(() => {
     const d = new Date();
-    d.setFullYear(d.getFullYear() + 1);
-    return `${d.getFullYear()}-01-01`;
+    return d.toISOString().split('T')[0];
   }, []);
 
   const { data: clients = [] } = useGetClientesListQuery({ desde, hasta });
 
-  const filtered = search
+  const filtered = (search
     ? clients.filter(
         (c: ClienteData) =>
-          c.clientName.toLowerCase().includes(search.toLowerCase()) ||
-          c.clientLastname.toLowerCase().includes(search.toLowerCase()) ||
-          (c.clientEmail ?? '').toLowerCase().includes(search.toLowerCase())
+          c.clientId !== null && (
+            c.clientName.toLowerCase().includes(search.toLowerCase()) ||
+            c.clientLastname.toLowerCase().includes(search.toLowerCase()) ||
+            (c.clientEmail ?? '').toLowerCase().includes(search.toLowerCase())
+          )
       )
-    : clients;
+    : clients.filter((c: ClienteData) => c.clientId !== null)
+  );
 
   const handleCreate = async () => {
     if (!selectedUserId) return;
@@ -68,7 +71,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
               filtered.map((c: ClienteData) => (
                 <button
                   key={c.key}
-                  onClick={() => setSelectedUserId(c.clientId!)}
+                  onClick={() => setSelectedUserId(c.clientId)}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] text-white hover:bg-[#242424] transition-colors border-b border-[#282828] last:border-b-0"
                 >
                   <FiUser className="text-[#FF5C00] shrink-0" />

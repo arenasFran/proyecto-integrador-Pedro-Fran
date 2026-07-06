@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { MembershipController } from '../controllers/membership/MembershipController';
 import { createAuthenticate } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
@@ -8,6 +9,22 @@ import {
   redeemCouponSchema,
   queryMembershipsSchema,
 } from '../validators/membership.validator';
+
+const membershipLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Demasiadas solicitudes. Esperá 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const membershipMutationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Demasiadas solicitudes. Esperá 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export const createMembershipRouter = (deps: {
   membershipController: MembershipController;
@@ -23,6 +40,7 @@ export const createMembershipRouter = (deps: {
 
   router.post(
     '/',
+    membershipMutationLimiter,
     deps.authenticate,
     validate({ body: createMembershipSchema }),
     deps.membershipController.create
@@ -30,6 +48,7 @@ export const createMembershipRouter = (deps: {
 
   router.get(
     '/',
+    membershipLimiter,
     deps.authenticate,
     authorize('Admin'),
     validate({ query: queryMembershipsSchema }),
@@ -45,6 +64,7 @@ export const createMembershipRouter = (deps: {
 
   router.post(
     '/redeem',
+    membershipMutationLimiter,
     deps.authenticate,
     authorize('Admin', 'Empleado'),
     validate({ body: redeemCouponSchema }),

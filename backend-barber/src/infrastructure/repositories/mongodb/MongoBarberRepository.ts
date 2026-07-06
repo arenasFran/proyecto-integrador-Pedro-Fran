@@ -72,8 +72,10 @@ const toBarberEmployeeData = (barber: Barber): Record<string, unknown> => ({
 });
 
 export class MongoBarberRepository {
-  async findBarberById(id: string): Promise<Barber | null> {
-    const doc = await BarberModel.findById(id).lean();
+  async findBarberById(id: string, session?: mongoose.ClientSession): Promise<Barber | null> {
+    const query = BarberModel.findById(id);
+    if (session) query.session(session);
+    const doc = await query.lean();
     if (!doc) {
       return null;
     }

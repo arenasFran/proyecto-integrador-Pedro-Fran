@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiMessageCircle, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiUser } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import { AppFooter, Button } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
@@ -30,32 +31,29 @@ const services = [
     name: 'Corte de pelo',
     desc: 'Tijera y máquina, terminación prolija, lavado incluido.',
     price: '$ 490',
-    bgPosition: '20% 78%',
+    image: '/foto2.jpeg',
+    bgPosition: '50% 72%',
   },
   {
     name: 'Corte a máquina',
-    desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
+    desc: 'Solo máquina, sin tijera. Rápido, parejo y bien definido.',
     price: '$ 350',
-    bgPosition: '60% 10%',
+    image: '/foto1.jpg',
+    bgPosition: '50% 50%',
   },
   {
     name: 'Barba.',
-    desc: 'El combo de siempre, a un precio mejor que separado.',
-    price: '$ 720',
-    bgPosition: '80% 55%',
-  },
-  {
-    name: 'Combo x2',
-    desc: 'Espuma, navaja y paciencia. El servicio de la casa.',
-    price: '$ 450 c/u',
-    bgPosition: '40% 95%',
-  },
+    desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
+    price: '$ 250',
+    image: '/foto1.jpg',
+    bgPosition: '50% 85%',
+  }
 ];
 
 const faqItems = [
   {
     q: '¿Necesito reservar con anticipación?',
-    a: 'No es obligatorio, pero te recomendamos reservar para no esperar. Los viernes y sábados se llenan rápido.',
+    a: 'Sí, podes reservar desde esta web o contactar con nosotros!',
   },
   {
     q: '¿Puedo elegir barbero?',
@@ -63,16 +61,21 @@ const faqItems = [
   },
   {
     q: '¿Qué pasa si llego tarde?',
-    a: 'Tenés 10 minutos de margen. Después de eso, el turno pasa a la lista de espera del día.',
+    a: 'Tenés 10 minutos de margen. Después de eso, el turno se cancela.',
   },
   {
     q: '¿Cómo cancelo o cambio un turno?',
-    a: 'Desde tu cuenta, hasta el día anterior sin costo. El mismo día, te pedimos que nos avises por WhatsApp.',
+    a: 'Desde tu cuenta, hasta el día anterior sin costo. El mismo día, te pedimos que nos avises por WhatsApp o Instagram.',
   },
   {
     q: '¿Aceptan pago con tarjeta?',
-    a: 'Sí, tarjeta, transferencia o efectivo. Se paga en el local al terminar el servicio.',
+    a: 'Sí, tarjeta, transferencia o efectivo. Se paga en el local al terminar el servicio o Mercado Pago.',
   },
+  {
+    q: '¿Qué brinda la membresía?',
+    a: 'La membresía es en escencia, una cuponera. Al pagarla contás con 4 cortes mensuales y 10% de descuento en nuestros productos.',
+  }
+  
 ];
 
 const containerVariants = {
@@ -197,13 +200,16 @@ export const LandingPage: React.FC = () => {
       </motion.header>
 
       {/* ─── HERO ─── */}
-      <section className="relative min-h-screen flex items-end overflow-hidden">
-        <div className="absolute inset-0 bg-[#050505]">
-          <img
-            src="/hero.jpg"
-            alt=""
-            className="absolute inset-0 w-full h-full object-contain object-center"
-          />
+      <section className="relative min-h-screen flex items-start md:items-end overflow-hidden">
+        <div className="absolute inset-0 bg-[#050505] flex items-center justify-center">
+          <picture>
+            <source media="(max-width: 767px)" srcSet="/hero-mobile.jpeg" />
+            <img
+              src="/hero.jpg"
+              alt=""
+              className="max-w-full max-h-full object-contain"
+            />
+          </picture>
           <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/30 via-transparent to-[#050505]/70" />
         </div>
 
@@ -211,9 +217,9 @@ export const LandingPage: React.FC = () => {
           variants={staggerVariants}
           initial="hidden"
           animate="visible"
-          className="relative w-full px-[5vw] pb-24"
+          className="relative w-full px-[5vw] pt-32 md:pt-0 pb-24 mb-16"
         >
-          <div className="max-w-3xl">
+          <div className="w-fit md:ml-auto">
             <motion.span variants={fadeUp} className="text-[11px] uppercase tracking-widest text-[#FF5C00] inline-flex items-center gap-2">
               <span className="w-4 h-px bg-[#FF5C00] inline-block" />
               Barbería de barrio, oficio de verdad
@@ -223,19 +229,11 @@ export const LandingPage: React.FC = () => {
               variants={fadeUp}
               className="font-extrabold uppercase leading-[0.94] tracking-[-0.03em] text-[44px] sm:text-[64px] lg:text-[96px] mt-4 mb-6"
             >
-              Turno<br />con <span className="text-[#FF5C00]" style={{ textShadow: '0 0 22px rgba(255,92,0,0.45)' }}>estilo</span>,<br />sin vueltas.
+              Turno<br />con <span className="text-[#FF5C00]" style={{ textShadow: '0 0 22px rgba(255,92,0,0.45)' }}>estilo</span><br />sin vueltas.
             </motion.h1>
-
-            <motion.p variants={fadeUp} className="text-[#8A8A8A] text-[17px] leading-relaxed max-w-[440px] mb-8">
-              Corte, barba y afeitado a la antigua, en un espacio pensado para tomarte tu tiempo. Elegís el horario, nosotros ponemos la navaja.
-            </motion.p>
-
             <motion.div variants={fadeUp} className="flex gap-4 flex-wrap">
               <Button onClick={() => navigate('/reservar')}>
                 Reservar turno
-              </Button>
-              <Button variant="outline" onClick={() => scrollTo('servicios')}>
-                Ver servicios
               </Button>
             </motion.div>
           </div>
@@ -267,7 +265,7 @@ export const LandingPage: React.FC = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-white/10 border border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/10 border border-white/10">
           {services.map((s, i) => (
             <motion.div
               key={s.name}
@@ -280,8 +278,8 @@ export const LandingPage: React.FC = () => {
               <div
                 className="absolute inset-0 opacity-[0.16] group-hover:opacity-[0.28] group-hover:scale-105 transition-all duration-500"
                 style={{
-                  backgroundImage: "url('/hero.jpg')",
-                  backgroundSize: '220% auto',
+                  backgroundImage: `url('${s.image}')`,
+                  backgroundSize: 'cover',
                   backgroundPosition: s.bgPosition,
                   filter: 'saturate(0.7)',
                 }}
@@ -347,9 +345,12 @@ export const LandingPage: React.FC = () => {
           <Button onClick={() => navigate('/reservar')}>
             Reservar turno ahora
           </Button>
-          <p className="text-[#8A8A8A] text-sm max-w-[260px]">
-            También podés escribirnos si preferís coordinar por WhatsApp.
-          </p>
+          <button
+            onClick={() => scrollTo('contacto')}
+            className="text-[#8A8A8A] hover:text-white text-sm max-w-[260px] text-left cursor-pointer transition"
+          >
+            También podés escribirnos si preferís coordinar por WhatsApp o Instagram.
+          </button>
         </motion.div>
       </section>
 
@@ -401,7 +402,7 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* ─── UBICACIÓN ─── */}
-      <section className="bg-[#050505] px-[5vw] py-28">
+      <section id="contacto" className="bg-[#050505] px-[5vw] py-28">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -449,6 +450,15 @@ export const LandingPage: React.FC = () => {
                 className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-[#FF5C00] hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
               >
                 <FiInstagram className="w-5 h-5" />
+              </a>
+              <a
+                href="https://wa.me/59892757877"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="WhatsApp"
+                className="w-11 h-11 border border-white/20 rounded-full flex items-center justify-center text-[#FF5C00] hover:border-[#FF5C00] hover:text-[#FF5C00] transition"
+              >
+                <FaWhatsapp className="w-5 h-5" />
               </a>
             </div>
           </motion.div>

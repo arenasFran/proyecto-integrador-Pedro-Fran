@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { IEmailService } from '../../ports/IEmailService';
@@ -82,15 +83,27 @@ export class CancelAppointmentUseCase {
       updateData.cancelledBy = appointment.cancelledBy;
     }
 
-    await this.appointmentRepository.updateStatus(id, updateData);
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
 
-    // Restaurar cupón de membresía si corresponde
-    if (appointment.paymentMethod === 'memberPass' && appointment.clientId) {
-      const membership = await this.membershipRepository.findActiveByUser(appointment.clientId).catch(() => null);
-      if (membership) {
-        membership.restoreCoupon();
-        await this.membershipRepository.save(membership);
+      await this.appointmentRepository.updateStatus(id, updateData, session);
+
+      // Restaurar cupón de membresía si corresponde
+      if (appointment.paymentMethod === 'memberPass' && appointment.clientId) {
+        const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
+        if (membership) {
+          membership.restoreCoupon();
+          await this.membershipRepository.save(membership, session);
+        }
       }
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
 
     // RN17 — Email notification (async, non-blocking)

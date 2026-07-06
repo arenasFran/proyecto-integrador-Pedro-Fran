@@ -7,7 +7,7 @@ export interface SelectOption {
 }
 
 interface SelectProps {
-  label: string;
+  label?: string;
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
@@ -44,7 +44,7 @@ export function Select({ label, value, onChange, options, placeholder = 'Selecci
 
   return (
     <div className="flex flex-col gap-1" ref={ref}>
-      <label className="text-[13px] font-medium text-white">{label}</label>
+      {label && <label className="text-[13px] font-medium text-white">{label}</label>}
       <div className="relative">
         <button
           type="button"

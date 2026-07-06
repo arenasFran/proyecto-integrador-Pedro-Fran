@@ -103,7 +103,6 @@ export default function MembershipsPage() {
           </div>
           <div className="w-full sm:w-40">
             <Select
-              label="Estado"
               options={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
               value={statusFilter}
               onChange={handleStatusFilter}
@@ -147,7 +146,7 @@ export default function MembershipsPage() {
                 <div className="flex flex-col gap-1.5 text-[13px]">
                   <div className="flex justify-between">
                     <span className="text-[#8A8A8A]">Cupones</span>
-                    <span className="text-white font-medium">{m.couponsUsed}<span className="text-[#8A8A8A]"> / {m.couponsTotal}</span></span>
+                    <span className="text-white font-medium">{m.couponsTotal - m.couponsUsed}<span className="text-[#8A8A8A]"> / {m.couponsTotal}</span></span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8A8A8A]">Vigencia</span>
@@ -195,7 +194,7 @@ export default function MembershipsPage() {
                     </td>
                     <td className="px-4 py-3 text-center">{statusBadge(m.status)}</td>
                     <td className="px-4 py-3 text-center">
-                      <span className="text-white font-medium">{m.couponsUsed}</span>
+                      <span className="text-white font-medium">{m.couponsTotal - m.couponsUsed}</span>
                       <span className="text-[#8A8A8A]"> / {m.couponsTotal}</span>
                     </td>
                     <td className="px-4 py-3 text-center">

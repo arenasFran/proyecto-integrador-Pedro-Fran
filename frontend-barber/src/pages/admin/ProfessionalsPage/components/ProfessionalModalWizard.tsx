@@ -189,7 +189,7 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
       let photoUrl = form.photoUrl;
 
       if (form.photoFile) {
-        photoUrl = await uploadAvatar(form.photoFile);
+        photoUrl = await uploadAvatar(form.photoFile, form.photoUrl || undefined);
       }
 
       await onSave({

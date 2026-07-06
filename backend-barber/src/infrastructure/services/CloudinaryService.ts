@@ -27,4 +27,19 @@ export class CloudinaryService {
       readable.pipe(uploadStream);
     });
   }
+
+  async deleteImage(publicId: string): Promise<void> {
+    try {
+      await cloudinary.uploader.destroy(publicId);
+    } catch (error) {
+      console.error('Error al eliminar imagen de Cloudinary:', error);
+    }
+  }
 }
+
+function extractPublicIdFromUrl(url: string): string | null {
+  const match = url.match(/\/v\d+\/(.+)\.\w+$/);
+  return match ? match[1] : null;
+}
+
+export { extractPublicIdFromUrl };

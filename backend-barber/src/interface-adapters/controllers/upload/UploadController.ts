@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CloudinaryService } from '../../../infrastructure/services/CloudinaryService';
+import { CloudinaryService, extractPublicIdFromUrl } from '../../../infrastructure/services/CloudinaryService';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 
@@ -10,6 +10,14 @@ export class UploadController {
     try {
       if (!req.file) {
         throw new AppError('No se envió ninguna imagen.', 400);
+      }
+
+      const { oldPhotoUrl } = req.body;
+      if (oldPhotoUrl) {
+        const publicId = extractPublicIdFromUrl(oldPhotoUrl);
+        if (publicId) {
+          await this.cloudinary.deleteImage(publicId);
+        }
       }
 
       const photoUrl = await this.cloudinary.uploadImage(req.file.buffer);

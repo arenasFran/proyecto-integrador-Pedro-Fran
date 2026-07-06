@@ -19,4 +19,6 @@ export const redeemCouponSchema = Joi.object({
 export const queryMembershipsSchema = Joi.object({
   status: Joi.string().valid('active', 'expired', 'cancelled').optional(),
   search: Joi.string().optional(),
+  page: Joi.number().integer().min(1).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
 });

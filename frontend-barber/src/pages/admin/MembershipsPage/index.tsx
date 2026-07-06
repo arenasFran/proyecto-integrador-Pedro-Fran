@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { FiAward, FiPlus, FiSearch, FiCalendar, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, Button, Select, Spinner } from '../../../components/common';
+import { AnimatedContainer, Button, Pagination, Select, Spinner } from '../../../components/common';
 import { useGetAllMembershipsQuery } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
@@ -39,11 +39,27 @@ export default function MembershipsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const { data: memberships = [], isLoading } = useGetAllMembershipsQuery({
+  const handleStatusFilter = (v: string) => {
+    setStatusFilter(v);
+    setPage(1);
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
+
+  const { data: result, isLoading } = useGetAllMembershipsQuery({
     status: statusFilter || undefined,
     search: search || undefined,
+    page,
+    limit: 20,
   });
+
+  const memberships = result?.data ?? [];
+  const totalPages = result?.totalPages ?? 1;
 
   if (!token || (kind !== 'Admin' && kind !== 'Empleado')) {
     return <Navigate to="/login" replace />;
@@ -81,7 +97,7 @@ export default function MembershipsPage() {
               type="text"
               placeholder="Buscar cliente..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearch}
               className="w-full rounded-[10px] bg-[#1A1A1A] border border-[#282828] pl-10 pr-3 py-2 text-[13px] text-white placeholder-[#6A6A6A] focus:outline-none focus:border-[#FF5C00]/50"
             />
           </div>
@@ -90,7 +106,7 @@ export default function MembershipsPage() {
               label="Estado"
               options={STATUS_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
               value={statusFilter}
-              onChange={(v) => setStatusFilter(v)}
+              onChange={handleStatusFilter}
             />
           </div>
         </div>
@@ -200,6 +216,10 @@ export default function MembershipsPage() {
       )}
 
       <CreateMembershipModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+
+      {totalPages > 1 && (
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+      )}
     </div>
   );
 }

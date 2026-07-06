@@ -65,21 +65,25 @@ export class MembershipController {
   getAll = async (req: Request, res: Response) => {
     try {
       const { status, search } = req.query as { status?: string; search?: string };
-      const memberships = await this.membershipRepo.findAll({ status, search });
+      const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
-      const data = await Promise.all(
-        memberships.map(async (m) => {
-          const user = await this.userRepo.findById(m.userId);
-          return {
-            ...m.toPrimitives(),
-            user: user
-              ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email }
-              : null,
-          };
-        })
-      );
+      const result = await this.membershipRepo.findAll({ status, search, page, limit });
 
-      return sendSuccess(res, data);
+      const userIds = result.data.map((m) => m.userId);
+      const userMap = await this.userRepo.findByIds(userIds);
+
+      const data = result.data.map((m) => {
+        const user = userMap.get(m.userId);
+        return {
+          ...m.toPrimitives(),
+          user: user
+            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email }
+            : null,
+        };
+      });
+
+      return sendSuccess(res, { data, total: result.total, page: result.page, totalPages: result.totalPages, limit: result.limit });
     } catch (error) {
       return sendError(res, error, 'Error al listar membresías');
     }

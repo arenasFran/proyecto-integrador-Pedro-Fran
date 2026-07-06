@@ -28,7 +28,7 @@ export const membershipApi = createApi({
       invalidatesTags: ['Membership', 'Memberships'],
     }),
 
-    getAllMemberships: builder.query<MembershipWithUser[], { status?: string; search?: string }>({
+    getAllMemberships: builder.query<{ data: MembershipWithUser[]; total: number; page: number; totalPages: number; limit: number }, { status?: string; search?: string; page?: number; limit?: number }>({
       query: (params) => ({
         url: '/api/memberships',
         params,

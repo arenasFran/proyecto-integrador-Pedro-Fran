@@ -6,6 +6,8 @@ import { RegisteredClient } from '../repositories/mongodb/models/client.model';
 import { MembershipModel } from '../repositories/mongodb/models/membership.model';
 import AppointmentModel from '../repositories/mongodb/models/appointment.model';
 import type { IEmployeeRaw } from '../repositories/mongodb/models/barber.model';
+import { v2 as cloudinary } from 'cloudinary';
+import { getConfig } from '../config/env';
 
 const SEED_SERVICES = [
   { id: 'svc-1', name: 'Corte de pelo', price: 490, duration: 50 },
@@ -90,6 +92,13 @@ async function seed() {
   await mongoose.connect(process.env.MONGO_URI as string);
   console.log('Conectado a MongoDB');
 
+  const cfg = getConfig();
+  cloudinary.config({
+    cloud_name: cfg.cloudinaryCloudName,
+    api_key: cfg.cloudinaryApiKey,
+    api_secret: cfg.cloudinaryApiSecret,
+  });
+
   const barbers = await Employee.find({ kind: 'Empleado' }).lean();
   if (barbers.length === 0) {
     console.error('No hay barberos. Corré primero el seed de barberos.');
@@ -116,6 +125,19 @@ async function seed() {
       authProvider: 'local',
     });
     console.log(`Cliente ${c.email} creado`);
+
+    try {
+      const publicId = `avatar_${c.email.replace(/[@.]/g, '_')}`;
+      const result = await cloudinary.uploader.upload(
+        `https://i.pravatar.cc/150?u=${c.email}`,
+        { folder: 'avatars', public_id: publicId, overwrite: true },
+      );
+      await RegisteredClient.findByIdAndUpdate(doc._id, { photoUrl: result.secure_url });
+      console.log(`  Avatar subido para ${c.email}`);
+    } catch (err) {
+      console.warn(`  No se pudo subir avatar para ${c.email}:`, (err as Error).message);
+    }
+
     clientDocs.push(doc);
   }
 

@@ -27,6 +27,10 @@ const CLIENTS: ClientSeed[] = [
   { email: 'clienteA@test.com', name: 'Ana', lastname: 'Martínez', phone: '099111001' },
   { email: 'clienteB@test.com', name: 'Bruno', lastname: 'Rodríguez', phone: '099111002' },
   { email: 'clienteC@test.com', name: 'Carmen', lastname: 'López', phone: '099111003' },
+  { email: 'clienteD@test.com', name: 'Diego', lastname: 'Fernández', phone: '099111004' },
+  { email: 'clienteE@test.com', name: 'Elena', lastname: 'García', phone: '099111005' },
+  { email: 'clienteF@test.com', name: 'Facundo', lastname: 'Pérez', phone: '099111006' },
+  { email: 'clienteG@test.com', name: 'Gabriela', lastname: 'Silva', phone: '099111007' },
 ];
 
 function formatDate(date: Date): string {
@@ -144,10 +148,22 @@ async function seed() {
   const clientA = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'clientea@test.com')!;
   const clientB = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'clienteb@test.com')!;
   const clientC = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'clientec@test.com')!;
+  const clientD = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'cliented@test.com')!;
+  const clientE = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'clientee@test.com')!;
+  const clientF = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'clientef@test.com')!;
+  const clientG = clientDocs.find((d) => ((d as any).email ?? '').toLowerCase() === 'clienteg@test.com')!;
 
-  const membershipsData = [
+  const membershipsData: Array<{
+    client: mongoose.Document;
+    couponsUsed: number;
+    label: string;
+    expired?: boolean;
+  }> = [
     { client: clientA, couponsUsed: 0, label: 'Cliente A — 4 cupones disponibles' },
     { client: clientB, couponsUsed: 2, label: 'Cliente B — 2 cupones usados, 2 restantes' },
+    { client: clientD, couponsUsed: 0, label: 'Cliente D — membresía expirada', expired: true },
+    { client: clientE, couponsUsed: 4, label: 'Cliente E — cupones agotados (4/4)' },
+    { client: clientG, couponsUsed: 0, label: 'Cliente G — 4 cupones disponibles' },
   ];
 
   const membershipDocs: Array<{ doc: mongoose.Document; label: string }> = [];
@@ -167,7 +183,11 @@ async function seed() {
 
     const now = new Date();
     const endDate = new Date(now);
-    endDate.setDate(endDate.getDate() + 30);
+    if (m.expired) {
+      endDate.setDate(endDate.getDate() - 30);
+    } else {
+      endDate.setDate(endDate.getDate() + 30);
+    }
 
     const doc = await MembershipModel.create({
       userId: clientId,
@@ -185,6 +205,9 @@ async function seed() {
 
   const membershipA = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientA._id.toString())!;
   const membershipB = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientB._id.toString())!;
+  const membershipD = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientD._id.toString())!;
+  const membershipE = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientE._id.toString())!;
+  const membershipG = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientG._id.toString())!;
 
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
@@ -310,6 +333,130 @@ async function seed() {
       paymentMethod: 'local',
       paymentStatus: 'Pendiente',
       isPast: false,
+    },
+    {
+      client: clientD,
+      barberIndex: 0,
+      dayName: 'tuesday',
+      serviceIndex: 2,
+      status: 'Confirmado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pendiente',
+      isPast: false,
+    },
+    {
+      client: clientE,
+      barberIndex: 0,
+      dayName: 'thursday',
+      serviceIndex: 3,
+      status: 'Confirmado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pendiente',
+      isPast: false,
+    },
+    {
+      client: clientF,
+      barberIndex: 1,
+      dayName: 'monday',
+      serviceIndex: 1,
+      status: 'Confirmado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pendiente',
+      isPast: false,
+    },
+    {
+      client: clientG,
+      barberIndex: 1,
+      dayName: 'wednesday',
+      serviceIndex: 0,
+      status: 'Confirmado',
+      paymentMethod: 'memberPass',
+      paymentStatus: 'Pagado',
+      isPast: false,
+      membership: membershipG,
+    },
+    {
+      client: clientA,
+      barberIndex: 0,
+      dayName: 'thursday',
+      serviceIndex: 0,
+      status: 'Completado',
+      paymentMethod: 'memberPass',
+      paymentStatus: 'Pagado',
+      isPast: true,
+      membership: membershipA,
+    },
+    {
+      client: clientB,
+      barberIndex: 1,
+      dayName: 'monday',
+      serviceIndex: 2,
+      status: 'Completado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pagado',
+      isPast: true,
+    },
+    {
+      client: clientD,
+      barberIndex: 1,
+      dayName: 'tuesday',
+      serviceIndex: 1,
+      status: 'Completado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pagado',
+      isPast: true,
+    },
+    {
+      client: clientE,
+      barberIndex: 0,
+      dayName: 'wednesday',
+      serviceIndex: 0,
+      status: 'Completado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pagado',
+      isPast: true,
+    },
+    {
+      client: clientF,
+      barberIndex: 0,
+      dayName: 'monday',
+      serviceIndex: 0,
+      status: 'Completado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pagado',
+      isPast: true,
+    },
+    {
+      client: clientF,
+      barberIndex: 1,
+      dayName: 'thursday',
+      serviceIndex: 2,
+      status: 'Completado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pagado',
+      isPast: true,
+    },
+    {
+      client: clientF,
+      barberIndex: 0,
+      dayName: 'saturday',
+      serviceIndex: 3,
+      status: 'Cancelado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pendiente',
+      isPast: true,
+      cancelReason: 'Canceló el barbero por demora',
+    },
+    {
+      client: clientD,
+      barberIndex: 1,
+      dayName: 'saturday',
+      serviceIndex: 1,
+      status: 'Cancelado',
+      paymentMethod: 'local',
+      paymentStatus: 'Pendiente',
+      isPast: true,
+      cancelReason: 'No pudo asistir',
     },
   ];
 

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { CancelAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CancelAppointmentUseCase';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
@@ -35,6 +36,7 @@ describe('CancelAppointmentUseCase', () => {
   let membershipRepository: ReturnType<typeof makeMockMembershipRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let useCase: CancelAppointmentUseCase;
+  let capturedSession: any;
 
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
@@ -43,6 +45,18 @@ describe('CancelAppointmentUseCase', () => {
     emailService = makeMockEmailService();
 
     useCase = new CancelAppointmentUseCase(appointmentRepository, membershipRepository as any, emailService, 0);
+
+    capturedSession = {
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      abortTransaction: jest.fn().mockResolvedValue(undefined),
+      endSession: jest.fn(),
+    };
+    jest.spyOn(mongoose, 'startSession').mockResolvedValue(capturedSession);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('debe fallar si el turno no existe', async () => {
@@ -116,11 +130,12 @@ describe('CancelAppointmentUseCase', () => {
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'Cancelado',
+      paymentStatus: 'Cancelado',
       cancelReason: undefined,
       cancelledAt: expect.any(Date),
       cancelledBy: 'cliente',
       statusHistoryEntry: { status: 'Cancelado', timestamp: expect.any(Date), actor: 'cliente' },
-    });
+    }, capturedSession);
     expect(result.message).toMatch(/Turno cancelado/);
   });
 
@@ -132,11 +147,12 @@ describe('CancelAppointmentUseCase', () => {
 
     expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
       status: 'Cancelado',
+      paymentStatus: 'Cancelado',
       cancelReason: 'Cliente no vino',
       cancelledAt: expect.any(Date),
       cancelledBy: 'admin',
       statusHistoryEntry: { status: 'Cancelado', timestamp: expect.any(Date), actor: 'admin' },
-    });
+    }, capturedSession);
     expect(result.message).toMatch(/Turno cancelado/);
   });
 
@@ -159,9 +175,9 @@ describe('CancelAppointmentUseCase', () => {
 
       const result = await useCase.execute('apt-1', 'client-1', 'Registrado');
 
-      expect(membershipRepository.findActiveByUser).toHaveBeenCalledWith('client-1');
+      expect(membershipRepository.findActiveByUser).toHaveBeenCalledWith('client-1', capturedSession);
       expect(membership.restoreCoupon).toHaveBeenCalledTimes(1);
-      expect(membershipRepository.save).toHaveBeenCalledWith(membership);
+      expect(membershipRepository.save).toHaveBeenCalledWith(membership, capturedSession);
       expect(result.message).toMatch(/Turno cancelado/);
     });
 

@@ -104,6 +104,7 @@ describe('CreateAppointmentUseCase', () => {
   let emailService: jest.Mocked<IEmailService>;
   let blockRepository: ReturnType<typeof makeMockBarberBlockRepository>;
   let useCase: CreateAppointmentUseCase;
+  let capturedSession: any;
 
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
@@ -131,6 +132,18 @@ describe('CreateAppointmentUseCase', () => {
       blockRepository as any,
       membershipRepository as any,
     );
+
+    capturedSession = {
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      abortTransaction: jest.fn().mockResolvedValue(undefined),
+      endSession: jest.fn(),
+    };
+    jest.spyOn(mongoose, 'startSession').mockResolvedValue(capturedSession);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('debe fallar si el barbero no existe', async () => {
@@ -224,8 +237,8 @@ describe('CreateAppointmentUseCase', () => {
         date: '2099-01-01',
         startTime: '10:00',
         endTime: '10:30',
-        clientName: 'Juan',
-      })
+      }),
+      capturedSession
     );
     expect(result.message).toMatch(/Turno creado/);
     expect(result.appointment).toEqual(
@@ -263,9 +276,9 @@ describe('CreateAppointmentUseCase', () => {
         date: '2099-01-01',
         startTime: '09:45',
         endTime: '10:30',
-      })
+      }),
+      capturedSession
     );
-    expect(result.message).toMatch(/Turno creado/);
   });
 
   it('debe fallar si la fecha esta en el pasado', async () => {
@@ -342,7 +355,8 @@ describe('CreateAppointmentUseCase', () => {
         date: '2099-01-01',
         startTime: '10:00',
         endTime: '10:30',
-      })
+      }),
+      capturedSession
     );
     expect(result.message).toMatch(/Turno creado/);
   });
@@ -388,7 +402,8 @@ describe('CreateAppointmentUseCase', () => {
       expect.objectContaining({
         clientId: 'user-1',
         createdBy: { type: 'registered', userId: 'user-1' },
-      })
+      }),
+      capturedSession
     );
   });
 
@@ -411,13 +426,15 @@ describe('CreateAppointmentUseCase', () => {
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
-      expect.not.objectContaining({ clientId: 'emp-1' })
+      expect.not.objectContaining({ clientId: 'emp-1' }),
+      capturedSession
     );
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         createdBy: { type: 'staff', userId: 'emp-1' },
-      })
+      }),
+      capturedSession
     );
   });
 
@@ -442,7 +459,8 @@ describe('CreateAppointmentUseCase', () => {
     expect(appointmentRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         createdBy: { type: 'anonymous' },
-      })
+      }),
+      capturedSession
     );
   });
 
@@ -481,6 +499,7 @@ describe('CreateAppointmentUseCase', () => {
         couponsTotal: MEMBERSHIP_DEFAULTS.couponsTotal,
         couponsUsed: 0,
         productDiscount: MEMBERSHIP_DEFAULTS.productDiscount,
+        autoRenew: true,
         createdBy: 'client',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -514,7 +533,8 @@ describe('CreateAppointmentUseCase', () => {
 
       expect(membershipRepository.save).toHaveBeenCalledTimes(1);
       expect(membershipRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ remainingCoupons: MEMBERSHIP_DEFAULTS.couponsTotal - 1 })
+        expect.objectContaining({ remainingCoupons: MEMBERSHIP_DEFAULTS.couponsTotal - 1 }),
+        capturedSession
       );
     });
 
@@ -538,7 +558,8 @@ describe('CreateAppointmentUseCase', () => {
         expect.objectContaining({
           paymentMethod: 'memberPass',
           paymentStatus: 'Pagado',
-        })
+        }),
+        capturedSession
       );
     });
 

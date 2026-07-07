@@ -45,6 +45,7 @@ export type ClienteListEntry = {
   totalSpent: number;
   firstVisit: string;
   lastVisit: string;
+  membershipStatus: 'active' | null;
 };
 
 export type ClientAppointmentEntry = {
@@ -450,6 +451,33 @@ export class MongoAnalyticsRepository {
         },
       },
       {
+        $lookup: {
+          from: 'memberships',
+          let: { uid: '$originalClientId' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$userId', '$$uid'] },
+                    { $eq: ['$status', 'active'] },
+                  ],
+                },
+              },
+            },
+            { $limit: 1 },
+          ],
+          as: 'membership',
+        },
+      },
+      {
+        $addFields: {
+          membershipStatus: {
+            $cond: [{ $gt: [{ $size: '$membership' }, 0] }, 'active', null],
+          },
+        },
+      },
+      {
         $project: {
           _id: 0,
           key: '$_id',
@@ -469,6 +497,7 @@ export class MongoAnalyticsRepository {
           totalSpent: 1,
           firstVisit: 1,
           lastVisit: 1,
+          membershipStatus: 1,
         },
       },
       { $sort: { lastVisit: -1 } },

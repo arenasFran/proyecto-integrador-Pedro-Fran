@@ -68,6 +68,7 @@ export interface ClienteData {
   totalSpent: number;
   firstVisit: string;
   lastVisit: string;
+  membershipStatus: 'active' | null;
 }
 
 export interface ClientAppointmentEntry {

@@ -9,6 +9,7 @@ export interface IMembershipDocument extends Document {
   couponsTotal: number;
   couponsUsed: number;
   productDiscount: number;
+  autoRenew: boolean;
   createdBy: MembershipSource;
   adminId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -33,6 +34,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     couponsTotal: { type: Number, required: true, default: 4 },
     couponsUsed: { type: Number, required: true, default: 0 },
     productDiscount: { type: Number, required: true, default: 10 },
+    autoRenew: { type: Boolean, default: true },
     createdBy: {
       type: String,
       enum: ['client', 'admin'],

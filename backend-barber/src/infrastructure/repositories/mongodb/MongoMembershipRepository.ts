@@ -3,6 +3,7 @@ import { MembershipModel, IMembershipDocument } from './models/membership.model'
 import { Membership } from '../../../domain/entities/Membership';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
+import { MEMBERSHIP_DEFAULTS } from '../../../domain/types/membership';
 
 export class MongoMembershipRepository {
   async findActiveByUser(userId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
@@ -79,6 +80,7 @@ export class MongoMembershipRepository {
           status: data.status,
           couponsUsed: data.couponsUsed,
           endDate: data.endDate,
+          autoRenew: data.autoRenew,
           updatedAt: new Date(),
         },
       }, session ? { session } : {});
@@ -115,15 +117,33 @@ export class MongoMembershipRepository {
     return count > 0;
   }
 
-  async expireExpiredMemberships(): Promise<number> {
-    const result = await MembershipModel.updateMany(
-      {
-        status: 'active',
-        endDate: { $lt: new Date() },
-      },
-      { $set: { status: 'expired' } }
-    );
-    return result.modifiedCount;
+  async expireExpiredMemberships(): Promise<{ expired: number; renewed: number }> {
+    const expiredDocs = await MembershipModel.find({
+      status: 'active',
+      endDate: { $lt: new Date() },
+    });
+
+    let expired = 0;
+    let renewed = 0;
+
+    for (const doc of expiredDocs) {
+      const autoRenew = (doc as any).autoRenew ?? true;
+
+      if (autoRenew) {
+        const newEndDate = new Date();
+        newEndDate.setDate(newEndDate.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
+        doc.endDate = newEndDate;
+        doc.couponsUsed = 0;
+        await doc.save();
+        renewed++;
+      } else {
+        doc.status = 'expired';
+        await doc.save();
+        expired++;
+      }
+    }
+
+    return { expired, renewed };
   }
 
   private toDomain(doc: IMembershipDocument): Membership {
@@ -136,6 +156,7 @@ export class MongoMembershipRepository {
       couponsTotal: doc.couponsTotal,
       couponsUsed: doc.couponsUsed,
       productDiscount: doc.productDiscount,
+      autoRenew: (doc as any).autoRenew ?? true,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
       createdAt: doc.createdAt,

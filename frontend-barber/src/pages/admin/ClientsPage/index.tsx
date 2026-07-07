@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp } from 'react-icons/fi';
+import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp, FiAward } from 'react-icons/fi';
 import { Spinner } from '../../../components/common/Spinner';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
@@ -61,7 +61,7 @@ export default function ClientsPage() {
           <span className="text-2xl font-bold text-purple-400">{stats.reg}</span>
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
-          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiCalendar size={12} /> Visitas</span>
+          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiCalendar size={12} /> Reservas</span>
           <span className="text-2xl font-bold text-blue-400">{stats.totalVisits}</span>
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
@@ -104,8 +104,11 @@ export default function ClientsPage() {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-white break-words">
+                    <p className={`text-[14px] font-semibold break-words ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
                       {c.clientName} {c.clientLastname}
+                      {c.membershipStatus === 'active' && (
+                        <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                      )}
                     </p>
                     {c.clientPhone && (
                       <p className="text-[12px] text-[#8A8A8A]">{c.clientPhone}</p>
@@ -119,7 +122,7 @@ export default function ClientsPage() {
                     <span className="text-white text-right max-w-[60%] truncate">{c.clientEmail ?? '—'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8A8A8A]">Visitas</span>
+                    <span className="text-[#8A8A8A]">Reservas</span>
                     <span className="flex items-center gap-1">
                       <FiTrendingUp size={12} className={c.totalVisits >= 2 ? 'text-green-400' : 'text-[#8A8A8A]'} />
                       <span className={c.totalVisits >= 2 ? 'text-white font-medium' : 'text-[#8A8A8A]'}>{c.totalVisits}</span>
@@ -130,11 +133,11 @@ export default function ClientsPage() {
                     <span className="text-green-400 font-medium">${c.totalSpent.toLocaleString('es-UY')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8A8A8A]">Primera visita</span>
+                    <span className="text-[#8A8A8A]">Primera reserva</span>
                     <span className="text-white">{c.firstVisit}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-[#8A8A8A]">Última visita</span>
+                    <span className="text-[#8A8A8A]">Última reserva</span>
                     <span className="text-white">{c.lastVisit}</span>
                   </div>
                 </div>
@@ -151,10 +154,10 @@ export default function ClientsPage() {
                   <th className="text-left px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Teléfono</th>
                   <th className="text-left px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Email</th>
                   <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Tipo</th>
-                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Visitas</th>
+                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Reservas</th>
                   <th className="text-right px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Gastado</th>
-                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Primera visita</th>
-                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Última visita</th>
+                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Primera reserva</th>
+                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Última reserva</th>
                 </tr>
               </thead>
               <tbody>
@@ -165,7 +168,12 @@ export default function ClientsPage() {
                     className="border-b border-[#282828]/50 hover:bg-[#1A1A1A] cursor-pointer transition-colors last:border-b-0"
                   >
                     <td className="px-4 py-3">
-                      <span className="text-white font-medium">{c.clientName} {c.clientLastname}</span>
+                      <span className={`font-medium ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
+                        {c.clientName} {c.clientLastname}
+                        {c.membershipStatus === 'active' && (
+                          <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                        )}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-[#8A8A8A]">{c.clientPhone ?? '—'}</td>
                     <td className="px-4 py-3 text-[#8A8A8A] max-w-[180px] truncate">{c.clientEmail ?? '—'}</td>

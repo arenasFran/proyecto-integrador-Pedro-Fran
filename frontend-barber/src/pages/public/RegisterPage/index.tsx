@@ -35,7 +35,7 @@ export const RegisterPage: React.FC = () => {
           className="w-full max-w-sm"
         >
           <motion.div variants={itemVariants} className="text-center mb-4">
-            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-56 w-auto mx-auto mb-1" />
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-72 w-auto mx-auto mb-0" />
             <h1 className="text-[24px] font-bold text-white tracking-tight mb-1">
               Crear cuenta
             </h1>

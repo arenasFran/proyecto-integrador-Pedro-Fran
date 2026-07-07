@@ -1,8 +1,12 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, AppFooter } from '../../../components/common';
+import { AppHeader } from '../../../components/common/AppHeader';
+import { AppSidebar } from '../../../components/sidebar/AppSidebar';
 import { PublicHeader } from '../../../components/client/PublicHeader';
+import { getAccessToken } from '../../../services/api';
+import { getTokenKind } from '../../../utils/token';
 import {
   AccordionStep,
   ClientDataOverlay,
@@ -85,6 +89,9 @@ export const BookingPage: React.FC = () => {
 
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
+  const [collapsed, setCollapsed] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const tokenKind = getTokenKind(getAccessToken());
   const allStepsComplete = areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime);
   const [prevComplete, setPrevComplete] = React.useState(false);
   if (allStepsComplete !== prevComplete) {
@@ -183,10 +190,8 @@ export const BookingPage: React.FC = () => {
       ? `${selectedBarber.name} ${selectedBarber.lastname}`
       : null;
 
-  return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <PublicHeader />
-
+  const bookingContent = (
+    <>
       <div className="relative mx-auto max-w-2xl px-6 pb-32 pt-8 sm:px-8 sm:pt-10">
           <AnimatedContainer animation="fadeInDown" className="text-center mb-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[11px] text-[#8A8A8A] mb-3">
@@ -290,7 +295,33 @@ export const BookingPage: React.FC = () => {
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
       />
+    </>
+  );
 
+  if (authUser) {
+    return (
+      <div className="min-h-screen bg-[#050505]">
+        <AppSidebar
+          collapsed={collapsed}
+          onToggle={() => setCollapsed(!collapsed)}
+          onCloseMobile={() => setSidebarOpen(false)}
+          mobileOpen={sidebarOpen}
+          kind={tokenKind}
+        />
+        <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+          <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
+          <main className="p-4 sm:p-6 lg:p-8">
+            {bookingContent}
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#050505] text-white">
+      <PublicHeader />
+      {bookingContent}
       <AppFooter />
     </div>
   );

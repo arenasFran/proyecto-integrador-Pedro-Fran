@@ -164,6 +164,7 @@ const bookingSlice = createSlice({
       }
     },
     setSelectedDate: (state, action: PayloadAction<string | null>) => {
+      if (state.flow.selectedDate === action.payload) return;
       state.flow.selectedDate = action.payload;
       state.flow.selectedTime = null;
       state.async.availableSlots = [];

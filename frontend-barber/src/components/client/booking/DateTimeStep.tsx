@@ -76,6 +76,7 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
           <TimeSlotGrid
             slots={availableSlots}
             selectedTime={selectedTime}
+            selectedDate={selectedDate}
             isLoading={isLoadingSlots}
             onSelect={onSelectTime}
           />

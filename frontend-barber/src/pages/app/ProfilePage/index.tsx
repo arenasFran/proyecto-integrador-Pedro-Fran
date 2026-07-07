@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiSettings, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner } from '../../../components/common';
+import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSettings, FiUser } from 'react-icons/fi';
+import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner, useToast } from '../../../components/common';
 import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { updateCurrentUser } from '../../../store/slices/authSlice';
+import { logout, updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
+import { useChangePasswordMutation } from '../../../services/authApi';
 import type { DayKey } from '../../../types/professional';
 import {
   createEmptySchedule,
@@ -44,10 +45,19 @@ export const ProfilePage: React.FC = () => {
   }, [authUser, barbers, isBarber]);
 
   const [activeTab, setActiveTab] = useState<'personal' | 'agenda'>('personal');
-  const [password, setPassword] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
+
+  const [changePasswordMutation, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+  const { showToast } = useToast();
 
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -152,7 +162,6 @@ export const ProfilePage: React.FC = () => {
       if (isBarber) {
         const payload: Record<string, unknown> = {
           email: String(formData.email ?? '').trim(),
-          password: password.trim() || undefined,
           name: String(formData.name ?? '').trim(),
           lastname: String(formData.lastname ?? '').trim(),
           phone: String(formData.phone ?? '').trim(),
@@ -169,19 +178,16 @@ export const ProfilePage: React.FC = () => {
 
         await dispatch(updateBarberMe(payload)).unwrap();
         setEditedFields({});
-        setPassword('');
         setPageMessage('Perfil actualizado con éxito.');
       } else {
         await dispatch(updateCurrentUser({
           email: String(formData.email ?? '').trim() || undefined,
-          password: password.trim() || undefined,
           name: String(formData.name ?? '').trim() || undefined,
           lastname: String(formData.lastname ?? '').trim() || undefined,
           phone: String(formData.phone ?? '').trim() || undefined,
           photoUrl: photoUrl ?? undefined,
         })).unwrap();
         setEditedFields({});
-        setPassword('');
         setPageMessage('Perfil actualizado con éxito.');
       }
     } catch (error: unknown) {
@@ -193,6 +199,50 @@ export const ProfilePage: React.FC = () => {
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordFieldErrors({});
+
+    const errors: { currentPassword?: string; newPassword?: string; confirmPassword?: string } = {};
+
+    if (!currentPassword) errors.currentPassword = 'La contraseña actual es obligatoria';
+    if (!newPassword) errors.newPassword = 'La nueva contraseña es obligatoria';
+    if (!confirmPassword) errors.confirmPassword = 'La confirmación es obligatoria';
+
+    if (newPassword && newPassword.length < 8) errors.newPassword = 'Debe tener al menos 8 caracteres';
+    if (newPassword && confirmPassword && newPassword !== confirmPassword) errors.confirmPassword = 'Las contraseñas no coinciden';
+    if (currentPassword && newPassword && currentPassword === newPassword) errors.newPassword = 'Debe ser diferente a la actual';
+
+    if (Object.keys(errors).length > 0) {
+      setPasswordFieldErrors(errors);
+      return;
+    }
+
+    try {
+      await changePasswordMutation({
+        currentPassword,
+        newPassword,
+        newPasswordConfirmation: confirmPassword,
+      }).unwrap();
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowChangePassword(false);
+      showToast('Contraseña actualizada. Iniciá sesión de nuevo con tu nueva contraseña.', 'success');
+      dispatch(logout());
+      navigate('/login', { replace: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+      if (msg.includes('401') || msg.toLowerCase().includes('contraseña actual incorrecta')) {
+        setPasswordFieldErrors({ currentPassword: 'Contraseña actual incorrecta' });
+      } else {
+        const errorMsg = msg || 'Error al cambiar la contraseña';
+        showToast(errorMsg, 'error');
+      }
     }
   };
 
@@ -297,7 +347,6 @@ export const ProfilePage: React.FC = () => {
                   <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
                   <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
                 </div>
-                <PasswordInput label="Nueva contraseña (opcional)" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />
               </>
             )}
 
@@ -384,6 +433,74 @@ export const ProfilePage: React.FC = () => {
               </Button>
             </div>
           </form>
+        </AnimatedContainer>
+
+        <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FiLock className="w-5 h-5 text-[#FF5C00]" />
+              <h2 className="text-[18px] font-bold text-white">Cambiar contraseña</h2>
+            </div>
+            {!showChangePassword && (
+              <Button type="button" variant="secondary" onClick={() => setShowChangePassword(true)}>
+                Cambiar
+              </Button>
+            )}
+          </div>
+
+          {showChangePassword && (
+            <div className="grid gap-4">
+              <PasswordInput
+                label="Contraseña actual"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Ingresá tu contraseña actual"
+                error={passwordFieldErrors.currentPassword}
+              />
+              <PasswordInput
+                label="Nueva contraseña"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
+                error={passwordFieldErrors.newPassword}
+              />
+              <PasswordInput
+                label="Confirmar nueva contraseña"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repetí la nueva contraseña"
+                error={passwordFieldErrors.confirmPassword}
+              />
+
+              {passwordError && (
+                <p className="text-[12px] text-red-400 text-center">{passwordError}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  onClick={handleChangePassword}
+                  loading={isChangingPassword}
+                >
+                  Actualizar contraseña
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowChangePassword(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError(null);
+                    setPasswordFieldErrors({});
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
         </AnimatedContainer>
       </div>
     </div>

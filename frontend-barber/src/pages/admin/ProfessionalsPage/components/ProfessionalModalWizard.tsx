@@ -271,7 +271,7 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
             value={form.password}
             onChange={handleFieldChange('password')}
             required={!professional}
-            placeholder={professional ? 'Dejar vacío para no cambiar' : 'Mínimo 6 caracteres'}
+            placeholder={professional ? 'Dejar vacío para no cambiar' : 'Mínimo 8 caracteres, mayúscula, minúscula y número'}
           />
           <Input label="Edad" type="number" min={0} value={form.age} onChange={handleFieldChange('age')} placeholder="28" />
 

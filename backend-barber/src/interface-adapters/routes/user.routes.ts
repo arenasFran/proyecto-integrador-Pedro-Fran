@@ -2,7 +2,7 @@ import express from 'express';
 import { UserController } from '../controllers/user/UserController';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
-import { updateUserSchema } from '../validators/user.validator';
+import { changePasswordSchema, updateUserSchema } from '../validators/user.validator';
 
 export const createUserRouter = (deps: {
   authenticate: express.RequestHandler;
@@ -18,6 +18,13 @@ export const createUserRouter = (deps: {
     authorize('Registrado'),
     validate({ body: updateUserSchema }),
     deps.userController.updateMe
+  );
+
+  router.patch(
+    '/me/password',
+    deps.authenticate,
+    validate({ body: changePasswordSchema }),
+    deps.userController.changePassword
   );
 
   return router;

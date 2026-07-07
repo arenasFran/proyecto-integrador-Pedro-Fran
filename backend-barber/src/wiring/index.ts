@@ -5,6 +5,7 @@ import { MongoAppointmentRepository } from '../infrastructure/repositories/mongo
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoRefreshTokenRepository } from '../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
@@ -65,6 +66,7 @@ export const buildUserRouter = () => {
   const config = getConfig();
   const userRepository = new MongoUserRepository();
   const passwordHasher = new BcryptPasswordHasher();
+  const refreshTokenRepository = new MongoRefreshTokenRepository();
   const tokenService = new JwtTokenService({
     accessSecret: config.jwtAccessSecret,
     refreshSecret: config.jwtRefreshSecret,
@@ -75,7 +77,7 @@ export const buildUserRouter = () => {
     audience: config.jwtAudience,
   });
 
-  const userController = new UserController(userRepository, passwordHasher);
+  const userController = new UserController(userRepository, passwordHasher, refreshTokenRepository);
   const authenticate = createAuthenticate(tokenService);
 
   return createUserRouter({ authenticate, userController });

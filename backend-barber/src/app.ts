@@ -69,6 +69,14 @@ const refreshLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const changePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: "Demasiados intentos de cambio de contraseña, esperá 15 minutos" },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.use("/auth/register", registerLimiter);
 app.use("/auth/refresh", refreshLimiter);
 app.use("/auth/request-reset", resetLimiter);
@@ -85,6 +93,7 @@ const serviceAuth = createAuthenticate(tokenService);
 app.use("/api/services", buildServiceRouter({ authenticate: serviceAuth }));
 app.use("/api/appointments", buildAppointmentRouter());
 app.use("/api/appointments/temp-lock", buildTempLockRouter());
+app.use("/api/users/me/password", changePasswordLimiter);
 app.use("/api/users", buildUserRouter());
 app.use("/api/upload", buildUploadRouter());
 const analyticsAuth = createAuthenticate(tokenService);

@@ -20,7 +20,7 @@ function createTestStore(preloadedState?: Partial<RootState>) {
       auth: authReducer,
       barbers: barbersReducer,
       [authApi.reducerPath]: authApi.reducer,
-    },
+    } as any,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(authApi.middleware),
     preloadedState,

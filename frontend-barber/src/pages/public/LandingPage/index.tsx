@@ -78,23 +78,6 @@ const faqItems = [
   
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { type: 'spring' as const, stiffness: 300, damping: 24 },
-  },
-};
-
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -434,7 +417,7 @@ export const LandingPage: React.FC = () => {
                   <b className="text-[11px] uppercase tracking-wide text-[#FF5C00] min-w-[110px] shrink-0 pt-0.5">
                     {item.label}
                   </b>
-                  <span className={item.muted ? 'text-[#8A8A8A]' : ''}>
+                  <span>
                     {item.value}
                     {item.sub && <span className="text-[#8A8A8A]"> {item.sub}</span>}
                   </span>

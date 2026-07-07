@@ -26,8 +26,6 @@ import {
 } from '../../../store/slices/bookingSlice';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { useGetMyMembershipQuery } from '../../../services/membershipApi';
-import { authApi } from '../../../services/authApi';
-import { getAccessToken } from '../../../services/api';
 import { formatDate } from '../../../utils/formatDate';
 import type { BookingStep, BarberPublic, PaymentMethod } from '../../../types/booking';
 
@@ -88,7 +86,7 @@ export const BookingPage: React.FC = () => {
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
   const allStepsComplete = areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime);
-  const [prevComplete, setPrevComplete] = React.useState(allStepsComplete);
+  const [prevComplete, setPrevComplete] = React.useState(false);
   if (allStepsComplete !== prevComplete) {
     setPrevComplete(allStepsComplete);
     if (allStepsComplete) {

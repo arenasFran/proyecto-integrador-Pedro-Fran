@@ -22,3 +22,10 @@ export const queryMembershipsSchema = Joi.object({
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 });
+
+export const membershipIdParamSchema = Joi.object({
+  id: Joi.string().hex().length(24).required().messages({
+    'string.hex': 'ID inválido',
+    'any.required': 'ID es requerido',
+  }),
+});

@@ -121,4 +121,38 @@ export class MembershipController {
       return sendError(res, error, 'Error al canjear cupón');
     }
   };
+
+  cancel = async (req: Request, res: Response) => {
+    try {
+      const membership = await this.membershipRepo.findById(req.params.id as string);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+      if (membership.userId !== req.user!._id) {
+        throw new AppError('No tenés permisos para cancelar esta membresía.', 403);
+      }
+      membership.cancel();
+      await this.membershipRepo.save(membership);
+      return sendSuccess(res, membership.toPrimitives());
+    } catch (error) {
+      return sendError(res, error, 'Error al cancelar membresía');
+    }
+  };
+
+  reactivate = async (req: Request, res: Response) => {
+    try {
+      const membership = await this.membershipRepo.findById(req.params.id as string);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+      if (membership.userId !== req.user!._id) {
+        throw new AppError('No tenés permisos para reactivar esta membresía.', 403);
+      }
+      membership.reactivate();
+      await this.membershipRepo.save(membership);
+      return sendSuccess(res, membership.toPrimitives());
+    } catch (error) {
+      return sendError(res, error, 'Error al reactivar membresía');
+    }
+  };
 }

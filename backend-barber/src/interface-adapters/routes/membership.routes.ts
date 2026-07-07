@@ -8,6 +8,7 @@ import {
   createMembershipSchema,
   redeemCouponSchema,
   queryMembershipsSchema,
+  membershipIdParamSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -69,6 +70,22 @@ export const createMembershipRouter = (deps: {
     authorize('Admin', 'Empleado'),
     validate({ body: redeemCouponSchema }),
     deps.membershipController.redeemCoupon
+  );
+
+  router.post(
+    '/:id/cancel',
+    membershipMutationLimiter,
+    deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.cancel
+  );
+
+  router.post(
+    '/:id/reactivate',
+    membershipMutationLimiter,
+    deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.reactivate
   );
 
   return router;

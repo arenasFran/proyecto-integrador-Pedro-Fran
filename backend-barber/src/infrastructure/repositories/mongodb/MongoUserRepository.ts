@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { User } from '../../../domain/entities/User';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
@@ -87,6 +88,27 @@ const userToRegisteredClientData = (user: User) => ({
 });
 
 export class MongoUserRepository {
+  async findByIds(ids: string[]): Promise<Map<string, User>> {
+    const userMap = new Map<string, User>();
+    if (ids.length === 0) return userMap;
+
+    const objectIds = ids.map(id => new mongoose.Types.ObjectId(id));
+
+    const barbers = await Barber.find({ _id: { $in: objectIds } }).lean();
+    for (const doc of barbers) {
+      const user = userFromBarber(doc);
+      userMap.set(user.id, user);
+    }
+
+    const clients = await RegisteredClient.find({ _id: { $in: objectIds } }).lean();
+    for (const doc of clients) {
+      const user = userFromRegisteredClient(doc);
+      userMap.set(user.id, user);
+    }
+
+    return userMap;
+  }
+
   async findById(id: string): Promise<User | null> {
     const barber = await Barber.findById(id);
     if (barber) {

@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 import { CreateAppointmentUseCase } from '../../../../src/application/use-cases/appointment/CreateAppointmentUseCase';
 import { AppError } from '../../../../src/domain/errors/AppError';
+import { Membership } from '../../../../src/domain/entities/Membership';
+import { MEMBERSHIP_DEFAULTS } from '../../../../src/domain/types/membership';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/entities/Barber';
 import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
 import { Service } from '../../../../src/domain/entities/Service';
 import { Client } from '../../../../src/domain/entities/Client';
-import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockServiceRepository, makeMockClientRepository, makeMockTempLockRepository, makeMockEmailService, makeMockBarberBlockRepository } from '../../../test-utils/mocks';
+import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockServiceRepository, makeMockClientRepository, makeMockMembershipRepository, makeMockTempLockRepository, makeMockEmailService, makeMockBarberBlockRepository } from '../../../test-utils/mocks';
 
 describe('CreateAppointmentUseCase', () => {
   const createScheduleDay = () => ({
@@ -97,6 +99,7 @@ describe('CreateAppointmentUseCase', () => {
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let serviceRepository: ReturnType<typeof makeMockServiceRepository>;
   let clientRepository: ReturnType<typeof makeMockClientRepository>;
+  let membershipRepository: ReturnType<typeof makeMockMembershipRepository>;
   let tempLockRepository: ReturnType<typeof makeMockTempLockRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let blockRepository: ReturnType<typeof makeMockBarberBlockRepository>;
@@ -111,6 +114,8 @@ describe('CreateAppointmentUseCase', () => {
     serviceRepository = makeMockServiceRepository();
     clientRepository = makeMockClientRepository();
     clientRepository.createUnregistered.mockResolvedValue({ id: 'client-1' } as any);
+    membershipRepository = makeMockMembershipRepository();
+    membershipRepository.findActiveByUser.mockResolvedValue(null);
     tempLockRepository = makeMockTempLockRepository();
     emailService = makeMockEmailService();
     blockRepository = makeMockBarberBlockRepository();
@@ -123,7 +128,8 @@ describe('CreateAppointmentUseCase', () => {
       clientRepository,
       emailService,
       tempLockRepository,
-      blockRepository as any
+      blockRepository as any,
+      membershipRepository as any,
     );
   });
 
@@ -460,6 +466,132 @@ describe('CreateAppointmentUseCase', () => {
     });
 
     expect(result.message).toMatch(/Turno creado/);
+  });
+
+  describe('membresía (memberPass)', () => {
+    const makeActiveMembership = () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 30);
+      return Membership.restore({
+        id: 'mem-1',
+        userId: 'client-1',
+        status: 'active',
+        startDate: new Date(),
+        endDate: future,
+        couponsTotal: MEMBERSHIP_DEFAULTS.couponsTotal,
+        couponsUsed: 0,
+        productDiscount: MEMBERSHIP_DEFAULTS.productDiscount,
+        createdBy: 'client',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    };
+
+    const setupBaseMocks = () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber());
+      serviceRepository.findById.mockResolvedValue(makeService());
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+      appointmentRepository.findByClientId.mockResolvedValue([]);
+      clientRepository.findByEmail.mockResolvedValue(makeClient());
+      appointmentRepository.create.mockResolvedValue(makeAppointment());
+    };
+
+    it('debe canjear cupón de membresía cuando paymentMethod es memberPass', async () => {
+      const membership = makeActiveMembership();
+      membershipRepository.findActiveByUser.mockResolvedValue(membership);
+      setupBaseMocks();
+
+      await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+        paymentMethod: 'memberPass',
+      });
+
+      expect(membershipRepository.save).toHaveBeenCalledTimes(1);
+      expect(membershipRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ remainingCoupons: MEMBERSHIP_DEFAULTS.couponsTotal - 1 })
+      );
+    });
+
+    it('debe establecer paymentStatus como Pagado cuando es memberPass', async () => {
+      const membership = makeActiveMembership();
+      membershipRepository.findActiveByUser.mockResolvedValue(membership);
+      setupBaseMocks();
+
+      await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+        paymentMethod: 'memberPass',
+      });
+
+      expect(appointmentRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          paymentMethod: 'memberPass',
+          paymentStatus: 'Pagado',
+        })
+      );
+    });
+
+    it('debe rechazar memberPass si no hay membresía activa', async () => {
+      membershipRepository.findActiveByUser.mockResolvedValue(null);
+      setupBaseMocks();
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientId: 'client-1',
+          paymentMethod: 'memberPass',
+        })
+      ).rejects.toBeInstanceOf(AppError);
+    });
+
+    it('debe rechazar memberPass si no hay clientId', async () => {
+      setupBaseMocks();
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          paymentMethod: 'memberPass',
+        })
+      ).rejects.toBeInstanceOf(AppError);
+    });
+
+    it('NO debe canjear cupón cuando paymentMethod es local', async () => {
+      setupBaseMocks();
+
+      await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientEmail: 'juan@test.com',
+        paymentMethod: 'local',
+      });
+
+      expect(membershipRepository.save).not.toHaveBeenCalled();
+    });
   });
 });
 

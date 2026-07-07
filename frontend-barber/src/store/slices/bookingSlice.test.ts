@@ -7,6 +7,7 @@ import reducer, {
   setSelectedService,
   setSelectedDate,
   setSelectedTime,
+  setPaymentMethod,
   setClientData,
   clearBookingError,
   resetBooking,
@@ -42,6 +43,7 @@ const initialState = {
     clientLastname: '',
     clientPhone: '',
     clientEmail: '',
+    paymentMethod: 'local',
   },
 };
 
@@ -135,6 +137,11 @@ describe('bookingSlice', () => {
     it('setSelectedTime asigna la hora', () => {
       const state = reducer(initialState, setSelectedTime('10:00'));
       expect(state.flow.selectedTime).toBe('10:00');
+    });
+
+    it('setPaymentMethod actualiza el método de pago', () => {
+      const state = reducer(initialState, setPaymentMethod('memberPass'));
+      expect(state.flow.paymentMethod).toBe('memberPass');
     });
 
     it('setServices asigna servicios desde RTK Query', () => {

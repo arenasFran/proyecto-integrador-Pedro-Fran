@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar } from 'react-icons/fi';
+import { FiAward, FiCreditCard, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar } from 'react-icons/fi';
 import { Button, Input } from '../../common';
 import { formatDate } from '../../../utils/formatDate';
-import type { BarberPublic, Service } from '../../../types/booking';
+import type { BarberPublic, PaymentMethod, Service } from '../../../types/booking';
 
 interface ClientDataOverlayProps {
   isOpen: boolean;
@@ -15,10 +15,14 @@ interface ClientDataOverlayProps {
   clientLastname: string;
   clientPhone: string;
   clientEmail: string;
+  paymentMethod: PaymentMethod;
+  hasActiveMembership: boolean;
+  remainingCoupons: number;
   isConfirming: boolean;
   confirmError: string | null;
   isLoggedIn?: boolean;
   onChange: (data: { name: string; lastname: string; phone: string; email: string }) => void;
+  onPaymentMethodChange: (method: PaymentMethod) => void;
   onSubmit: () => void;
   onClose: () => void;
 }
@@ -56,10 +60,14 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
   clientLastname,
   clientPhone,
   clientEmail,
+  paymentMethod,
+  hasActiveMembership,
+  remainingCoupons,
   isConfirming,
   confirmError,
   isLoggedIn,
   onChange,
+  onPaymentMethodChange,
   onSubmit,
   onClose,
 }) => {
@@ -196,6 +204,57 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
             {confirmError && (
               <p className="text-[12px] text-red-400 mb-4">{confirmError}</p>
             )}
+
+            <div className="mb-5">
+              <p className="text-[13px] font-medium text-white mb-3">Método de pago</p>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => onPaymentMethodChange('local')}
+                  className={`flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left text-[13px] transition-all ${
+                    paymentMethod === 'local'
+                      ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-white'
+                      : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:border-[#555]'
+                  }`}
+                >
+                  <FiHome className="shrink-0" size={16} />
+                  <div>
+                    <p className="font-medium">Pagar en el local</p>
+                    <p className="text-[11px] text-[#6A6A6A]">Abonás al llegar a la barbería</p>
+                  </div>
+                </button>
+
+                {hasActiveMembership && (
+                  <button
+                    type="button"
+                    onClick={() => onPaymentMethodChange('memberPass')}
+                    className={`flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left text-[13px] transition-all ${
+                      paymentMethod === 'memberPass'
+                        ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-white'
+                        : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:border-[#555]'
+                    }`}
+                  >
+                    <FiAward className="shrink-0" size={16} />
+                    <div>
+                      <p className="font-medium">Usar membresía</p>
+                      <p className="text-[11px] text-[#6A6A6A]">Te quedan {remainingCoupons} cupones</p>
+                    </div>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  disabled
+                  className="flex items-center gap-3 rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-4 py-3 text-left text-[13px] text-[#555] opacity-50 cursor-not-allowed"
+                >
+                  <FiCreditCard className="shrink-0" size={16} />
+                  <div>
+                    <p className="font-medium">Pagar online</p>
+                    <p className="text-[11px] text-[#555]">Próximamente</p>
+                  </div>
+                </button>
+              </div>
+            </div>
 
             <Button
               onClick={onSubmit}

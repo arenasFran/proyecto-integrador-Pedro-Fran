@@ -60,6 +60,16 @@ export const makeMockEmailService = () => ({
   sendMail: jest.fn().mockResolvedValue(undefined),
 });
 
+export const makeMockMembershipRepository = () => ({
+  findActiveByUser: jest.fn(),
+  findByUser: jest.fn(),
+  findById: jest.fn(),
+  findAll: jest.fn(),
+  save: jest.fn(),
+  hasActiveMembership: jest.fn(),
+  expireExpiredMemberships: jest.fn(),
+});
+
 export const makeMockHashService = () => ({
   sha256: jest.fn(),
   constantTimeEqual: jest.fn(),

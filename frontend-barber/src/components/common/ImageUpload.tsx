@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FiUpload, FiX } from 'react-icons/fi';
 
 type ImageUploadProps = {
@@ -19,24 +19,40 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
 
   const previewUrl = localPreview ?? currentUrl ?? null;
 
+  useEffect(() => {
+    if (currentUrl) {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+      setLocalPreview(null);
+    }
+  }, [currentUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file?.type.startsWith('image/')) {
+    if (file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       onFileSelect(file);
+      if (localPreview) URL.revokeObjectURL(localPreview);
       setLocalPreview(URL.createObjectURL(file));
     }
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.type.startsWith('image/')) {
+    if (file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
       onFileSelect(file);
+      if (localPreview) URL.revokeObjectURL(localPreview);
       setLocalPreview(URL.createObjectURL(file));
     }
   };
 
   const handleRemove = () => {
+    if (localPreview) URL.revokeObjectURL(localPreview);
     onFileSelect(null);
     setLocalPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -77,7 +93,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/jpeg,image/png,image/webp"
         className="hidden"
         onChange={handleFileSelect}
       />

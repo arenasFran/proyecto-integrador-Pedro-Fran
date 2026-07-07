@@ -41,11 +41,11 @@ export const AccordionStep: React.FC<AccordionStepProps> = ({
         role="button"
         aria-expanded={isExpanded}
         aria-controls={`accordion-content-${stepNumber}`}
-        className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left transition-colors disabled:cursor-not-allowed"
+        className="w-full flex items-center justify-between gap-2 px-6 py-4 text-left transition-colors disabled:cursor-not-allowed"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className={`flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold transition-all duration-300 ${
+            className={`flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full text-[12px] font-bold transition-all duration-300 ${
               isCompleted
                 ? 'bg-[#22C55E] text-white'
                 : isExpanded
@@ -53,11 +53,11 @@ export const AccordionStep: React.FC<AccordionStepProps> = ({
                   : 'bg-[#242424] text-[#8A8A8A]'
             }`}
           >
-            {isCompleted ? <FiCheck className="w-3 h-3" /> : isLocked ? <FiLock className="w-3 h-3" /> : stepNumber}
+            {isCompleted ? <FiCheck className="w-3.5 h-3.5" /> : isLocked ? <FiLock className="w-3.5 h-3.5" /> : stepNumber}
           </div>
 
           <span
-            className={`text-[13px] font-semibold transition-colors ${
+            className={`text-[14px] font-semibold transition-colors ${
               isExpanded ? 'text-[#FF5C00]' : isCompleted ? 'text-white' : 'text-[#8A8A8A]'
             }`}
           >
@@ -65,17 +65,17 @@ export const AccordionStep: React.FC<AccordionStepProps> = ({
           </span>
 
           {summary && !isExpanded && (
-            <span className="text-[12px] text-[#8A8A8A] truncate hidden sm:inline">· {summary}</span>
+            <span className="text-[13px] text-[#8A8A8A] truncate hidden sm:inline">· {summary}</span>
           )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {summary && !isExpanded && (
-            <span className="text-[12px] text-[#8A8A8A] truncate sm:hidden">{summary}</span>
+            <span className="text-[13px] text-[#8A8A8A] truncate sm:hidden">{summary}</span>
           )}
           {isCompleted && !isExpanded && (
-            <span className="flex items-center gap-1 text-[11px] font-medium text-[#FF5C00] hover:text-[#FF7A2A] transition-colors">
-              <FiEdit2 className="w-3 h-3" />
+            <span className="flex items-center gap-1 text-[12px] font-medium text-[#FF5C00] hover:text-[#FF7A2A] transition-colors">
+              <FiEdit2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Editar</span>
             </span>
           )}

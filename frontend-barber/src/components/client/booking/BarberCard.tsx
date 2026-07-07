@@ -32,7 +32,7 @@ export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSe
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={`
-        relative w-full rounded-[12px] border bg-[#1A1A1A] p-3 text-center transition-all duration-200 overflow-hidden
+        relative w-full rounded-[12px] border bg-[#1A1A1A] p-5 text-center transition-all duration-200 overflow-hidden
         ${isSelected
           ? 'border-[#FF5C00] shadow-[0_0_12px_rgba(255,92,0,0.15)]'
           : 'border-[#282828] hover:border-[#FF5C00]/50'
@@ -45,20 +45,23 @@ export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSe
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-1.5">
+      <div className="flex flex-col items-center gap-2">
         <BarberAvatar
           name={barber.name}
           lastname={barber.lastname}
           photoUrl={barber.photoUrl}
-          size="md"
+          size="2xl"
         />
 
         <div className="min-w-0 w-full">
-          <h3 className="text-[12px] font-semibold text-white truncate">{fullName}</h3>
+          <h3 className="text-[14px] font-semibold text-white leading-tight">
+            <span className="block">{barber.name}</span>
+            <span className="block">{barber.lastname}</span>
+          </h3>
           <div className="flex items-center justify-center gap-1 mt-0.5">
             <FiStar className="w-2.5 h-2.5 text-[#FF5C00] fill-[#FF5C00]" />
-            <span className="text-[11px] font-medium text-white">{rating}</span>
-            <span className="text-[10px] text-[#8A8A8A]">({reviews})</span>
+            <span className="text-[12px] font-medium text-white">{rating}</span>
+            <span className="text-[11px] text-[#8A8A8A]">({reviews})</span>
           </div>
         </div>
       </div>

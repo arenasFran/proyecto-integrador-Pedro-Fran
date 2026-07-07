@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import { Appointment } from '../../../domain/entities/Appointment';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
+import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoTempLockRepository } from '../../../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { IEmailService } from '../../ports/IEmailService';
@@ -19,6 +21,7 @@ type CreateAppointmentDTO = {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  paymentMethod?: 'local' | 'online' | 'memberPass';
   tempLockId?: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
 };
@@ -38,7 +41,8 @@ export class CreateAppointmentUseCase {
     private readonly clientRepository: MongoClientRepository,
     private readonly emailService: IEmailService,
     private readonly tempLockRepository: MongoTempLockRepository,
-    private readonly blockRepository: MongoBarberBlockRepository
+    private readonly blockRepository: MongoBarberBlockRepository,
+    private readonly membershipRepository: MongoMembershipRepository
   ) {}
 
   async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
@@ -94,6 +98,16 @@ export class CreateAppointmentUseCase {
     await this.validateMaxOneActive(dto, undefined, !!dto.clientId);
 
     const now = getNowDateInTimezone();
+    const paymentMethod = dto.paymentMethod || 'local';
+
+    let needsMembershipRedeem = false;
+    if (paymentMethod === 'memberPass') {
+      if (!dto.clientId) {
+        throw new AppError('Debés iniciar sesión para usar la membresía.', 400);
+      }
+      needsMembershipRedeem = true;
+    }
+
     const appointment = Appointment.create({
       id: '',
       barberId: dto.barberId,
@@ -110,8 +124,8 @@ export class CreateAppointmentUseCase {
       startTime: dto.startTime,
       endTime,
       status: 'Confirmado',
-      paymentStatus: 'Pendiente',
-      paymentMethod: 'local',
+      paymentStatus: paymentMethod === 'memberPass' ? 'Pagado' : 'Pendiente',
+      paymentMethod,
       createdBy: dto.createdBy,
       statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
       version: 0,
@@ -119,60 +133,83 @@ export class CreateAppointmentUseCase {
       updatedAt: now,
     });
 
-    // RN04 — Colisión con otros turnos activos
-    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
-      dto.barberId,
-      dto.date
-    );
-
-    for (const existing of existingAppointments) {
-      if (existing.status === 'Cancelado') continue;
-      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
-        throw new AppError('El horario seleccionado ya está ocupado.', 409);
-      }
-    }
-
-    // RN04b — Colisión con bloques del barbero
-    const blocks = await this.blockRepository.findByBarberAndDate(dto.barberId, dto.date);
-    for (const block of blocks) {
-      if (doesOverlap(dto.startTime, endTime, block.startTime, block.endTime)) {
-        throw new AppError('El horario seleccionado está bloqueado para este barbero.', 409);
-      }
-    }
-
-    // Validar TempLock antes de crear
-    if (dto.tempLockId) {
-      const lock = await this.tempLockRepository.findById(dto.tempLockId);
-      if (!lock) {
-        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
-      }
-      if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
-        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
-      }
-    }
-
-    // Crear el turno
+    // Transacción: canje de cupón + creación de turno + limpieza TempLock
+    const session = await mongoose.startSession();
     let created;
     try {
-      created = await this.appointmentRepository.create(appointment.toPrimitives());
-    } catch (error: any) {
-      if (error?.code === 11000) {
-        throw new AppError('El horario ya está ocupado.', 409);
-      }
-      throw error;
-    }
+      session.startTransaction();
 
-    // Eliminar TempLock si existe
-    if (dto.tempLockId) {
-      await this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime).catch(() => {});
+      if (needsMembershipRedeem) {
+        const membership = await this.membershipRepository.findActiveByUser(dto.clientId!, session);
+        if (!membership) {
+          throw new AppError('No tenés una membresía activa.', 400);
+        }
+        membership.redeemCoupon();
+        await this.membershipRepository.save(membership, session);
+      }
+
+      // RN04 — Colisión con otros turnos activos
+      const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
+        dto.barberId,
+        dto.date,
+        session
+      );
+
+      for (const existing of existingAppointments) {
+        if (existing.status === 'Cancelado') continue;
+        if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
+          throw new AppError('El horario seleccionado ya está ocupado.', 409);
+        }
+      }
+
+      // RN04b — Colisión con bloques del barbero
+      const blocks = await this.blockRepository.findByBarberAndDate(dto.barberId, dto.date, session);
+      for (const block of blocks) {
+        if (doesOverlap(dto.startTime, endTime, block.startTime, block.endTime)) {
+          throw new AppError('El horario seleccionado está bloqueado para este barbero.', 409);
+        }
+      }
+
+      // Validar TempLock antes de crear
+      if (dto.tempLockId) {
+        const lock = await this.tempLockRepository.findById(dto.tempLockId, session);
+        if (!lock) {
+          throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+        }
+        if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
+          throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+        }
+      }
+
+      // Crear el turno
+      try {
+        created = await this.appointmentRepository.create(appointment.toPrimitives(), session);
+      } catch (error: any) {
+        if (error?.code === 11000) {
+          throw new AppError('El horario ya está ocupado.', 409);
+        }
+        throw error;
+      }
+
+      // Eliminar TempLock si existe
+      if (dto.tempLockId) {
+        await this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime, session).catch(() => {});
+      }
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
 
     // RN17 — Notificar por email (asíncrono, no bloqueante)
-    this.sendCreationEmail(created, barber.name, barber.lastname);
+    this.sendCreationEmail(created!, barber.name, barber.lastname);
 
     return {
       message: 'Turno creado exitosamente',
-      appointment: created.toPrimitives(),
+      appointment: created!.toPrimitives(),
     };
   }
 

@@ -49,4 +49,26 @@ describe('BookingSuccessModal', () => {
     await user.click(screen.getByRole('button', { name: /volver al inicio/i }));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('debe mostrar "Canjeaste un cupón" cuando paymentMethod es memberPass', () => {
+    render(
+      <BookingSuccessModal
+        isOpen={true}
+        appointment={{ ...mockAppointment, paymentMethod: 'memberPass' }}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Canjeaste un cupón de tu membresía')).toBeInTheDocument();
+  });
+
+  it('debe mostrar "Pago pendiente (en local)" cuando paymentMethod es local', () => {
+    render(
+      <BookingSuccessModal
+        isOpen={true}
+        appointment={{ ...mockAppointment, paymentMethod: 'local' }}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Pago pendiente (en local)')).toBeInTheDocument();
+  });
 });

@@ -23,6 +23,9 @@ export type Config = {
   };
   googleClientId: string | undefined;
   refreshHashSecret: string;
+  cloudinaryCloudName: string;
+  cloudinaryApiKey: string;
+  cloudinaryApiSecret: string;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -32,7 +35,7 @@ export type Config = {
   };
 };
 
-const requiredVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'JWT_PARTIAL_SECRET', 'MONGO_URI', 'REFRESH_HASH_SECRET'] as const;
+const requiredVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'JWT_PARTIAL_SECRET', 'MONGO_URI', 'REFRESH_HASH_SECRET', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'] as const;
 const requiredIfEmail = ['SMTP_HOST', 'SMTP_PORT'] as const;
 
 function requireEnv(name: string): string {
@@ -94,6 +97,9 @@ export function loadConfig(): Config {
     },
     googleClientId: process.env.GOOGLE_CLIENT_ID || undefined,
     refreshHashSecret: requireEnv('REFRESH_HASH_SECRET'),
+    cloudinaryCloudName: requireEnv('CLOUDINARY_CLOUD_NAME'),
+    cloudinaryApiKey: requireEnv('CLOUDINARY_API_KEY'),
+    cloudinaryApiSecret: requireEnv('CLOUDINARY_API_SECRET'),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 10), windowMs: 15 * 60 * 1000 },

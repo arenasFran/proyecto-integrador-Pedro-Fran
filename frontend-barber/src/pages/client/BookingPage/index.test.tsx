@@ -26,6 +26,13 @@ vi.mock('../../../services/service.api', () => ({
   useGetServicesQuery: vi.fn(() => ({ data: [], isLoading: false })),
 }));
 
+vi.mock('../../../services/membershipApi', () => ({
+  useGetMyMembershipQuery: vi.fn(() => ({
+    data: { active: null, history: [] },
+    isLoading: false,
+  })),
+}));
+
 vi.mock('../../../services/api', () => ({
   getAccessToken: vi.fn(() => null),
 }));
@@ -124,6 +131,7 @@ const DEFAULT_STATE = {
       clientLastname: '',
       clientPhone: '',
       clientEmail: '',
+      paymentMethod: 'local',
     },
   },
 };

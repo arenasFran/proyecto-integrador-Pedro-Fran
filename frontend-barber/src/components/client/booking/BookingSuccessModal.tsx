@@ -38,7 +38,11 @@ export const BookingSuccessModal: React.FC<BookingSuccessModalProps> = ({
 
             <h2 className="text-[20px] font-bold text-white mb-1">Reserva confirmada</h2>
             <p className="text-[13px] text-[#8A8A8A] mb-6">
-              Turno confirmado &mdash; Pago pendiente (en local)
+              {appointment.paymentMethod === 'memberPass'
+                ? 'Canjeaste un cupón de tu membresía'
+                : appointment.paymentMethod === 'online'
+                  ? 'Pago online pendiente'
+                  : 'Pago pendiente (en local)'}
             </p>
 
             <div className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 space-y-3 text-left mb-6">

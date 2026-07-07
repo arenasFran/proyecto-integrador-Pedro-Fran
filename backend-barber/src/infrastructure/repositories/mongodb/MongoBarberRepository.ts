@@ -72,8 +72,10 @@ const toBarberEmployeeData = (barber: Barber): Record<string, unknown> => ({
 });
 
 export class MongoBarberRepository {
-  async findBarberById(id: string): Promise<Barber | null> {
-    const doc = await BarberModel.findById(id).lean();
+  async findBarberById(id: string, session?: mongoose.ClientSession): Promise<Barber | null> {
+    const query = BarberModel.findById(id);
+    if (session) query.session(session);
+    const doc = await query.lean();
     if (!doc) {
       return null;
     }
@@ -132,6 +134,10 @@ export class MongoBarberRepository {
   }
 
   async updateBarber(id: string, update: BarberUpdate): Promise<Barber | null> {
+    if ('password' in update && update.passwordHash === undefined) {
+      throw new Error('Password must be pre-hashed. Use passwordHash field.');
+    }
+
     const data: Record<string, unknown> = { ...update };
     if (update.passwordHash !== undefined) {
       data.password = update.passwordHash;

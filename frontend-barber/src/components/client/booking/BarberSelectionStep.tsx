@@ -42,7 +42,7 @@ export const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
 
   return (
     <AnimatedContainer animation="fadeInUp">
-      <div className="p-4 space-y-4">
+      <div className="p-6 space-y-5">
         {error && barbers.length > 0 && (
           <div className="rounded-[10px] border border-red-500/20 bg-red-500/5 px-3 py-2">
             <p className="text-[12px] text-red-400">{error}</p>
@@ -55,14 +55,15 @@ export const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
           </div>
         ) : (
           <>
-            <p className="text-[12px] text-[#8A8A8A]">Elegí tu barbero preferido</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <p className="text-[13px] text-[#8A8A8A]">Elegí tu barbero preferido</p>
+            <div className="flex flex-wrap justify-center gap-4">
               {barbers.map((barber, index) => (
                 <motion.div
                   key={barber.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.04, duration: 0.2 }}
+                  className="w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)] max-w-[220px]"
                 >
                   <BarberCard
                     barber={barber}
@@ -80,18 +81,18 @@ export const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   className={`
-                    w-full flex items-center justify-center gap-2 rounded-[10px] border border-dashed py-2.5 px-4 text-[12px] font-medium transition-all duration-200
+                    w-full flex items-center justify-center gap-2 rounded-[10px] border border-dashed py-3 px-5 text-[13px] font-medium transition-all duration-200
                     ${isAnySelected
                       ? 'border-[#FF5C00] text-[#FF5C00] bg-[#FF5C00]/5'
                       : 'border-[#282828] text-[#8A8A8A] hover:text-[#FF5C00] hover:border-[#FF5C00]/40'
                     }
                   `}
                 >
-                  <FiUser className="w-3.5 h-3.5" />
+                  <FiUser className="w-4 h-4" />
                   {isAnySelected ? 'Sin preferencia (elegimos el mejor horario)' : 'No tengo preferencia'}
                 </motion.button>
                 {isAnySelected && (
-                  <p className="text-[11px] text-[#8A8A8A] italic text-center">
+                  <p className="text-[12px] text-[#8A8A8A] italic text-center">
                     Se asignará el primer barbero disponible
                   </p>
                 )}

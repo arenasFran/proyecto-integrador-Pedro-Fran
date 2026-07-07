@@ -115,10 +115,10 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
   return (
     <Modal isOpen onClose={onClose} title={undefined} size="md">
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-[18px] font-bold text-white">Nuevo turno</h2>
-          <DatePicker value={selectedDate} onChange={handleDateChange} />
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
+          <h2 className="text-[18px] font-bold text-white shrink-0">Nuevo turno</h2>
+          <DatePicker value={selectedDate} onChange={handleDateChange} className="w-full sm:w-auto" />
         </div>
         <button
           onClick={onClose}

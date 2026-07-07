@@ -1,7 +1,8 @@
 import { AnimatedContainer, Button, DatePicker, Input, Select } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
-import type { Appointment, Professional } from '../../../types/professional';
+import type { Appointment } from '../../../types/booking';
+import type { Professional } from '../../../types/professional';
 
 interface RescheduleModalProps {
   target: Appointment | null;

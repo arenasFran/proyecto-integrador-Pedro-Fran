@@ -1,7 +1,8 @@
 import { Button, Select } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
-import type { Appointment, Professional } from '../../../types/professional';
+import type { Appointment } from '../../../types/booking';
+import type { Professional } from '../../../types/professional';
 
 interface ChangeBarberModalProps {
   target: Appointment | null;

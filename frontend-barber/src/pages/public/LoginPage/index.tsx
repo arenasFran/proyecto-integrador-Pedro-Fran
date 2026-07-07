@@ -259,6 +259,19 @@ export const LoginPage: React.FC = () => {
     await handleCredentialsSubmit();
   };
 
+  const handleResendCode = async () => {
+    setSuccessMessage(null);
+    try {
+      const result = await sendTwoFactorCode({
+        email: credentialsValues.email,
+        password: credentialsValues.password,
+      }).unwrap();
+      setSuccessMessage(result.message);
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Error al reenviar el código'), 'error');
+    }
+  };
+
   const handleBackToCredentials = () => {
     setTwoFactorPendingEmail(null);
     setSuccessMessage(null);
@@ -415,6 +428,21 @@ export const LoginPage: React.FC = () => {
                       required
                       error={codeTouched.token ? codeErrors.token : undefined}
                     />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-center"
+                  >
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={isLoading}
+                      className="text-[#FF5C00] text-[14px] font-medium hover:text-[#FF5C00]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Reenviar código
+                    </button>
                   </motion.div>
                 </>
               )}

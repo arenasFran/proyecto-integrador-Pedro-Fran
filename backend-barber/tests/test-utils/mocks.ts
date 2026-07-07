@@ -1,4 +1,5 @@
 export const makeMockUserRepository = () => ({
+  findByIds: jest.fn(),
   findByEmail: jest.fn(),
   findById: jest.fn(),
   findByPhone: jest.fn(),

@@ -20,6 +20,14 @@ const anonymousLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Esperá 15 minutos.' },
 });
 
+const rescheduleMutationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Demasiadas solicitudes de reprogramación. Esperá 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const createAppointmentRouter = (deps: {
   appointmentController: AppointmentController;
   authenticate: express.RequestHandler;
@@ -73,6 +81,7 @@ export const createAppointmentRouter = (deps: {
   router.patch(
     '/:id/reschedule',
     deps.authenticate,
+    rescheduleMutationLimiter,
     validate({ params: appointmentIdParamSchema, body: rescheduleAppointmentSchema }),
     deps.appointmentController.reschedule
   );

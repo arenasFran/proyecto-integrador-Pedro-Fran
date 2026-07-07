@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { BarberController } from '../controllers/barber/BarberController';
 import { authorize, authorizeSelfOrKinds } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
@@ -14,6 +15,14 @@ import {
   updateBarberMeSchema,
 } from '../validators/barber.validator';
 
+const slotsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: { error: 'Demasiadas consultas de horarios. Esperá un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const createBarberRouter = (deps: {
   barberController: BarberController;
   authenticate: express.RequestHandler;
@@ -24,6 +33,7 @@ export const createBarberRouter = (deps: {
 
   router.get(
     '/:id/slots',
+    slotsLimiter,
     validate({ params: barberIdParamSchema, query: slotsQuerySchema }),
     deps.barberController.getSlots
   );

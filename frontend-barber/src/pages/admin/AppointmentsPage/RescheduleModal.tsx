@@ -1,4 +1,5 @@
-import { AnimatedContainer, Button, DatePicker, Input, Select } from '../../../components/common';
+import { AnimatedContainer, Button, DatePicker, Select } from '../../../components/common';
+import { TimeSlotGrid } from '../../../components/client/booking/TimeSlotGrid';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
 import type { Appointment } from '../../../types/booking';
@@ -11,6 +12,8 @@ interface RescheduleModalProps {
   barberId: string;
   isRescheduling: boolean;
   barbers: Professional[];
+  slots: string[];
+  isLoadingSlots: boolean;
   onDateChange: (date: string) => void;
   onTimeChange: (time: string) => void;
   onBarberChange: (barberId: string) => void;
@@ -18,7 +21,7 @@ interface RescheduleModalProps {
   onClose: () => void;
 }
 
-export function RescheduleModal({ target, date, time, barberId, isRescheduling, barbers, onDateChange, onTimeChange, onBarberChange, onConfirm, onClose }: RescheduleModalProps) {
+export function RescheduleModal({ target, date, time, barberId, isRescheduling, barbers, slots, isLoadingSlots, onDateChange, onTimeChange, onBarberChange, onConfirm, onClose }: RescheduleModalProps) {
   if (!target) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -29,7 +32,13 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
         </p>
         <div className="flex flex-col gap-4">
           <DatePicker label="Nueva fecha" value={date} onChange={onDateChange} />
-          <Input label="Nueva hora" type="time" value={time} onChange={(e) => onTimeChange(e.target.value)} />
+          <TimeSlotGrid
+            slots={slots}
+            selectedTime={time}
+            selectedDate={date}
+            isLoading={isLoadingSlots}
+            onSelect={onTimeChange}
+          />
           <Select
             label="Barbero"
             value={barberId}

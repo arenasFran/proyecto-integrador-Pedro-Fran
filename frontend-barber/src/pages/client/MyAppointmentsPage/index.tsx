@@ -12,6 +12,8 @@ import {
 } from '../../../services/appointmentApi';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchPublicBarbers } from '../../../store/slices/bookingSlice';
+import { professionalService } from '../../../services/professional.service';
+import { TimeSlotGrid } from '../../../components/client/booking/TimeSlotGrid';
 import type { Appointment, AppointmentStatus } from '../../../types/booking';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
@@ -45,6 +47,8 @@ export const MyAppointmentsPage: React.FC = () => {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
+  const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
   const barbers = useAppSelector((state) => state.booking.async.barbers);
   const dispatch = useAppDispatch();
@@ -79,10 +83,41 @@ export const MyAppointmentsPage: React.FC = () => {
       setRescheduleDate('');
       setRescheduleTime('');
       setRescheduleBarberId('');
+      setRescheduleSlots([]);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Error al reprogramar turno', 'error');
     }
   };
+
+  const handleRescheduleDateChange = (date: string) => {
+    setRescheduleDate(date);
+    setRescheduleTime('');
+  };
+
+  const handleRescheduleBarberChange = (barberId: string) => {
+    setRescheduleBarberId(barberId);
+    setRescheduleTime('');
+  };
+
+  useEffect(() => {
+    if (!rescheduleDate || !rescheduleBarberId || !rescheduleTarget) {
+      setRescheduleSlots([]);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSlots(true);
+    professionalService.getSlots(rescheduleBarberId, rescheduleDate)
+      .then((res) => {
+        if (!cancelled) setRescheduleSlots(res.slots);
+      })
+      .catch(() => {
+        if (!cancelled) setRescheduleSlots([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingSlots(false);
+      });
+    return () => { cancelled = true; };
+  }, [rescheduleDate, rescheduleBarberId, rescheduleTarget]);
 
   const [pastPage, setPastPage] = useState(1);
   const PAST_PAGE_SIZE = 10;
@@ -290,18 +325,19 @@ export const MyAppointmentsPage: React.FC = () => {
               <DatePicker
                 label="Nueva fecha"
                 value={rescheduleDate}
-                onChange={setRescheduleDate}
+                onChange={handleRescheduleDateChange}
               />
-              <Input
-                label="Nueva hora"
-                type="time"
-                value={rescheduleTime}
-                onChange={(e) => setRescheduleTime(e.target.value)}
+              <TimeSlotGrid
+                slots={rescheduleSlots}
+                selectedTime={rescheduleTime}
+                selectedDate={rescheduleDate}
+                isLoading={isLoadingSlots}
+                onSelect={setRescheduleTime}
               />
               <Select
                 label="Barbero"
                 value={rescheduleBarberId}
-                onChange={setRescheduleBarberId}
+                onChange={handleRescheduleBarberChange}
                 options={[
                   { value: '', label: 'Seleccionar barbero' },
                   ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
@@ -309,7 +345,7 @@ export const MyAppointmentsPage: React.FC = () => {
               />
             </div>
             <div className="flex gap-3 mt-6">
-              <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>
+              <Button variant="secondary" onClick={() => { setRescheduleTarget(null); setRescheduleSlots([]); }}>
                 Volver
               </Button>
               <Button

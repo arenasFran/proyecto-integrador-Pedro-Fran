@@ -35,6 +35,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     filterStatus, filterPaymentMethod, searchTerm, page, sortBy, sortDir,
     pageSize, showCustomize, activeMenu, menuRect,
     cancelTarget, cancelReason, rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId,
+    rescheduleSlots, isLoadingSlots,
     expandedId, confirmTarget, detailTarget, showQuickCreate, quickCreateDate,
     changeBarberTarget, changeBarberNewId, combinedActionTarget,
     isCancelling, isUpdatingStatus, isRescheduling, isMarkingPaid, isSendingReminder, isChangingBarber,
@@ -46,6 +47,7 @@ export const AdminAppointmentsPage: React.FC = () => {
     setChangeBarberTarget, setChangeBarberNewId, setCombinedActionTarget,
     toggleSort, handleDateRangeChange, clearFilters, updateParams,
     handleCancelConfirm, handleStatusChange, handleRescheduleConfirm,
+    handleRescheduleDateChange, handleRescheduleBarberChange, handleRescheduleClose,
     handleSendReminder, handleDuplicate, handleChangeBarberConfirm,
     handleCompleteOnly, handleCompleteAndPaid, handleMarkPaidOnly,
   } = useAdminAppointments();
@@ -574,11 +576,13 @@ export const AdminAppointmentsPage: React.FC = () => {
         barberId={rescheduleBarberId}
         isRescheduling={isRescheduling}
         barbers={barbers}
-        onDateChange={setRescheduleDate}
+        slots={rescheduleSlots}
+        isLoadingSlots={isLoadingSlots}
+        onDateChange={handleRescheduleDateChange}
         onTimeChange={setRescheduleTime}
-        onBarberChange={setRescheduleBarberId}
+        onBarberChange={handleRescheduleBarberChange}
         onConfirm={handleRescheduleConfirm}
-        onClose={() => setRescheduleTarget(null)}
+        onClose={handleRescheduleClose}
       />
 
       <ConfirmModal

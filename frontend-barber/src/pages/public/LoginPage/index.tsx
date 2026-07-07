@@ -63,10 +63,12 @@ export const LoginPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const location = useLocation();
+  const toastHandled = useRef(false);
 
   useEffect(() => {
     const state = location.state as { toast?: string; toastType?: 'success' | 'error' } | null;
-    if (state?.toast) {
+    if (state?.toast && !toastHandled.current) {
+      toastHandled.current = true;
       showToast(state.toast, state.toastType || 'success');
       window.history.replaceState({}, document.title);
     }
@@ -298,7 +300,7 @@ export const LoginPage: React.FC = () => {
           className="w-full max-w-md"
         >
           <motion.div variants={itemVariants} className="text-center mb-8">
-            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-56 w-auto mx-auto mb-3" />
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-72 w-auto mx-auto mb-1" />
             <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
               Iniciar sesión
             </h1>
@@ -356,7 +358,7 @@ export const LoginPage: React.FC = () => {
                     <Input
                       label="Teléfono"
                       type="tel"
-                      placeholder="+54 9 11 1234 5678"
+                      placeholder="598 91 234 567"
                       {...getProfileFieldProps('phone')}
                       error={profileTouched.phone ? profileErrors.phone : undefined}
                     />

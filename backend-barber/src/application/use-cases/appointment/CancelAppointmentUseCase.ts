@@ -70,6 +70,7 @@ export class CancelAppointmentUseCase {
 
     const updateData: UpdateStatusData = {
       status: appointment.status,
+      paymentStatus: appointment.paymentStatus,
       statusHistoryEntry: lastEntry,
     };
 

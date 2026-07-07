@@ -4,16 +4,32 @@ import { vi } from 'vitest';
 import { RequestResetForm } from './RequestResetForm';
 import { renderWithProviders } from '../../../../test/utils';
 
-const apiMock = vi.hoisted(() => vi.fn());
-vi.mock('../../../../services/api', () => ({
-  default: apiMock,
-  setupDispatch: vi.fn(),
+const mockRequestResetFn = vi.hoisted(() => vi.fn());
+const mockUseRequestResetMutation = vi.hoisted(() => vi.fn(() => [mockRequestResetFn, { isLoading: false, error: null }]));
+
+const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
+
+vi.mock('../../../../services/authApi', () => ({
+  authApi: {
+    reducerPath: 'authApi',
+    reducer: (s: Record<string, unknown> = {}) => s,
+    middleware: [],
+    endpoints: {
+      verifyTwoFactorCode: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
+      completeGoogleProfile: { matchFulfilled: mockEndpointMatcher },
+      googleLogin: { matchFulfilled: mockEndpointMatcher },
+      refreshToken: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
+      getProfile: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher, initiate: vi.fn(() => ({ abort: vi.fn() })) },
+    },
+  },
+  useRequestResetMutation: mockUseRequestResetMutation,
 }));
 
 describe('RequestResetForm', () => {
   beforeEach(() => {
-    apiMock.mockReset();
-    apiMock.mockResolvedValue({ data: { message: 'ok' } });
+    mockRequestResetFn.mockReset();
+    mockUseRequestResetMutation.mockReset();
+    mockUseRequestResetMutation.mockReturnValue([mockRequestResetFn, { isLoading: false, error: null }]);
   });
 
   it('renders email field and submit button', () => {
@@ -27,12 +43,13 @@ describe('RequestResetForm', () => {
     renderWithProviders(<RequestResetForm />);
 
     await user.click(screen.getByRole('button', { name: /enviar instrucciones/i }));
-    expect(apiMock).not.toHaveBeenCalled();
+    expect(mockRequestResetFn).not.toHaveBeenCalled();
   });
 
   it('shows success on valid submit', async () => {
+    mockRequestResetFn.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'ok' }) });
     const onSuccess = vi.fn();
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: 50 });
     renderWithProviders(<RequestResetForm onSuccess={onSuccess} />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
@@ -44,12 +61,16 @@ describe('RequestResetForm', () => {
   });
 
   it('shows error on failure', async () => {
-    apiMock.mockRejectedValue(new Error('Error de red'));
+    mockRequestResetFn.mockReturnValue({ unwrap: () => Promise.reject(new Error('Error de red')) });
     const user = userEvent.setup();
-    renderWithProviders(<RequestResetForm />);
+    const { rerender } = renderWithProviders(<RequestResetForm />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
     await user.click(screen.getByRole('button', { name: /enviar instrucciones/i }));
+
+    // Re-render with error state to simulate RTK Query state update
+    mockUseRequestResetMutation.mockReturnValue([mockRequestResetFn, { isLoading: false, error: new Error('Error de red') }]);
+    rerender(<RequestResetForm />);
 
     await waitFor(() => {
       expect(screen.getByText('Error de red')).toBeInTheDocument();

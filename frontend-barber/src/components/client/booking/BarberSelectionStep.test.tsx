@@ -62,8 +62,10 @@ describe('BarberSelectionStep', () => {
 
   it('renders barber names and prompt when barbers provided', () => {
     render(<BarberSelectionStep {...defaultProps} />);
-    expect(screen.getByText('Carlos López')).toBeInTheDocument();
-    expect(screen.getByText('María García')).toBeInTheDocument();
+    expect(screen.getByText('Carlos')).toBeInTheDocument();
+    expect(screen.getByText('López')).toBeInTheDocument();
+    expect(screen.getByText('María')).toBeInTheDocument();
+    expect(screen.getByText('García')).toBeInTheDocument();
     expect(screen.getByText(/Elegí tu barbero preferido/i)).toBeInTheDocument();
   });
 
@@ -77,7 +79,7 @@ describe('BarberSelectionStep', () => {
     expect(
       screen.getByText('Algunos barberos no están disponibles')
     ).toBeInTheDocument();
-    expect(screen.getByText('Carlos López')).toBeInTheDocument();
+    expect(screen.getByText('Carlos')).toBeInTheDocument();
   });
 
   it('shows "any barber" button when onSelectAny provided', () => {
@@ -103,7 +105,7 @@ describe('BarberSelectionStep', () => {
     const user = userEvent.setup();
     render(<BarberSelectionStep {...defaultProps} onSelect={onSelect} />);
 
-    await user.click(screen.getByText('Carlos López'));
+    await user.click(screen.getByRole('button', { name: /Carlos López/ }));
     expect(onSelect).toHaveBeenCalledWith(mockBarber1);
   });
 

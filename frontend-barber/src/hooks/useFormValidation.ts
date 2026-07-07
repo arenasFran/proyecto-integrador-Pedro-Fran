@@ -48,9 +48,7 @@ export function useFormValidation(initialValues: Record<string, string>) {
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const valuesRef = useRef(values);
-  useEffect(() => {
-    valuesRef.current = values;
-  }, [values]);
+  valuesRef.current = values;
 
   const validateField = useCallback(
     (field: string, value: string): string | undefined => {

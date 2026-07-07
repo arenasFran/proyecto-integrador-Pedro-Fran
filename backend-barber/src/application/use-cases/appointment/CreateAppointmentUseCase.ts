@@ -10,6 +10,7 @@ import { MongoBarberBlockRepository } from '../../../infrastructure/repositories
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
+import { Phone } from '../../../domain/value-objects/Phone';
 
 type CreateAppointmentDTO = {
   barberId: string;
@@ -46,6 +47,10 @@ export class CreateAppointmentUseCase {
   ) {}
 
   async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
+    if (dto.clientPhone) {
+      dto.clientPhone = Phone.create(dto.clientPhone).getValue();
+    }
+
     const nowInTz = getNowInTimezone();
 
     // RN01 — Fecha y hora no pueden estar en el pasado

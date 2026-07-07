@@ -18,7 +18,7 @@ const validValues = {
   repeatPassword: 'Password1!',
   name: 'John',
   lastname: 'Doe',
-  phone: '+54 9 11 1234 5678',
+  phone: '598 91 234 567',
   token: '123456',
 };
 

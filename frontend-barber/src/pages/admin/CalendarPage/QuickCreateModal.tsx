@@ -187,7 +187,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           type="tel"
           value={clientPhone}
           onChange={(e) => setClientPhone(e.target.value)}
-          placeholder="Teléfono"
+          placeholder="598 91 234 567"
         />
 
         <Input

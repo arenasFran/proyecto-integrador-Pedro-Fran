@@ -185,7 +185,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
                   onChange={(e) => handleFieldChange('phone', e.target.value)}
                   onBlur={() => handleBlur('phone', clientPhone)}
                   error={getFieldError('phone')}
-                  placeholder="Teléfono"
+                  placeholder="598 91 234 567"
                 />
                 <Input
                   label="Email"
@@ -240,6 +240,24 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
                       <p className="text-[11px] text-[#6A6A6A]">Te quedan {remainingCoupons} cupones</p>
                     </div>
                   </button>
+                )}
+
+                {!hasActiveMembership && isLoggedIn && (
+                  <a
+                    href="/mi-membresia"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 rounded-[10px] border border-[#FF5C00]/30 bg-[#FF5C00]/5 px-4 py-3 text-left text-[13px] transition-all hover:border-[#FF5C00]/60 hover:bg-[#FF5C00]/10"
+                  >
+                    <FiAward className="shrink-0 text-[#FF5C00]" size={16} />
+                    <div>
+                      <p className="font-medium text-white">¿Tenés membresía?</p>
+                      <p className="text-[11px] text-[#8A8A8A]">
+                        Ahorrá en cada corte y obtené descuentos en productos!{' '}
+                        <br/> <span className="text-[#FF5C00]">Ver membresía →</span>
+                      </p>
+                    </div>
+                  </a>
                 )}
 
                 <button

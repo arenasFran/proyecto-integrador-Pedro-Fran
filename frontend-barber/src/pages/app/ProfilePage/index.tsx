@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiSettings, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, BarberAvatar, Button, ImageUpload, Input, PasswordInput, Spinner } from '../../../components/common';
+import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner } from '../../../components/common';
 import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { updateCurrentUser } from '../../../store/slices/authSlice';
@@ -212,7 +212,6 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
-  const title = role ? roleTitle[role] ?? 'Perfil' : 'Perfil';
   const displayName = isBarber
     ? `${String(formData.name ?? '')} ${String(formData.lastname ?? '')}`
     : `${String(formData.name ?? '')} ${String(formData.lastname ?? '')}`;
@@ -224,17 +223,26 @@ export const ProfilePage: React.FC = () => {
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <BarberAvatar
+              <ImageUpload
+                key={uploadKey}
+                variant="avatar"
                 name={String(formData.name ?? '')}
                 lastname={String(formData.lastname ?? '')}
-                photoUrl={formData.photoUrl ? String(formData.photoUrl) : null}
-                size="2xl"
+                currentUrl={photoSaved ? null : (formData.photoUrl ? String(formData.photoUrl) : null)}
+                onFileSelect={(file) => {
+                  if (file) setPhotoSaved(false);
+                  setPhotoFile(file);
+                  setEditedFields((prev) => ({ ...prev, photoUrl: null }));
+                }}
+                helperText="Arrastrá o hacé clic para cambiar"
               />
               <div>
                 <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
                   {displayName}
                 </h1>
-                <p className="text-[14px] text-[#8A8A8A]">{title}</p>
+                {role && role !== 'Registrado' && (
+                  <p className="text-[14px] text-[#8A8A8A]">{roleTitle[role]}</p>
+                )}
               </div>
             </div>
 
@@ -287,19 +295,9 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
-                  <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="099000000" />
+                  <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
                 </div>
                 <PasswordInput label="Nueva contraseña (opcional)" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />
-                <ImageUpload
-                  key={uploadKey}
-                  currentUrl={photoSaved ? null : (formData.photoUrl ? String(formData.photoUrl) : null)}
-                  onFileSelect={(file) => {
-                    if (file) setPhotoSaved(false);
-                    setPhotoFile(file);
-                    setEditedFields((prev) => ({ ...prev, photoUrl: null }));
-                  }}
-                  helperText="Arrastrá una imagen o hacé clic para subir"
-                />
               </>
             )}
 

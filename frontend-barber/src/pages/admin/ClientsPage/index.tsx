@@ -3,7 +3,7 @@ import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp }
 import { Spinner } from '../../../components/common/Spinner';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
-import { ClientHistoryModal } from '../DashboardPage/components/ClientHistoryModal';
+import { ClientHistoryModal } from '../../../components/common/ClientHistoryModal';
 import type { ClienteData } from '../../../types/analytics';
 
 const kindBadge = (kind: string) => {

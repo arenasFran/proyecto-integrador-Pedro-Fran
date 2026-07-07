@@ -4,21 +4,38 @@ import { vi } from 'vitest';
 import LoginPage from './index';
 import { renderWithProviders } from '../../../test/utils';
 
-const apiMock = vi.hoisted(() => vi.fn());
-vi.mock('../../../services/api', () => ({
-  default: apiMock,
-  setupDispatch: vi.fn(),
-  getAccessToken: vi.fn(() => {
-    let token: string | null = null;
-    // Sobrescribimos setAccessToken para que getAccessToken lo refleje
-    const setAccessToken = (t: string | null) => { token = t; };
-    return { getAccessToken: () => token, setAccessToken };
-  }),
+const mockSendTwoFactorCode = vi.hoisted(() => vi.fn());
+const mockUseSendTwoFactorCodeMutation = vi.hoisted(() => vi.fn(() => [mockSendTwoFactorCode, { isLoading: false, error: null }]));
+const mockUseVerifyTwoFactorCodeMutation = vi.hoisted(() => vi.fn(() => [vi.fn(), { isLoading: false, error: null }]));
+const mockUseGoogleLoginMutation = vi.hoisted(() => vi.fn(() => [vi.fn(), { isLoading: false, error: null }]));
+const mockUseCompleteGoogleProfileMutation = vi.hoisted(() => vi.fn(() => [vi.fn(), { isLoading: false, error: null }]));
+
+const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
+
+vi.mock('../../../services/authApi', () => ({
+  authApi: {
+    reducerPath: 'authApi',
+    reducer: (s: Record<string, unknown> = {}) => s,
+    middleware: [],
+    endpoints: {
+      verifyTwoFactorCode: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
+      completeGoogleProfile: { matchFulfilled: mockEndpointMatcher },
+      googleLogin: { matchFulfilled: mockEndpointMatcher },
+      refreshToken: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
+      getProfile: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher, initiate: vi.fn(() => ({ abort: vi.fn() })) },
+    },
+  },
+  useSendTwoFactorCodeMutation: mockUseSendTwoFactorCodeMutation,
+  useVerifyTwoFactorCodeMutation: mockUseVerifyTwoFactorCodeMutation,
+  useGoogleLoginMutation: mockUseGoogleLoginMutation,
+  useCompleteGoogleProfileMutation: mockUseCompleteGoogleProfileMutation,
 }));
 
 describe('LoginPage', () => {
   beforeEach(() => {
-    apiMock.mockReset();
+    mockSendTwoFactorCode.mockReset();
+    mockUseSendTwoFactorCodeMutation.mockReset();
+    mockUseSendTwoFactorCodeMutation.mockReturnValue([mockSendTwoFactorCode, { isLoading: false, error: null }]);
   });
 
   it('renders credentials step by default', () => {
@@ -30,9 +47,9 @@ describe('LoginPage', () => {
   });
 
   it('shows code step after submitting valid credentials', async () => {
-    apiMock.mockResolvedValue({ data: { message: 'Código enviado' } });
+    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Código enviado' }) });
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: 50 });
     renderWithProviders(<LoginPage />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
@@ -46,9 +63,9 @@ describe('LoginPage', () => {
   });
 
   it('shows error message on failed login', async () => {
-    apiMock.mockRejectedValue(new Error('Credenciales inválidas'));
+    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.reject(new Error('Credenciales inválidas')) });
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: 50 });
     renderWithProviders(<LoginPage />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');

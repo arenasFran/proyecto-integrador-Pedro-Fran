@@ -1,5 +1,7 @@
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return '';
-  const [year, month, day] = dateStr.split('-');
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  const [year, month, day] = parts;
   return `${day}/${month}/${year}`;
 }

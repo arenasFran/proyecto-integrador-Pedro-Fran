@@ -38,9 +38,11 @@ export default function ChartFilters({
   };
 
   useEffect(() => {
+    let cancelled = false;
     professionalService.list()
-      .then(setBarbers)
-      .catch((err) => handleError(err, 'Error al cargar barberos'));
+      .then((result) => { if (!cancelled) setBarbers(result); })
+      .catch((err) => { if (!cancelled) handleError(err, 'Error al cargar barberos'); });
+    return () => { cancelled = true; };
   }, []);
 
   const { data: services = [] } = useGetServicesQuery();

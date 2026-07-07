@@ -18,7 +18,8 @@ const mockBarber: BarberPublic = {
 describe('BarberCard', () => {
   it('debe renderizar nombre completo del barbero', () => {
     render(<BarberCard barber={mockBarber} isSelected={false} onSelect={vi.fn()} />);
-    expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+    expect(screen.getByText('Juan')).toBeInTheDocument();
+    expect(screen.getByText('Pérez')).toBeInTheDocument();
   });
 
   it('debe mostrar icono de check cuando está seleccionado', () => {
@@ -29,7 +30,8 @@ describe('BarberCard', () => {
 
   it('debe mostrar icono de usuario cuando no hay foto', () => {
     render(<BarberCard barber={mockBarber} isSelected={false} onSelect={vi.fn()} />);
-    expect(screen.getByText('Juan Pérez')).toBeInTheDocument();
+    expect(screen.getByText('Juan')).toBeInTheDocument();
+    expect(screen.getByText('Pérez')).toBeInTheDocument();
   });
 
   it('debe llamar onSelect al hacer click', async () => {

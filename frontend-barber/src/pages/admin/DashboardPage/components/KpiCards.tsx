@@ -7,7 +7,7 @@ import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientes
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import type { OverviewData, ClienteData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
-import { ClientHistoryModal } from './ClientHistoryModal';
+import { ClientHistoryModal } from '../../../../components/common/ClientHistoryModal';
 
 interface KpiCardsProps {
   data: OverviewData | null;

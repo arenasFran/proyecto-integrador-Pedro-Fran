@@ -26,11 +26,6 @@ import { ProfessionalModalWizard } from './components/ProfessionalModalWizard';
 const PAGE_SIZE = 20;
 
 export const ProfessionalsPage: React.FC = () => {
-  const token = getAccessToken();
-  const kind = getTokenKind(token);
-  if (kind !== 'Admin') {
-    return <Navigate to="/admin/dashboard" replace />;
-  }
   const dispatch = useAppDispatch();
   const { list: professionals, totalPages } = useAppSelector((state) => state.barbers);
   const { showToast } = useToast();
@@ -90,6 +85,11 @@ export const ProfessionalsPage: React.FC = () => {
     }, 300);
     return () => window.clearTimeout(timeoutId);
   }, [searchTerm, loadProfessionals]);
+
+  const kind = getTokenKind(getAccessToken());
+  if (kind !== 'Admin') {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
 
   const openCreateModal = () => {
     setEditProfessional(null);

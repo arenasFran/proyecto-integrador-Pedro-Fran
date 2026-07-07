@@ -72,7 +72,7 @@ const authSlice = createSlice({
         state.loginToken = action.payload.token;
         setAccessToken(action.payload.token);
         if ('user' in action.payload) {
-          state.user = action.payload.user as any;
+          state.user = action.payload.user as User;
         }
       })
       .addMatcher(authApi.endpoints.googleLogin.matchFulfilled, (state, action) => {

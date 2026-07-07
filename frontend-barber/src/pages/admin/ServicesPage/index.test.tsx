@@ -49,7 +49,7 @@ function mockQuery(
     error: undefined,
     refetch: vi.fn(),
     ...overrides,
-  } as any);
+  } as ReturnType<typeof useGetServicesAdminQuery>);
 }
 
 describe('ServicesPage', () => {

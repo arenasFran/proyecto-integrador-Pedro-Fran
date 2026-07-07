@@ -84,7 +84,7 @@ export const ProfilePage: React.FC = () => {
   const schedule = useMemo(() => {
     if (!isBarber) return createEmptySchedule();
     if (editedSchedule) return editedSchedule;
-    if (barberData?.schedule) return mapScheduleToForm(barberData.schedule as any);
+    if (barberData?.schedule) return mapScheduleToForm(barberData.schedule);
     return createEmptySchedule();
   }, [isBarber, editedSchedule, barberData]);
 
@@ -106,7 +106,7 @@ export const ProfilePage: React.FC = () => {
   const handleDayChange = (day: DayKey, field: keyof ScheduleDayForm) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      const base = editedSchedule ?? (barberData?.schedule ? mapScheduleToForm(barberData.schedule as any) : createEmptySchedule());
+      const base = editedSchedule ?? (barberData?.schedule ? mapScheduleToForm(barberData.schedule) : createEmptySchedule());
       setEditedSchedule({
         ...base,
         [day]: {
@@ -298,7 +298,7 @@ export const ProfilePage: React.FC = () => {
                     setPhotoFile(file);
                     setEditedFields((prev) => ({ ...prev, photoUrl: null }));
                   }}
-                  helperText={photoFile ? 'Archivo seleccionado.' : 'Arrastrá una imagen o hacé clic para subir'}
+                  helperText="Arrastrá una imagen o hacé clic para subir"
                 />
               </>
             )}

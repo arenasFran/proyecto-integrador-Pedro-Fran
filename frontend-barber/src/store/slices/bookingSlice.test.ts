@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
+import type { PaymentMethod } from '../../types/booking';
 import reducer, {
   setServices,
   setCurrentStep,
@@ -43,7 +44,7 @@ const initialState = {
     clientLastname: '',
     clientPhone: '',
     clientEmail: '',
-    paymentMethod: 'local',
+    paymentMethod: 'local' as PaymentMethod,
   },
 };
 
@@ -61,6 +62,10 @@ const mockTempLockService = vi.hoisted(() => ({
   release: vi.fn().mockResolvedValue(undefined),
 }));
 
+const mockAcquireLock = vi.hoisted(() => vi.fn());
+const mockCreateAppointment = vi.hoisted(() => vi.fn());
+const mockReleaseLock = vi.hoisted(() => vi.fn());
+
 vi.mock('../../services/professional.service', () => ({
   professionalService: mockProfessionalService,
 }));
@@ -70,19 +75,31 @@ vi.mock('../../services/appointment.service', () => ({
   tempLockService: mockTempLockService,
 }));
 
+vi.mock('../../services/appointmentApi', () => ({
+  appointmentApi: {
+    endpoints: {
+      acquireTempLock: { initiate: mockAcquireLock },
+      createAppointment: { initiate: mockCreateAppointment },
+      releaseTempLock: { initiate: mockReleaseLock },
+    },
+  },
+}));
+
 const mockBarber = { id: 'b1', name: 'Carlos', lastname: 'López', services: ['s1'], photoUrl: null, isActive: true, slotDuration: 30, maxAdvanceDays: 30 };
 const mockService = { id: 's1', name: 'Corte', description: '', price: 500, imageUrl: '', status: 'active' as const };
 
 function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
   return configureStore({
-    reducer: { booking: reducer } as any,
-    preloadedState: preloaded ? { booking: preloaded } : { booking: initialState },
-  } as any);
+    reducer: { booking: reducer },
+    preloadedState: preloaded ? { booking: preloaded as ReturnType<typeof reducer> } : { booking: initialState },
+  });
 }
 
 describe('bookingSlice', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123' }) }));
+    mockReleaseLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve(undefined) }));
   });
 
   describe('estado inicial', () => {
@@ -260,6 +277,7 @@ describe('bookingSlice', () => {
       clientLastname: 'Pérez',
       clientPhone: '123456789',
       clientEmail: 'juan@test.com',
+      paymentMethod: 'local' as PaymentMethod,
     };
 
     function createStoreWithFlow() {
@@ -267,43 +285,46 @@ describe('bookingSlice', () => {
     }
 
     it('fulfilled crea cita y retorna appointment', async () => {
-      mockTempLockService.acquire.mockResolvedValueOnce('lock-123');
-      mockAppointmentService.create.mockResolvedValueOnce({
-        message: 'Creada',
-        appointment: { id: 'apt-1', barberId: 'b1', serviceId: 's1', date: '2025-06-16' },
-      });
+      const appointmentData = { id: 'apt-1', barberId: 'b1', serviceId: 's1', date: '2025-06-16' };
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.resolve({ appointment: appointmentData }),
+      }));
       const store = createStoreWithFlow();
       await store.dispatch(submitAppointment());
       const state = store.getState().booking;
       expect(state.async.isConfirming).toBe(false);
       expect(state.async.submitSuccess).toBe(true);
-      expect(state.async.createdAppointment).toEqual({ id: 'apt-1', barberId: 'b1', serviceId: 's1', date: '2025-06-16' });
-      expect(mockTempLockService.acquire).toHaveBeenCalledWith('b1', '2025-06-16', '10:00');
-      expect(mockAppointmentService.create).toHaveBeenCalledWith({
+      expect(state.async.createdAppointment).toEqual(appointmentData);
+      expect(mockAcquireLock).toHaveBeenCalledWith({ barberId: 'b1', date: '2025-06-16', startTime: '10:00' });
+      expect(mockCreateAppointment).toHaveBeenCalledWith({
         barberId: 'b1', serviceId: 's1', date: '2025-06-16', startTime: '10:00',
         clientName: 'Juan', clientLastname: 'Pérez', clientPhone: '123456789', clientEmail: 'juan@test.com',
-        tempLockId: 'lock-123',
+        paymentMethod: 'local', tempLockId: 'lock-123',
       });
+      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
     });
 
     it('rejected libera temp lock y asigna error', async () => {
-      mockTempLockService.acquire.mockResolvedValueOnce('lock-123');
-      mockAppointmentService.create.mockRejectedValueOnce(new Error('Horario no disponible'));
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject(new Error('Horario no disponible')),
+      }));
       const store = createStoreWithFlow();
       await store.dispatch(submitAppointment());
       const state = store.getState().booking;
       expect(state.async.isConfirming).toBe(false);
       expect(state.async.confirmError).toBe('Horario no disponible');
-      expect(mockTempLockService.release).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
     });
 
     it('rejected sin temp lock no intenta liberar', async () => {
-      mockTempLockService.acquire.mockRejectedValueOnce(new Error('Bloqueo fallido'));
+      mockAcquireLock.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject(new Error('Bloqueo fallido')),
+      }));
       const store = createStoreWithFlow();
       await store.dispatch(submitAppointment());
       const state = store.getState().booking;
       expect(state.async.confirmError).toBe('Bloqueo fallido');
-      expect(mockTempLockService.release).not.toHaveBeenCalled();
+      expect(mockReleaseLock).not.toHaveBeenCalled();
     });
   });
 });

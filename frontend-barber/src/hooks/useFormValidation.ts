@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { FormErrors } from '../types/auth';
 import { VALIDATION_RULES, ERROR_MESSAGES } from '../constants/validation';
 
@@ -47,23 +47,25 @@ export function useFormValidation(initialValues: Record<string, string>) {
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
 
   const validateField = useCallback(
     (field: string, value: string): string | undefined => {
       const validator = validationSchema[field];
       if (validator) {
-        return validator(value, values);
+        return validator(value, valuesRef.current);
       }
       return undefined;
     },
-    [values]
+    []
   );
 
   const handleChange = useCallback(
     (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setValues((prev) => ({ ...prev, [field]: value }));
-      
+
       if (touched[field]) {
         const error = validateField(field, value);
         setErrors((prev) => ({ ...prev, [field]: error }));
@@ -75,18 +77,19 @@ export function useFormValidation(initialValues: Record<string, string>) {
   const handleBlur = useCallback(
     (field: string) => () => {
       setTouched((prev) => ({ ...prev, [field]: true }));
-      const error = validateField(field, values[field]);
+      const error = validateField(field, valuesRef.current[field]);
       setErrors((prev) => ({ ...prev, [field]: error }));
     },
-    [validateField, values]
+    [validateField]
   );
 
   const validateAll = useCallback((): boolean => {
     const newErrors: FormErrors = {};
     let isValid = true;
+    const currentValues = valuesRef.current;
 
-    Object.keys(values).forEach((field) => {
-      const error = validateField(field, values[field]);
+    Object.keys(currentValues).forEach((field) => {
+      const error = validateField(field, currentValues[field]);
       if (error) {
         newErrors[field] = error;
         isValid = false;
@@ -95,14 +98,14 @@ export function useFormValidation(initialValues: Record<string, string>) {
 
     setErrors(newErrors);
     setTouched(
-      Object.keys(values).reduce(
+      Object.keys(currentValues).reduce(
         (acc, key) => ({ ...acc, [key]: true }),
         {} as Record<string, boolean>
       )
     );
 
     return isValid;
-  }, [validateField, values]);
+  }, [validateField]);
 
   const resetForm = useCallback(() => {
     setValues(initialValues);
@@ -112,11 +115,11 @@ export function useFormValidation(initialValues: Record<string, string>) {
 
   const getFieldProps = useCallback(
     (field: string) => ({
-      value: values[field] || '',
+      value: valuesRef.current[field] || '',
       onChange: handleChange(field),
       onBlur: handleBlur(field),
     }),
-    [values, handleChange, handleBlur]
+    [handleChange, handleBlur]
   );
 
   return {

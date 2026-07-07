@@ -4,10 +4,25 @@ import { vi } from 'vitest';
 import { RegisterForm } from './RegisterForm';
 import { renderWithProviders } from '../../../../test/utils';
 
-const apiMock = vi.hoisted(() => vi.fn());
-vi.mock('../../../../services/api', () => ({
-  default: apiMock,
-  setupDispatch: vi.fn(),
+const mockRegisterFn = vi.hoisted(() => vi.fn());
+const mockUseRegisterMutation = vi.hoisted(() => vi.fn(() => [mockRegisterFn, { isLoading: false, error: null }]));
+
+const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
+
+vi.mock('../../../../services/authApi', () => ({
+  authApi: {
+    reducerPath: 'authApi',
+    reducer: (s: Record<string, unknown> = {}) => s,
+    middleware: [],
+    endpoints: {
+      verifyTwoFactorCode: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
+      completeGoogleProfile: { matchFulfilled: mockEndpointMatcher },
+      googleLogin: { matchFulfilled: mockEndpointMatcher },
+      refreshToken: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
+      getProfile: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher, initiate: vi.fn(() => ({ abort: vi.fn() })) },
+    },
+  },
+  useRegisterMutation: mockUseRegisterMutation,
 }));
 
 const mockNavigate = vi.fn();
@@ -28,8 +43,9 @@ const fillRegisterForm = async () => {
 
 describe('RegisterForm', () => {
   beforeEach(() => {
-    apiMock.mockReset();
-    apiMock.mockResolvedValue({ data: { message: 'Usuario registrado con éxito' } });
+    mockRegisterFn.mockReset();
+    mockUseRegisterMutation.mockReset();
+    mockUseRegisterMutation.mockReturnValue([mockRegisterFn, { isLoading: false, error: null }]);
     mockNavigate.mockReset();
   });
 
@@ -48,11 +64,12 @@ describe('RegisterForm', () => {
     renderWithProviders(<RegisterForm />);
 
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
-    expect(apiMock).not.toHaveBeenCalled();
+    expect(mockRegisterFn).not.toHaveBeenCalled();
   });
 
   it('submits and shows success on valid form', async () => {
-    const user = userEvent.setup();
+    mockRegisterFn.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'ok' }) });
+    const user = userEvent.setup({ delay: 50 });
     renderWithProviders(<RegisterForm />);
 
     await fillRegisterForm();
@@ -66,12 +83,15 @@ describe('RegisterForm', () => {
   });
 
   it('shows error message when registration fails', async () => {
-    apiMock.mockRejectedValue(new Error('Email en uso'));
+    mockRegisterFn.mockReturnValue({ unwrap: () => Promise.reject(new Error('Email en uso')) });
     const user = userEvent.setup();
-    renderWithProviders(<RegisterForm />);
+    const { rerender } = renderWithProviders(<RegisterForm />);
 
     await fillRegisterForm();
     await user.click(screen.getByRole('button', { name: /crear cuenta/i }));
+
+    mockUseRegisterMutation.mockReturnValue([mockRegisterFn, { isLoading: false, error: new Error('Email en uso') }]);
+    rerender(<RegisterForm />);
 
     await waitFor(() => {
       expect(screen.getByText('Email en uso')).toBeInTheDocument();

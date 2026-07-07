@@ -21,10 +21,10 @@ function createTestStore(preloadedState?: Partial<RootState>) {
       barbers: barbersReducer,
       [authApi.reducerPath]: authApi.reducer,
     } as any,
-    middleware: (getDefaultMiddleware: any) =>
-      (getDefaultMiddleware() as any[]).concat(authApi.middleware) as any,
+    middleware: (getDefaultMiddleware) =>
+      getDefaultMiddleware().concat(authApi.middleware),
     preloadedState,
-  } as any);
+  });
 }
 
 export function renderWithProviders(

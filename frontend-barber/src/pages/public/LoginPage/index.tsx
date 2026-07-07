@@ -105,10 +105,12 @@ export const LoginPage: React.FC = () => {
   const isCodeStep = Boolean(twoFactorPendingEmail);
   const isLoading = isSending || isVerifying || isGoogleLoading || isCompleting;
 
+  const prevIsCodeStep = useRef(isCodeStep);
   useEffect(() => {
-    if (!isCodeStep) {
+    if (prevIsCodeStep.current && !isCodeStep) {
       resetCodeForm();
     }
+    prevIsCodeStep.current = isCodeStep;
   }, [isCodeStep, resetCodeForm]);
 
   useEffect(() => {

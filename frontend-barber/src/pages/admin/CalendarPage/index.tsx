@@ -1,8 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
-import { getAccessToken } from '../../../services/api';
+import api from '../../../services/api';
 import { DayCard } from './DayCard';
 import { DayDetailModal } from './DayDetailModal';
 import { BlockModal } from './BlockModal';
@@ -105,38 +105,37 @@ export const CalendarPage: React.FC = () => {
   const selectedBlocks = selectedDate ? blocksByDate.get(selectedDate) ?? [] : [];
 
   useEffect(() => {
+    let cancelled = false;
     const fetchBlocks = async () => {
       try {
-        const token = getAccessToken();
-        const res = await fetch(`/api/barbers/blocks?dateFrom=${dateFrom}&dateTo=${dateTo}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        const response = await api.get<{ blocks: BarberBlock[] }>('/api/barbers/blocks', {
+          params: { dateFrom, dateTo },
         });
-        if (res.ok) {
-          const data = await res.json();
-          const map = new Map<string, BarberBlock[]>();
-          for (const block of data.blocks as BarberBlock[]) {
-            const existing = map.get(block.date) ?? [];
-            existing.push(block);
-            map.set(block.date, existing);
-          }
-          setBlocksByDate(map);
+        if (cancelled) return;
+        const map = new Map<string, BarberBlock[]>();
+        for (const block of response.data.blocks) {
+          const existing = map.get(block.date) ?? [];
+          existing.push(block);
+          map.set(block.date, existing);
         }
+        setBlocksByDate(map);
       } catch {
         // ignore fetch errors
       }
     };
     fetchBlocks();
+    return () => { cancelled = true; };
   }, [dateFrom, dateTo, blocksRefreshKey]);
 
-  const goPrev = () => {
-    setStartDate(addDays(startDate, -DAYS_TO_SHOW));
+  const goPrev = useCallback(() => {
+    setStartDate(prev => addDays(prev, -DAYS_TO_SHOW));
     setSelectedDate(null);
-  };
+  }, []);
 
-  const goNext = () => {
-    setStartDate(addDays(startDate, DAYS_TO_SHOW));
+  const goNext = useCallback(() => {
+    setStartDate(prev => addDays(prev, DAYS_TO_SHOW));
     setSelectedDate(null);
-  };
+  }, []);
 
   const columns = useMemo<DayColumn[]>(
     () =>

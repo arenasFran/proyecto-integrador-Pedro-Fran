@@ -41,6 +41,7 @@ let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
 }> = [];
+let refreshPromise: Promise<string> | null = null;
 
 const processQueue = (error: unknown, token: string | null) => {
   failedQueue.forEach((prom) => {
@@ -121,26 +122,28 @@ api.interceptors.response.use(
 );
 
 export const silentRefresh = async (): Promise<boolean> => {
-  if (isRefreshing) {
-    return new Promise<boolean>((resolve) => {
-      failedQueue.push({
-        resolve: () => resolve(true),
-        reject: () => resolve(false),
-      });
-    });
+  if (isRefreshing && refreshPromise) {
+    try {
+      await refreshPromise;
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   isRefreshing = true;
   try {
-    await refreshTokens();
-    processQueue(null, _accessToken);
+    refreshPromise = refreshTokens();
+    const token = await refreshPromise;
+    processQueue(null, token);
     return true;
-  } catch {
+  } catch (error) {
     setAccessToken(null);
-    processQueue(null, null);
+    processQueue(error, null);
     return false;
   } finally {
     isRefreshing = false;
+    refreshPromise = null;
   }
 };
 

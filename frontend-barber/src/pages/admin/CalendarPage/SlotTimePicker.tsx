@@ -17,11 +17,10 @@ export const SlotTimePicker: React.FC<SlotTimePickerProps> = ({ label, options, 
 
   const currentIndex = options.indexOf(value);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!listRef.current || currentIndex < 0) return;
     listRef.current.scrollTop = currentIndex * ITEM_H;
-  }, []);
+  }, [currentIndex]);
 
   useEffect(() => {
     const el = listRef.current;

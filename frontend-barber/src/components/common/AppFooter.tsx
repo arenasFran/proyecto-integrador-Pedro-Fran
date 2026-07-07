@@ -1,6 +1,5 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useAppSelector } from '../../store/hooks';
 import { getTokenUser } from '../../utils/token';
 import { getAccessToken } from '../../services/api';
 
@@ -8,7 +7,6 @@ export const AppFooter: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const user = useAppSelector((state) => state.auth.user);
   const token = getAccessToken();
   const tokenUser = getTokenUser(token);
   const isAuthenticated = Boolean(token && tokenUser);

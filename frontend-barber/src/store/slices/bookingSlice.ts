@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { professionalService } from '../../services/professional.service';
-import { appointmentService, tempLockService } from '../../services/appointment.service';
 import { appointmentApi } from '../../services/appointmentApi';
 import type {
   BarberPublic,
@@ -112,7 +111,8 @@ export const submitAppointment = createAsyncThunk(
       const barberId = flow.selectedBarber!.id;
       const date = flow.selectedDate!;
       const startTime = flow.selectedTime!;
-      tempLockId = await tempLockService.acquire(barberId, date, startTime);
+      const lockResult = await dispatch(appointmentApi.endpoints.acquireTempLock.initiate({ barberId, date, startTime })).unwrap();
+      tempLockId = lockResult.tempLockId;
       const payload: CreateAppointmentPayload = {
         barberId,
         serviceId: flow.selectedService!.id,
@@ -125,15 +125,15 @@ export const submitAppointment = createAsyncThunk(
         paymentMethod: flow.paymentMethod,
         tempLockId,
       };
-      const response = await appointmentService.create(payload);
-      dispatch(appointmentApi.util.invalidateTags(['Appointments']));
+      const response = await dispatch(appointmentApi.endpoints.createAppointment.initiate(payload)).unwrap();
       return response.appointment;
     } catch (error: unknown) {
-      if (tempLockId) {
-        tempLockService.release(tempLockId).catch(() => {});
-      }
       const message = error instanceof Error ? error.message : 'Error al crear la reserva';
       return rejectWithValue(message);
+    } finally {
+      if (tempLockId) {
+        dispatch(appointmentApi.endpoints.releaseTempLock.initiate(tempLockId));
+      }
     }
   }
 );

@@ -160,24 +160,12 @@ export const updateBarberMe = createAsyncThunk(
     schedule?: BarberSchedule;
   }, { rejectWithValue }) => {
     try {
-      const response = await api.put('/api/barbers/me', data);
-      const raw = response.data as { id: string; _id?: string; [key: string]: unknown };
-      const mapped: Professional = {
-        id: raw.id ?? String(raw._id ?? ''),
-        name: raw.name as string,
-        lastname: raw.lastname as string,
-        email: raw.email as string,
-        phone: raw.phone as string,
-        kind: raw.kind as 'Admin' | 'Empleado',
-        services: raw.services as string[],
-        age: raw.age as number | undefined,
-        photoUrl: raw.photoUrl as string | null | undefined,
-        isActive: raw.isActive as boolean,
-        slotDuration: raw.slotDuration as number,
-        maxAdvanceDays: raw.maxAdvanceDays as number,
-        schedule: raw.schedule as BarberSchedule,
-      };
-      return mapped;
+      const response = await api.put<Professional>('/api/barbers/me', data);
+      const raw = response.data as Professional & { _id?: string };
+      if (raw._id && !raw.id) {
+        return { ...raw, id: raw._id };
+      }
+      return raw;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error al actualizar perfil';
       return rejectWithValue(message);

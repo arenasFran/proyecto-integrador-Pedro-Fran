@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiChevronDown, FiLogOut, FiMenu, FiPlus, FiScissors, FiUser } from 'react-icons/fi';
+import { FiChevronDown, FiLogOut, FiMenu, FiPlus, FiUser } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getTokenUser } from '../../utils/token';
@@ -58,10 +58,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
               if (tokenKind === 'Admin') navigate('/admin/dashboard');
               else navigate('/reservar');
             }}
-            className="flex items-center gap-2 text-[14px] font-semibold text-white hover:text-[#FF5C00] transition-colors"
+            className="flex items-center gap-2"
           >
-            <FiScissors className="text-[#FF5C00]" />
-            Barbería SA
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
+            <span className="hidden sm:inline text-[15px] font-bold text-white">Barbería SA</span>
           </button>
         </div>
 
@@ -82,8 +82,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
             <div className="rounded-full bg-[#FF5C00]/10 p-1">
               <FiUser className="text-[#FF5C00] text-sm" />
             </div>
-            <span className="truncate max-w-[60px] sm:max-w-[120px] md:max-w-[200px]">
-              {user?.name ? `${user.name} ${user.lastname}` : user?.email ?? tokenUser?.email ?? 'Admin'}
+            <span className="truncate max-w-[90px] sm:max-w-[120px] md:max-w-[200px]">
+              <span className="sm:hidden">{user?.name ?? user?.email ?? tokenUser?.email ?? 'Admin'}</span>
+              <span className="hidden sm:inline">{user?.name ? `${user.name} ${user.lastname}` : user?.email ?? tokenUser?.email ?? 'Admin'}</span>
             </span>
             <FiChevronDown className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
           </button>

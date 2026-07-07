@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { FiChevronLeft, FiChevronRight, FiSave } from 'react-icons/fi';
+import { uploadAvatar } from '../../../../services/upload.service';
 import { ImageUpload, Modal, Button, Input, PasswordInput, useToast } from '../../../../components/common';
 import type { DayKey, Professional } from '../../../../types/professional';
 import {
@@ -183,9 +184,14 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
       return;
     }
 
-    // TODO: Subir form.photoFile a Cloudinary/S3 y usar la URL retornada como photoUrl
     setIsSaving(true);
     try {
+      let photoUrl = form.photoUrl;
+
+      if (form.photoFile) {
+        photoUrl = await uploadAvatar(form.photoFile, form.photoUrl || undefined);
+      }
+
       await onSave({
         form: {
           name: form.name.trim(),
@@ -195,7 +201,7 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
           password: form.password.trim(),
           age: form.age,
           slotDuration: form.slotDuration,
-          photoUrl: form.photoUrl,
+          photoUrl,
           services: '',
         },
         schedule: form.schedule,

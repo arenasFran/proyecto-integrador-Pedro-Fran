@@ -461,7 +461,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                   <div key={appointment.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-semibold text-white truncate">
+                        <p className="text-[14px] font-semibold text-white break-words">
                           {appointment.clientName} {appointment.clientLastname}
                         </p>
                         {appointment.clientEmail && (

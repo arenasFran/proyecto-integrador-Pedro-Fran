@@ -4,13 +4,15 @@ interface BarberAvatarProps {
   name: string;
   lastname: string;
   photoUrl?: string | null;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
 }
 
 const sizeClasses = {
   sm: 'w-8 h-8 text-[11px]',
   md: 'w-10 h-10 text-[13px]',
   lg: 'w-14 h-14 text-[18px]',
+  xl: 'w-20 h-20 text-[24px]',
+  '2xl': 'w-24 h-24 text-[28px]',
 };
 
 export const BarberAvatar: React.FC<BarberAvatarProps> = ({

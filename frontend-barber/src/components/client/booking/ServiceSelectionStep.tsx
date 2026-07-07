@@ -35,7 +35,7 @@ export const ServiceSelectionStep: React.FC<ServiceSelectionStepProps> = ({
 
   return (
     <AnimatedContainer animation="fadeInUp">
-      <div className="p-4 space-y-3">
+      <div className="p-6 space-y-4">
         {error && services.length > 0 && (
           <div className="rounded-[10px] border border-red-500/20 bg-red-500/5 px-3 py-2">
             <p className="text-[12px] text-red-400">{error}</p>
@@ -48,8 +48,8 @@ export const ServiceSelectionStep: React.FC<ServiceSelectionStepProps> = ({
           </div>
         ) : (
           <>
-            <p className="text-[12px] text-[#8A8A8A]">Seleccioná el servicio que querés</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <p className="text-[13px] text-[#8A8A8A]">Seleccioná el servicio que querés</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {services.map((service, index) => (
                 <motion.div
                   key={service.id}

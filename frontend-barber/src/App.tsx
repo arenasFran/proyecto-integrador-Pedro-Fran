@@ -15,6 +15,8 @@ import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
 import CalendarPage from './pages/admin/CalendarPage';
 import ServicesPage from './pages/admin/ServicesPage';
 import ClientsPage from './pages/admin/ClientsPage';
+import MembershipsPage from './pages/admin/MembershipsPage';
+import MembershipPage from './pages/app/MembershipPage';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
@@ -88,6 +90,7 @@ function App() {
               <Route path="calendario" element={<CalendarPage />} />
               <Route path="servicios" element={<ServicesPage />} />
               <Route path="clientes" element={<ClientsPage />} />
+              <Route path="membresias" element={<MembershipsPage />} />
               <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
             <Route
@@ -98,6 +101,7 @@ function App() {
               }
             >
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
+              <Route path="/mi-membresia" element={<MembershipPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />

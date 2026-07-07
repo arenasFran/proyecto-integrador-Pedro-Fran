@@ -1,9 +1,8 @@
 import React, { useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
-import { AnimatedContainer } from '../../../components/common';
+import { AnimatedContainer, AppFooter } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
-import { PublicFooter } from '../../../components/client/PublicFooter';
 import {
   AccordionStep,
   ClientDataOverlay,
@@ -19,16 +18,18 @@ import {
   setSelectedService,
   setSelectedDate,
   setSelectedTime,
+  setPaymentMethod,
   setClientData,
   setCurrentStep,
   submitAppointment,
   resetBooking,
 } from '../../../store/slices/bookingSlice';
 import { useGetServicesQuery } from '../../../services/service.api';
+import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 import { authApi } from '../../../services/authApi';
 import { getAccessToken } from '../../../services/api';
 import { formatDate } from '../../../utils/formatDate';
-import type { BookingStep, BarberPublic } from '../../../types/booking';
+import type { BookingStep, BarberPublic, PaymentMethod } from '../../../types/booking';
 
 const getTodayString = (): string => {
   const d = new Date();
@@ -69,8 +70,20 @@ export const BookingPage: React.FC = () => {
       clientLastname,
       clientPhone,
       clientEmail,
+      paymentMethod,
     },
   } = useAppSelector((state) => state.booking);
+
+  const { data: myMembership } = useGetMyMembershipQuery(undefined, {
+    skip: !authUser,
+  });
+  const activeMembership = myMembership?.active ?? null;
+  const hasActiveMembership = activeMembership
+    ? activeMembership.status === 'active' && new Date(activeMembership.endDate) > new Date()
+    : false;
+  const remainingCoupons = activeMembership
+    ? Math.max(0, activeMembership.couponsTotal - activeMembership.couponsUsed)
+    : 0;
 
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
@@ -150,6 +163,13 @@ export const BookingPage: React.FC = () => {
     }
   }, [barbers, dispatch]);
 
+  const handlePaymentMethodChange = useCallback(
+    (method: PaymentMethod) => {
+      dispatch(setPaymentMethod(method));
+    },
+    [dispatch]
+  );
+
   const handleSubmit = useCallback(() => {
     dispatch(submitAppointment());
   }, [dispatch]);
@@ -174,8 +194,8 @@ export const BookingPage: React.FC = () => {
     <div className="min-h-screen bg-[#050505] text-white">
       <PublicHeader />
 
-      <div className="relative mx-auto max-w-xl px-4 pb-32 pt-6 sm:px-6 sm:pt-8">
-          <AnimatedContainer animation="fadeInDown" className="text-center mb-6">
+      <div className="relative mx-auto max-w-2xl px-6 pb-32 pt-8 sm:px-8 sm:pt-10">
+          <AnimatedContainer animation="fadeInDown" className="text-center mb-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[11px] text-[#8A8A8A] mb-3">
               <FiScissors className="text-[#FF5C00]" />
               Reservá tu turno online
@@ -266,15 +286,19 @@ export const BookingPage: React.FC = () => {
         clientLastname={clientLastname}
         clientPhone={clientPhone}
         clientEmail={clientEmail}
+        paymentMethod={paymentMethod}
+        hasActiveMembership={hasActiveMembership}
+        remainingCoupons={remainingCoupons}
         isConfirming={isConfirming}
         confirmError={confirmError}
         isLoggedIn={!!authUser}
         onChange={(data) => dispatch(setClientData(data))}
+        onPaymentMethodChange={handlePaymentMethodChange}
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
       />
 
-      <PublicFooter />
+      <AppFooter />
     </div>
   );
 };

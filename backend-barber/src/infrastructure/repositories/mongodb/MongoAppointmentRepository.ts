@@ -79,8 +79,10 @@ const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
   });
 
 export class MongoAppointmentRepository {
-  async findById(id: string): Promise<Appointment | null> {
-    const doc = await AppointmentModel.findById(id).lean();
+  async findById(id: string, session?: mongoose.ClientSession): Promise<Appointment | null> {
+    const query = AppointmentModel.findById(id);
+    if (session) query.session(session);
+    const doc = await query.lean();
     if (!doc) return null;
     return toAppointmentEntity(doc);
   }
@@ -301,7 +303,7 @@ export class MongoAppointmentRepository {
     return toAppointmentEntity(doc);
   }
 
-  async updateStatus(id: string, data: UpdateStatusData & { version?: number }): Promise<Appointment | null> {
+  async updateStatus(id: string, data: UpdateStatusData & { version?: number }, session?: mongoose.ClientSession): Promise<Appointment | null> {
     const updateData: Record<string, unknown> = {};
 
     if (data.status !== undefined) {
@@ -330,10 +332,13 @@ export class MongoAppointmentRepository {
       update.$inc = { version: 1 };
     }
 
+    const opts: Record<string, unknown> = { returnDocument: 'after' };
+    if (session) opts.session = session;
+
     const doc = await AppointmentModel.findOneAndUpdate(
       filter,
       update,
-      { returnDocument: 'after' }
+      opts
     ).lean();
 
     if (!doc) return null;

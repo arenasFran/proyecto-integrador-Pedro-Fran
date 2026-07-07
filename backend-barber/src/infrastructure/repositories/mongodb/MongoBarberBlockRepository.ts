@@ -3,11 +3,13 @@ import { BarberBlockModel } from './models/barberBlock.model';
 import type { BarberBlockProps } from '../../../domain/entities/BarberBlock';
 
 export class MongoBarberBlockRepository {
-  async findByBarberAndDate(barberId: string, date: string): Promise<BarberBlockProps[]> {
-    const docs = await BarberBlockModel.find({
+  async findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<BarberBlockProps[]> {
+    const query = BarberBlockModel.find({
       barberId: new mongoose.Types.ObjectId(barberId),
       date,
-    }).lean();
+    });
+    if (session) query.session(session);
+    const docs = await query.lean();
     return docs.map((doc: any) => this.toProps(doc));
   }
 

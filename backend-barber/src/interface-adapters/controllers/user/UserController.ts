@@ -1,10 +1,15 @@
 import { Request, Response } from 'express';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
+import { BcryptPasswordHasher } from '../../../infrastructure/services/BcryptPasswordHasher';
+import { Password } from '../../../domain/value-objects/Password';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 
 export class UserController {
-  constructor(private readonly userRepository: MongoUserRepository) {}
+  constructor(
+    private readonly userRepository: MongoUserRepository,
+    private readonly passwordHasher?: BcryptPasswordHasher
+  ) {}
 
   getMe = async (req: Request, res: Response) => {
     try {
@@ -28,7 +33,15 @@ export class UserController {
 
   updateMe = async (req: Request, res: Response) => {
     try {
-      const updated = await this.userRepository.update(req.user!._id, req.body);
+      const dto = { ...req.body };
+
+      if (dto.password) {
+        Password.create(dto.password);
+        dto.passwordHash = await this.passwordHasher!.hash(dto.password);
+        delete dto.password;
+      }
+
+      const updated = await this.userRepository.update(req.user!._id, dto);
       if (!updated) {
         throw new AppError('Usuario no encontrado.', 404);
       }

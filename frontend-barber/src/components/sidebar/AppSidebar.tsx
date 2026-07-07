@@ -31,7 +31,6 @@ const userNavItems = [
   { to: '/reservar', icon: FiScissors, label: 'Agendar' },
   { to: '/mis-turnos', icon: FiCalendar, label: 'Mis turnos' },
   { to: '/mi-membresia', icon: FiAward, label: 'Mi Membresía' },
-  { to: '/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
 export const AppSidebar: React.FC<SidebarProps> = ({ collapsed, onToggle, onCloseMobile, mobileOpen, kind }) => {

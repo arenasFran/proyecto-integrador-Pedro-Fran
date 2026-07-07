@@ -51,6 +51,22 @@ export const membershipApi = createApi({
       }),
       invalidatesTags: ['Membership'],
     }),
+
+    cancelMembership: builder.mutation<Membership, string>({
+      query: (id) => ({
+        url: `/api/memberships/${id}/cancel`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Membership'],
+    }),
+
+    reactivateMembership: builder.mutation<Membership, string>({
+      query: (id) => ({
+        url: `/api/memberships/${id}/reactivate`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Membership'],
+    }),
   }),
 });
 
@@ -60,4 +76,6 @@ export const {
   useGetAllMembershipsQuery,
   useGetMembershipByIdQuery,
   useRedeemCouponMutation,
+  useCancelMembershipMutation,
+  useReactivateMembershipMutation,
 } = membershipApi;

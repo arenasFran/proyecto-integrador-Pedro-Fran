@@ -30,7 +30,7 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
       });
       if (!res.ok) return [];
       const json = await res.json();
-      return json.data?.urls ?? [];
+      return json.urls ?? [];
     } catch (err) {
       console.error('[UPLOAD DEBUG] Error:', err);
       return [];

@@ -1,5 +1,6 @@
 import { MongoOrderRepository } from '../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../infrastructure/repositories/mongodb/MongoProductRepository';
+import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { CreateOrderUseCase } from '../application/use-cases/product/CreateOrderUseCase';
 import { GetOrderUseCase } from '../application/use-cases/product/GetOrderUseCase';
 import { OrderController } from '../interface-adapters/controllers/product/OrderController';
@@ -12,11 +13,12 @@ import { createAuthenticate } from '../interface-adapters/middlewares/auth.middl
 export const buildOrderRouter = () => {
   const orderRepository = new MongoOrderRepository();
   const productRepository = new MongoProductRepository();
+  const membershipRepository = new MongoMembershipRepository();
   const { paymentRepository, mercadoPagoService } = buildPaymentDependencies();
 
   const createPaymentUseCase = new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
 
-  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, createPaymentUseCase);
+  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase);
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
 
   const orderController = new OrderController(createOrderUseCase, getOrderUseCase, orderRepository);

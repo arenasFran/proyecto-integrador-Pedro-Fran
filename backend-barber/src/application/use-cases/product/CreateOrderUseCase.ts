@@ -1,6 +1,7 @@
 import { Order } from '../../../domain/entities/Order';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
+import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
 import { AppError } from '../../../domain/errors/AppError';
 
@@ -19,6 +20,7 @@ export class CreateOrderUseCase {
   constructor(
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
+    private readonly membershipRepository: MongoMembershipRepository,
     private readonly createPaymentUseCase: CreatePaymentUseCase
   ) {}
 
@@ -31,6 +33,9 @@ export class CreateOrderUseCase {
       dto.items.map((item) => this.productRepository.findById(item.productId))
     );
 
+    const membership = await this.membershipRepository.findActiveByUser(dto.userId);
+    const discountPercent = membership?.productDiscount ?? 0;
+
     const resolvedItems: { productId: string; name: string; price: number; quantity: number }[] = [];
 
     for (let i = 0; i < dto.items.length; i++) {
@@ -41,10 +46,15 @@ export class CreateOrderUseCase {
       if (product.stock < dto.items[i].quantity) {
         throw new AppError(`Stock insuficiente para: ${product.name}`, 400);
       }
+
+      const price = discountPercent > 0
+        ? Math.round(product.price * (100 - discountPercent) / 100)
+        : product.price;
+
       resolvedItems.push({
         productId: product.id,
         name: product.name,
-        price: product.price,
+        price,
         quantity: dto.items[i].quantity,
       });
     }

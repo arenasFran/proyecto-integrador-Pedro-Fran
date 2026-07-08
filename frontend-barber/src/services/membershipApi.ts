@@ -6,6 +6,7 @@ import type {
   CreateMembershipPayload,
   MembershipWithUser,
 } from '../types/membership';
+import type { InitiatePaymentResponse } from '../types/payment';
 
 export const membershipApi = createApi({
   reducerPath: 'membershipApi',
@@ -26,6 +27,14 @@ export const membershipApi = createApi({
         data,
       }),
       invalidatesTags: ['Membership', 'Memberships'],
+    }),
+
+    initiateMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
+      query: (data) => ({
+        url: '/api/memberships/initiate-payment',
+        method: 'POST',
+        data,
+      }),
     }),
 
     getAllMemberships: builder.query<{ data: MembershipWithUser[]; total: number; page: number; totalPages: number; limit: number }, { status?: string; search?: string; page?: number; limit?: number }>({
@@ -57,6 +66,7 @@ export const membershipApi = createApi({
 export const {
   useGetMyMembershipQuery,
   useCreateMembershipMutation,
+  useInitiateMembershipPaymentMutation,
   useGetAllMembershipsQuery,
   useGetMembershipByIdQuery,
   useRedeemCouponMutation,

@@ -169,11 +169,18 @@ export const BookingPage: React.FC = () => {
 
   const navigate = useNavigate();
 
+  const preferenceId = useAppSelector((state) => state.booking.async.preferenceId);
+  const initPoint = useAppSelector((state) => state.booking.async.initPoint);
+
   useEffect(() => {
     if (submitSuccess) {
-      navigate('/mis-turnos');
+      if (preferenceId && initPoint) {
+        window.location.href = initPoint;
+      } else {
+        navigate('/mis-turnos');
+      }
     }
-  }, [submitSuccess, navigate]);
+  }, [submitSuccess, preferenceId, initPoint, navigate]);
 
   const isStep3Complete = !!selectedDate && !!selectedTime;
 

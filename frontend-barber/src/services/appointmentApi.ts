@@ -40,7 +40,7 @@ export const appointmentApi = createApi({
       }),
     }),
 
-    createAppointment: builder.mutation<{ message: string; appointment: Appointment }, CreateAppointmentPayload>({
+    createAppointment: builder.mutation<{ message: string; appointment: Appointment; preferenceId?: string; initPoint?: string }, CreateAppointmentPayload>({
       query: (data) => ({
         url: '/api/appointments',
         method: 'POST',

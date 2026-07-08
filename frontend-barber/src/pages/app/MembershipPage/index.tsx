@@ -1,7 +1,7 @@
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button } from '../../../components/common';
-import { useGetMyMembershipQuery, useCreateMembershipMutation } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 
@@ -10,7 +10,7 @@ export default function MembershipPage() {
   const kind = getTokenKind(token);
 
   const { data, isLoading } = useGetMyMembershipQuery();
-  const [createMembership, { isLoading: isCreating }] = useCreateMembershipMutation();
+  const [initiatePayment, { isLoading: isCreating }] = useInitiateMembershipPaymentMutation();
 
   if (!token) return <Navigate to="/login" replace />;
   if (kind === 'Admin' || kind === 'Empleado') return <Navigate to="/admin/membresias" replace />;
@@ -31,7 +31,10 @@ export default function MembershipPage() {
   const handlePurchase = async () => {
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
-      await createMembership({ userId: user.id }).unwrap();
+      const result = await initiatePayment({ userId: user.id }).unwrap();
+      if (result.initPoint) {
+        window.location.href = result.initPoint;
+      }
     } catch {
       // handled by RTK
     }

@@ -2,6 +2,7 @@ import { MongoPaymentRepository } from '../infrastructure/repositories/mongodb/M
 import { MercadoPagoService } from '../infrastructure/services/MercadoPagoService';
 import { getConfig } from '../infrastructure/config/env';
 import { CreatePaymentUseCase } from '../application/use-cases/payment/CreatePaymentUseCase';
+import { CreateSubscriptionUseCase } from '../application/use-cases/payment/CreateSubscriptionUseCase';
 import { ProcessWebhookUseCase } from '../application/use-cases/payment/ProcessWebhookUseCase';
 import { PaymentController } from '../interface-adapters/controllers/payment/PaymentController';
 import { createPaymentRouter } from '../interface-adapters/routes/payment.routes';
@@ -27,6 +28,11 @@ export const buildPaymentDependencies = () => {
 export const buildCreatePaymentUseCase = () => {
   const { paymentRepository, mercadoPagoService } = buildPaymentDependencies();
   return new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
+};
+
+export const buildCreateSubscriptionUseCase = () => {
+  const { mercadoPagoService } = buildPaymentDependencies();
+  return new CreateSubscriptionUseCase(mercadoPagoService);
 };
 
 export const buildPaymentRouter = () => {

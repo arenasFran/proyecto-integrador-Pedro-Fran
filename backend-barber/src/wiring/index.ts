@@ -91,7 +91,7 @@ export const buildUploadRouter = () => {
 };
 
 export { buildMembershipRouter } from './membership';
-export { buildPaymentRepository, buildMercadoPagoService, buildPaymentDependencies, buildPaymentRouter, buildCreatePaymentUseCase } from './payment';
+export { buildPaymentRepository, buildMercadoPagoService, buildPaymentDependencies, buildPaymentRouter, buildCreatePaymentUseCase, buildCreateSubscriptionUseCase } from './payment';
 export { buildProductRouter } from './product';
 export { buildOrderRouter } from './order';
 

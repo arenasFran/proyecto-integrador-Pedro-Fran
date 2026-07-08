@@ -5,14 +5,23 @@ import { MembershipController } from '../interface-adapters/controllers/membersh
 import { createMembershipRouter } from '../interface-adapters/routes/membership.routes';
 import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
-import { buildCreatePaymentUseCase } from './payment';
+import { buildCreatePaymentUseCase, buildCreateSubscriptionUseCase, buildMercadoPagoService } from './payment';
 
 export const buildMembershipRouter = () => {
   const membershipRepo = new MongoMembershipRepository();
   const userRepo = new MongoUserRepository();
   const paymentRepo = new MongoPaymentRepository();
   const createPaymentUseCase = buildCreatePaymentUseCase();
-  const controller = new MembershipController(membershipRepo, userRepo, createPaymentUseCase, paymentRepo);
+  const createSubscriptionUseCase = buildCreateSubscriptionUseCase();
+  const mercadoPagoService = buildMercadoPagoService();
+  const controller = new MembershipController(
+    membershipRepo,
+    userRepo,
+    createPaymentUseCase,
+    paymentRepo,
+    createSubscriptionUseCase,
+    mercadoPagoService
+  );
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

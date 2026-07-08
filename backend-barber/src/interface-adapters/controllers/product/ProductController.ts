@@ -47,9 +47,9 @@ export class ProductController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const { name, description, price, stock, imageUrl, category } = req.body;
+      const { name, description, price, stock, imageUrl, gallery, category } = req.body;
 
-      const product = Product.create({ name, description, price, stock, imageUrl: imageUrl || '', category: category || '' });
+      const product = Product.create({ name, description, price, stock, imageUrl: imageUrl || '', gallery, category: category || '' });
 
       const saved = await this.productRepository.save(product);
 
@@ -66,8 +66,8 @@ export class ProductController {
         throw new AppError('Producto no encontrado.', 404);
       }
 
-      const { name, description, price, stock, imageUrl, category, status } = req.body;
-      product.update({ name, description, price, stock, imageUrl, category, status });
+      const { name, description, price, stock, imageUrl, gallery, category, status } = req.body;
+      product.update({ name, description, price, stock, imageUrl, gallery, category, status });
 
       const saved = await this.productRepository.save(product);
 

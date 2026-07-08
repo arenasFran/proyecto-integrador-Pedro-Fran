@@ -1,0 +1,157 @@
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import {
+  removeItem,
+  updateQuantity,
+  clearCart,
+  closeCart,
+  selectCartTotal,
+  selectCartCount,
+} from '../../../store/slices/cartSlice';
+import { Button } from '../../common';
+import { getAccessToken } from '../../../services/api';
+
+export const CartDrawer = () => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { items, isOpen } = useAppSelector((state) => state.cart);
+  const total = useAppSelector(selectCartTotal);
+  const count = useAppSelector(selectCartCount);
+
+  const handleCheckout = () => {
+    const token = getAccessToken();
+    if (!token) {
+      navigate('/login?returnUrl=/tienda');
+      return;
+    }
+    dispatch(closeCart());
+    navigate('/tienda?checkout=true');
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60"
+            onClick={() => dispatch(closeCart())}
+          />
+          <motion.div
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="fixed right-0 top-0 z-50 h-full w-full max-w-md border-l border-[#282828] bg-[#121212] shadow-2xl"
+          >
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-[#282828] px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <FiShoppingCart className="text-[#FF5C00]" />
+                  <span className="text-[16px] font-bold text-white">Carrito</span>
+                  <span className="rounded-full bg-[#FF5C00]/10 px-2 py-0.5 text-[11px] text-[#FF5C00]">
+                    {count}
+                  </span>
+                </div>
+                <button onClick={() => dispatch(closeCart())} className="text-[#8A8A8A] hover:text-white">
+                  <FiX size={20} />
+                </button>
+              </div>
+
+              {items.length === 0 ? (
+                <div className="flex flex-1 flex-col items-center justify-center text-[#8A8A8A]">
+                  <FiShoppingCart className="text-4xl mb-3" />
+                  <p className="text-[14px]">Tu carrito está vacío</p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+                    {items.map((item) => (
+                      <div
+                        key={item.product.id}
+                        className="flex gap-3 rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3"
+                      >
+                        {item.product.imageUrl && (
+                          <img
+                            src={item.product.imageUrl}
+                            alt={item.product.name}
+                            className="h-16 w-16 rounded-[8px] object-cover"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-medium text-white truncate">
+                            {item.product.name}
+                          </p>
+                          <p className="text-[12px] text-[#FF5C00] font-semibold mt-0.5">
+                            ${item.product.price}
+                          </p>
+                          <div className="flex items-center gap-2 mt-2">
+                            <button
+                              onClick={() =>
+                                dispatch(
+                                  updateQuantity({
+                                    productId: item.product.id,
+                                    quantity: item.quantity - 1,
+                                  })
+                                )
+                              }
+                              className="flex h-6 w-6 items-center justify-center rounded-md border border-[#282828] text-[#8A8A8A] hover:text-white"
+                            >
+                              <FiMinus size={12} />
+                            </button>
+                            <span className="text-[13px] text-white w-6 text-center">
+                              {item.quantity}
+                            </span>
+                            <button
+                              onClick={() =>
+                                dispatch(
+                                  updateQuantity({
+                                    productId: item.product.id,
+                                    quantity: item.quantity + 1,
+                                  })
+                                )
+                              }
+                              className="flex h-6 w-6 items-center justify-center rounded-md border border-[#282828] text-[#8A8A8A] hover:text-white"
+                            >
+                              <FiPlus size={12} />
+                            </button>
+                            <button
+                              onClick={() => dispatch(removeItem(item.product.id))}
+                              className="ml-auto text-[#8A8A8A] hover:text-red-400"
+                            >
+                              <FiTrash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-[#282828] px-5 py-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-[#8A8A8A]">Subtotal</span>
+                      <span className="text-[16px] font-bold text-white">${total}</span>
+                    </div>
+                    <Button className="w-full" onClick={handleCheckout}>
+                      Ir al pago
+                    </Button>
+                    <button
+                      onClick={() => dispatch(clearCart())}
+                      className="w-full text-center text-[12px] text-[#555] hover:text-red-400"
+                    >
+                      Vaciar carrito
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};

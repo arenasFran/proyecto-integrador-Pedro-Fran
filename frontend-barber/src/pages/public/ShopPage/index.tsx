@@ -4,6 +4,7 @@ import { FiShoppingCart, FiGrid, FiSearch } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
+import PaymentModal from '../../../components/payment/PaymentModal';
 import { useGetProductsQuery, useGetCategoriesQuery } from '../../../services/productApi';
 import { useAppDispatch } from '../../../store/hooks';
 import { addItem, openCart } from '../../../store/slices/cartSlice';
@@ -17,6 +18,8 @@ export default function ShopPage() {
   const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentPreferenceId, setPaymentPreferenceId] = useState('');
 
   const { data: productsData, isLoading } = useGetProductsQuery({
     category: selectedCategory || undefined,
@@ -50,11 +53,18 @@ export default function ShopPage() {
       const result = await createOrder({
         items: [{ productId: product.id, quantity: 1 }],
       }).unwrap();
-      if (result.initPoint) {
-        window.location.href = result.initPoint;
+      if (result.preferenceId) {
+        setPaymentPreferenceId(result.preferenceId);
+        setShowPaymentModal(true);
       }
     } catch {
     }
+  };
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+    setPaymentPreferenceId('');
+    navigate('/mis-ordenes');
   };
 
   return (
@@ -173,6 +183,13 @@ export default function ShopPage() {
           </div>
         )}
       </div>
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        preferenceId={paymentPreferenceId}
+        onClose={handlePaymentClose}
+        title="Pagar orden"
+      />
     </div>
   );
 }

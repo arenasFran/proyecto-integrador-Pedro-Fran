@@ -73,6 +73,7 @@ export class MongoProductRepository {
           price: data.price,
           stock: data.stock,
           imageUrl: data.imageUrl,
+          gallery: data.gallery,
           category: data.category,
           status: data.status,
           updatedAt: new Date(),
@@ -87,6 +88,7 @@ export class MongoProductRepository {
       price: data.price,
       stock: data.stock,
       imageUrl: data.imageUrl,
+      gallery: data.gallery,
       category: data.category,
       status: data.status,
     }]);
@@ -111,6 +113,7 @@ export class MongoProductRepository {
       price: doc.price,
       stock: doc.stock,
       imageUrl: doc.imageUrl,
+      gallery: doc.gallery ?? [],
       category: doc.category,
       status: doc.status,
       createdAt: doc.createdAt,

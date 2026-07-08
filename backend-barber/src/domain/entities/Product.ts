@@ -15,6 +15,7 @@ export class Product {
     price: number;
     stock: number;
     imageUrl: string;
+    gallery?: string[];
     category: string;
   }): Product {
     const now = new Date();
@@ -25,6 +26,7 @@ export class Product {
       price: data.price,
       stock: data.stock,
       imageUrl: data.imageUrl,
+      gallery: data.gallery ?? [],
       category: data.category,
       status: 'active',
       createdAt: now,
@@ -42,6 +44,7 @@ export class Product {
   get price(): number { return this.props.price; }
   get stock(): number { return this.props.stock; }
   get imageUrl(): string { return this.props.imageUrl; }
+  get gallery(): string[] { return [...this.props.gallery]; }
   get category(): string { return this.props.category; }
   get status(): ProductStatus { return this.props.status; }
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
@@ -51,12 +54,13 @@ export class Product {
     return { ...this.props };
   }
 
-  update(data: { name?: string; description?: string; price?: number; stock?: number; imageUrl?: string; category?: string; status?: ProductStatus }): void {
+  update(data: { name?: string; description?: string; price?: number; stock?: number; imageUrl?: string; gallery?: string[]; category?: string; status?: ProductStatus }): void {
     if (data.name !== undefined) this.props.name = data.name;
     if (data.description !== undefined) this.props.description = data.description;
     if (data.price !== undefined) this.props.price = data.price;
     if (data.stock !== undefined) this.props.stock = data.stock;
     if (data.imageUrl !== undefined) this.props.imageUrl = data.imageUrl;
+    if (data.gallery !== undefined) this.props.gallery = data.gallery;
     if (data.category !== undefined) this.props.category = data.category;
     if (data.status !== undefined) this.props.status = data.status;
     this.props.updatedAt = new Date();

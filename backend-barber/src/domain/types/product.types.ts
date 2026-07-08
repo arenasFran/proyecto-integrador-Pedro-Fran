@@ -7,6 +7,7 @@ export type ProductData = {
   price: number;
   stock: number;
   imageUrl: string;
+  gallery: string[];
   category: string;
   status: ProductStatus;
   createdAt: Date;

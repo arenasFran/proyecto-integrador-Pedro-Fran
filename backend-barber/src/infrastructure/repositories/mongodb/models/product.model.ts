@@ -12,6 +12,7 @@ const productSchema = new Schema<IProductDocument>(
     price: { type: Number, required: true, min: 0 },
     stock: { type: Number, required: true, min: 0, default: 0 },
     imageUrl: { type: String, default: '' },
+    gallery: { type: [String], default: [] },
     category: { type: String, default: '' },
     status: { type: String, enum: ['active', 'inactive', 'deleted'], default: 'active' },
   },

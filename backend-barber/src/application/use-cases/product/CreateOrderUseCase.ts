@@ -66,6 +66,14 @@ export class CreateOrderUseCase {
 
     const saved = await this.orderRepository.save(order);
 
+    for (const item of dto.items) {
+      const product = products.find(p => p && p.id === item.productId);
+      if (product) {
+        product.decreaseStock(item.quantity);
+        await this.productRepository.save(product);
+      }
+    }
+
     const paymentResult = await this.createPaymentUseCase.execute({
       type: 'product_order',
       referenceId: saved.id,

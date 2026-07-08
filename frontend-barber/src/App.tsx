@@ -17,6 +17,8 @@ import CalendarPage from './pages/admin/CalendarPage';
 import ServicesPage from './pages/admin/ServicesPage';
 import ClientsPage from './pages/admin/ClientsPage';
 import MembershipsPage from './pages/admin/MembershipsPage';
+import ProductsPage from './pages/admin/ProductsPage';
+import OrdersPage from './pages/admin/OrdersPage';
 import MembershipPage from './pages/app/MembershipPage';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
@@ -26,6 +28,8 @@ import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
 import BookingPage from './pages/client/BookingPage';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
+import ShopPage from './pages/public/ShopPage';
+import PaymentResultPage from './pages/public/PaymentResultPage';
 import { getTokenKind, isTokenValid } from './utils/token';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
@@ -74,6 +78,8 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<BookingPage />} />
+            <Route path="/tienda" element={<ShopPage />} />
+            <Route path="/payment/result" element={<PaymentResultPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />
@@ -93,6 +99,8 @@ function App() {
               <Route path="servicios" element={<ServicesPage />} />
               <Route path="clientes" element={<ClientsPage />} />
               <Route path="membresias" element={<MembershipsPage />} />
+              <Route path="productos" element={<ProductsPage />} />
+              <Route path="ordenes" element={<OrdersPage />} />
               <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
             <Route

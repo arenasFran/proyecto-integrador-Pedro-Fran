@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { STATUS_CATEGORIES, VALID_TRANSITIONS } from '../../../domain/types/appointment';
 import AppointmentModel from './models/appointment.model';
+import { PaymentModel } from './models/payment.model';
 
 const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
   Object.keys(VALID_TRANSITIONS).map(s => [s.toLowerCase(), s])
@@ -123,9 +124,16 @@ export class MongoAnalyticsRepository {
       { $count: 'total' },
     ];
 
-    const [registrados, noRegistrados] = await Promise.all([
+    const productRevenuePipeline = (statusFilter: string) => [
+      { $match: { type: 'product_order', status: statusFilter, createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ] as mongoose.PipelineStage[];
+
+    const [registrados, noRegistrados, productRevenue, productPending] = await Promise.all([
       AppointmentModel.aggregate(registeredPipeline),
       AppointmentModel.aggregate(unregisteredPipeline),
+      PaymentModel.aggregate(productRevenuePipeline('approved')),
+      PaymentModel.aggregate(productRevenuePipeline('pending')),
     ]);
 
     const estadisticasPorEstado: Record<string, number> = Object.fromEntries(
@@ -138,8 +146,8 @@ export class MongoAnalyticsRepository {
     return {
       totalReservas: (data.totalReservas as Array<{ count: number }>)[0]?.count ?? 0,
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
-      ingresosTotales: (data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0,
-      ingresosPendientes: (data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0,
+      ingresosTotales: ((data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0) + (productRevenue[0]?.total ?? 0),
+      ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (productPending[0]?.total ?? 0),
       nuevosClientes: (registrados[0]?.total ?? 0) + (noRegistrados[0]?.total ?? 0),
       estadisticasPorEstado,
     };
@@ -388,7 +396,24 @@ export class MongoAnalyticsRepository {
       { $sort: { ingresos: -1 } },
     ] as mongoose.PipelineStage[];
 
-    return AppointmentModel.aggregate(pipeline);
+    const [services, productTotal] = await Promise.all([
+      AppointmentModel.aggregate(pipeline),
+      PaymentModel.aggregate([
+        { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ] as mongoose.PipelineStage[]),
+    ]);
+
+    if (productTotal[0]?.total > 0) {
+      services.push({
+        serviceId: '__productos__',
+        serviceName: 'Productos',
+        cantidad: productTotal[0].count,
+        ingresos: productTotal[0].total,
+      });
+    }
+
+    return services;
   }
 
   async getClientesList(desde: string, hasta: string): Promise<ClienteListEntry[]> {
@@ -436,6 +461,17 @@ export class MongoAnalyticsRepository {
         },
       },
       {
+        $lookup: {
+          from: 'orders',
+          let: { clientOid: '$originalClientId' },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toObjectId: '$userId' }, '$$clientOid'] }, status: { $in: ['paid', 'delivered'] } } },
+            { $group: { _id: null, total: { $sum: '$total' } } },
+          ],
+          as: 'orderSpending',
+        },
+      },
+      {
         $addFields: {
           clientEmail: {
             $cond: [
@@ -446,6 +482,12 @@ export class MongoAnalyticsRepository {
           },
           kind: {
             $cond: [{ $ne: ['$originalClientId', null] }, 'Registrado', 'NoRegistrado'],
+          },
+          totalSpent: {
+            $add: [
+              '$totalSpent',
+              { $ifNull: [{ $arrayElemAt: ['$orderSpending.total', 0] }, 0] },
+            ],
           },
         },
       },
@@ -569,6 +611,26 @@ export class MongoAnalyticsRepository {
       { $sort: { periodo: 1 } },
     ] as mongoose.PipelineStage[];
 
-    return AppointmentModel.aggregate(pipeline);
+    const paymentFormat = isSingleDay ? '%Y-%m-%d %H:%M' : dateFormat;
+    const [appointmentData, paymentData] = await Promise.all([
+      AppointmentModel.aggregate(pipeline),
+      PaymentModel.aggregate([
+        { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: paymentFormat, date: '$createdAt' } },
+            ganancias: { $sum: '$amount' },
+          },
+        },
+        { $project: { _id: 0, periodo: '$_id', ganancias: 1 } },
+        { $sort: { periodo: 1 } },
+      ] as mongoose.PipelineStage[]),
+    ]);
+
+    const paymentMap = new Map(paymentData.map((p) => [p.periodo, p.ganancias]));
+    return appointmentData.map((entry) => ({
+      ...entry,
+      ganancias: entry.ganancias + (paymentMap.get(entry.periodo) ?? 0),
+    }));
   }
 }

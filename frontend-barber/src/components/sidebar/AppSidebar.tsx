@@ -75,7 +75,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate }) => {
 
   const navItems = kind === 'Admin' ? adminNavItems : kind === 'Empleado' ? employeeNavItems : userNavItems;
   const isStaff = kind === 'Admin' || kind === 'Empleado';
-  const sidebarWidth = 'w-60';
+  const sidebarWidth = 'w-52';
 
   return (
     <>

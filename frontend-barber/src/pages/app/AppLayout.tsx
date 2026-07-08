@@ -7,7 +7,7 @@ export const AppLayout: React.FC = () => {
     <div className="min-h-screen bg-[#050505]">
       <AppSidebar />
 
-      <div className="lg:ml-60">
+      <div className="lg:ml-52">
         <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>

@@ -10,7 +10,7 @@ export const AdminLayout: React.FC = () => {
     <div className="min-h-screen bg-[#050505] overflow-x-hidden">
       <AppSidebar onQuickCreate={() => setShowQuickCreate(true)} />
 
-      <div className="lg:ml-60">
+      <div className="lg:ml-52">
         <main className="p-4 sm:p-6 lg:p-8">
           <Outlet />
         </main>

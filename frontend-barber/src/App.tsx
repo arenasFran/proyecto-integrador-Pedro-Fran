@@ -185,7 +185,7 @@ function OptionalAppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#050505]">
       <AppSidebar />
-      <div className="lg:ml-60">
+      <div className="lg:ml-52">
         <main>
           {children}
         </main>

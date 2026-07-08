@@ -9,9 +9,11 @@ import {
   closeCart,
   selectCartTotal,
   selectCartCount,
+  setCheckoutResult,
 } from '../../../store/slices/cartSlice';
 import { Button } from '../../common';
 import { getAccessToken } from '../../../services/api';
+import { useCreateOrderMutation } from '../../../services/orderApi';
 
 export const CartDrawer = () => {
   const dispatch = useAppDispatch();
@@ -19,15 +21,25 @@ export const CartDrawer = () => {
   const { items, isOpen } = useAppSelector((state) => state.cart);
   const total = useAppSelector(selectCartTotal);
   const count = useAppSelector(selectCartCount);
+  const [createOrder] = useCreateOrderMutation();
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     const token = getAccessToken();
     if (!token) {
       navigate('/login?returnUrl=/tienda');
       return;
     }
-    dispatch(closeCart());
-    navigate('/tienda?checkout=true');
+    if (items.length === 0) return;
+    try {
+      const result = await createOrder({
+        items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+      }).unwrap();
+      dispatch(setCheckoutResult({ preferenceId: result.preferenceId, paymentId: result.paymentId }));
+      dispatch(closeCart());
+      dispatch(clearCart());
+      navigate('/tienda');
+    } catch {
+    }
   };
 
   return (

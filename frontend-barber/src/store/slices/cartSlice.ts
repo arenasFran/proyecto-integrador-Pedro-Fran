@@ -9,11 +9,15 @@ export type CartItem = {
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
+  checkoutPreferenceId: string | null;
+  checkoutPaymentId: string | null;
 }
 
 const initialState: CartState = {
   items: [],
   isOpen: false,
+  checkoutPreferenceId: null,
+  checkoutPaymentId: null,
 };
 
 const cartSlice = createSlice({
@@ -50,6 +54,14 @@ const cartSlice = createSlice({
     toggleCart: (state) => {
       state.isOpen = !state.isOpen;
     },
+    setCheckoutResult: (state, action: PayloadAction<{ preferenceId: string; paymentId: string }>) => {
+      state.checkoutPreferenceId = action.payload.preferenceId;
+      state.checkoutPaymentId = action.payload.paymentId;
+    },
+    clearCheckoutResult: (state) => {
+      state.checkoutPreferenceId = null;
+      state.checkoutPaymentId = null;
+    },
   },
 });
 
@@ -61,6 +73,8 @@ export const {
   openCart,
   closeCart,
   toggleCart,
+  setCheckoutResult,
+  clearCheckoutResult,
 } = cartSlice.actions;
 
 export const selectCartTotal = (state: { cart: CartState }): number =>

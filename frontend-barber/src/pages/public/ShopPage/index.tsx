@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiGrid, FiSearch } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
 import PaymentModal from '../../../components/payment/PaymentModal';
 import { useGetProductsQuery, useGetCategoriesQuery } from '../../../services/productApi';
-import { useAppDispatch } from '../../../store/hooks';
-import { addItem, openCart } from '../../../store/slices/cartSlice';
+import { useAppDispatch, useAppSelector } from '../../../store/hooks';
+import { addItem, openCart, clearCheckoutResult } from '../../../store/slices/cartSlice';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import type { Product } from '../../../types/product';
@@ -15,11 +15,16 @@ import type { Product } from '../../../types/product';
 export default function ShopPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentPreferenceId, setPaymentPreferenceId] = useState('');
+  const [paymentId, setPaymentId] = useState('');
+
+  const checkoutResult = useAppSelector((state) => ({
+    preferenceId: state.cart.checkoutPreferenceId,
+    paymentId: state.cart.checkoutPaymentId,
+  }));
 
   const { data: productsData, isLoading } = useGetProductsQuery({
     category: selectedCategory || undefined,
@@ -28,16 +33,18 @@ export default function ShopPage() {
   const { data: categoriesData } = useGetCategoriesQuery();
 
   const [createOrder] = useCreateOrderMutation();
-  const isCheckout = searchParams.get('checkout') === 'true';
 
   const categories = categoriesData?.categories ?? [];
   const products = productsData?.products ?? [];
 
   useEffect(() => {
-    if (isCheckout) {
-      dispatch(openCart());
+    if (checkoutResult.preferenceId) {
+      setPaymentPreferenceId(checkoutResult.preferenceId);
+      setPaymentId(checkoutResult.paymentId || '');
+      setShowPaymentModal(true);
+      dispatch(clearCheckoutResult());
     }
-  }, [isCheckout, dispatch]);
+  }, [checkoutResult, dispatch]);
 
   const handleAddToCart = (product: Product) => {
     dispatch(addItem({ product }));
@@ -55,6 +62,7 @@ export default function ShopPage() {
       }).unwrap();
       if (result.preferenceId) {
         setPaymentPreferenceId(result.preferenceId);
+        setPaymentId(result.paymentId || '');
         setShowPaymentModal(true);
       }
     } catch {
@@ -64,6 +72,7 @@ export default function ShopPage() {
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
     setPaymentPreferenceId('');
+    setPaymentId('');
     navigate('/mis-ordenes');
   };
 
@@ -187,6 +196,7 @@ export default function ShopPage() {
       <PaymentModal
         isOpen={showPaymentModal}
         preferenceId={paymentPreferenceId}
+        paymentId={paymentId}
         onClose={handlePaymentClose}
         title="Pagar orden"
       />

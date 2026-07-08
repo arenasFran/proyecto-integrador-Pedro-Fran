@@ -18,7 +18,7 @@ const statusColor: Record<ProductStatus, string> = {
 };
 
 const INITIAL_FORM: CreateProductPayload = {
-  name: '', description: '', price: 0, stock: 0, imageUrl: '', category: '',
+  name: '', description: '', price: 0, stock: 0, imageUrl: '', gallery: [], category: '',
 };
 
 export const ProductsPage: React.FC = () => {
@@ -50,6 +50,7 @@ export const ProductsPage: React.FC = () => {
       price: product.price,
       stock: product.stock,
       imageUrl: product.imageUrl,
+      gallery: product.gallery,
       category: product.category,
     });
     setModalOpen(true);

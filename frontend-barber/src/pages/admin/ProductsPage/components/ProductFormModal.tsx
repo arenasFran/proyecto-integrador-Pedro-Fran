@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiPackage } from 'react-icons/fi';
 import { Button, Input } from '../../../../components/common';
+import ProductImageUpload from '../../../../components/product/ProductImageUpload';
 import type { Product, CreateProductPayload } from '../../../../types/product';
 
 interface Props {
@@ -15,7 +16,7 @@ interface Props {
 }
 
 const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave, onCancel, onClose, isSaving }) => {
-  const set = (field: keyof CreateProductPayload, value: string | number) =>
+  const set = (field: keyof CreateProductPayload, value: string | number | string[]) =>
     onChange({ ...formData, [field]: value });
 
   useEffect(() => {
@@ -26,6 +27,7 @@ const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave
         price: product.price,
         stock: product.stock,
         imageUrl: product.imageUrl,
+        gallery: product.gallery,
         category: product.category,
       });
     }
@@ -50,7 +52,7 @@ const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg rounded-[24px] border border-[#282828] bg-[#121212] p-6"
+          className="w-full max-w-lg rounded-[24px] border border-[#282828] bg-[#121212] p-6 max-h-[90vh] overflow-y-auto"
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -87,7 +89,14 @@ const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave
               <Input label="Precio ($)" required type="number" min="0" step="0.01" value={formData.price.toString()} onChange={(e) => set('price', parseFloat(e.target.value) || 0)} placeholder="0" />
               <Input label="Stock" required type="number" min="0" value={formData.stock.toString()} onChange={(e) => set('stock', parseInt(e.target.value) || 0)} placeholder="0" />
             </div>
-            <Input label="URL de imagen" value={formData.imageUrl} onChange={(e) => set('imageUrl', e.target.value)} placeholder="https://..." />
+
+            <ProductImageUpload
+              mainImageUrl={formData.imageUrl ?? ''}
+              galleryUrls={formData.gallery ?? []}
+              onMainImageChange={(url) => set('imageUrl', url)}
+              onGalleryChange={(urls) => set('gallery', urls)}
+            />
+
             <Input label="Categoría" value={formData.category} onChange={(e) => set('category', e.target.value)} placeholder="Ej: Cuidado capilar" />
           </div>
 

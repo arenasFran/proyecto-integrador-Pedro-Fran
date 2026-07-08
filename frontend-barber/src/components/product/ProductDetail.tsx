@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { FiArrowLeft, FiGrid, FiShoppingCart, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { Button, Spinner } from '../common';
 import { useGetProductByIdQuery } from '../../services/productApi';
@@ -11,6 +12,7 @@ interface ProductDetailProps {
 
 export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow }: ProductDetailProps) {
   const { data, isLoading, error } = useGetProductByIdQuery(productId);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -34,6 +36,8 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
 
   const product = data.product;
   const outOfStock = product.stock === 0;
+  const hasGallery = product.gallery && product.gallery.length > 0;
+  const displayImage = selectedImage || product.imageUrl;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
@@ -45,16 +49,38 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
       </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="aspect-square rounded-[16px] bg-[#1A1A1A] overflow-hidden border border-[#282828]">
-          {product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center text-[#282828]">
-              <FiGrid size={64} />
+        <div>
+          <div className="aspect-square rounded-[16px] bg-[#1A1A1A] overflow-hidden border border-[#282828]">
+            {displayImage ? (
+              <img
+                src={displayImage}
+                alt={product.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-[#282828]">
+                <FiGrid size={64} />
+              </div>
+            )}
+          </div>
+
+          {hasGallery && (
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={() => setSelectedImage(null)}
+                className={`w-16 h-16 rounded-[10px] overflow-hidden border-2 transition-all ${!selectedImage ? 'border-[#FF5C00]' : 'border-[#282828] opacity-70 hover:opacity-100'}`}
+              >
+                <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+              </button>
+              {product.gallery.map((url, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSelectedImage(url)}
+                  className={`w-16 h-16 rounded-[10px] overflow-hidden border-2 transition-all ${selectedImage === url ? 'border-[#FF5C00]' : 'border-[#282828] opacity-70 hover:opacity-100'}`}
+                >
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
           )}
         </div>

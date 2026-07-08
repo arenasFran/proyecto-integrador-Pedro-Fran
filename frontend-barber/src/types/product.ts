@@ -7,10 +7,17 @@ export type Product = {
   price: number;
   stock: number;
   imageUrl: string;
+  gallery: string[];
   category: string;
   status: ProductStatus;
   createdAt: string;
   updatedAt: string;
+};
+
+export type ProductImageUpload = {
+  file: File;
+  preview: string;
+  uploadedUrl?: string;
 };
 
 export type ProductsResponse = {
@@ -27,6 +34,7 @@ export type CreateProductPayload = {
   price: number;
   stock: number;
   imageUrl?: string;
+  gallery?: string[];
   category?: string;
 };
 

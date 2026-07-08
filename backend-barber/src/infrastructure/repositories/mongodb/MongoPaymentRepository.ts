@@ -74,6 +74,23 @@ export class MongoPaymentRepository {
     });
   }
 
+  async cancelPendingByAppointments(cutoff: Date): Promise<number> {
+    const result = await PaymentModel.updateMany(
+      {
+        type: 'appointment',
+        status: 'pending',
+        createdAt: { $lt: cutoff },
+      },
+      {
+        $set: {
+          status: 'cancelled',
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.modifiedCount;
+  }
+
   private toDomain(doc: IPaymentDocument): Payment {
     return Payment.restore({
       id: doc._id.toString(),

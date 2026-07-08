@@ -9,6 +9,7 @@ import { seedAdmin, seedBarbers } from './infrastructure/scripts/seed';
 import { seedServices } from './infrastructure/scripts/seedServices';
 import { MongoMembershipRepository } from './infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoAppointmentRepository } from './infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoPaymentRepository } from './infrastructure/repositories/mongodb/MongoPaymentRepository';
 
 const EXPIRATION_CHECK_MS = 24 * 60 * 60 * 1000;
 const PENDING_PAYMENT_CHECK_MS = 5 * 60 * 1000;
@@ -22,6 +23,7 @@ const startServer = async () => {
 
   const membershipRepo = new MongoMembershipRepository();
   const appointmentRepo = new MongoAppointmentRepository();
+  const paymentRepo = new MongoPaymentRepository();
   let running = false;
   let pendingPaymentRunning = false;
 
@@ -48,6 +50,7 @@ const startServer = async () => {
       const cancelled = await appointmentRepo.cancelPendingPaymentsOlderThan(cutoff);
       if (cancelled > 0) {
         console.log(`[PendingPaymentCancel] ${cancelled} turno(s) cancelado(s) por pago pendiente > ${PENDING_PAYMENT_TIMEOUT_MIN} min`);
+        await paymentRepo.cancelPendingByAppointments(cutoff);
       }
     } catch (err) {
       console.error('[PendingPaymentCancel] Error:', err);

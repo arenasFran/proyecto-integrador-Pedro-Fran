@@ -1,6 +1,6 @@
 import express from 'express';
 import { UploadController } from '../controllers/upload/UploadController';
-import { uploadAvatar } from '../middlewares/upload.middleware';
+import { uploadAvatar, uploadProductImages } from '../middlewares/upload.middleware';
 
 export const createUploadRouter = (deps: {
   authenticate: express.RequestHandler;
@@ -11,6 +11,7 @@ export const createUploadRouter = (deps: {
   router.use(deps.authenticate);
 
   router.post('/', uploadAvatar, deps.uploadController.uploadAvatar);
+  router.post('/product-images', uploadProductImages, deps.uploadController.uploadProductImages);
 
   return router;
 };

@@ -12,10 +12,17 @@ export class CloudinaryService {
     });
   }
 
-  async uploadImage(fileBuffer: Buffer, folder = 'avatars'): Promise<string> {
+  async uploadImage(fileBuffer: Buffer, folder = 'avatars', cropSquare = false): Promise<string> {
     return new Promise((resolve, reject) => {
+      const options: Record<string, unknown> = { folder, resource_type: 'image' };
+      if (cropSquare) {
+        options.width = 800;
+        options.height = 800;
+        options.crop = 'fill';
+        options.gravity = 'auto';
+      }
       const uploadStream = cloudinary.uploader.upload_stream(
-        { folder, resource_type: 'image' },
+        options,
         (error, result) => {
           if (error) return reject(error);
           resolve(result!.secure_url);

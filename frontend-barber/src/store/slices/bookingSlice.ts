@@ -25,7 +25,6 @@ interface BookingAsyncState {
   createdAppointment: Appointment | null;
   submitSuccess: boolean;
   preferenceId?: string;
-  initPoint?: string;
 }
 
 interface BookingFlowState {
@@ -129,8 +128,8 @@ export const submitAppointment = createAsyncThunk(
       };
       const response = await dispatch(appointmentApi.endpoints.createAppointment.initiate(payload)).unwrap();
 
-      if (response.preferenceId && response.initPoint) {
-        return { ...response.appointment, preferenceId: response.preferenceId, initPoint: response.initPoint };
+      if (response.preferenceId) {
+        return { ...response.appointment, preferenceId: response.preferenceId };
       }
 
       return response.appointment;
@@ -209,7 +208,6 @@ const bookingSlice = createSlice({
       state.async.isConfirming = false;
       state.async.confirmError = null;
       state.async.preferenceId = undefined;
-      state.async.initPoint = undefined;
     },
   },
   extraReducers: (builder) => {
@@ -246,10 +244,9 @@ const bookingSlice = createSlice({
         state.async.isConfirming = false;
         state.async.submitSuccess = true;
         if (action.payload && 'preferenceId' in action.payload) {
-          const payload = action.payload as Appointment & { preferenceId: string; initPoint: string };
+          const payload = action.payload as Appointment & { preferenceId: string };
           state.async.createdAppointment = payload;
           state.async.preferenceId = payload.preferenceId;
-          state.async.initPoint = payload.initPoint;
         } else {
           state.async.createdAppointment = action.payload as Appointment;
         }

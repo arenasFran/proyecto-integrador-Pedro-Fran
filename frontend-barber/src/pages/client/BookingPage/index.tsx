@@ -1,8 +1,9 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, AppFooter } from '../../../components/common';
 import { PublicHeader } from '../../../components/client/PublicHeader';
+import PaymentModal from '../../../components/payment/PaymentModal';
 import {
   AccordionStep,
   ClientDataOverlay,
@@ -168,19 +169,24 @@ export const BookingPage: React.FC = () => {
   }, [dispatch]);
 
   const navigate = useNavigate();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const preferenceId = useAppSelector((state) => state.booking.async.preferenceId);
-  const initPoint = useAppSelector((state) => state.booking.async.initPoint);
 
   useEffect(() => {
     if (submitSuccess) {
-      if (preferenceId && initPoint) {
-        window.location.href = initPoint;
+      if (preferenceId) {
+        setShowPaymentModal(true);
       } else {
         navigate('/mis-turnos');
       }
     }
-  }, [submitSuccess, preferenceId, initPoint, navigate]);
+  }, [submitSuccess, preferenceId, navigate]);
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+    navigate('/mis-turnos');
+  };
 
   const isStep3Complete = !!selectedDate && !!selectedTime;
 
@@ -296,6 +302,13 @@ export const BookingPage: React.FC = () => {
         onPaymentMethodChange={handlePaymentMethodChange}
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
+      />
+
+      <PaymentModal
+        isOpen={showPaymentModal}
+        preferenceId={preferenceId || ''}
+        onClose={handlePaymentClose}
+        title="Pagar turno"
       />
 
       <AppFooter />

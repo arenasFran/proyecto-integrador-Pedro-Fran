@@ -32,7 +32,7 @@ export const createOrderRouter = (deps: {
   router.get(
     '/',
     deps.authenticate,
-    authorize('Admin'),
+    authorize('Admin', 'Empleado'),
     validate({ query: queryOrdersSchema }),
     deps.orderController.getAll
   );
@@ -40,7 +40,7 @@ export const createOrderRouter = (deps: {
   router.patch(
     '/:id/status',
     deps.authenticate,
-    authorize('Admin'),
+    authorize('Admin', 'Empleado'),
     validate({ params: orderIdParamSchema, body: updateOrderStatusSchema }),
     deps.orderController.updateStatus
   );

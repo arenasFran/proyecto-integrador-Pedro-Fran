@@ -4,11 +4,13 @@ import { MembershipController } from '../interface-adapters/controllers/membersh
 import { createMembershipRouter } from '../interface-adapters/routes/membership.routes';
 import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
+import { buildCreatePaymentUseCase } from './payment';
 
 export const buildMembershipRouter = () => {
   const membershipRepo = new MongoMembershipRepository();
   const userRepo = new MongoUserRepository();
-  const controller = new MembershipController(membershipRepo, userRepo);
+  const createPaymentUseCase = buildCreatePaymentUseCase();
+  const controller = new MembershipController(membershipRepo, userRepo, createPaymentUseCase);
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

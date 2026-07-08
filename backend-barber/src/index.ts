@@ -8,8 +8,11 @@ import { connectDB } from './infrastructure/config/db';
 import { seedAdmin, seedBarbers } from './infrastructure/scripts/seed';
 import { seedServices } from './infrastructure/scripts/seedServices';
 import { MongoMembershipRepository } from './infrastructure/repositories/mongodb/MongoMembershipRepository';
+import { MongoAppointmentRepository } from './infrastructure/repositories/mongodb/MongoAppointmentRepository';
 
 const EXPIRATION_CHECK_MS = 24 * 60 * 60 * 1000;
+const PENDING_PAYMENT_CHECK_MS = 5 * 60 * 1000;
+const PENDING_PAYMENT_TIMEOUT_MIN = 30;
 
 const startServer = async () => {
   await connectDB();
@@ -18,7 +21,9 @@ const startServer = async () => {
   await seedServices();
 
   const membershipRepo = new MongoMembershipRepository();
+  const appointmentRepo = new MongoAppointmentRepository();
   let running = false;
+  let pendingPaymentRunning = false;
 
   const expireJob = async () => {
     if (running) return;
@@ -35,8 +40,27 @@ const startServer = async () => {
     }
   };
 
+  const cancelPendingPaymentAppointments = async () => {
+    if (pendingPaymentRunning) return;
+    pendingPaymentRunning = true;
+    try {
+      const cutoff = new Date(Date.now() - PENDING_PAYMENT_TIMEOUT_MIN * 60 * 1000);
+      const cancelled = await appointmentRepo.cancelPendingPaymentsOlderThan(cutoff);
+      if (cancelled > 0) {
+        console.log(`[PendingPaymentCancel] ${cancelled} turno(s) cancelado(s) por pago pendiente > ${PENDING_PAYMENT_TIMEOUT_MIN} min`);
+      }
+    } catch (err) {
+      console.error('[PendingPaymentCancel] Error:', err);
+    } finally {
+      pendingPaymentRunning = false;
+    }
+  };
+
   await expireJob();
   setInterval(expireJob, EXPIRATION_CHECK_MS);
+
+  await cancelPendingPaymentAppointments();
+  setInterval(cancelPendingPaymentAppointments, PENDING_PAYMENT_CHECK_MS);
 
   const { default: app } = await import('./app');
 

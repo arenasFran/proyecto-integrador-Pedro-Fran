@@ -161,7 +161,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate }) => {
               <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-lg">
                 <button
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors"
+                  className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] rounded-[8px] transition-colors"
                 >
                   <FiLogOut />
                   Cerrar sesión

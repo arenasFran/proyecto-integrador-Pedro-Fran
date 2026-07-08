@@ -17,8 +17,20 @@ export class ProcessWebhookUseCase {
   ) {}
 
   async execute(rawBody: unknown, xSignature: string, xRequestId: string): Promise<void> {
-    const notification = rawBody as { type?: string; action?: string; data?: { id?: string } };
-    if (!notification || notification.type !== 'payment' || !notification.data?.id) {
+    const notification = rawBody as { type?: string; topic?: string; action?: string; data?: { id?: string } };
+
+    if (!notification || !notification.data?.id) {
+      return;
+    }
+
+    const topic = notification.type || notification.topic;
+
+    if (topic === 'preapproval' || topic === 'subscription_preapproval') {
+      await this.handlePreapprovalNotification(notification.data.id, xSignature, xRequestId);
+      return;
+    }
+
+    if (topic !== 'payment') {
       return;
     }
 
@@ -36,6 +48,11 @@ export class ProcessWebhookUseCase {
     const mpPayment = await this.mercadoPagoService.getPayment(mpPaymentId);
     if (!mpPayment) {
       throw new Error(`Pago ${mpPaymentId} no encontrado en MercadoPago.`);
+    }
+
+    if (mpPayment.preapprovalId) {
+      await this.handleSubscriptionPayment(mpPayment);
+      return;
     }
 
     let payment: Payment | null = null;
@@ -69,6 +86,71 @@ export class ProcessWebhookUseCase {
       default:
         break;
     }
+  }
+
+  private async handlePreapprovalNotification(
+    preapprovalId: string,
+    xSignature: string,
+    xRequestId: string
+  ): Promise<void> {
+    const valid = this.mercadoPagoService.validateWebhookSignature({
+      xSignature,
+      xRequestId,
+      dataId: preapprovalId,
+    });
+    if (!valid) {
+      throw new Error('Firma HMAC inválida en webhook de preapproval.');
+    }
+
+    const mpPreapproval = await this.mercadoPagoService.getPreapproval(preapprovalId);
+    if (!mpPreapproval || mpPreapproval.status !== 'authorized') {
+      return;
+    }
+
+    const userId = mpPreapproval.externalReference;
+    if (!userId) {
+      return;
+    }
+
+    const existing = await this.membershipRepository.findActiveByUser(userId);
+    if (!existing) {
+      const config = getConfig();
+      const nextDate = new Date();
+      nextDate.setMonth(nextDate.getMonth() + 1);
+
+      const membership = Membership.create({
+        userId,
+        createdBy: 'client',
+        price: config.membershipPriceUyu,
+        couponsTotal: 4,
+        productDiscount: 10,
+        mpPreapprovalId: preapprovalId,
+        nextBillingDate: nextDate,
+      });
+      await this.membershipRepository.save(membership);
+    }
+  }
+
+  private async handleSubscriptionPayment(mpPayment: {
+    id: string;
+    status: string;
+    preapprovalId?: string;
+    externalReference?: string;
+  }): Promise<void> {
+    if (mpPayment.status !== 'approved' || !mpPayment.preapprovalId) {
+      return;
+    }
+
+    const membership = await this.membershipRepository.findByPreapprovalId(mpPayment.preapprovalId);
+    if (!membership) {
+      return;
+    }
+
+    const nextDate = new Date();
+    nextDate.setMonth(nextDate.getMonth() + 1);
+
+    membership.renew(nextDate);
+    await this.membershipRepository.save(membership);
   }
 
   private async handleApproved(payment: Payment): Promise<void> {

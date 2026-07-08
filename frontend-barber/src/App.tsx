@@ -197,7 +197,7 @@ function OptionalAppLayout({ children }: { children: React.ReactNode }) {
       />
       <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
         <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
-        <main>
+        <main className="pt-0">
           {children}
         </main>
       </div>

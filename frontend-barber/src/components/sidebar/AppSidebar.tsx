@@ -26,6 +26,10 @@ const adminNavItems = [
 const employeeNavItems = [
   { to: '/admin/turnos', icon: FiList, label: 'Turnos' },
   { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
+  { to: '/admin/servicios', icon: FiScissors, label: 'Servicios' },
+  { to: '/admin/productos', icon: FiPackage, label: 'Productos' },
+  { to: '/admin/ordenes', icon: FiShoppingBag, label: 'Órdenes' },
+  { to: '/admin/clientes', icon: FiUserCheck, label: 'Clientes' },
   { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
 ];
 

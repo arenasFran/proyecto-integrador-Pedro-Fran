@@ -2,7 +2,6 @@ import React, { useEffect, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, AppFooter } from '../../../components/common';
-import { PublicHeader } from '../../../components/client/PublicHeader';
 import PaymentModal from '../../../components/payment/PaymentModal';
 import {
   AccordionStep,
@@ -198,8 +197,6 @@ export const BookingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <PublicHeader />
-
       <div className="relative mx-auto max-w-2xl px-6 pb-32 pt-8 sm:px-8 sm:pt-10">
           <AnimatedContainer animation="fadeInDown" className="text-center mb-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-3 py-1.5 text-[11px] text-[#8A8A8A] mb-3">

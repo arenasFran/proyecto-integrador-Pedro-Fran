@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiSearch } from 'react-icons/fi';
-import { PublicHeader } from '../../../components/client/PublicHeader';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
 import ProductList from '../../../components/product/ProductList';
 import PaymentModal from '../../../components/payment/PaymentModal';
@@ -78,7 +77,6 @@ export default function ShopPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <PublicHeader />
       <CartDrawer />
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">

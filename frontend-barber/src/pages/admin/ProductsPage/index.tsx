@@ -1,0 +1,191 @@
+import React, { useState } from 'react';
+import { FiEdit3, FiEye, FiEyeOff, FiPackage, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { AnimatedContainer, Button, Spinner, useToast } from '../../../components/common';
+import { useGetProductsQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation } from '../../../services/productApi';
+import type { Product, ProductStatus, CreateProductPayload } from '../../../types/product';
+import ProductFormModal from './components/ProductFormModal';
+
+const statusLabel: Record<ProductStatus, string> = {
+  active: 'Activo',
+  inactive: 'Inactivo',
+  deleted: 'Eliminado',
+};
+
+const statusColor: Record<ProductStatus, string> = {
+  active: 'bg-green-500/10 text-green-400',
+  inactive: 'bg-red-500/10 text-red-400',
+  deleted: 'bg-gray-500/10 text-gray-400',
+};
+
+export const ProductsPage: React.FC = () => {
+  const [includeInactive, setIncludeInactive] = useState(false);
+  const { data, isLoading } = useGetProductsQuery({ status: includeInactive ? undefined : 'active' });
+  const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
+  const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
+  const [deleteProduct] = useDeleteProductMutation();
+  const { showToast } = useToast();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const products = data?.products ?? [];
+
+  const handleCreate = async (form: CreateProductPayload) => {
+    try {
+      await createProduct(form).unwrap();
+      showToast('Producto creado con éxito');
+      setModalOpen(false);
+    } catch {
+      showToast('Error al crear producto', 'error');
+    }
+  };
+
+  const handleUpdate = async (form: CreateProductPayload) => {
+    if (!editingProduct) return;
+    try {
+      await updateProduct({ id: editingProduct.id, data: form }).unwrap();
+      showToast('Producto actualizado con éxito');
+      setEditingProduct(null);
+      setModalOpen(false);
+    } catch {
+      showToast('Error al actualizar producto', 'error');
+    }
+  };
+
+  const handleDelete = async (product: Product) => {
+    try {
+      await deleteProduct(product.id).unwrap();
+      showToast('Producto eliminado con éxito');
+    } catch {
+      showToast('Error al eliminar producto', 'error');
+    }
+  };
+
+  const handleToggleStatus = async (product: Product) => {
+    try {
+      const newStatus = product.status === 'active' ? 'inactive' : 'active';
+      await updateProduct({
+        id: product.id,
+        data: { status: newStatus },
+      }).unwrap();
+      showToast(`Producto ${product.status === 'active' ? 'desactivado' : 'activado'} con éxito`);
+    } catch {
+      showToast('Error al cambiar estado', 'error');
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF5C00]/10">
+            <FiPackage className="text-[#FF5C00] text-lg" />
+          </div>
+          <div>
+            <h1 className="text-[20px] font-bold text-white">Productos</h1>
+            <p className="text-[13px] text-[#8A8A8A]">Gestioná el catálogo de productos</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIncludeInactive(!includeInactive)}
+            icon={includeInactive ? FiEye : FiEyeOff}
+          >
+            {includeInactive ? 'Ver activos' : 'Ver inactivos'}
+          </Button>
+          <Button size="sm" icon={FiPlus} onClick={() => { setEditingProduct(null); setModalOpen(true); }}>
+            Nuevo producto
+          </Button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-20"><Spinner size="lg" /></div>
+      ) : (
+        <AnimatedContainer animation="fadeInUp">
+          <div className="rounded-[16px] border border-[#282828] bg-[#121212] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-[#282828] text-[#8A8A8A]">
+                    <th className="px-4 py-3 font-medium">Producto</th>
+                    <th className="px-4 py-3 font-medium">Categoría</th>
+                    <th className="px-4 py-3 font-medium">Precio</th>
+                    <th className="px-4 py-3 font-medium">Stock</th>
+                    <th className="px-4 py-3 font-medium">Estado</th>
+                    <th className="px-4 py-3 font-medium text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr key={product.id} className="border-b border-[#282828] hover:bg-[#1A1A1A]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {product.imageUrl && (
+                            <img src={product.imageUrl} alt="" className="h-10 w-10 rounded-[8px] object-cover" />
+                          )}
+                          <div>
+                            <p className="text-white font-medium">{product.name}</p>
+                            <p className="text-[11px] text-[#555] truncate max-w-[200px]">{product.description}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-[#8A8A8A]">{product.category || '-'}</td>
+                      <td className="px-4 py-3 text-white font-semibold">${product.price}</td>
+                      <td className="px-4 py-3">
+                        <span className={product.stock > 0 ? 'text-[#22C55E]' : 'text-red-400'}>
+                          {product.stock}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-medium ${statusColor[product.status]}`}>
+                          {statusLabel[product.status]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => handleToggleStatus(product)}
+                            className="rounded-lg p-2 text-[#8A8A8A] hover:bg-[#282828] hover:text-white"
+                            title={product.status === 'active' ? 'Desactivar' : 'Activar'}
+                          >
+                            {product.status === 'active' ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                          </button>
+                          <button
+                            onClick={() => { setEditingProduct(product); setModalOpen(true); }}
+                            className="rounded-lg p-2 text-[#8A8A8A] hover:bg-[#282828] hover:text-white"
+                          >
+                            <FiEdit3 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product)}
+                            className="rounded-lg p-2 text-[#8A8A8A] hover:bg-[#282828] hover:text-red-400"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </AnimatedContainer>
+      )}
+
+      {modalOpen && (
+        <ProductFormModal
+          product={editingProduct}
+          onSave={editingProduct ? handleUpdate : handleCreate}
+          onClose={() => { setModalOpen(false); setEditingProduct(null); }}
+          isSaving={isCreating || isUpdating}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ProductsPage;

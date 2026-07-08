@@ -40,8 +40,10 @@ export class ProcessWebhookUseCase {
 
     let payment: Payment | null = null;
 
-    if (mpPayment.payerEmail) {
-      payment = await this.paymentRepository.findByMpPaymentId(mpPaymentId);
+    payment = await this.paymentRepository.findByMpPaymentId(mpPaymentId);
+
+    if (!payment && mpPayment.externalReference) {
+      payment = await this.paymentRepository.findById(mpPayment.externalReference);
     }
 
     if (!payment) {
@@ -64,6 +66,8 @@ export class ProcessWebhookUseCase {
         await this.paymentRepository.save(payment);
         await this.handleCancelled(payment);
         break;
+      default:
+        break;
     }
   }
 
@@ -73,7 +77,10 @@ export class ProcessWebhookUseCase {
         const appointment = await this.appointmentRepository.findById(payment.referenceId);
         if (appointment && appointment.paymentStatus !== 'Pagado') {
           appointment.pay();
-          await this.appointmentRepository.updateStatus(payment.referenceId, { paymentStatus: 'Pagado' });
+          await this.appointmentRepository.updateStatus(payment.referenceId, {
+            paymentStatus: 'Pagado',
+            statusHistoryEntry: { status: appointment.status, timestamp: new Date(), actor: 'system' },
+          });
         }
         break;
       }

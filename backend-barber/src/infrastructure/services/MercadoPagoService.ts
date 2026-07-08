@@ -59,6 +59,7 @@ export class MercadoPagoService implements IPaymentService {
       transactionAmount: response.transaction_amount!,
       paymentMethodId: response.payment_method_id!,
       payerEmail: response.payer?.email,
+      externalReference: response.external_reference,
     };
   }
 

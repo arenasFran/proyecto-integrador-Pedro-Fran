@@ -17,6 +17,7 @@ export type GetPaymentResult = {
   transactionAmount: number;
   paymentMethodId: string;
   payerEmail?: string;
+  externalReference?: string;
 };
 
 export type ValidateWebhookParams = {

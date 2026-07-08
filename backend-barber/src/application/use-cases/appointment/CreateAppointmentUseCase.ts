@@ -10,6 +10,7 @@ import { MongoBarberBlockRepository } from '../../../infrastructure/repositories
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
+import { CreatePaymentUseCase } from '../../use-cases/payment/CreatePaymentUseCase';
 
 type CreateAppointmentDTO = {
   barberId: string;
@@ -24,6 +25,13 @@ type CreateAppointmentDTO = {
   paymentMethod?: 'local' | 'online' | 'memberPass';
   tempLockId?: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
+};
+
+type CreateAppointmentResult = {
+  message: string;
+  appointment: AppointmentProps;
+  preferenceId?: string;
+  initPoint?: string;
 };
 import {
   toMinutes,
@@ -42,10 +50,11 @@ export class CreateAppointmentUseCase {
     private readonly emailService: IEmailService,
     private readonly tempLockRepository: MongoTempLockRepository,
     private readonly blockRepository: MongoBarberBlockRepository,
-    private readonly membershipRepository: MongoMembershipRepository
+    private readonly membershipRepository: MongoMembershipRepository,
+    private readonly createPaymentUseCase?: CreatePaymentUseCase
   ) {}
 
-  async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
+  async execute(dto: CreateAppointmentDTO): Promise<CreateAppointmentResult> {
     const nowInTz = getNowInTimezone();
 
     // RN01 — Fecha y hora no pueden estar en el pasado
@@ -206,6 +215,23 @@ export class CreateAppointmentUseCase {
 
     // RN17 — Notificar por email (asíncrono, no bloqueante)
     this.sendCreationEmail(created!, barber.name, barber.lastname);
+
+    if (paymentMethod === 'online' && this.createPaymentUseCase) {
+      const paymentResult = await this.createPaymentUseCase.execute({
+        type: 'appointment',
+        referenceId: created!.id,
+        amount: service.price,
+        userId: dto.clientId || '',
+        items: [{ title: service.name, quantity: 1, unitPrice: service.price }],
+      });
+
+      return {
+        message: 'Turno creado exitosamente. Redirigiendo al pago...',
+        appointment: created!.toPrimitives(),
+        preferenceId: paymentResult.preferenceId,
+        initPoint: paymentResult.initPoint,
+      };
+    }
 
     return {
       message: 'Turno creado exitosamente',

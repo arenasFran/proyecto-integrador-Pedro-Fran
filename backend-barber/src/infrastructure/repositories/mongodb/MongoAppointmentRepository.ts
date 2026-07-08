@@ -344,6 +344,35 @@ export class MongoAppointmentRepository {
     if (!doc) return null;
     return toAppointmentEntity(doc);
   }
+
+  async cancelPendingPaymentsOlderThan(cutoff: Date): Promise<number> {
+    const now = new Date();
+    const result = await AppointmentModel.updateMany(
+      {
+        paymentMethod: 'online',
+        paymentStatus: 'Pendiente',
+        status: { $ne: 'Cancelado' },
+        createdAt: { $lt: cutoff },
+      },
+      {
+        $set: {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Pago pendiente expirado',
+          cancelledAt: now,
+          cancelledBy: 'system',
+        },
+        $push: {
+          statusHistory: {
+            status: 'Cancelado',
+            timestamp: now,
+            actor: 'system',
+          },
+        },
+      }
+    );
+    return result.modifiedCount;
+  }
 }
 
 

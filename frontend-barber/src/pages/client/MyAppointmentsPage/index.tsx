@@ -27,6 +27,12 @@ const paymentMethodLabels: Record<string, { label: string; bg: string; text: str
   online: { label: 'Pago online', bg: 'bg-cyan-500/10', text: 'text-cyan-400' },
 };
 
+const paymentStatusLabels: Record<string, { label: string; bg: string; text: string }> = {
+  Pendiente: { label: 'Pendiente', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+  Pagado: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400' },
+  Cancelado: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400' },
+};
+
 export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
@@ -162,6 +168,11 @@ export const MyAppointmentsPage: React.FC = () => {
                                   {paymentMethodLabels[appointment.paymentMethod]?.label ?? appointment.paymentMethod}
                                 </span>
                               )}
+                              {appointment.paymentStatus && (
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${(paymentStatusLabels[appointment.paymentStatus]?.bg ?? 'bg-[#282828]')} ${(paymentStatusLabels[appointment.paymentStatus]?.text ?? 'text-[#8A8A8A]')}`}>
+                                  {paymentStatusLabels[appointment.paymentStatus]?.label ?? appointment.paymentStatus}
+                                </span>
+                              )}
                             </div>
                             <h3 className="text-[16px] font-semibold text-white">{appointment.serviceName}</h3>
                             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-[#8A8A8A]">
@@ -227,6 +238,11 @@ export const MyAppointmentsPage: React.FC = () => {
                               {appointment.paymentMethod && (
                                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${(paymentMethodLabels[appointment.paymentMethod]?.bg ?? 'bg-[#282828]')} ${(paymentMethodLabels[appointment.paymentMethod]?.text ?? 'text-[#8A8A8A]')}`}>
                                   {paymentMethodLabels[appointment.paymentMethod]?.label ?? appointment.paymentMethod}
+                                </span>
+                              )}
+                              {appointment.paymentStatus && (
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${(paymentStatusLabels[appointment.paymentStatus]?.bg ?? 'bg-[#282828]')} ${(paymentStatusLabels[appointment.paymentStatus]?.text ?? 'text-[#8A8A8A]')}`}>
+                                  {paymentStatusLabels[appointment.paymentStatus]?.label ?? appointment.paymentStatus}
                                 </span>
                               )}
                             </div>

@@ -145,7 +145,7 @@ export default function MembershipPage() {
                     <span className="text-[11px] text-[#8A8A8A]">Descuento en productos</span>
                   </div>
                   <span className="text-[18px] font-bold text-white">{active.productDiscount}% OFF</span>
-                  <p className="text-[11px] text-[#555] mt-1">Próximamente disponible</p>
+                  <p className="text-[11px] text-[#22C55E] mt-1">Se aplica automáticamente al comprar en la tienda</p>
                 </div>
 
                 {isSubscription && (

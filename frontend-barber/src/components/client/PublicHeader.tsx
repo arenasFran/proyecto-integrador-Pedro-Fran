@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiCalendar, FiChevronDown, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiLogOut, FiUser, FiPackage, FiShoppingBag, FiAward } from 'react-icons/fi';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
 import { getAccessToken } from '../../services/api';
@@ -75,6 +75,36 @@ export const PublicHeader: React.FC = () => {
                   >
                     <FiCalendar className="text-[#FF5C00]" />
                     Mis turnos
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate('/tienda');
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                  >
+                    <FiPackage className="text-[#FF5C00]" />
+                    Tienda
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate('/mis-ordenes');
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                  >
+                    <FiShoppingBag className="text-[#FF5C00]" />
+                    Mis órdenes
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      navigate('/mi-membresia');
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                  >
+                    <FiAward className="text-[#FF5C00]" />
+                    Mi membresía
                   </button>
                   <button
                     onClick={() => {

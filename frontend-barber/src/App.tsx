@@ -28,6 +28,7 @@ import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
 import BookingPage from './pages/client/BookingPage';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
+import MyOrdersPage from './pages/client/MyOrdersPage';
 import ShopPage from './pages/public/ShopPage';
 import PaymentResultPage from './pages/public/PaymentResultPage';
 import { getTokenKind, isTokenValid } from './utils/token';
@@ -111,6 +112,7 @@ function App() {
               }
             >
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
+              <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>

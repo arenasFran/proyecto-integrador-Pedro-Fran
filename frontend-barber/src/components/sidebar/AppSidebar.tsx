@@ -32,6 +32,7 @@ const employeeNavItems = [
 const userNavItems = [
   { to: '/reservar', icon: FiScissors, label: 'Agendar' },
   { to: '/mis-turnos', icon: FiCalendar, label: 'Mis turnos' },
+  { to: '/mis-ordenes', icon: FiShoppingBag, label: 'Mis órdenes' },
   { to: '/mi-membresia', icon: FiAward, label: 'Mi Membresía' },
   { to: '/tienda', icon: FiPackage, label: 'Tienda' },
   { to: '/perfil', icon: FiUser, label: 'Perfil' },

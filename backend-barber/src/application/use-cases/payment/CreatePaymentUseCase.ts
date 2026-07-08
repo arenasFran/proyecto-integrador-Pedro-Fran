@@ -24,6 +24,9 @@ export class CreatePaymentUseCase {
   ) {}
 
   async execute(dto: CreatePaymentDTO): Promise<CreatePaymentResult> {
+    const config = getConfig();
+    const frontendUrl = config.frontendUrl || 'http://localhost:5173';
+
     const payment = Payment.create({
       type: dto.type,
       referenceId: dto.referenceId,
@@ -31,14 +34,9 @@ export class CreatePaymentUseCase {
       userId: dto.userId,
     });
 
-    const saved = await this.paymentRepository.save(payment);
-
-    const config = getConfig();
-    const frontendUrl = config.frontendUrl || 'http://localhost:5173';
-
     const preference = await this.mercadoPagoService.createPreference({
       items: dto.items,
-      externalReference: saved.id,
+      externalReference: payment.id,
       notificationUrl: config.mpNotificationUrl,
       backUrls: {
         success: `${frontendUrl}/payment/result?status=success`,
@@ -47,8 +45,8 @@ export class CreatePaymentUseCase {
       },
     });
 
-    saved.assignPreference(preference.preferenceId);
-    await this.paymentRepository.save(saved);
+    payment.assignPreference(preference.preferenceId);
+    const saved = await this.paymentRepository.save(payment);
 
     return {
       preferenceId: preference.preferenceId,

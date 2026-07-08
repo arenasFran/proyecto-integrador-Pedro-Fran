@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { initMercadoPago } from '@mercadopago/sdk-react';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
@@ -20,6 +21,7 @@ import MembershipsPage from './pages/admin/MembershipsPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import OrdersPage from './pages/admin/OrdersPage';
 import MembershipPage from './pages/app/MembershipPage';
+import SubscriptionSuccess from './pages/app/MembershipPage/SubscriptionSuccess';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
@@ -65,6 +67,8 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-UY' });
+
 function App() {
   return (
     <Provider store={store}>
@@ -81,6 +85,7 @@ function App() {
             <Route path="/reservar" element={<BookingPage />} />
             <Route path="/tienda" element={<ShopPage />} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
+            <Route path="/membership/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />

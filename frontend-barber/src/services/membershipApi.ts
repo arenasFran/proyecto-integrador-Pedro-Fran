@@ -6,7 +6,7 @@ import type {
   CreateMembershipPayload,
   MembershipWithUser,
 } from '../types/membership';
-import type { InitiatePaymentResponse } from '../types/payment';
+import type { InitiatePaymentResponse, CreateSubscriptionResponse } from '../types/payment';
 
 export const membershipApi = createApi({
   reducerPath: 'membershipApi',
@@ -27,6 +27,22 @@ export const membershipApi = createApi({
         data,
       }),
       invalidatesTags: ['Membership', 'Memberships'],
+    }),
+
+    createSubscription: builder.mutation<CreateSubscriptionResponse, { userId: string; email: string }>({
+      query: (data) => ({
+        url: '/api/memberships/create-subscription',
+        method: 'POST',
+        data,
+      }),
+    }),
+
+    cancelSubscription: builder.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/memberships/${id}/cancel-subscription`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Membership'],
     }),
 
     initiateMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
@@ -66,6 +82,8 @@ export const membershipApi = createApi({
 export const {
   useGetMyMembershipQuery,
   useCreateMembershipMutation,
+  useCreateSubscriptionMutation,
+  useCancelSubscriptionMutation,
   useInitiateMembershipPaymentMutation,
   useGetAllMembershipsQuery,
   useGetMembershipByIdQuery,

@@ -1,7 +1,8 @@
-import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button } from '../../../components/common';
-import { useGetMyMembershipQuery, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 
@@ -10,7 +11,10 @@ export default function MembershipPage() {
   const kind = getTokenKind(token);
 
   const { data, isLoading } = useGetMyMembershipQuery();
-  const [initiatePayment, { isLoading: isCreating }] = useInitiateMembershipPaymentMutation();
+  const [createSubscription, { isLoading: isCreating }] = useCreateSubscriptionMutation();
+  const [cancelSubscription] = useCancelSubscriptionMutation();
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   if (!token) return <Navigate to="/login" replace />;
   if (kind === 'Admin' || kind === 'Empleado') return <Navigate to="/admin/membresias" replace />;
@@ -28,15 +32,28 @@ export default function MembershipPage() {
     ? Math.max(0, Math.ceil((new Date(active.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
+  const isSubscription = active?.mpPreapprovalId != null;
+
   const handlePurchase = async () => {
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
-      const result = await initiatePayment({ userId: user.id }).unwrap();
+      const result = await createSubscription({ userId: user.id, email: user.email }).unwrap();
       if (result.initPoint) {
         window.location.href = result.initPoint;
       }
     } catch {
-      // handled by RTK
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!active) return;
+    setCancelling(true);
+    try {
+      await cancelSubscription(active.id).unwrap();
+    } catch {
+    } finally {
+      setCancelling(false);
+      setShowCancelConfirm(false);
     }
   };
 
@@ -66,6 +83,12 @@ export default function MembershipPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="flex h-2.5 w-2.5 rounded-full bg-[#22C55E]" />
                       <span className="text-[13px] font-medium text-[#22C55E]">Activa</span>
+                      {isSubscription && (
+                        <span className="text-[11px] text-[#8A8A8A] ml-2 flex items-center gap-1">
+                          <FiCreditCard className="text-[#FF5C00]" />
+                          Suscripción recurrente
+                        </span>
+                      )}
                     </div>
                     <h2 className="text-[24px] font-bold text-white">Membresía Mensual</h2>
                   </div>
@@ -124,6 +147,25 @@ export default function MembershipPage() {
                   <span className="text-[18px] font-bold text-white">{active.productDiscount}% OFF</span>
                   <p className="text-[11px] text-[#555] mt-1">Próximamente disponible</p>
                 </div>
+
+                {isSubscription && (
+                  <div className="mt-4 flex justify-end">
+                    {showCancelConfirm ? (
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" onClick={() => setShowCancelConfirm(false)} disabled={cancelling}>
+                          Volver
+                        </Button>
+                        <Button variant="danger" onClick={handleCancelSubscription} loading={cancelling}>
+                          Confirmar cancelación
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button variant="danger" onClick={() => setShowCancelConfirm(true)}>
+                        Cancelar suscripción
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </AnimatedContainer>
 
@@ -185,8 +227,13 @@ export default function MembershipPage() {
                 </div>
               </div>
 
+              <div className="text-[13px] text-[#8A8A8A] mb-6">
+                <FiCreditCard className="inline mr-1" />
+                Pago mensual recurrente. Podés cancelar cuando quieras.
+              </div>
+
               <Button loading={isCreating} onClick={handlePurchase}>
-                Adquirir membresía
+                Suscribirme por $399/mes
               </Button>
             </div>
           </AnimatedContainer>

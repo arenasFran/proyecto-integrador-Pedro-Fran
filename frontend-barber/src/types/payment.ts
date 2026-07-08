@@ -21,3 +21,8 @@ export type InitiatePaymentResponse = {
   initPoint: string;
   paymentId: string;
 };
+
+export type CreateSubscriptionResponse = {
+  preapprovalId: string;
+  initPoint: string;
+};

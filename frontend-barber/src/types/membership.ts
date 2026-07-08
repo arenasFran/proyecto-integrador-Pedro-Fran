@@ -5,6 +5,7 @@ export type Membership = {
   id: string;
   userId: string;
   status: MembershipStatus;
+  price: number;
   startDate: string;
   endDate: string;
   couponsTotal: number;
@@ -12,6 +13,8 @@ export type Membership = {
   productDiscount: number;
   createdBy: MembershipSource;
   adminId?: string;
+  mpPreapprovalId?: string;
+  nextBillingDate?: string;
   createdAt: string;
   updatedAt: string;
 };

@@ -9,6 +9,7 @@ import {
   redeemCouponSchema,
   queryMembershipsSchema,
   initiateMembershipPaymentSchema,
+  createSubscriptionSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -61,6 +62,22 @@ export const createMembershipRouter = (deps: {
     deps.authenticate,
     authorize('Admin'),
     deps.membershipController.getById
+  );
+
+  router.post(
+    '/create-subscription',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    validate({ body: createSubscriptionSchema }),
+    deps.membershipController.createSubscription
+  );
+
+  router.post(
+    '/:id/cancel-subscription',
+    membershipMutationLimiter,
+    deps.authenticate,
+    deps.membershipController.cancelSubscription
   );
 
   router.post(

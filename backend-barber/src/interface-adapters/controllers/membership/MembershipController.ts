@@ -6,6 +6,8 @@ import { Membership } from '../../../domain/entities/Membership';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
+import { CreateSubscriptionUseCase } from '../../../application/use-cases/payment/CreateSubscriptionUseCase';
+import { IPaymentService } from '../../../application/ports/IPaymentService';
 import { getConfig } from '../../../infrastructure/config/env';
 
 export class MembershipController {
@@ -13,7 +15,9 @@ export class MembershipController {
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly userRepo: MongoUserRepository,
     private readonly createPaymentUseCase?: CreatePaymentUseCase,
-    private readonly paymentRepository?: MongoPaymentRepository
+    private readonly paymentRepository?: MongoPaymentRepository,
+    private readonly createSubscriptionUseCase?: CreateSubscriptionUseCase,
+    private readonly mercadoPagoService?: IPaymentService
   ) {}
 
   getMyMembership = async (req: Request, res: Response) => {
@@ -106,6 +110,70 @@ export class MembershipController {
     }
   };
 
+  createSubscription = async (req: Request, res: Response) => {
+    try {
+      const { userId, email } = req.body;
+
+      if (req.user!._id !== userId && req.user!.kind !== 'Admin') {
+        throw new AppError('No podés crear suscripción para otro usuario.', 403);
+      }
+
+      const user = await this.userRepo.findById(userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado.', 404);
+      }
+
+      const alreadyActive = await this.membershipRepo.hasActiveMembership(userId);
+      if (alreadyActive) {
+        throw new AppError('El usuario ya tiene una membresía activa.', 400);
+      }
+
+      if (!this.createSubscriptionUseCase) {
+        throw new AppError('MercadoPago no está configurado.', 500);
+      }
+
+      const result = await this.createSubscriptionUseCase.execute({
+        userId,
+        payerEmail: email,
+      });
+
+      return sendSuccess(res, {
+        preapprovalId: result.preapprovalId,
+        initPoint: result.initPoint,
+      }, 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al crear suscripción');
+    }
+  };
+
+  cancelSubscription = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+
+      const membership = await this.membershipRepo.findById(id);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+
+      const isOwner = membership.userId === req.user!._id;
+      const isAdmin = req.user!.kind === 'Admin';
+      if (!isOwner && !isAdmin) {
+        throw new AppError('No tenés permiso para cancelar esta membresía.', 403);
+      }
+
+      if (membership.mpPreapprovalId && this.mercadoPagoService) {
+        await this.mercadoPagoService.cancelPreapproval(membership.mpPreapprovalId);
+      }
+
+      membership.cancel();
+      await this.membershipRepo.save(membership);
+
+      return sendSuccess(res, { message: 'Suscripción cancelada exitosamente.' });
+    } catch (error) {
+      return sendError(res, error, 'Error al cancelar suscripción');
+    }
+  };
+
   initiatePayment = async (req: Request, res: Response) => {
     try {
       const { userId } = req.body;
@@ -152,7 +220,6 @@ export class MembershipController {
 
       return sendSuccess(res, {
         preferenceId: result.preferenceId,
-        initPoint: result.initPoint,
         paymentId: result.paymentId,
       }, 201);
     } catch (error) {

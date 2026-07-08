@@ -20,3 +20,8 @@ export const queryMembershipsSchema = Joi.object({
 export const initiateMembershipPaymentSchema = Joi.object({
   userId: Joi.string().required(),
 });
+
+export const createSubscriptionSchema = Joi.object({
+  userId: Joi.string().required(),
+  email: Joi.string().email().required(),
+});

@@ -20,6 +20,7 @@ export class OrderController {
 
       return sendSuccess(res, result, 201);
     } catch (error) {
+      console.error('[OrderController] Error:', error);
       return sendError(res, error, 'Error al crear la orden');
     }
   };

@@ -85,7 +85,7 @@ function App() {
           <ErrorBoundary>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/reservar" element={<BookingPage />} />
+            <Route path="/reservar" element={<OptionalAppLayout><BookingPage /></OptionalAppLayout>} />
             <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
             <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />

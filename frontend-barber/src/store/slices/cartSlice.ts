@@ -13,8 +13,28 @@ interface CartState {
   checkoutPaymentId: string | null;
 }
 
+const CART_STORAGE_KEY = 'barberia_cart';
+
+function loadCart(): CartItem[] {
+  try {
+    const saved = localStorage.getItem(CART_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+  }
+  return [];
+}
+
+function saveCart(items: CartItem[]): void {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  } catch {
+  }
+}
+
 const initialState: CartState = {
-  items: [],
+  items: loadCart(),
   isOpen: false,
   checkoutPreferenceId: null,
   checkoutPaymentId: null,
@@ -32,18 +52,22 @@ const cartSlice = createSlice({
       } else {
         state.items.push({ product, quantity: Math.min(quantity, product.stock) });
       }
+      saveCart(state.items);
     },
     removeItem: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((item) => item.product.id !== action.payload);
+      saveCart(state.items);
     },
     updateQuantity: (state, action: PayloadAction<{ productId: string; quantity: number }>) => {
       const item = state.items.find((i) => i.product.id === action.payload.productId);
       if (item) {
         item.quantity = Math.max(1, Math.min(action.payload.quantity, item.product.stock));
       }
+      saveCart(state.items);
     },
     clearCart: (state) => {
       state.items = [];
+      saveCart(state.items);
     },
     openCart: (state) => {
       state.isOpen = true;

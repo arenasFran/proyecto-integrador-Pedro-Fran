@@ -3,6 +3,8 @@ import { CreateOrderUseCase } from '../../../application/use-cases/product/Creat
 import { GetOrderUseCase } from '../../../application/use-cases/product/GetOrderUseCase';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { sendSuccess, sendError } from '../../../common/response';
+import { AppError } from '../../../domain/errors/AppError';
+import { Order } from '../../../domain/entities/Order';
 
 export class OrderController {
   constructor(
@@ -67,6 +69,48 @@ export class OrderController {
       return sendSuccess(res, { order: result });
     } catch (error) {
       return sendError(res, error, 'Error al obtener la orden');
+    }
+  };
+
+  updateStatus = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body as { status: string };
+
+      const order = await this.orderRepository.findById(id as string);
+      if (!order) throw new AppError('Orden no encontrada.', 404);
+
+      switch (status) {
+        case 'paid':
+          order.pay();
+          break;
+        case 'delivered':
+          order.deliver();
+          break;
+        case 'cancelled':
+          order.cancel();
+          break;
+        default:
+          throw new AppError('Estado inválido.', 400);
+      }
+
+      const saved = await this.orderRepository.save(order);
+      return sendSuccess(res, { order: saved.toPrimitives() });
+    } catch (error) {
+      return sendError(res, error, 'Error al actualizar estado de la orden');
+    }
+  };
+
+  delete = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const order = await this.orderRepository.findById(id as string);
+      if (!order) throw new AppError('Orden no encontrada.', 404);
+
+      await this.orderRepository.delete(id as string);
+      return sendSuccess(res, { message: 'Orden eliminada correctamente.' });
+    } catch (error) {
+      return sendError(res, error, 'Error al eliminar la orden');
     }
   };
 }

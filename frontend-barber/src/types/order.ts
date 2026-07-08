@@ -1,4 +1,4 @@
-export type OrderStatus = 'pending' | 'paid' | 'cancelled';
+export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled';
 
 export type OrderItem = {
   productId: string;

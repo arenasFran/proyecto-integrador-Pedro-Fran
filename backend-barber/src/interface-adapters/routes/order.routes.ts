@@ -7,6 +7,7 @@ import {
   createOrderSchema,
   orderIdParamSchema,
   queryOrdersSchema,
+  updateOrderStatusSchema,
 } from '../validators/order.validator';
 
 export const createOrderRouter = (deps: {
@@ -34,6 +35,22 @@ export const createOrderRouter = (deps: {
     authorize('Admin'),
     validate({ query: queryOrdersSchema }),
     deps.orderController.getAll
+  );
+
+  router.patch(
+    '/:id/status',
+    deps.authenticate,
+    authorize('Admin'),
+    validate({ params: orderIdParamSchema, body: updateOrderStatusSchema }),
+    deps.orderController.updateStatus
+  );
+
+  router.delete(
+    '/:id',
+    deps.authenticate,
+    authorize('Admin'),
+    validate({ params: orderIdParamSchema }),
+    deps.orderController.delete
   );
 
   router.get(

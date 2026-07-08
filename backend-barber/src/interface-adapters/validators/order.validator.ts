@@ -17,7 +17,11 @@ export const orderIdParamSchema = Joi.object({
 });
 
 export const queryOrdersSchema = Joi.object({
-  status: Joi.string().valid('pending', 'paid', 'cancelled').optional(),
+  status: Joi.string().valid('pending', 'paid', 'delivered', 'cancelled').optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
+});
+
+export const updateOrderStatusSchema = Joi.object({
+  status: Joi.string().valid('paid', 'delivered', 'cancelled').required(),
 });

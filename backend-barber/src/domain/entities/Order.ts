@@ -1,4 +1,5 @@
 import { OrderData, OrderStatus, OrderItemData } from '../types/order.types';
+import { AppError } from '../errors/AppError';
 
 export type OrderProps = OrderData;
 
@@ -43,15 +44,27 @@ export class Order {
     return { ...this.props };
   }
 
-  pay(paymentId: string): void {
-    if (this.props.status !== 'pending') return;
+  pay(paymentId?: string): void {
+    if (this.props.status !== 'pending') {
+      throw new AppError('Solo se pueden pagar órdenes pendientes.', 400);
+    }
     this.props.status = 'paid';
-    this.props.paymentId = paymentId;
+    if (paymentId) this.props.paymentId = paymentId;
+    this.props.updatedAt = new Date();
+  }
+
+  deliver(): void {
+    if (this.props.status !== 'paid') {
+      throw new AppError('Solo se pueden entregar órdenes pagas.', 400);
+    }
+    this.props.status = 'delivered';
     this.props.updatedAt = new Date();
   }
 
   cancel(): void {
-    if (this.props.status === 'paid') return;
+    if (this.props.status === 'delivered' || this.props.status === 'cancelled') {
+      throw new AppError('No se puede cancelar una orden entregada o ya cancelada.', 400);
+    }
     this.props.status = 'cancelled';
     this.props.updatedAt = new Date();
   }

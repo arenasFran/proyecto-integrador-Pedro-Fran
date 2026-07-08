@@ -8,6 +8,7 @@ import type { OrderStatus } from '../../../types/order';
 const statusLabels: Record<OrderStatus, { label: string; bg: string; text: string }> = {
   pending: { label: 'Pendiente', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
   paid: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400' },
+  delivered: { label: 'Entregado', bg: 'bg-blue-500/10', text: 'text-blue-400' },
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400' },
 };
 

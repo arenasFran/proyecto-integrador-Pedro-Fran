@@ -22,10 +22,17 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append('images', f));
-      const { data } = await api.post('/api/upload/product-images', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.post('/api/upload/product-images', formData);
+      console.log('[UPLOAD DEBUG] Success:', data);
       return data.data?.urls ?? [];
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[UPLOAD DEBUG] Error:', msg);
+      if (typeof err === 'object' && err !== null && 'response' in err) {
+        const resp = (err as { response: { status: number; data: unknown } }).response;
+        console.error('[UPLOAD DEBUG] Status:', resp.status, 'Data:', resp.data);
+      }
+      return [];
     } finally {
       setUploading(false);
     }

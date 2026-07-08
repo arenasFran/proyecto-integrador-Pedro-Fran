@@ -9,6 +9,8 @@ import { createPaymentRouter } from '../interface-adapters/routes/payment.routes
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoOrderRepository } from '../infrastructure/repositories/mongodb/MongoOrderRepository';
+import { MongoProductRepository } from '../infrastructure/repositories/mongodb/MongoProductRepository';
+import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
 
@@ -40,13 +42,17 @@ export const buildPaymentRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
   const membershipRepository = new MongoMembershipRepository();
   const orderRepository = new MongoOrderRepository();
+  const productRepository = new MongoProductRepository();
+  const emailService = new NodemailerEmailService();
 
   const processWebhook = new ProcessWebhookUseCase(
     paymentRepository,
     appointmentRepository,
     membershipRepository,
     orderRepository,
-    mercadoPagoService
+    productRepository,
+    mercadoPagoService,
+    emailService
   );
 
   const paymentController = new PaymentController(processWebhook, paymentRepository);

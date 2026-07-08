@@ -84,14 +84,6 @@ export class CreateOrderUseCase {
       throw error;
     }
 
-    for (const item of dto.items) {
-      const product = products.find(p => p && p.id === item.productId);
-      if (product) {
-        product.decreaseStock(item.quantity);
-        await this.productRepository.save(product);
-      }
-    }
-
     return {
       preferenceId: paymentResult.preferenceId,
       orderId: saved.id,

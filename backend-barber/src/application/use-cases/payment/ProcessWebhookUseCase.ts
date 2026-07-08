@@ -3,9 +3,13 @@ import { MongoPaymentRepository } from '../../../infrastructure/repositories/mon
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
+import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { IPaymentService } from '../../ports/IPaymentService';
+import { IEmailService } from '../../ports/IEmailService';
 import { Membership } from '../../../domain/entities/Membership';
 import { getConfig } from '../../../infrastructure/config/env';
+import { RegisteredClient } from '../../../infrastructure/repositories/mongodb/models/client.model';
+import { Barber } from '../../../infrastructure/repositories/mongodb/models/barber.model';
 
 export class ProcessWebhookUseCase {
   constructor(
@@ -13,7 +17,9 @@ export class ProcessWebhookUseCase {
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly orderRepository: MongoOrderRepository,
-    private readonly mercadoPagoService: IPaymentService
+    private readonly productRepository: MongoProductRepository,
+    private readonly mercadoPagoService: IPaymentService,
+    private readonly emailService?: IEmailService
   ) {}
 
   async execute(rawBody: unknown, xSignature: string, xRequestId: string): Promise<void> {
@@ -185,13 +191,44 @@ export class ProcessWebhookUseCase {
         if (order && order.status === 'pending') {
           order.pay(payment.id);
           await this.orderRepository.save(order);
+          for (const item of order.items) {
+            await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+          }
+          const userEmail = await this.getUserEmail(payment.userId);
+          if (userEmail && this.emailService) {
+            this.emailService.sendMail({
+              to: userEmail,
+              subject: 'Pago aprobado - Barbería SA',
+              html: `<p>Tu pago por la orden <strong>#${order.id}</strong> fue aprobado.</p>
+<p>Total: $${order.total}</p>
+<p>Gracias por tu compra.</p>`,
+            }).catch(() => {});
+          }
         }
         break;
       }
     }
   }
 
-  private async handleRejected(_payment: Payment): Promise<void> {
+  private async sendPaymentNotification(payment: Payment, statusText: string): Promise<void> {
+    const userEmail = await this.getUserEmail(payment.userId);
+    if (!userEmail || !this.emailService) return;
+    this.emailService.sendMail({
+      to: userEmail,
+      subject: `Pago ${statusText} - Barbería SA`,
+      html: `<p>Tu pago de $${payment.amount} fue ${statusText}.</p>`,
+    }).catch(() => {});
+  }
+
+  private async handleRejected(payment: Payment): Promise<void> {
+    if (payment.type === 'product_order') {
+      const order = await this.orderRepository.findById(payment.referenceId);
+      if (order && order.status === 'pending') {
+        order.cancel();
+        await this.orderRepository.save(order);
+      }
+    }
+    await this.sendPaymentNotification(payment, 'rechazado');
   }
 
   private async handleCancelled(payment: Payment): Promise<void> {
@@ -201,6 +238,18 @@ export class ProcessWebhookUseCase {
         order.cancel();
         await this.orderRepository.save(order);
       }
+    }
+    await this.sendPaymentNotification(payment, 'cancelado');
+  }
+
+  private async getUserEmail(userId: string): Promise<string | null> {
+    try {
+      const client = await RegisteredClient.findById(userId).select('email').lean();
+      if (client?.email) return client.email;
+      const barber = await Barber.findById(userId).select('email').lean();
+      return barber?.email ?? null;
+    } catch {
+      return null;
     }
   }
 }

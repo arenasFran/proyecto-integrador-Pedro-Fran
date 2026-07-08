@@ -101,6 +101,22 @@ export class MongoProductRepository {
     });
   }
 
+  async atomicDecreaseStock(id: string, quantity: number): Promise<boolean> {
+    const result = await ProductModel.findOneAndUpdate(
+      { _id: id, stock: { $gte: quantity } },
+      { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
+      { new: true }
+    );
+    return result !== null;
+  }
+
+  async atomicIncreaseStock(id: string, quantity: number): Promise<void> {
+    await ProductModel.findByIdAndUpdate(id, {
+      $inc: { stock: quantity },
+      $set: { updatedAt: new Date() },
+    });
+  }
+
   async getCategories(): Promise<string[]> {
     return ProductModel.distinct('category', { status: { $ne: 'deleted' } });
   }

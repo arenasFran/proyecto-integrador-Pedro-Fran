@@ -13,7 +13,6 @@ export type CreatePaymentDTO = {
 
 export type CreatePaymentResult = {
   preferenceId: string;
-  initPoint: string;
   paymentId: string;
 };
 
@@ -50,7 +49,6 @@ export class CreatePaymentUseCase {
 
     return {
       preferenceId: preference.preferenceId,
-      initPoint: preference.initPoint,
       paymentId: saved.id,
     };
   }

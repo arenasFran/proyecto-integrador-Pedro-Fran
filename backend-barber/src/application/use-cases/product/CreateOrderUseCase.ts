@@ -12,7 +12,6 @@ export type CreateOrderDTO = {
 
 export type CreateOrderResult = {
   preferenceId: string;
-  initPoint: string;
   orderId: string;
 };
 
@@ -89,7 +88,6 @@ export class CreateOrderUseCase {
 
     return {
       preferenceId: paymentResult.preferenceId,
-      initPoint: paymentResult.initPoint,
       orderId: saved.id,
     };
   }

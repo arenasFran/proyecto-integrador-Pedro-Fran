@@ -31,7 +31,6 @@ type CreateAppointmentResult = {
   message: string;
   appointment: AppointmentProps;
   preferenceId?: string;
-  initPoint?: string;
 };
 import {
   toMinutes,
@@ -223,13 +222,12 @@ export class CreateAppointmentUseCase {
           items: [{ title: service.name, quantity: 1, unitPrice: service.price }],
         });
 
-        this.sendCreationEmail(created!, barber.name, barber.lastname, paymentResult.initPoint);
+        this.sendCreationEmail(created!, barber.name, barber.lastname);
 
         return {
           message: 'Turno creado exitosamente. Redirigiendo al pago...',
           appointment: created!.toPrimitives(),
           preferenceId: paymentResult.preferenceId,
-          initPoint: paymentResult.initPoint,
         };
       } catch (error) {
         await this.appointmentRepository.updateStatus(created!.id, {
@@ -309,15 +307,14 @@ export class CreateAppointmentUseCase {
   private sendCreationEmail(
     appointment: import('../../../domain/entities/Appointment').Appointment,
     barberName: string,
-    barberLastname: string,
-    initPoint?: string
+    barberLastname: string
   ): void {
     const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
     let paymentHtml = '';
-    if (appointment.paymentMethod === 'online' && initPoint) {
-      paymentHtml = `<p>Estado de pago: Pendiente — <a href="${initPoint}" style="color: #3b82f6; font-weight: bold;">Pagá online acá</a></p>`;
+    if (appointment.paymentMethod === 'online') {
+      paymentHtml = '<p>Estado de pago: Pendiente — completá el pago online desde la app.</p>';
     } else if (appointment.paymentStatus === 'Pagado') {
       paymentHtml = '<p>Estado de pago: Pagado</p>';
     } else {

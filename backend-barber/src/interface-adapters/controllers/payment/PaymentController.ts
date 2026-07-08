@@ -20,7 +20,7 @@ export class PaymentController {
       return sendSuccess(res, { message: 'OK' }, 200);
     } catch (error) {
       console.error('[PaymentWebhook] Error:', error);
-      return sendSuccess(res, { message: 'OK' }, 200);
+      return sendError(res, error, 'Error al procesar webhook');
     }
   };
 

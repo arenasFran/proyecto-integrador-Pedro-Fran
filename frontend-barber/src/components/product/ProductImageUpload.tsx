@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { FiUpload, FiX, FiCheck } from 'react-icons/fi';
 import { Spinner } from '../common';
-import { getAccessToken } from '../../services/api';
+import api from '../../services/api';
 
 interface ProductImageUploadProps {
   mainImageUrl: string;
@@ -22,12 +22,9 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append('images', f));
-      const res = await fetch('/api/upload/product-images', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-        body: formData,
+      const { data } = await api.post('/api/upload/product-images', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      const data = await res.json();
       return data.data?.urls ?? [];
     } finally {
       setUploading(false);

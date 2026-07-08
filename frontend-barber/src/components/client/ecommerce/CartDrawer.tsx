@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiShoppingCart, FiX, FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
+import { FiShoppingCart, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -11,6 +11,7 @@ import {
   selectCartCount,
   setCheckoutResult,
 } from '../../../store/slices/cartSlice';
+import CartItem from '../../product/CartItem';
 import { Button } from '../../common';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
@@ -83,63 +84,14 @@ export const CartDrawer = () => {
                 <>
                   <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
                     {items.map((item) => (
-                      <div
+                      <CartItem
                         key={item.product.id}
-                        className="flex gap-3 rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3"
-                      >
-                        {item.product.imageUrl && (
-                          <img
-                            src={item.product.imageUrl}
-                            alt={item.product.name}
-                            className="h-16 w-16 rounded-[8px] object-cover"
-                          />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-medium text-white truncate">
-                            {item.product.name}
-                          </p>
-                          <p className="text-[12px] text-[#FF5C00] font-semibold mt-0.5">
-                            ${item.product.price}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <button
-                              onClick={() =>
-                                dispatch(
-                                  updateQuantity({
-                                    productId: item.product.id,
-                                    quantity: item.quantity - 1,
-                                  })
-                                )
-                              }
-                              className="flex h-6 w-6 items-center justify-center rounded-md border border-[#282828] text-[#8A8A8A] hover:text-white"
-                            >
-                              <FiMinus size={12} />
-                            </button>
-                            <span className="text-[13px] text-white w-6 text-center">
-                              {item.quantity}
-                            </span>
-                            <button
-                              onClick={() =>
-                                dispatch(
-                                  updateQuantity({
-                                    productId: item.product.id,
-                                    quantity: item.quantity + 1,
-                                  })
-                                )
-                              }
-                              className="flex h-6 w-6 items-center justify-center rounded-md border border-[#282828] text-[#8A8A8A] hover:text-white"
-                            >
-                              <FiPlus size={12} />
-                            </button>
-                            <button
-                              onClick={() => dispatch(removeItem(item.product.id))}
-                              className="ml-auto text-[#8A8A8A] hover:text-red-400"
-                            >
-                              <FiTrash2 size={14} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
+                        item={item}
+                        onUpdateQuantity={(productId, quantity) =>
+                          dispatch(updateQuantity({ productId, quantity }))
+                        }
+                        onRemove={(productId) => dispatch(removeItem(productId))}
+                      />
                     ))}
                   </div>
 

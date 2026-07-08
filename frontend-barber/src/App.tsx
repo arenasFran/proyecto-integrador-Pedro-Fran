@@ -34,6 +34,7 @@ import BookingPage from './pages/client/BookingPage';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
 import MyOrdersPage from './pages/client/MyOrdersPage';
 import ShopPage from './pages/public/ShopPage';
+import ProductDetailPage from './pages/public/ProductDetailPage';
 import PaymentResultPage from './pages/public/PaymentResultPage';
 import { getTokenKind, isTokenValid } from './utils/token';
 
@@ -86,6 +87,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<BookingPage />} />
             <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
+            <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
             <Route path="/membership/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/login" element={<LoginPage />} />

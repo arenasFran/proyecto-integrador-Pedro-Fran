@@ -4,6 +4,7 @@ import type { MembershipStatus, MembershipSource } from '../../../../domain/type
 export interface IMembershipDocument extends Document {
   userId: mongoose.Types.ObjectId;
   status: MembershipStatus;
+  price: number;
   startDate: Date;
   endDate: Date;
   couponsTotal: number;
@@ -28,6 +29,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
       enum: ['active', 'expired', 'cancelled'],
       default: 'active',
     },
+    price: { type: Number, required: true, default: 0 },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     couponsTotal: { type: Number, required: true, default: 4 },

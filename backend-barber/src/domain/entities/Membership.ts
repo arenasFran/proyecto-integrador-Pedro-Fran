@@ -14,6 +14,7 @@ export class Membership {
     userId: string;
     createdBy: MembershipSource;
     adminId?: string;
+    price?: number;
     couponsTotal?: number;
     productDiscount?: number;
   }): Membership {
@@ -25,6 +26,7 @@ export class Membership {
       id: '',
       userId: data.userId,
       status: 'active',
+      price: data.price ?? 0,
       startDate: now,
       endDate,
       couponsTotal: data.couponsTotal ?? MEMBERSHIP_DEFAULTS.couponsTotal,
@@ -46,6 +48,7 @@ export class Membership {
   get id(): string { return this.props.id; }
   get userId(): string { return this.props.userId; }
   get status(): MembershipStatus { return this.props.status; }
+  get price(): number { return this.props.price; }
   get startDate(): Date { return new Date(this.props.startDate.getTime()); }
   get endDate(): Date { return new Date(this.props.endDate.getTime()); }
   get couponsTotal(): number { return this.props.couponsTotal; }

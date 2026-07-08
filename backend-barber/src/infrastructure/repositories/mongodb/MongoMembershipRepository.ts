@@ -88,6 +88,7 @@ export class MongoMembershipRepository {
     const doc = await MembershipModel.create([{
       userId: new mongoose.Types.ObjectId(data.userId),
       status: data.status,
+      price: data.price,
       startDate: data.startDate,
       endDate: data.endDate,
       couponsTotal: data.couponsTotal,
@@ -131,6 +132,7 @@ export class MongoMembershipRepository {
       id: doc._id.toString(),
       userId: doc.userId.toString(),
       status: doc.status,
+      price: doc.price,
       startDate: doc.startDate,
       endDate: doc.endDate,
       couponsTotal: doc.couponsTotal,

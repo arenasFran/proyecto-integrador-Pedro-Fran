@@ -26,6 +26,11 @@ export type Config = {
   cloudinaryCloudName: string;
   cloudinaryApiKey: string;
   cloudinaryApiSecret: string;
+  mpAccessToken: string | undefined;
+  mpWebhookSecret: string | undefined;
+  mpPublicKey: string | undefined;
+  mpNotificationUrl: string | undefined;
+  membershipPriceUyu: number;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -100,6 +105,11 @@ export function loadConfig(): Config {
     cloudinaryCloudName: requireEnv('CLOUDINARY_CLOUD_NAME'),
     cloudinaryApiKey: requireEnv('CLOUDINARY_API_KEY'),
     cloudinaryApiSecret: requireEnv('CLOUDINARY_API_SECRET'),
+    mpAccessToken: process.env.MP_ACCESS_TOKEN || undefined,
+    mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
+    mpPublicKey: process.env.MP_PUBLIC_KEY || undefined,
+    mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
+    membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 10), windowMs: 15 * 60 * 1000 },

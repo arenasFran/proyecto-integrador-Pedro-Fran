@@ -6,6 +6,7 @@ export type MembershipData = {
   id: string;
   userId: string;
   status: MembershipStatus;
+  price: number;
   startDate: Date;
   endDate: Date;
   couponsTotal: number;

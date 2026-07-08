@@ -24,6 +24,13 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
+  async findByPreapprovalId(preapprovalId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const query = MembershipModel.findOne({ mpPreapprovalId: preapprovalId });
+    if (session) query.session(session);
+    const doc = await query;
+    return doc ? this.toDomain(doc) : null;
+  }
+
   async findAll(filter?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Membership[]; total: number; page: number; totalPages: number; limit: number }> {
     const query: Record<string, unknown> = {};
     if (filter?.status) query.status = filter.status;
@@ -79,6 +86,7 @@ export class MongoMembershipRepository {
           status: data.status,
           couponsUsed: data.couponsUsed,
           endDate: data.endDate,
+          nextBillingDate: data.nextBillingDate,
           updatedAt: new Date(),
         },
       }, session ? { session } : {});
@@ -96,6 +104,8 @@ export class MongoMembershipRepository {
       productDiscount: data.productDiscount,
       createdBy: data.createdBy,
       adminId: data.adminId ? new mongoose.Types.ObjectId(data.adminId) : undefined,
+      mpPreapprovalId: data.mpPreapprovalId,
+      nextBillingDate: data.nextBillingDate,
     }], session ? { session } : {});
     const created = doc[0];
 
@@ -140,6 +150,8 @@ export class MongoMembershipRepository {
       productDiscount: doc.productDiscount,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
+      mpPreapprovalId: doc.mpPreapprovalId ?? undefined,
+      nextBillingDate: doc.nextBillingDate ?? undefined,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });

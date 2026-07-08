@@ -14,6 +14,8 @@ export type MembershipData = {
   productDiscount: number;
   createdBy: MembershipSource;
   adminId?: string;
+  mpPreapprovalId?: string;
+  nextBillingDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 };

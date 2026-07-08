@@ -17,6 +17,8 @@ export class Membership {
     price?: number;
     couponsTotal?: number;
     productDiscount?: number;
+    mpPreapprovalId?: string;
+    nextBillingDate?: Date;
   }): Membership {
     const now = new Date();
     const endDate = new Date(now);
@@ -34,6 +36,8 @@ export class Membership {
       productDiscount: data.productDiscount ?? MEMBERSHIP_DEFAULTS.productDiscount,
       createdBy: data.createdBy,
       adminId: data.adminId,
+      mpPreapprovalId: data.mpPreapprovalId,
+      nextBillingDate: data.nextBillingDate,
       createdAt: now,
       updatedAt: now,
     });
@@ -56,6 +60,10 @@ export class Membership {
   get productDiscount(): number { return this.props.productDiscount; }
   get createdBy(): MembershipSource { return this.props.createdBy; }
   get adminId(): string | undefined { return this.props.adminId; }
+  get mpPreapprovalId(): string | undefined { return this.props.mpPreapprovalId; }
+  get nextBillingDate(): Date | undefined {
+    return this.props.nextBillingDate ? new Date(this.props.nextBillingDate.getTime()) : undefined;
+  }
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
   get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
 
@@ -80,6 +88,18 @@ export class Membership {
 
   restoreCoupon(): void {
     this.props.couponsUsed = Math.max(0, this.props.couponsUsed - 1);
+    this.props.updatedAt = new Date();
+  }
+
+  renew(nextBillingDate?: Date): void {
+    const newEndDate = new Date(this.props.endDate);
+    newEndDate.setDate(newEndDate.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
+    this.props.endDate = newEndDate;
+    this.props.couponsUsed = 0;
+    this.props.status = 'active';
+    if (nextBillingDate) {
+      this.props.nextBillingDate = nextBillingDate;
+    }
     this.props.updatedAt = new Date();
   }
 

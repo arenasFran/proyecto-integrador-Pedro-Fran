@@ -12,6 +12,8 @@ export interface IMembershipDocument extends Document {
   productDiscount: number;
   createdBy: MembershipSource;
   adminId?: mongoose.Types.ObjectId;
+  mpPreapprovalId?: string;
+  nextBillingDate?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,10 +46,19 @@ const membershipSchema = new Schema<IMembershipDocument>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
+    mpPreapprovalId: {
+      type: String,
+      required: false,
+    },
+    nextBillingDate: {
+      type: Date,
+      required: false,
+    },
   },
   { timestamps: true }
 );
 
 membershipSchema.index({ userId: 1, status: 1 });
+membershipSchema.index({ mpPreapprovalId: 1 });
 
 export const MembershipModel = mongoose.model<IMembershipDocument>('Membership', membershipSchema);

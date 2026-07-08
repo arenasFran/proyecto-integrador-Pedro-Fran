@@ -3,7 +3,6 @@ import { ProcessWebhookUseCase } from '../../../application/use-cases/payment/Pr
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
-
 export class PaymentController {
   constructor(
     private readonly processWebhook: ProcessWebhookUseCase,

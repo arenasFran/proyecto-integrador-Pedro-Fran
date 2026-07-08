@@ -17,6 +17,7 @@
     "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
+    "@mercadopago/sdk-react": "^1.0.7",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.15.2",
     "framer-motion": "^12.38.0",

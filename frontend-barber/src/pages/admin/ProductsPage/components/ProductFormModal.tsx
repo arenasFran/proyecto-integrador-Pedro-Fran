@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiPackage } from 'react-icons/fi';
-import { Button, Input } from '../../../../components/common';
+import { Button } from '../../../../components/common';
 import ProductImageUpload from '../../../../components/product/ProductImageUpload';
 import type { Product, CreateProductPayload } from '../../../../types/product';
 
@@ -15,7 +15,10 @@ interface Props {
   isSaving: boolean;
 }
 
-const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave, onCancel, onClose, isSaving }) => {
+const inputClass = 'w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white placeholder-[#555] outline-none focus:border-[#FF5C00] transition-colors';
+const labelClass = 'mb-1 block text-[11px] font-medium text-[#8A8A8A] tracking-wide uppercase';
+
+export default function ProductFormModal({ product, formData, onChange, onSave, onCancel, onClose, isSaving }: Props) {
   const set = (field: keyof CreateProductPayload, value: string | number | string[]) =>
     onChange({ ...formData, [field]: value });
 
@@ -52,42 +55,82 @@ const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg rounded-[24px] border border-[#282828] bg-[#121212] p-6 max-h-[90vh] overflow-y-auto"
+          className="w-full max-w-lg rounded-[24px] border border-[#282828] bg-[#121212] p-5 max-h-[90vh] overflow-y-auto"
         >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF5C00]/10">
-                <FiPackage className="text-[#FF5C00] text-lg" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-[#FF5C00]/10">
+                <FiPackage className="text-[#FF5C00] text-sm" />
               </div>
               <div>
-                <h2 className="text-[18px] font-bold text-white">
+                <h2 className="text-[15px] font-bold text-white">
                   {product ? 'Editar producto' : 'Nuevo producto'}
                 </h2>
-                <p className="text-[12px] text-[#8A8A8A]">
+                <p className="text-[11px] text-[#8A8A8A]">
                   {product ? 'Modificá los datos del producto' : 'Completá los datos del nuevo producto'}
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="text-[#8A8A8A] hover:text-white">
-              <FiX size={20} />
+            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg text-[#8A8A8A] hover:bg-[#282828] hover:text-white transition-colors">
+              <FiX size={16} />
             </button>
           </div>
 
-          <div className="space-y-4">
-            <Input label="Nombre" required value={formData.name} onChange={(e) => set('name', e.target.value)} placeholder="Ej: Shampoo profesional" />
+          <div className="space-y-3">
             <div>
-              <label className="mb-1.5 block text-[12px] font-medium text-[#8A8A8A]">Descripción</label>
+              <label className={labelClass}>Nombre</label>
+              <input
+                value={formData.name}
+                onChange={(e) => set('name', e.target.value)}
+                placeholder="Ej: Shampoo profesional"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Descripción</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => set('description', e.target.value)}
                 placeholder="Descripción del producto"
-                rows={3}
-                className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-4 py-2.5 text-[13px] text-white placeholder-[#555] outline-none focus:border-[#FF5C00] resize-none"
+                rows={2}
+                className={inputClass + ' resize-none'}
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Precio ($)" required type="number" min="0" step="0.01" value={formData.price.toString()} onChange={(e) => set('price', parseFloat(e.target.value) || 0)} placeholder="0" />
-              <Input label="Stock" required type="number" min="0" value={formData.stock.toString()} onChange={(e) => set('stock', parseInt(e.target.value) || 0)} placeholder="0" />
+
+            <div className="grid grid-cols-3 gap-2.5">
+              <div>
+                <label className={labelClass}>Precio ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.price.toString()}
+                  onChange={(e) => set('price', parseFloat(e.target.value) || 0)}
+                  placeholder="0"
+                  className={inputClass + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Stock</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={formData.stock.toString()}
+                  onChange={(e) => set('stock', parseInt(e.target.value) || 0)}
+                  placeholder="0"
+                  className={inputClass + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Categoría</label>
+                <input
+                  value={formData.category}
+                  onChange={(e) => set('category', e.target.value)}
+                  placeholder="Ej: Cuidado capilar"
+                  className={inputClass}
+                />
+              </div>
             </div>
 
             <ProductImageUpload
@@ -96,15 +139,13 @@ const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave
               onMainImageChange={(url) => set('imageUrl', url)}
               onGalleryChange={(urls) => set('gallery', urls)}
             />
-
-            <Input label="Categoría" value={formData.category} onChange={(e) => set('category', e.target.value)} placeholder="Ej: Cuidado capilar" />
           </div>
 
-          <div className="flex gap-3 mt-6">
-            <Button variant="secondary" onClick={onCancel} className="flex-1">
+          <div className="flex gap-2.5 mt-4 pt-4 border-t border-[#282828]">
+            <Button variant="secondary" onClick={onCancel} className="flex-1 text-[12px] h-[38px]">
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} loading={isSaving} className="flex-1" disabled={!formData.name.trim() || !formData.description.trim() || !formData.price}>
+            <Button onClick={handleSubmit} loading={isSaving} className="flex-1 text-[12px] h-[38px]" disabled={!formData.name.trim() || !formData.description.trim() || !formData.price}>
               {product ? 'Guardar cambios' : 'Crear producto'}
             </Button>
           </div>
@@ -112,6 +153,4 @@ const ProductFormModal: React.FC<Props> = ({ product, formData, onChange, onSave
       </motion.div>
     </AnimatePresence>
   );
-};
-
-export default ProductFormModal;
+}

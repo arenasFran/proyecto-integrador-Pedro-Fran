@@ -65,6 +65,25 @@ export class CreateOrderUseCase {
 
     const saved = await this.orderRepository.save(order);
 
+    let paymentResult: { preferenceId: string };
+    try {
+      paymentResult = await this.createPaymentUseCase.execute({
+        type: 'product_order',
+        referenceId: saved.id,
+        amount: saved.total,
+        userId: dto.userId,
+        items: resolvedItems.map((i) => ({
+          title: i.name,
+          quantity: i.quantity,
+          unitPrice: i.price,
+          id: i.productId,
+        })),
+      });
+    } catch (error) {
+      await this.orderRepository.delete(saved.id);
+      throw error;
+    }
+
     for (const item of dto.items) {
       const product = products.find(p => p && p.id === item.productId);
       if (product) {
@@ -72,19 +91,6 @@ export class CreateOrderUseCase {
         await this.productRepository.save(product);
       }
     }
-
-    const paymentResult = await this.createPaymentUseCase.execute({
-      type: 'product_order',
-      referenceId: saved.id,
-      amount: saved.total,
-      userId: dto.userId,
-      items: resolvedItems.map((i) => ({
-        title: i.name,
-        quantity: i.quantity,
-        unitPrice: i.price,
-        id: i.productId,
-      })),
-    });
 
     return {
       preferenceId: paymentResult.preferenceId,

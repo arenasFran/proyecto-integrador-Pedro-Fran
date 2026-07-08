@@ -52,6 +52,10 @@ export class MongoOrderRepository {
     };
   }
 
+  async delete(id: string): Promise<void> {
+    await OrderModel.findByIdAndDelete(id);
+  }
+
   async save(order: Order, session?: mongoose.ClientSession): Promise<Order> {
     const data = order.toPrimitives();
 

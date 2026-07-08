@@ -2,15 +2,16 @@ import { Request, Response } from 'express';
 import { CreateOrderUseCase } from '../../../application/use-cases/product/CreateOrderUseCase';
 import { GetOrderUseCase } from '../../../application/use-cases/product/GetOrderUseCase';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
+import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
-import { Order } from '../../../domain/entities/Order';
 
 export class OrderController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly getOrderUseCase: GetOrderUseCase,
-    private readonly orderRepository: MongoOrderRepository
+    private readonly orderRepository: MongoOrderRepository,
+    private readonly productRepository: MongoProductRepository
   ) {}
 
   create = async (req: Request, res: Response) => {
@@ -72,6 +73,16 @@ export class OrderController {
     }
   };
 
+  private async restoreStock(order: import('../../../domain/entities/Order').Order): Promise<void> {
+    for (const item of order.items) {
+      const product = await this.productRepository.findById(item.productId);
+      if (product) {
+        product.restoreStock(item.quantity);
+        await this.productRepository.save(product);
+      }
+    }
+  }
+
   updateStatus = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
@@ -79,6 +90,8 @@ export class OrderController {
 
       const order = await this.orderRepository.findById(id as string);
       if (!order) throw new AppError('Orden no encontrada.', 404);
+
+      const wasPaid = order.status === 'paid';
 
       switch (status) {
         case 'paid':
@@ -94,6 +107,10 @@ export class OrderController {
           throw new AppError('Estado inválido.', 400);
       }
 
+      if (status === 'cancelled') {
+        await this.restoreStock(order);
+      }
+
       const saved = await this.orderRepository.save(order);
       return sendSuccess(res, { order: saved.toPrimitives() });
     } catch (error) {
@@ -107,6 +124,7 @@ export class OrderController {
       const order = await this.orderRepository.findById(id as string);
       if (!order) throw new AppError('Orden no encontrada.', 404);
 
+      await this.restoreStock(order);
       await this.orderRepository.delete(id as string);
       return sendSuccess(res, { message: 'Orden eliminada correctamente.' });
     } catch (error) {

@@ -21,7 +21,7 @@ export const buildOrderRouter = () => {
   const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase);
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
 
-  const orderController = new OrderController(createOrderUseCase, getOrderUseCase, orderRepository);
+  const orderController = new OrderController(createOrderUseCase, getOrderUseCase, orderRepository, productRepository);
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

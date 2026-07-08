@@ -88,4 +88,9 @@ export class Product {
     this.props.stock -= quantity;
     this.props.updatedAt = new Date();
   }
+
+  restoreStock(quantity: number): void {
+    this.props.stock += quantity;
+    this.props.updatedAt = new Date();
+  }
 }

@@ -18,6 +18,7 @@ export type GetPaymentResult = {
   paymentMethodId: string;
   payerEmail?: string;
   externalReference?: string;
+  preapprovalId?: string;
 };
 
 export type ValidateWebhookParams = {
@@ -26,8 +27,31 @@ export type ValidateWebhookParams = {
   dataId: string;
 };
 
+export type CreatePreapprovalParams = {
+  externalReference: string;
+  payerEmail: string;
+  backUrl: string;
+  transactionAmount: number;
+  reason: string;
+};
+
+export type CreatePreapprovalResult = {
+  preapprovalId: string;
+  initPoint: string;
+};
+
+export type GetPreapprovalResult = {
+  id: string;
+  status: string;
+  payerEmail?: string;
+  externalReference?: string;
+};
+
 export interface IPaymentService {
   createPreference(params: CreatePreferenceParams): Promise<CreatePreferenceResult>;
   getPayment(paymentId: string): Promise<GetPaymentResult>;
   validateWebhookSignature(params: ValidateWebhookParams): boolean;
+  createPreapproval(params: CreatePreapprovalParams): Promise<CreatePreapprovalResult>;
+  getPreapproval(preapprovalId: string): Promise<GetPreapprovalResult>;
+  cancelPreapproval(preapprovalId: string): Promise<void>;
 }

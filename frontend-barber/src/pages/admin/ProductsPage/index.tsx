@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { FiEdit3, FiEye, FiEyeOff, FiPackage, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner, useToast } from '../../../components/common';
 import { useGetProductsQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation } from '../../../services/productApi';
@@ -17,6 +17,10 @@ const statusColor: Record<ProductStatus, string> = {
   deleted: 'bg-gray-500/10 text-gray-400',
 };
 
+const INITIAL_FORM: CreateProductPayload = {
+  name: '', description: '', price: 0, stock: 0, imageUrl: '', category: '',
+};
+
 export const ProductsPage: React.FC = () => {
   const [includeInactive, setIncludeInactive] = useState(false);
   const { data, isLoading } = useGetProductsQuery({ status: includeInactive ? undefined : 'active' });
@@ -27,23 +31,58 @@ export const ProductsPage: React.FC = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<CreateProductPayload>(INITIAL_FORM);
+  const formDraftRef = useRef<CreateProductPayload | null>(null);
 
   const products = data?.products ?? [];
 
-  const handleCreate = async (form: CreateProductPayload) => {
+  const openCreate = () => {
+    setEditingProduct(null);
+    setFormData(formDraftRef.current ?? INITIAL_FORM);
+    setModalOpen(true);
+  };
+
+  const openEdit = (product: Product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      stock: product.stock,
+      imageUrl: product.imageUrl,
+      category: product.category,
+    });
+    setModalOpen(true);
+  };
+
+  const handleClose = () => {
+    if (!editingProduct) {
+      formDraftRef.current = formData;
+    }
+    setModalOpen(false);
+  };
+
+  const handleCancel = () => {
+    formDraftRef.current = null;
+    setEditingProduct(null);
+    setModalOpen(false);
+  };
+
+  const handleCreate = async () => {
     try {
-      await createProduct(form).unwrap();
+      await createProduct(formData).unwrap();
       showToast('Producto creado con éxito');
+      formDraftRef.current = null;
       setModalOpen(false);
     } catch {
       showToast('Error al crear producto', 'error');
     }
   };
 
-  const handleUpdate = async (form: CreateProductPayload) => {
+  const handleUpdate = async () => {
     if (!editingProduct) return;
     try {
-      await updateProduct({ id: editingProduct.id, data: form }).unwrap();
+      await updateProduct({ id: editingProduct.id, data: formData }).unwrap();
       showToast('Producto actualizado con éxito');
       setEditingProduct(null);
       setModalOpen(false);
@@ -95,7 +134,7 @@ export const ProductsPage: React.FC = () => {
           >
             {includeInactive ? 'Ver activos' : 'Ver inactivos'}
           </Button>
-          <Button size="sm" icon={FiPlus} onClick={() => { setEditingProduct(null); setModalOpen(true); }}>
+          <Button size="sm" icon={FiPlus} onClick={openCreate}>
             Nuevo producto
           </Button>
         </div>
@@ -154,7 +193,7 @@ export const ProductsPage: React.FC = () => {
                             {product.status === 'active' ? <FiEyeOff size={14} /> : <FiEye size={14} />}
                           </button>
                           <button
-                            onClick={() => { setEditingProduct(product); setModalOpen(true); }}
+                            onClick={() => openEdit(product)}
                             className="rounded-lg p-2 text-[#8A8A8A] hover:bg-[#282828] hover:text-white"
                           >
                             <FiEdit3 size={14} />
@@ -179,8 +218,11 @@ export const ProductsPage: React.FC = () => {
       {modalOpen && (
         <ProductFormModal
           product={editingProduct}
+          formData={formData}
+          onChange={setFormData}
           onSave={editingProduct ? handleUpdate : handleCreate}
-          onClose={() => { setModalOpen(false); setEditingProduct(null); }}
+          onCancel={handleCancel}
+          onClose={handleClose}
           isSaving={isCreating || isUpdating}
         />
       )}

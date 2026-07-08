@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { initMercadoPago } from '@mercadopago/sdk-react';
@@ -9,6 +9,8 @@ import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AppSidebar } from './components/sidebar/AppSidebar';
+import { AppHeader } from './components/common';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -83,7 +85,7 @@ function App() {
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<BookingPage />} />
-            <Route path="/tienda" element={<ShopPage />} />
+            <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
             <Route path="/membership/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/login" element={<LoginPage />} />
@@ -172,6 +174,33 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
 
 function RegisterPageWrapper() {
   return <RegisterPage />;
+}
+
+function OptionalAppLayout({ children }: { children: React.ReactNode }) {
+  const token = getAccessToken();
+  const kind = getTokenKind(token);
+  const [collapsed, setCollapsed] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  if (!token) return <>{children}</>;
+
+  return (
+    <div className="min-h-screen bg-[#050505]">
+      <AppSidebar
+        collapsed={collapsed}
+        onToggle={() => setCollapsed(!collapsed)}
+        onCloseMobile={() => setSidebarOpen(false)}
+        mobileOpen={sidebarOpen}
+        kind={kind}
+      />
+      <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
+        <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
+        <main>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }
 
 export default App;

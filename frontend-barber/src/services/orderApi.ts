@@ -1,0 +1,45 @@
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { axiosBaseQuery } from './baseQuery';
+import type { Order, OrdersResponse, CreateOrderPayload } from '../types/order';
+import type { InitiatePaymentResponse } from '../types/payment';
+
+export const orderApi = createApi({
+  reducerPath: 'orderApi',
+  baseQuery: axiosBaseQuery,
+  tagTypes: ['Orders', 'Order'],
+  endpoints: (builder) => ({
+    createOrder: builder.mutation<InitiatePaymentResponse, CreateOrderPayload>({
+      query: (data) => ({
+        url: '/api/orders',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['Orders'],
+    }),
+
+    getMyOrders: builder.query<{ orders: Order[] }, void>({
+      query: () => ({ url: '/api/orders/me' }),
+      providesTags: ['Orders'],
+    }),
+
+    getAllOrders: builder.query<OrdersResponse, { status?: string; page?: number; limit?: number } | void>({
+      query: (params) => ({
+        url: '/api/orders',
+        params: params ?? undefined,
+      }),
+      providesTags: ['Orders'],
+    }),
+
+    getOrderById: builder.query<{ order: Order }, string>({
+      query: (id) => ({ url: `/api/orders/${id}` }),
+      providesTags: (_result, _error, id) => [{ type: 'Order', id }],
+    }),
+  }),
+});
+
+export const {
+  useCreateOrderMutation,
+  useGetMyOrdersQuery,
+  useGetAllOrdersQuery,
+  useGetOrderByIdQuery,
+} = orderApi;

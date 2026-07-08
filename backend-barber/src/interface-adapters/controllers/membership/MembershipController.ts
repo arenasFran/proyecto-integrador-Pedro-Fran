@@ -4,11 +4,14 @@ import { MongoUserRepository } from '../../../infrastructure/repositories/mongod
 import { Membership } from '../../../domain/entities/Membership';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
+import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
+import { getConfig } from '../../../infrastructure/config/env';
 
 export class MembershipController {
   constructor(
     private readonly membershipRepo: MongoMembershipRepository,
-    private readonly userRepo: MongoUserRepository
+    private readonly userRepo: MongoUserRepository,
+    private readonly createPaymentUseCase?: CreatePaymentUseCase
   ) {}
 
   getMyMembership = async (req: Request, res: Response) => {
@@ -98,6 +101,49 @@ export class MembershipController {
       return sendSuccess(res, membership.toPrimitives());
     } catch (error) {
       return sendError(res, error, 'Error al obtener membresía');
+    }
+  };
+
+  initiatePayment = async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+
+      if (req.user!._id !== userId && req.user!.kind !== 'Admin') {
+        throw new AppError('No podés iniciar pago para otro usuario.', 403);
+      }
+
+      const user = await this.userRepo.findById(userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado.', 404);
+      }
+
+      const alreadyActive = await this.membershipRepo.hasActiveMembership(userId);
+      if (alreadyActive) {
+        throw new AppError('El usuario ya tiene una membresía activa.', 400);
+      }
+
+      if (!this.createPaymentUseCase) {
+        throw new AppError('MercadoPago no está configurado.', 500);
+      }
+
+      const config = getConfig();
+      const membershipPrice = config.membershipPriceUyu;
+
+      const result = await this.createPaymentUseCase.execute({
+        type: 'membership',
+        referenceId: userId,
+        amount: membershipPrice,
+        userId,
+        items: [{ title: 'Membresía Mensual', quantity: 1, unitPrice: membershipPrice }],
+      });
+
+      return sendSuccess(res, {
+        preferenceId: result.preferenceId,
+        initPoint: result.initPoint,
+        paymentId: result.paymentId,
+      }, 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al iniciar pago de membresía');
     }
   };
 

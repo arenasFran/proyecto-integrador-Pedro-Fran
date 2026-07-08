@@ -8,6 +8,7 @@ import {
   createMembershipSchema,
   redeemCouponSchema,
   queryMembershipsSchema,
+  initiateMembershipPaymentSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -60,6 +61,14 @@ export const createMembershipRouter = (deps: {
     deps.authenticate,
     authorize('Admin'),
     deps.membershipController.getById
+  );
+
+  router.post(
+    '/initiate-payment',
+    membershipMutationLimiter,
+    deps.authenticate,
+    validate({ body: initiateMembershipPaymentSchema }),
+    deps.membershipController.initiatePayment
   );
 
   router.post(

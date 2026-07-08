@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { initMercadoPago } from '@mercadopago/sdk-react';
@@ -10,7 +10,6 @@ import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AppSidebar } from './components/sidebar/AppSidebar';
-import { AppHeader } from './components/common';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -180,24 +179,14 @@ function RegisterPageWrapper() {
 
 function OptionalAppLayout({ children }: { children: React.ReactNode }) {
   const token = getAccessToken();
-  const kind = getTokenKind(token);
-  const [collapsed, setCollapsed] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   if (!token) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-[#050505]">
-      <AppSidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
-        onCloseMobile={() => setSidebarOpen(false)}
-        mobileOpen={sidebarOpen}
-        kind={kind}
-      />
-      <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
-        <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
-        <main className="pt-0">
+      <AppSidebar />
+      <div className="lg:ml-60">
+        <main>
           {children}
         </main>
       </div>

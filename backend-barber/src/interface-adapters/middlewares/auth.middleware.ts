@@ -6,12 +6,10 @@ export const createAuthenticate = (tokenService: ITokenService) => {
   return (req: Request, res: Response, next: NextFunction) => {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
-      console.log('[AUTH DEBUG] No authorization header. Path:', req.path, 'Method:', req.method);
       return res.status(401).json({ error: 'No autorizado' });
     }
     const [scheme, token] = authHeader.split(' ');
     if (scheme !== 'Bearer' || !token) {
-      console.log('[AUTH DEBUG] Invalid scheme or missing token. Scheme:', scheme);
       return res.status(401).json({ error: 'No autorizado' });
     }
 
@@ -23,8 +21,7 @@ export const createAuthenticate = (tokenService: ITokenService) => {
         kind: payload.kind,
       };
       return next();
-    } catch (err) {
-      console.log('[AUTH DEBUG] Token verification failed:', (err as Error).message);
+    } catch {
       return res.status(403).json({ error: 'Token inválido' });
     }
   };

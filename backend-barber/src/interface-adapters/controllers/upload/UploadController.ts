@@ -29,8 +29,6 @@ export class UploadController {
 
   uploadProductImages = async (req: Request, res: Response) => {
     try {
-      console.log('[UPLOAD DEBUG] User:', req.user?.email, 'Kind:', req.user?.kind);
-      console.log('[UPLOAD DEBUG] Files count:', Array.isArray(req.files) ? req.files.length : 'none');
       const files = req.files as Express.Multer.File[] | undefined;
       if (!files || files.length === 0) {
         throw new AppError('No se enviaron imágenes.', 400);
@@ -42,7 +40,6 @@ export class UploadController {
 
       return sendSuccess(res, { urls }, 201);
     } catch (error) {
-      console.log('[UPLOAD DEBUG] Error:', error);
       return sendError(res, error, 'Error al subir imágenes');
     }
   };

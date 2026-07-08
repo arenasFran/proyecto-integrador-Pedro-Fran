@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { FiUpload, FiX, FiCheck } from 'react-icons/fi';
 import { Spinner } from '../common';
-import api from '../../services/api';
+import { getAccessToken } from '../../services/api';
 
 interface ProductImageUploadProps {
   mainImageUrl: string;
@@ -22,16 +22,17 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append('images', f));
-      const { data } = await api.post('/api/upload/product-images', formData);
-      console.log('[UPLOAD DEBUG] Success:', data);
-      return data.data?.urls ?? [];
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error('[UPLOAD DEBUG] Error:', msg);
-      if (typeof err === 'object' && err !== null && 'response' in err) {
-        const resp = (err as { response: { status: number; data: unknown } }).response;
-        console.error('[UPLOAD DEBUG] Status:', resp.status, 'Data:', resp.data);
-      }
+      const res = await fetch('/api/upload/product-images', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAccessToken()}` },
+        body: formData,
+        credentials: 'include',
+      });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return json.data?.urls ?? [];
+    } catch (err) {
+      console.error('[UPLOAD DEBUG] Error:', err);
       return [];
     } finally {
       setUploading(false);

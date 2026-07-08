@@ -105,5 +105,19 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
     controller.getClientAppointmentsHandler,
   );
 
+  router.get(
+    '/ecommerce/overview',
+    authenticate,
+    authorize('Admin'),
+    controller.getEcommerceOverviewHandler,
+  );
+
+  router.get(
+    '/ecommerce/products',
+    authenticate,
+    authorize('Admin'),
+    controller.getProductPerformanceHandler,
+  );
+
   return router;
 };

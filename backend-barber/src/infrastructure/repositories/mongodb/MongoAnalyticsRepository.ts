@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { STATUS_CATEGORIES, VALID_TRANSITIONS } from '../../../domain/types/appointment';
 import AppointmentModel from './models/appointment.model';
 import { PaymentModel } from './models/payment.model';
+import { OrderModel } from './models/order.model';
 
 const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
   Object.keys(VALID_TRANSITIONS).map(s => [s.toLowerCase(), s])
@@ -632,5 +633,90 @@ export class MongoAnalyticsRepository {
       ...entry,
       ganancias: entry.ganancias + (paymentMap.get(entry.periodo) ?? 0),
     }));
+  }
+
+  async getEcommerceOverview(desde: string, hasta: string): Promise<{
+    totalOrders: number;
+    totalRevenue: number;
+    averageTicket: number;
+    ordersByStatus: Record<string, number>;
+    paidOrders: number;
+    cancelledOrders: number;
+  }> {
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+
+    const [ordersAgg, paymentsAgg] = await Promise.all([
+      OrderModel.aggregate([
+        { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        {
+          $facet: {
+            total: [{ $count: 'count' }],
+            byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+          },
+        },
+      ]),
+      PaymentModel.aggregate([
+        { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, avg: { $avg: '$amount' } } },
+      ]),
+    ]);
+
+    const ordersData = ordersAgg[0] || { total: [], byStatus: [] };
+    const totalOrders = ordersData.total[0]?.count ?? 0;
+    const byStatusArr: Array<{ _id: string; count: number }> = ordersData.byStatus || [];
+    const ordersByStatus: Record<string, number> = {};
+    for (const s of byStatusArr) {
+      ordersByStatus[s._id] = s.count;
+    }
+
+    const paymentTotal = paymentsAgg[0]?.total ?? 0;
+    const averageTicket = paymentsAgg[0]?.avg ? Math.round(paymentsAgg[0].avg) : 0;
+
+    return {
+      totalOrders,
+      totalRevenue: Math.round(paymentTotal),
+      averageTicket,
+      ordersByStatus,
+      paidOrders: ordersByStatus['paid'] ?? 0,
+      cancelledOrders: ordersByStatus['cancelled'] ?? 0,
+    };
+  }
+
+  async getProductPerformance(desde: string, hasta: string): Promise<{
+    productId: string;
+    name: string;
+    totalSold: number;
+    totalRevenue: number;
+    timesOrdered: number;
+  }[]> {
+    const desdeDate = new Date(desde);
+    const hastaDate = new Date(hasta);
+
+    const pipeline = [
+      { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate }, status: { $in: ['paid', 'delivered'] } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: { productId: '$items.productId', name: '$items.name' },
+          totalSold: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+          timesOrdered: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          productId: '$_id.productId',
+          name: '$_id.name',
+          totalSold: 1,
+          totalRevenue: 1,
+          timesOrdered: 1,
+        },
+      },
+      { $sort: { totalRevenue: -1 } },
+    ] as mongoose.PipelineStage[];
+
+    return OrderModel.aggregate(pipeline);
   }
 }

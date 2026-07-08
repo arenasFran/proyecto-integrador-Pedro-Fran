@@ -221,4 +221,46 @@ export class AnalyticsController {
       return sendError(res, error, 'Error al obtener reservas y ganancias');
     }
   };
+
+  getEcommerceOverviewHandler = async (req: Request, res: Response) => {
+    try {
+      let { desde, hasta, preset } = req.query as Record<string, string | undefined>;
+
+      if (preset) {
+        const resolved = resolvePreset(preset);
+        desde = resolved.desde;
+        hasta = resolved.hasta;
+      }
+
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar preset o desde/hasta.'), 'Parámetros de fecha inválidos');
+      }
+
+      const result = await this.repository.getEcommerceOverview(desde, hasta);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener métricas de ecommerce');
+    }
+  };
+
+  getProductPerformanceHandler = async (req: Request, res: Response) => {
+    try {
+      let { desde, hasta, preset } = req.query as Record<string, string | undefined>;
+
+      if (preset) {
+        const resolved = resolvePreset(preset);
+        desde = resolved.desde;
+        hasta = resolved.hasta;
+      }
+
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar preset o desde/hasta.'), 'Parámetros de fecha inválidos');
+      }
+
+      const result = await this.repository.getProductPerformance(desde, hasta);
+      return sendSuccess(res, result);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener rendimiento de productos');
+    }
+  };
 }

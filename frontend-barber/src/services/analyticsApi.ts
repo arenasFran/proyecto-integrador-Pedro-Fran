@@ -93,8 +93,39 @@ export const analyticsApi = createApi({
         url: `/api/analytics/clientes/${clientKey}/turnos`,
       }),
     }),
+
+    getEcommerceOverview: builder.query<EcommerceOverview, { preset?: string; desde?: string; hasta?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/ecommerce/overview',
+        params,
+      }),
+    }),
+
+    getProductPerformance: builder.query<ProductPerformanceEntry[], { preset?: string; desde?: string; hasta?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/ecommerce/products',
+        params,
+      }),
+    }),
   }),
 });
+
+export type EcommerceOverview = {
+  totalOrders: number;
+  totalRevenue: number;
+  averageTicket: number;
+  ordersByStatus: Record<string, number>;
+  paidOrders: number;
+  cancelledOrders: number;
+};
+
+export type ProductPerformanceEntry = {
+  productId: string;
+  name: string;
+  totalSold: number;
+  totalRevenue: number;
+  timesOrdered: number;
+};
 
 export const {
   useGetOverviewQuery,
@@ -108,4 +139,6 @@ export const {
   useGetIngresosPorServicioQuery,
   useGetClientesListQuery,
   useGetClientAppointmentsQuery,
+  useGetEcommerceOverviewQuery,
+  useGetProductPerformanceQuery,
 } = analyticsApi;

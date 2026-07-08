@@ -67,6 +67,7 @@ export const createMembershipRouter = (deps: {
     '/initiate-payment',
     membershipMutationLimiter,
     deps.authenticate,
+    authorize('Registrado'),
     validate({ body: initiateMembershipPaymentSchema }),
     deps.membershipController.initiatePayment
   );

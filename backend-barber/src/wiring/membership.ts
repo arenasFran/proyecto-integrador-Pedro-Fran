@@ -1,5 +1,6 @@
 import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoPaymentRepository } from '../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { MembershipController } from '../interface-adapters/controllers/membership/MembershipController';
 import { createMembershipRouter } from '../interface-adapters/routes/membership.routes';
 import { buildTokenService } from './auth';
@@ -9,8 +10,9 @@ import { buildCreatePaymentUseCase } from './payment';
 export const buildMembershipRouter = () => {
   const membershipRepo = new MongoMembershipRepository();
   const userRepo = new MongoUserRepository();
+  const paymentRepo = new MongoPaymentRepository();
   const createPaymentUseCase = buildCreatePaymentUseCase();
-  const controller = new MembershipController(membershipRepo, userRepo, createPaymentUseCase);
+  const controller = new MembershipController(membershipRepo, userRepo, createPaymentUseCase, paymentRepo);
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

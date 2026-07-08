@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { Membership } from '../../../domain/entities/Membership';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
@@ -11,7 +12,8 @@ export class MembershipController {
   constructor(
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly userRepo: MongoUserRepository,
-    private readonly createPaymentUseCase?: CreatePaymentUseCase
+    private readonly createPaymentUseCase?: CreatePaymentUseCase,
+    private readonly paymentRepository?: MongoPaymentRepository
   ) {}
 
   getMyMembership = async (req: Request, res: Response) => {
@@ -124,6 +126,17 @@ export class MembershipController {
 
       if (!this.createPaymentUseCase) {
         throw new AppError('MercadoPago no está configurado.', 500);
+      }
+
+      const existingPayment = this.paymentRepository
+        ? await this.paymentRepository.findByReference(userId, 'membership')
+        : null;
+      if (existingPayment && existingPayment.status === 'pending' && existingPayment.mpPreferenceId) {
+        return sendSuccess(res, {
+          preferenceId: existingPayment.mpPreferenceId,
+          initPoint: '',
+          paymentId: existingPayment.id,
+        });
       }
 
       const config = getConfig();

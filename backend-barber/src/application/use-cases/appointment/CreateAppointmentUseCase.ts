@@ -213,25 +213,38 @@ export class CreateAppointmentUseCase {
       session.endSession();
     }
 
-    // RN17 — Notificar por email (asíncrono, no bloqueante)
-    this.sendCreationEmail(created!, barber.name, barber.lastname);
-
     if (paymentMethod === 'online' && this.createPaymentUseCase) {
-      const paymentResult = await this.createPaymentUseCase.execute({
-        type: 'appointment',
-        referenceId: created!.id,
-        amount: service.price,
-        userId: dto.clientId || '',
-        items: [{ title: service.name, quantity: 1, unitPrice: service.price }],
-      });
+      try {
+        const paymentResult = await this.createPaymentUseCase.execute({
+          type: 'appointment',
+          referenceId: created!.id,
+          amount: service.price,
+          userId: dto.clientId || '',
+          items: [{ title: service.name, quantity: 1, unitPrice: service.price }],
+        });
 
-      return {
-        message: 'Turno creado exitosamente. Redirigiendo al pago...',
-        appointment: created!.toPrimitives(),
-        preferenceId: paymentResult.preferenceId,
-        initPoint: paymentResult.initPoint,
-      };
+        this.sendCreationEmail(created!, barber.name, barber.lastname, paymentResult.initPoint);
+
+        return {
+          message: 'Turno creado exitosamente. Redirigiendo al pago...',
+          appointment: created!.toPrimitives(),
+          preferenceId: paymentResult.preferenceId,
+          initPoint: paymentResult.initPoint,
+        };
+      } catch (error) {
+        await this.appointmentRepository.updateStatus(created!.id, {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Error al procesar el pago online',
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+        });
+        throw error;
+      }
     }
+
+    this.sendCreationEmail(created!, barber.name, barber.lastname);
 
     return {
       message: 'Turno creado exitosamente',
@@ -296,19 +309,29 @@ export class CreateAppointmentUseCase {
   private sendCreationEmail(
     appointment: import('../../../domain/entities/Appointment').Appointment,
     barberName: string,
-    barberLastname: string
+    barberLastname: string,
+    initPoint?: string
   ): void {
     const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
-      this.emailService
-        .sendMail({
-          to: clientEmail,
-          subject: 'Turno agendado',
-          html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
+    let paymentHtml = '';
+    if (appointment.paymentMethod === 'online' && initPoint) {
+      paymentHtml = `<p>Estado de pago: Pendiente — <a href="${initPoint}" style="color: #3b82f6; font-weight: bold;">Pagá online acá</a></p>`;
+    } else if (appointment.paymentStatus === 'Pagado') {
+      paymentHtml = '<p>Estado de pago: Pagado</p>';
+    } else {
+      paymentHtml = '<p>Estado de pago: Pendiente — abonás en el local</p>';
+    }
+
+    this.emailService
+      .sendMail({
+        to: clientEmail,
+        subject: 'Turno agendado',
+        html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
 <p>Servicio: ${appointment.serviceName}</p>
 <p>Precio: $${appointment.servicePrice}</p>
-<p>Estado de pago: ${appointment.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
+${paymentHtml}`,
       })
       .catch((error) => {
         console.error('Error enviando email de creación:', error);

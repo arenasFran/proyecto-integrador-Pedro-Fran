@@ -461,6 +461,7 @@ export class MongoAnalyticsRepository {
                   $and: [
                     { $eq: ['$userId', '$$uid'] },
                     { $eq: ['$status', 'active'] },
+                    { $gte: ['$endDate', new Date()] },
                   ],
                 },
               },

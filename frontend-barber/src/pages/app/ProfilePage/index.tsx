@@ -6,7 +6,8 @@ import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout, updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
-import { useChangePasswordMutation } from '../../../services/authApi';
+import { useChangePasswordMutation, useRequestResetMutation } from '../../../services/authApi';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import type { DayKey } from '../../../types/professional';
 import {
   createEmptySchedule,
@@ -57,12 +58,11 @@ export const ProfilePage: React.FC = () => {
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
 
   const [changePasswordMutation, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+  const [requestReset, { isLoading: isRequestingReset }] = useRequestResetMutation();
   const { showToast } = useToast();
 
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [uploadKey, setUploadKey] = useState(0);
-  const [photoSaved, setPhotoSaved] = useState(false);
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
@@ -155,8 +155,6 @@ export const ProfilePage: React.FC = () => {
       if (photoFile) {
         photoUrl = await uploadAvatar(photoFile, photoUrl ?? undefined);
         setPhotoFile(null);
-        setPhotoSaved(true);
-        setUploadKey((k) => k + 1);
       }
 
       if (isBarber) {
@@ -246,6 +244,17 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!authUser?.email) return;
+
+    try {
+      await requestReset({ email: authUser.email }).unwrap();
+      showToast('Te enviamos un email para restablecer tu contraseña.', 'success');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Error al solicitar el restablecimiento'), 'error');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center">
@@ -274,13 +283,11 @@ export const ProfilePage: React.FC = () => {
           <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
               <ImageUpload
-                key={uploadKey}
                 variant="avatar"
                 name={String(formData.name ?? '')}
                 lastname={String(formData.lastname ?? '')}
-                currentUrl={photoSaved ? null : (formData.photoUrl ? String(formData.photoUrl) : null)}
+                currentUrl={formData.photoUrl ? String(formData.photoUrl) : null}
                 onFileSelect={(file) => {
-                  if (file) setPhotoSaved(false);
                   setPhotoFile(file);
                   setEditedFields((prev) => ({ ...prev, photoUrl: null }));
                 }}
@@ -450,13 +457,23 @@ export const ProfilePage: React.FC = () => {
 
           {showChangePassword && (
             <div className="grid gap-4">
-              <PasswordInput
-                label="Contraseña actual"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Ingresá tu contraseña actual"
-                error={passwordFieldErrors.currentPassword}
-              />
+              <div className="grid gap-1.5">
+                <PasswordInput
+                  label="Contraseña actual"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Ingresá tu contraseña actual"
+                  error={passwordFieldErrors.currentPassword}
+                />
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isRequestingReset}
+                  className="self-start text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] transition-colors disabled:opacity-50"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
               <PasswordInput
                 label="Nueva contraseña"
                 value={newPassword}

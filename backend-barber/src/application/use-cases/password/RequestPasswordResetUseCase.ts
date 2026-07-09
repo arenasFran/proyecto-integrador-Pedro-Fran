@@ -29,7 +29,7 @@ export class RequestPasswordResetUseCase {
         new Date().getTime() + this.expirationMinutes * 60 * 1000
       );
 
-      const url = `${this.frontendUrl}/reset-password?token=${token}`;
+      const url = `${this.frontendUrl}/recovery?token=${token}&email=${encodeURIComponent(user.email)}`;
       const subject = 'Restablece tu contraseña';
       const html = `<p>Para restablecer tu contraseña haz clic <a href="${url}">aquí</a>.</p>`;
 

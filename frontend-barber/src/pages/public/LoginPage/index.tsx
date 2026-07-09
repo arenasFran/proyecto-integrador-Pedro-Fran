@@ -373,6 +373,7 @@ export const LoginPage: React.FC = () => {
                       type="tel"
                       placeholder="598 91 234 567"
                       {...getProfileFieldProps('phone')}
+                      required
                       error={profileTouched.phone ? profileErrors.phone : undefined}
                     />
                   </motion.div>

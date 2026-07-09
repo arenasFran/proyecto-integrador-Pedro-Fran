@@ -96,15 +96,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             <FiCamera className="w-6 h-6 text-white" />
           </div>
         </div>
-        {previewUrl && (
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); handleRemove(); }}
-            className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors z-10"
-          >
-            <FiX className="w-3 h-3" />
-          </button>
-        )}
         <input
           ref={fileInputRef}
           type="file"

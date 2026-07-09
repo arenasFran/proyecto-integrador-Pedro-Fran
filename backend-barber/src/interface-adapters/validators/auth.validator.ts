@@ -61,7 +61,7 @@ export const completeGoogleProfileSchema = Joi.object({
     'string.min': 'El nombre no puede estar vacío',
   }),
   lastname: Joi.string().allow('').optional(),
-  phone: Joi.string().optional(),
+  phone: Joi.string().required(),
 });
 
 export const refreshTokenSchema = Joi.object({

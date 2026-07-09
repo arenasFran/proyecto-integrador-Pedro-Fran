@@ -46,6 +46,11 @@ describe('ResetPasswordForm', () => {
     expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
   });
 
+  it('prefills the token field when initialToken is provided', () => {
+    renderWithProviders(<ResetPasswordForm email="test@example.com" initialToken="token-from-email" />);
+    expect(screen.getByLabelText(/token de recuperación/i)).toHaveValue('token-from-email');
+  });
+
   it('does not submit when form is invalid', async () => {
     const user = userEvent.setup();
     renderWithProviders(<ResetPasswordForm email="test@example.com" />);

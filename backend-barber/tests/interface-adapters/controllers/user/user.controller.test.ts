@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { UserController } from '../../../../src/interface-adapters/controllers/user/UserController';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { User, UserProps } from '../../../../src/domain/entities/User';
-import { makeMockUserRepository, makeMockPasswordHasher, makeMockRefreshTokenRepository } from '../../../test-utils/mocks';
+import { makeMockUserRepository, makeMockPasswordHasher, makeMockRefreshTokenRepository, makeMockEmailService } from '../../../test-utils/mocks';
 
 describe('UserController', () => {
   const makeUser = (overrides?: Partial<UserProps>) => {
@@ -21,13 +21,15 @@ describe('UserController', () => {
   let userRepository: ReturnType<typeof makeMockUserRepository>;
   let passwordHasher: ReturnType<typeof makeMockPasswordHasher>;
   let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
+  let emailService: ReturnType<typeof makeMockEmailService>;
   let controller: UserController;
 
   beforeEach(() => {
     userRepository = makeMockUserRepository();
     passwordHasher = makeMockPasswordHasher();
     refreshTokenRepository = makeMockRefreshTokenRepository();
-    controller = new UserController(userRepository, passwordHasher, refreshTokenRepository);
+    emailService = makeMockEmailService();
+    controller = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
   });
 
   it('debe retornar el perfil del usuario autenticado', async () => {
@@ -125,6 +127,9 @@ describe('UserController', () => {
       expect(refreshTokenRepository.revokeAllByUserId).toHaveBeenCalledWith('user-1');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Contraseña actualizada con éxito.' });
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: user.email, subject: expect.stringMatching(/contraseña/i) })
+      );
     });
 
     it('debe rechazar si las nuevas contraseñas no coinciden', async () => {

@@ -77,7 +77,8 @@ export const buildUserRouter = () => {
     audience: config.jwtAudience,
   });
 
-  const userController = new UserController(userRepository, passwordHasher, refreshTokenRepository);
+  const emailService = new NodemailerEmailService();
+  const userController = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
   const authenticate = createAuthenticate(tokenService);
 
   return createUserRouter({ authenticate, userController });

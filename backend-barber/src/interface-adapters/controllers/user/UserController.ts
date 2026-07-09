@@ -5,12 +5,14 @@ import { BcryptPasswordHasher } from '../../../infrastructure/services/BcryptPas
 import { Password } from '../../../domain/value-objects/Password';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
+import { IEmailService } from '../../../application/ports/IEmailService';
 
 export class UserController {
   constructor(
     private readonly userRepository: MongoUserRepository,
     private readonly passwordHasher: BcryptPasswordHasher,
-    private readonly refreshTokenRepository: MongoRefreshTokenRepository
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository,
+    private readonly emailService: IEmailService
   ) {}
 
   getMe = async (req: Request, res: Response) => {
@@ -92,6 +94,16 @@ export class UserController {
 
       await this.userRepository.updatePassword(req.user!._id, newPasswordHash);
       await this.refreshTokenRepository.revokeAllByUserId(req.user!._id);
+
+      this.emailService
+        .sendMail({
+          to: user.email,
+          subject: 'Tu contraseña fue actualizada',
+          html: `<p>Tu contraseña se cambió correctamente.</p><p>Si no fuiste vos, contactanos de inmediato.</p>`,
+        })
+        .catch((error) => {
+          console.error('Error enviando email de cambio de contraseña:', error);
+        });
 
       return sendSuccess(res, { message: 'Contraseña actualizada con éxito.' }, 200);
     } catch (error) {

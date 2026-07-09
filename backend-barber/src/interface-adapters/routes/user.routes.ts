@@ -1,8 +1,18 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { UserController } from '../controllers/user/UserController';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import { changePasswordSchema, updateUserSchema } from '../validators/user.validator';
+
+export const changePasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Demasiados intentos de cambio de contraseña, esperá 15 minutos' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user!._id,
+});
 
 export const createUserRouter = (deps: {
   authenticate: express.RequestHandler;
@@ -23,6 +33,7 @@ export const createUserRouter = (deps: {
   router.patch(
     '/me/password',
     deps.authenticate,
+    changePasswordLimiter,
     validate({ body: changePasswordSchema }),
     deps.userController.changePassword
   );

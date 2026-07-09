@@ -1,9 +1,9 @@
 import request from 'supertest';
 import express from 'express';
-import { createUserRouter } from '../../../src/interface-adapters/routes/user.routes';
+import { createUserRouter, changePasswordLimiter } from '../../../src/interface-adapters/routes/user.routes';
 import { UserController } from '../../../src/interface-adapters/controllers/user/UserController';
 import { User, UserProps } from '../../../src/domain/entities/User';
-import { makeMockUserRepository, makeMockPasswordHasher, makeMockRefreshTokenRepository } from '../../test-utils/mocks';
+import { makeMockUserRepository, makeMockPasswordHasher, makeMockRefreshTokenRepository, makeMockEmailService } from '../../test-utils/mocks';
 
 describe('User routes', () => {
   const makeUser = (overrides?: Partial<UserProps>) => {
@@ -30,10 +30,12 @@ describe('User routes', () => {
   };
 
   beforeEach(() => {
+    changePasswordLimiter.resetKey('user-1');
     userRepository = makeMockUserRepository();
     passwordHasher = makeMockPasswordHasher();
     refreshTokenRepository = makeMockRefreshTokenRepository();
-    const controller = new UserController(userRepository, passwordHasher, refreshTokenRepository);
+    const emailService = makeMockEmailService();
+    const controller = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
 
     app = express();
     app.use(express.json());

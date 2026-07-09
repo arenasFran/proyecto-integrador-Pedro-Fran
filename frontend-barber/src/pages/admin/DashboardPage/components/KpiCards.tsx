@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientesListQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetNuevosClientesQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import type { OverviewData, ClienteData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
@@ -70,9 +70,8 @@ const kindBadge = (kind: string) => {
 };
 
 function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; navigate: (path: string) => void }) {
-  const { data: clientes = [], isLoading } = useGetClientesListQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data: nuevos = [], isLoading } = useGetNuevosClientesQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
 
-  const nuevos = useMemo(() => clientes.filter(c => c.firstVisit >= desde && c.firstVisit <= hasta), [clientes, desde, hasta]);
   const registrados = useMemo(() => nuevos.filter(c => c.kind === 'Registrado').length, [nuevos]);
   const anonimos = useMemo(() => nuevos.length - registrados, [nuevos, registrados]);
 
@@ -107,12 +106,12 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
             ) : (
               <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
                 {nuevos.slice(0, 20).map((c) => (
-                  <div key={c.key} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-[12px]">
+                  <div key={c.clientId} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-[12px]">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-white truncate">{c.clientName} {c.clientLastname}</span>
+                      <span className="text-white truncate">{c.name} {c.lastname}</span>
                       {kindBadge(c.kind)}
                     </div>
-                    <span className="text-[#8A8A8A] shrink-0 ml-2">{c.clientPhone ?? ''}</span>
+                    <span className="text-[#8A8A8A] shrink-0 ml-2">{c.phone ?? c.email ?? ''}</span>
                   </div>
                 ))}
                 {nuevos.length > 20 && (

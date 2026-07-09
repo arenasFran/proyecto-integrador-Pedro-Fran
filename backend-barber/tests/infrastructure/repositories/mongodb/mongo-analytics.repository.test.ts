@@ -2,6 +2,10 @@ import mongoose from 'mongoose';
 import { MongoAnalyticsRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoAnalyticsRepository';
 import { Barber } from '../../../../src/infrastructure/repositories/mongodb/models/barber.model';
 import AppointmentModel from '../../../../src/infrastructure/repositories/mongodb/models/appointment.model';
+import { Client, RegisteredClient, UnregisteredClient } from '../../../../src/infrastructure/repositories/mongodb/models/client.model';
+
+// ObjectId cuyo timestamp embebido es el instante dado (segundos de resolución).
+const oidAt = (iso: string) => mongoose.Types.ObjectId.createFromTime(Math.floor(new Date(iso).getTime() / 1000));
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
@@ -105,6 +109,28 @@ describeIfMongo('MongoAnalyticsRepository', () => {
     await AppointmentModel.create(makeAppointment({
       date: '2025-07-05', barberId: barber1Id, status: 'Completado', clientId: regId1,
     }));
+
+    // Clientes registrados/anónimos con fecha de alta embebida en el _id
+    await RegisteredClient.create({
+      _id: oidAt('2025-05-20T10:00:00Z'),
+      name: 'Ana', lastname: 'Vieja', email: 'ana@test.com', password: 'hash',
+    });
+    await RegisteredClient.create({
+      _id: oidAt('2025-06-05T10:00:00Z'),
+      name: 'Juan', lastname: 'Perez', email: 'juan@test.com', password: 'hash',
+    });
+    await UnregisteredClient.create({
+      _id: oidAt('2025-06-10T12:00:00Z'),
+      name: 'Luis', lastname: 'Gomez', phone: 'p1',
+    });
+    await UnregisteredClient.create({
+      _id: oidAt('2025-06-30T15:00:00Z'),
+      name: 'Marta', lastname: 'Diaz', phone: 'p2',
+    });
+    await RegisteredClient.create({
+      _id: oidAt('2025-07-02T09:00:00Z'),
+      name: 'Pia', lastname: 'Futura', email: 'pia@test.com', password: 'hash',
+    });
   });
 
   describe('getOverview', () => {
@@ -114,7 +140,7 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       expect(result.totalReservas).toBe(7);
       expect(result.duracionTotalMinutos).toBe(165);
       expect(result.ingresosTotales).toBe(1580);
-      expect(result.nuevosClientes).toBe(4);
+      expect(result.nuevosClientes).toBe(3);
       expect(result.estadisticasPorEstado).toEqual({
         confirmado: 2,
         completado: 3,
@@ -310,6 +336,79 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       expect(result.recurrentes).toBe(0);
       expect(result.tasaRetorno).toBe(0);
       expect(result.nuevos).toBe(0);
+    });
+  });
+
+  describe('getClientesList', () => {
+    it('lista todos los clientes dados de alta hasta el fin del rango, con estadísticas del período', async () => {
+      const result = await repository.getClientesList(DESDE, HASTA);
+
+      // Pia (alta 2025-07-02) queda fuera; los demás aparecen aunque no tengan turnos
+      expect(result).toHaveLength(4);
+
+      expect(result[0]).toMatchObject({
+        clientName: 'Marta', kind: 'NoRegistrado', totalVisits: 1, totalSpent: 0,
+        firstVisit: '2025-06-25', lastVisit: '2025-06-25',
+      });
+      expect(result[0].key.startsWith('anon_')).toBe(true);
+
+      expect(result[1]).toMatchObject({
+        clientName: 'Luis', kind: 'NoRegistrado', totalVisits: 2, totalSpent: 1090,
+        firstVisit: '2025-06-10', lastVisit: '2025-06-20',
+      });
+
+      // Registrados sin turnos: aparecen con 0 actividad
+      expect(result[2]).toMatchObject({
+        clientName: 'Juan', kind: 'Registrado', totalVisits: 0, totalSpent: 0,
+        firstVisit: null, lastVisit: null,
+      });
+      expect(result[2].key.startsWith('reg_')).toBe(true);
+      expect(result[3]).toMatchObject({ clientName: 'Ana', kind: 'Registrado', totalVisits: 0 });
+    });
+
+    it('no incluye actividad fuera del rango en las estadísticas', async () => {
+      const result = await repository.getClientesList('2025-06-01', '2025-06-15');
+
+      const luis = result.find(c => c.clientName === 'Luis');
+      expect(luis).toMatchObject({ totalVisits: 1, totalSpent: 600, lastVisit: '2025-06-10' });
+    });
+  });
+
+  describe('getClientAppointments', () => {
+    it('resuelve la clave anon_<id> trayendo turnos legacy vinculados por teléfono', async () => {
+      const luis = await Client.findOne({ phone: 'p1' });
+      const result = await repository.getClientAppointments(`anon_${luis!._id}`);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].date).toBe('2025-06-20');
+      expect(result[1].date).toBe('2025-06-10');
+    });
+
+    it('mantiene compatibilidad con la clave legacy anon_<telefono>', async () => {
+      const result = await repository.getClientAppointments('anon_p1');
+      expect(result).toHaveLength(2);
+    });
+  });
+
+  describe('getNuevosClientes', () => {
+    it('lista clientes dados de alta en el rango, ordenados por fecha descendente', async () => {
+      const result = await repository.getNuevosClientes(DESDE, HASTA);
+
+      expect(result).toHaveLength(3);
+      expect(result[0]).toMatchObject({ name: 'Marta', lastname: 'Diaz', phone: 'p2', kind: 'NoRegistrado' });
+      expect(result[1]).toMatchObject({ name: 'Luis', lastname: 'Gomez', phone: 'p1', kind: 'NoRegistrado' });
+      expect(result[2]).toMatchObject({ name: 'Juan', lastname: 'Perez', email: 'juan@test.com', kind: 'Registrado' });
+    });
+
+    it('incluye altas del último día del rango (fin de día)', async () => {
+      const result = await repository.getNuevosClientes(DESDE, '2025-06-30');
+
+      expect(result.some(c => c.name === 'Marta')).toBe(true);
+    });
+
+    it('devuelve array vacío para rango sin altas', async () => {
+      const result = await repository.getNuevosClientes('2030-01-01', '2030-01-31');
+      expect(result).toEqual([]);
     });
   });
 

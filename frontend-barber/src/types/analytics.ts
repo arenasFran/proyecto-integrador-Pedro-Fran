@@ -64,11 +64,22 @@ export interface ClienteData {
   clientPhone?: string;
   clientEmail?: string;
   kind: 'Registrado' | 'NoRegistrado';
+  registeredAt: string;
   totalVisits: number;
   totalSpent: number;
-  firstVisit: string;
-  lastVisit: string;
+  firstVisit: string | null;
+  lastVisit: string | null;
   membershipStatus: 'active' | null;
+}
+
+export interface NuevoClienteData {
+  clientId: string;
+  name: string;
+  lastname: string;
+  phone?: string;
+  email?: string;
+  kind: 'Registrado' | 'NoRegistrado';
+  registeredAt: string;
 }
 
 export interface ClientAppointmentEntry {

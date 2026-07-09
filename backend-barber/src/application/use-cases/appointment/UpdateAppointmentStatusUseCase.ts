@@ -35,6 +35,14 @@ export class UpdateAppointmentStatusUseCase {
       return { message: 'El turno ya se encontraba cancelado' };
     }
 
+    // Permission check
+    const isOwner = appointment.clientId === userId;
+    const isAdmin = userKind === 'Admin';
+    const isAssignedBarber = userKind === 'Empleado' && appointment.barberId === userId;
+    if (!isOwner && !isAdmin && !isAssignedBarber) {
+      throw new AppError('No tenés permiso para modificar este turno.', 403);
+    }
+
     const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
     const actor = (userKind && actorMap[userKind]) || 'system';
 

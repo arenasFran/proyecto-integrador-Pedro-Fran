@@ -66,9 +66,9 @@ describe('UpdateAppointmentStatusUseCase', () => {
   });
 
   it('debe completar el turno y marcarlo como pagado', async () => {
-    appointmentRepository.findById.mockResolvedValue(makeAppointment());
+    appointmentRepository.findById.mockResolvedValue(makeAppointment({ barberId: 'empleado-1' }));
     appointmentRepository.updateStatus.mockResolvedValue(
-      makeAppointment({ status: 'Completado' })
+      makeAppointment({ status: 'Completado', barberId: 'empleado-1' })
     );
 
     const result = await useCase.execute('apt-1', { status: 'Completado' }, 'empleado-1', 'Empleado');
@@ -128,10 +128,10 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
   it('debe marcar NoShow desde Confirmado si el turno ya paso', async () => {
     appointmentRepository.findById.mockResolvedValue(
-      makeAppointment({ status: 'Confirmado', date: '2020-01-01', startTime: '10:00' })
+      makeAppointment({ status: 'Confirmado', barberId: 'empleado-1', date: '2020-01-01', startTime: '10:00' })
     );
     appointmentRepository.updateStatus.mockResolvedValue(
-      makeAppointment({ status: 'NoShow' })
+      makeAppointment({ status: 'NoShow', barberId: 'empleado-1' })
     );
 
     const result = await useCase.execute('apt-1', { status: 'NoShow' }, 'empleado-1', 'Empleado');
@@ -146,7 +146,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
   it('debe fallar NoShow si el turno aun no paso', async () => {
     appointmentRepository.findById.mockResolvedValue(
-      makeAppointment({ status: 'Confirmado', date: '2099-01-01', startTime: '10:00' })
+      makeAppointment({ status: 'Confirmado', barberId: 'empleado-1', date: '2099-01-01', startTime: '10:00' })
     );
 
     await expect(
@@ -156,7 +156,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
   it('debe fallar NoShow desde Completado (transicion invalida)', async () => {
     appointmentRepository.findById.mockResolvedValue(
-      makeAppointment({ status: 'Completado' })
+      makeAppointment({ status: 'Completado', barberId: 'empleado-1' })
     );
 
     await expect(
@@ -187,6 +187,37 @@ describe('UpdateAppointmentStatusUseCase', () => {
     const result = await strictUseCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin');
 
     expect(result.message).toMatch(/Cancelado/);
+  });
+
+  describe('autorización', () => {
+    it('debe rechazar si un cliente intenta modificar un turno ajeno', async () => {
+      appointmentRepository.findById.mockResolvedValue(
+        makeAppointment({ clientId: 'client-otro' })
+      );
+
+      await expect(
+        useCase.execute('apt-1', { status: 'Completado' }, 'client-mio', 'Registrado')
+      ).rejects.toThrow(AppError);
+    });
+
+    it('debe rechazar si un barbero intenta modificar turno de otro barbero', async () => {
+      appointmentRepository.findById.mockResolvedValue(
+        makeAppointment({ barberId: 'barber-otro' })
+      );
+
+      await expect(
+        useCase.execute('apt-1', { status: 'Completado' }, 'barber-mio', 'Empleado')
+      ).rejects.toThrow(AppError);
+    });
+
+    it('debe permitir si un admin modifica cualquier turno', async () => {
+      appointmentRepository.findById.mockResolvedValue(makeAppointment());
+      appointmentRepository.updateStatus.mockResolvedValue(makeAppointment({ status: 'Completado' }));
+
+      const result = await useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin');
+
+      expect(result.message).toMatch(/Completado/);
+    });
   });
 
   describe('restauración de cupón de membresía', () => {

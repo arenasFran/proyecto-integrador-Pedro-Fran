@@ -86,7 +86,8 @@ export const buildUserRouter = () => {
 
 export const buildUploadRouter = () => {
   const cloudinaryService = new CloudinaryService();
-  const uploadController = new UploadController(cloudinaryService);
+  const userRepository = new MongoUserRepository();
+  const uploadController = new UploadController(cloudinaryService, userRepository);
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);
 

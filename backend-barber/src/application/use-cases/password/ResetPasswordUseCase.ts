@@ -1,4 +1,5 @@
 import { MongoPasswordResetRepository } from '../../../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Password } from '../../../domain/value-objects/Password';
 import { AppError } from '../../../domain/errors/AppError';
@@ -20,7 +21,8 @@ export class ResetPasswordUseCase {
     private readonly userRepository: MongoUserRepository,
     private readonly passwordResetRepository: MongoPasswordResetRepository,
     private readonly passwordHasher: IPasswordHasher,
-    private readonly hashService: IHashService
+    private readonly hashService: IHashService,
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository
   ) {}
 
   async execute(dto: ResetPasswordDTO): Promise<{ message: string }> {
@@ -74,6 +76,8 @@ export class ResetPasswordUseCase {
 
     const hash = await this.passwordHasher.hash(dto.password);
     await this.userRepository.updatePassword(tokenDoc.userId, hash);
+
+    await this.refreshTokenRepository.revokeAllByUserId(tokenDoc.userId);
 
     return { message: 'Contraseña restablecida con éxito' };
   }

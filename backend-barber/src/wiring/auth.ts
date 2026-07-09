@@ -87,7 +87,8 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     userRepository,
     passwordResetRepository,
     passwordHasher,
-    hashService
+    hashService,
+    refreshTokenRepository
   );
 
   const authController = new AuthController(registerUser, refreshTokenUseCase);

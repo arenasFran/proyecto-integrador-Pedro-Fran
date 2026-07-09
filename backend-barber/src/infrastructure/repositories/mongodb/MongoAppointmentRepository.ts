@@ -47,6 +47,7 @@ export type UpdateAppointmentData = {
   endTime?: string;
   barberId?: string;
   paymentMethod?: string;
+  serviceDuration?: number;
 };
 
 const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
@@ -270,6 +271,9 @@ export class MongoAppointmentRepository {
     }
     if (data.paymentMethod !== undefined) {
       updateData.paymentMethod = data.paymentMethod;
+    }
+    if (data.serviceDuration !== undefined) {
+      updateData.serviceDuration = data.serviceDuration;
     }
 
     const filter: Record<string, unknown> = { _id: id };

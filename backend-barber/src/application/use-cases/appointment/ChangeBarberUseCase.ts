@@ -53,8 +53,7 @@ export class ChangeBarberUseCase {
       }
     }
 
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = actorMap[userKind] || 'system';
+    const actor = await this.resolveStaffActor(userId);
     const oldBarber = await this.barberRepository.findBarberById(appointment.barberId);
     const oldBarberName = oldBarber ? `${oldBarber.name} ${oldBarber.lastname}` : appointment.barberId;
     const newBarberName = `${newBarber.name} ${newBarber.lastname}`;
@@ -73,5 +72,13 @@ export class ChangeBarberUseCase {
     });
 
     return { message: `Barbero cambiado de ${oldBarberName} a ${newBarberName}` };
+  }
+
+  private async resolveStaffActor(userId: string): Promise<string> {
+    const staffMember = await this.barberRepository.findBarberById(userId);
+    if (staffMember) {
+      return `${staffMember.name} ${staffMember.lastname}`;
+    }
+    return 'Personal';
   }
 }

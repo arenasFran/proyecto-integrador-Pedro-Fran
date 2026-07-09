@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
@@ -16,7 +17,8 @@ export class UpdateAppointmentStatusUseCase {
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
-    private readonly cancelMinHoursBefore: number
+    private readonly cancelMinHoursBefore: number,
+    private readonly barberRepository: MongoBarberRepository
   ) {}
 
   async execute(
@@ -43,8 +45,7 @@ export class UpdateAppointmentStatusUseCase {
       throw new AppError('No tenés permiso para modificar este turno.', 403);
     }
 
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = (userKind && actorMap[userKind]) || 'system';
+    const actor = await this.resolveStaffActor(userId);
 
     // Application-level rules before entity mutation
     if (dto.status === 'Cancelado') {
@@ -127,7 +128,7 @@ export class UpdateAppointmentStatusUseCase {
         const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
         if (membership) {
           membership.restoreCoupon();
-          await this.membershipRepository.save(membership, session);
+          await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
         }
       }
 
@@ -166,6 +167,16 @@ export class UpdateAppointmentStatusUseCase {
     }
 
     return { message: `Estado actualizado a ${dto.status}` };
+  }
+
+  private async resolveStaffActor(userId?: string): Promise<string> {
+    if (userId) {
+      const staffMember = await this.barberRepository.findBarberById(userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+    }
+    return 'Personal';
   }
 }
 

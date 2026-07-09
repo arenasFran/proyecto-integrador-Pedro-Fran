@@ -152,6 +152,38 @@ describe('RescheduleAppointmentUseCase', () => {
     expect(result.message).toMatch(/reagendado/);
   });
 
+  it('debe actualizar serviceDuration al reprogramar a un barbero con slotDuration distinta', async () => {
+    setupHappyPathMocks();
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ id: 'barber-2', slotDuration: 60 }));
+    const dtoOtherBarber = { ...dto, barberId: 'barber-2' };
+
+    await useCase.execute('apt-1', dtoOtherBarber, 'client-1', 'Cliente');
+
+    expect(appointmentRepository.update).toHaveBeenCalledWith(
+      'apt-1',
+      expect.objectContaining({ barberId: 'barber-2', serviceDuration: 60 }),
+      capturedSession
+    );
+  });
+
+  it('debe registrar el nombre real del admin como actor, no el rol genérico', async () => {
+    setupHappyPathMocks();
+    barberRepository.findBarberById.mockImplementation((id: string) => {
+      if (id === 'admin-1') return Promise.resolve(makeBarber({ id: 'admin-1', name: 'Ana', lastname: 'Reyes' }));
+      return Promise.resolve(makeBarber());
+    });
+
+    await useCase.execute('apt-1', dto, 'admin-1', 'Admin');
+
+    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith(
+      'apt-1',
+      expect.objectContaining({
+        statusHistoryEntry: expect.objectContaining({ actor: expect.stringContaining('Ana Reyes') }),
+      }),
+      capturedSession
+    );
+  });
+
   it('debe fallar si el turno no existe', async () => {
     appointmentRepository.findById.mockResolvedValue(null);
 

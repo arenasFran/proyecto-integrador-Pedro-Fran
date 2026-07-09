@@ -103,6 +103,7 @@ export class CreateAppointmentUseCase {
 
     const now = getNowDateInTimezone();
     const paymentMethod = dto.paymentMethod || 'local';
+    const creationActor = await this.resolveCreationActor(dto);
 
     let needsMembershipRedeem = false;
     if (paymentMethod === 'memberPass') {
@@ -131,7 +132,7 @@ export class CreateAppointmentUseCase {
       paymentStatus: paymentMethod === 'memberPass' ? 'Pagado' : 'Pendiente',
       paymentMethod,
       createdBy: dto.createdBy,
-      statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+      statusHistory: [{ status: 'Confirmado', timestamp: now, actor: creationActor }],
       version: 0,
       createdAt: now,
       updatedAt: now,
@@ -152,7 +153,7 @@ export class CreateAppointmentUseCase {
           throw new AppError('No tenés una membresía activa.', 400);
         }
         membership.redeemCoupon();
-        await this.membershipRepository.save(membership, session);
+        await this.membershipRepository.incrementCouponsUsed(membership.id, 1, session);
       }
 
       // RN04 — Colisión con otros turnos activos
@@ -211,6 +212,16 @@ export class CreateAppointmentUseCase {
       message: 'Turno creado exitosamente',
       appointment: created!.toPrimitives(),
     };
+  }
+
+  private async resolveCreationActor(dto: CreateAppointmentDTO): Promise<string> {
+    if (dto.createdBy?.type === 'staff' && dto.createdBy.userId) {
+      const staffMember = await this.barberRepository.findBarberById(dto.createdBy.userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+    }
+    return `${dto.clientName} ${dto.clientLastname}`;
   }
 
   private async findOrCreateUnregisteredClient(

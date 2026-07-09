@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
@@ -10,7 +11,8 @@ export class CancelAppointmentUseCase {
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
-    private readonly cancelMinHoursBefore: number
+    private readonly cancelMinHoursBefore: number,
+    private readonly barberRepository: MongoBarberRepository
   ) {}
 
   async execute(
@@ -54,8 +56,7 @@ export class CancelAppointmentUseCase {
       }
     }
 
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = actorMap[userKind] || 'cliente';
+    const actor = await this.resolveCancelActor(userId, isAdmin || isAssignedBarber, appointment);
 
     // Entity validates transition internally
     try {
@@ -95,7 +96,7 @@ export class CancelAppointmentUseCase {
         const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
         if (membership) {
           membership.restoreCoupon();
-          await this.membershipRepository.save(membership, session);
+          await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
         }
       }
 
@@ -123,6 +124,21 @@ ${reason ? `<p>Motivo: ${reason}</p>` : ''}`,
     }
 
     return { message: 'Turno cancelado exitosamente' };
+  }
+
+  private async resolveCancelActor(
+    userId: string,
+    isStaff: boolean,
+    appointment: import('../../../domain/entities/Appointment').Appointment
+  ): Promise<string> {
+    if (isStaff) {
+      const staffMember = await this.barberRepository.findBarberById(userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+      return 'Personal';
+    }
+    return `${appointment.clientName} ${appointment.clientLastname}`;
   }
 }
 

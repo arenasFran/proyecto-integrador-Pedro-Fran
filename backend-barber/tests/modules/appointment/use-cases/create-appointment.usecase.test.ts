@@ -464,6 +464,61 @@ describe('CreateAppointmentUseCase', () => {
     );
   });
 
+  it('debe usar el nombre del cliente como actor cuando el turno lo crea el cliente', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: TEST_SERVICE_ID,
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      clientEmail: 'juan@test.com',
+      createdBy: { type: 'registered', userId: 'user-1' },
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusHistory: [{ status: 'Confirmado', timestamp: expect.any(Date), actor: 'Juan Perez' }],
+      }),
+      capturedSession
+    );
+  });
+
+  it('debe usar el nombre del staff como actor cuando el turno lo crea el staff', async () => {
+    barberRepository.findBarberById.mockImplementation((id: string) =>
+      Promise.resolve(id === 'emp-1' ? makeBarber({ id: 'emp-1', name: 'Marta', lastname: 'Diaz' }) : makeBarber())
+    );
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: TEST_SERVICE_ID,
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      createdBy: { type: 'staff', userId: 'emp-1' },
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusHistory: [{ status: 'Confirmado', timestamp: expect.any(Date), actor: 'Marta Diaz' }],
+      }),
+      capturedSession
+    );
+  });
+
   it('debe aceptar si la fecha esta dentro del maxAdvanceDays del barbero', async () => {
     const barber = makeBarber({ maxAdvanceDays: 99999 });
     barberRepository.findBarberById.mockResolvedValue(barber);
@@ -531,11 +586,8 @@ describe('CreateAppointmentUseCase', () => {
         paymentMethod: 'memberPass',
       });
 
-      expect(membershipRepository.save).toHaveBeenCalledTimes(1);
-      expect(membershipRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ remainingCoupons: MEMBERSHIP_DEFAULTS.couponsTotal - 1 }),
-        capturedSession
-      );
+      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledTimes(1);
+      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledWith('mem-1', 1, capturedSession);
     });
 
     it('debe establecer paymentStatus como Pagado cuando es memberPass', async () => {
@@ -611,7 +663,7 @@ describe('CreateAppointmentUseCase', () => {
         paymentMethod: 'local',
       });
 
-      expect(membershipRepository.save).not.toHaveBeenCalled();
+      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
     });
   });
 

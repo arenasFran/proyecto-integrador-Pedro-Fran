@@ -56,6 +56,8 @@ export class RescheduleAppointmentUseCase {
       throw new AppError('No tenés permiso para reagendar este turno.', 403);
     }
 
+    const actor = await this.resolveActor(userId, isAdmin || isAssignedBarber, appointment);
+
     const barber = await this.barberRepository.findBarberById(dto.barberId);
     if (!barber) {
       throw new AppError('Barbero no encontrado.', 404);
@@ -130,6 +132,7 @@ export class RescheduleAppointmentUseCase {
         startTime: dto.startTime,
         endTime,
         barberId: dto.barberId,
+        serviceDuration: barber.slotDuration,
         version: appointment.version,
       }, session);
 
@@ -140,8 +143,6 @@ export class RescheduleAppointmentUseCase {
         );
       }
 
-      const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-      const actor = (userKind && actorMap[userKind]) || 'cliente';
       await this.appointmentRepository.updateStatus(id, {
         statusHistoryEntry: {
           status: updated.status,
@@ -178,6 +179,21 @@ export class RescheduleAppointmentUseCase {
       message: 'Turno reagendado exitosamente',
       appointment: updated!.toPrimitives(),
     };
+  }
+
+  private async resolveActor(
+    userId: string,
+    isStaff: boolean,
+    appointment: import('../../../domain/entities/Appointment').Appointment
+  ): Promise<string> {
+    if (isStaff) {
+      const staffMember = await this.barberRepository.findBarberById(userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+      return 'Personal';
+    }
+    return `${appointment.clientName} ${appointment.clientLastname}`;
   }
 }
 

@@ -49,11 +49,6 @@ export class SendTwoFactorCodeUseCase {
       );
     }
 
-    await this.userRepository.updateUserSecurity(user.id, {
-      twoFactorFailedAttempts: 0,
-      twoFactorLockedUntil: null,
-    });
-
     const code = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(new Date().getTime() + 5 * 60 * 1000);
     const codeHash = this.hashService.sha256(code);

@@ -14,6 +14,7 @@ interface RescheduleModalProps {
   barbers: Professional[];
   slots: string[];
   isLoadingSlots: boolean;
+  slotsError?: boolean;
   onDateChange: (date: string) => void;
   onTimeChange: (time: string) => void;
   onBarberChange: (barberId: string) => void;
@@ -21,7 +22,7 @@ interface RescheduleModalProps {
   onClose: () => void;
 }
 
-export function RescheduleModal({ target, date, time, barberId, isRescheduling, barbers, slots, isLoadingSlots, onDateChange, onTimeChange, onBarberChange, onConfirm, onClose }: RescheduleModalProps) {
+export function RescheduleModal({ target, date, time, barberId, isRescheduling, barbers, slots, isLoadingSlots, slotsError, onDateChange, onTimeChange, onBarberChange, onConfirm, onClose }: RescheduleModalProps) {
   if (!target) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -37,6 +38,7 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
             selectedTime={time}
             selectedDate={date}
             isLoading={isLoadingSlots}
+            error={slotsError}
             onSelect={onTimeChange}
           />
           <Select

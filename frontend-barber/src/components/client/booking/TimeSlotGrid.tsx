@@ -1,12 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiClock } from 'react-icons/fi';
+import { FiAlertTriangle, FiClock } from 'react-icons/fi';
 
 interface TimeSlotGridProps {
   slots: string[];
   selectedTime: string | null;
   selectedDate: string | null;
   isLoading: boolean;
+  error?: boolean;
   onSelect: (time: string) => void;
 }
 
@@ -15,6 +16,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   selectedTime,
   selectedDate,
   isLoading,
+  error,
   onSelect,
 }) => {
   if (isLoading) {
@@ -25,6 +27,18 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="h-[38px] animate-pulse rounded-[8px] bg-[#242424]" />
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-5">
+        <h3 className="text-[14px] font-semibold text-white mb-3">Horarios</h3>
+        <div className="flex flex-col items-center gap-3 py-5">
+          <FiAlertTriangle className="w-7 h-7 text-[#FF5C00]" />
+          <p className="text-[13px] text-[#8A8A8A]">No pudimos cargar los horarios. Intentá de nuevo.</p>
         </div>
       </div>
     );

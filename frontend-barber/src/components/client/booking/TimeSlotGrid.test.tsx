@@ -22,6 +22,14 @@ describe('TimeSlotGrid', () => {
     expect(screen.getByText('Sin horarios disponibles')).toBeInTheDocument();
   });
 
+  it('debe mostrar un mensaje de error distinto de "sin horarios" cuando falló el fetch', () => {
+    render(
+      <TimeSlotGrid slots={[]} selectedTime={null} selectedDate="2024-01-01" isLoading={false} error={true} onSelect={vi.fn()} />
+    );
+    expect(screen.getByText('No pudimos cargar los horarios. Intentá de nuevo.')).toBeInTheDocument();
+    expect(screen.queryByText('Sin horarios disponibles')).not.toBeInTheDocument();
+  });
+
   it('debe renderizar los slots disponibles', () => {
     const slots = ['10:00', '10:30', '11:00'];
     render(<TimeSlotGrid slots={slots} selectedTime={null} selectedDate="2024-01-01" isLoading={false} onSelect={vi.fn()} />);

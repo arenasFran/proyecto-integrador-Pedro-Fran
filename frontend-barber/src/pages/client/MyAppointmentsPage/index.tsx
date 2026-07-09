@@ -47,7 +47,7 @@ export const MyAppointmentsPage: React.FC = () => {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
-  const { slots: rescheduleSlots, isLoading: isLoadingSlots } = useAvailableSlots(
+  const { slots: rescheduleSlots, isLoading: isLoadingSlots, error: slotsError } = useAvailableSlots(
     rescheduleBarberId,
     rescheduleDate,
     !!rescheduleTarget
@@ -314,6 +314,7 @@ export const MyAppointmentsPage: React.FC = () => {
                 selectedTime={rescheduleTime}
                 selectedDate={rescheduleDate}
                 isLoading={isLoadingSlots}
+                error={slotsError}
                 onSelect={setRescheduleTime}
               />
               <Select

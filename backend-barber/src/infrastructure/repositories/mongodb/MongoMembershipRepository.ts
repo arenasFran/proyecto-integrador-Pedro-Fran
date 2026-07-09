@@ -121,29 +121,44 @@ export class MongoMembershipRepository {
     const expiredDocs = await MembershipModel.find({
       status: 'active',
       endDate: { $lt: new Date() },
-    });
+    }).lean();
 
-    let expired = 0;
-    let renewed = 0;
-
-    for (const doc of expiredDocs) {
+    const operations = expiredDocs.map((doc) => {
       const autoRenew = (doc as any).autoRenew ?? true;
 
       if (autoRenew) {
         const newEndDate = new Date();
         newEndDate.setDate(newEndDate.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
-        doc.endDate = newEndDate;
-        doc.couponsUsed = 0;
-        await doc.save();
-        renewed++;
-      } else {
-        doc.status = 'expired';
-        await doc.save();
-        expired++;
+        return {
+          renewed: true,
+          op: {
+            updateOne: {
+              filter: { _id: doc._id },
+              update: { $set: { endDate: newEndDate, couponsUsed: 0 } },
+            },
+          },
+        };
       }
+
+      return {
+        renewed: false,
+        op: {
+          updateOne: {
+            filter: { _id: doc._id },
+            update: { $set: { status: 'expired' as const } },
+          },
+        },
+      };
+    });
+
+    if (operations.length > 0) {
+      await MembershipModel.bulkWrite(operations.map((o) => o.op));
     }
 
-    return { expired, renewed };
+    return {
+      renewed: operations.filter((o) => o.renewed).length,
+      expired: operations.filter((o) => !o.renewed).length,
+    };
   }
 
   private toDomain(doc: IMembershipDocument): Membership {

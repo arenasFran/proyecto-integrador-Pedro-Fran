@@ -7,6 +7,8 @@ import { DayCard } from './DayCard';
 import { DayDetailModal } from './DayDetailModal';
 import { BlockModal } from './BlockModal';
 import { QuickCreateModal } from './QuickCreateModal';
+import { AppointmentActionModals } from '../AppointmentsPage/AppointmentActionModals';
+import { useAppointmentActions } from '../AppointmentsPage/useAppointmentActions';
 import type { Appointment, BarberBlock } from '../../../types/booking';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
@@ -86,7 +88,10 @@ export const CalendarPage: React.FC = () => {
     dateTo,
     limit: 100,
     includeBarber: 'true',
+    includeClient: 'true',
   });
+
+  const appointmentActions = useAppointmentActions();
 
   const appointmentsByDate = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -269,7 +274,10 @@ export const CalendarPage: React.FC = () => {
         blocks={selectedBlocks}
         onClose={() => setSelectedDate(null)}
         onBlockDeleted={() => setBlocksRefreshKey(k => k + 1)}
+        actions={appointmentActions}
       />
+
+      <AppointmentActionModals {...appointmentActions} />
 
       {creatingDate && (
         <QuickCreateModal

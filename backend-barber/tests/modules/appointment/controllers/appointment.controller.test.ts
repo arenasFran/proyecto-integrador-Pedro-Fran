@@ -10,11 +10,12 @@ import { SendReminderUseCase } from '../../../../src/application/use-cases/appoi
 import { ChangeBarberUseCase } from '../../../../src/application/use-cases/appointment/ChangeBarberUseCase';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { createMockReq, createMockRes } from '../../../test-utils/expressMocks';
-import { makeMockAppointmentRepository, makeMockBarberRepository } from '../../../test-utils/mocks';
+import { makeMockAppointmentRepository, makeMockBarberRepository, makeMockClientRepository } from '../../../test-utils/mocks';
 
 describe('AppointmentController', () => {
   let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
+  let clientRepository: ReturnType<typeof makeMockClientRepository>;
   let createAppointment: jest.Mocked<CreateAppointmentUseCase>;
   let cancelAppointment: jest.Mocked<CancelAppointmentUseCase>;
   let updateAppointmentStatus: jest.Mocked<UpdateAppointmentStatusUseCase>;
@@ -27,6 +28,7 @@ describe('AppointmentController', () => {
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
     barberRepository = makeMockBarberRepository();
+    clientRepository = makeMockClientRepository();
     createAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CreateAppointmentUseCase>;
     cancelAppointment = { execute: jest.fn() } as unknown as jest.Mocked<CancelAppointmentUseCase>;
     updateAppointmentStatus = { execute: jest.fn() } as unknown as jest.Mocked<UpdateAppointmentStatusUseCase>;
@@ -37,6 +39,7 @@ describe('AppointmentController', () => {
     controller = new AppointmentController(
       appointmentRepository,
       barberRepository,
+      clientRepository,
       createAppointment,
       cancelAppointment,
       updateAppointmentStatus,
@@ -118,6 +121,31 @@ describe('AppointmentController', () => {
 
       expect(createAppointment.execute).toHaveBeenCalledWith({
         ...body,
+        createdBy: { type: 'anonymous' },
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it('debe ignorar un clientId ajeno enviado por un request anónimo', async () => {
+      createAppointment.execute.mockResolvedValue({ message: 'ok', appointment: {} as any });
+      const body = {
+        barberId: 'barber-1',
+        serviceId: new mongoose.Types.ObjectId().toString(),
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: new mongoose.Types.ObjectId().toString(),
+        paymentMethod: 'memberPass',
+      };
+      const req = createMockReq(body);
+      const res = createMockRes();
+
+      await controller.create(req, res);
+
+      expect(createAppointment.execute).toHaveBeenCalledWith({
+        ...body,
+        clientId: undefined,
         createdBy: { type: 'anonymous' },
       });
       expect(res.status).toHaveBeenCalledWith(201);

@@ -56,6 +56,10 @@ const clientSchema = new Schema<IClientBase>(
   }
 );
 
+// Soporta el prefix-search de MongoClientRepository.searchRegistered (regex anclado ^).
+clientSchema.index({ name: 1 });
+clientSchema.index({ lastname: 1 });
+
 clientSchema.pre('save', function () {
   const doc = this as IClientBase & { email?: string };
 

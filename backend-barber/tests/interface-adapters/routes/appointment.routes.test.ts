@@ -89,6 +89,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: email,
+          clientPhone: '099123456',
         });
 
       expect(res.status).toBe(201);
@@ -111,6 +112,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'con-templock@test.com',
+          clientPhone: '099123456',
           tempLockId,
         });
 
@@ -135,6 +137,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'bad-lock@test.com',
+          clientPhone: '099123456',
           tempLockId: new mongoose.Types.ObjectId().toString(),
         });
 
@@ -153,6 +156,7 @@ describeIfMongo('Appointment routes — integración real', () => {
         clientName: 'Juan',
         clientLastname: 'Perez',
         clientEmail: 'dup@test.com',
+        clientPhone: '099123456',
       };
 
       await request(app).post('/api/appointments').send(payload);
@@ -175,6 +179,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'inactive@test.com',
+          clientPhone: '099123456',
         });
 
       expect(res.status).toBe(400);
@@ -194,6 +199,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'fuera-horario@test.com',
+          clientPhone: '099123456',
         });
 
       expect(res.status).toBe(400);
@@ -221,6 +227,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'no-barber@test.com',
+          clientPhone: '099123456',
         });
 
       expect(res.status).toBe(404);
@@ -288,6 +295,47 @@ describeIfMongo('Appointment routes — integración real', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.appointments).toHaveLength(1);
+    });
+  });
+
+  describe('GET /api/appointments/clients/search — búsqueda de clientes registrados', () => {
+    it('admin encuentra un cliente registrado por nombre', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+      await seedRegisteredClient({ name: 'Ana', lastname: 'Gómez', email: 'ana@test.com' });
+
+      const res = await request(app)
+        .get('/api/appointments/clients/search')
+        .set('Authorization', `Bearer ${token}`)
+        .query({ q: 'ana' });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0]).toMatchObject({ name: 'Ana', lastname: 'Gómez', contactEmail: 'ana@test.com' });
+    });
+
+    it('cliente registrado (no staff) recibe 403', async () => {
+      const { clientId, email } = await seedRegisteredClient();
+      const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
+
+      const res = await request(app)
+        .get('/api/appointments/clients/search')
+        .set('Authorization', `Bearer ${token}`)
+        .query({ q: 'ana' });
+
+      expect(res.status).toBe(403);
+    });
+
+    it('rechaza búsquedas de menos de 2 caracteres', async () => {
+      const { adminId } = await seedAdmin();
+      const { token } = signToken({ id: adminId, email: 'admin@test.com', kind: 'Admin' });
+
+      const res = await request(app)
+        .get('/api/appointments/clients/search')
+        .set('Authorization', `Bearer ${token}`)
+        .query({ q: 'a' });
+
+      expect(res.status).toBe(400);
     });
   });
 
@@ -430,6 +478,55 @@ describeIfMongo('Appointment routes — integración real', () => {
       expect(res.status).toBe(200);
       expect(res.body.appointment.date).toBe(newDate);
       expect(res.body.appointment.startTime).toBe('14:00');
+    });
+
+    it('reprogramar no cuenta contra el límite de 10 turnos activos (RN15) — un cliente en el límite puede reagendar uno de los suyos', async () => {
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      const { clientId, email } = await seedRegisteredClient();
+      const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
+
+      // Deja al cliente exactamente en MAX_ACTIVE_APPOINTMENTS (10, ver CreateAppointmentUseCase.ts)
+      // turnos "Confirmado" activos, cada uno en una fecha distinta para no chocar con el índice único
+      // { barberId, date, startTime, status: 'Confirmado' }.
+      const appointmentIds: string[] = [];
+      for (let i = 1; i <= 10; i++) {
+        const { appointmentId } = await seedAppointment({
+          barberId, serviceId, clientId, date: getFutureDate(i), startTime: '10:00',
+        });
+        appointmentIds.push(appointmentId);
+      }
+
+      // Prueba de contraste: a esta altura, crear un turno NUEVO sí debe estar bloqueado por RN15 —
+      // confirma que el límite realmente estaba activo (si esto diera 201, el test de abajo no probaría nada).
+      const blockedCreate = await request(app)
+        .post('/api/appointments')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          barberId, serviceId, date: getFutureDate(20), startTime: '16:00',
+          clientName: 'Juan', clientLastname: 'Perez', clientEmail: email, clientPhone: '099333333',
+        });
+      expect(blockedCreate.status).toBe(409);
+
+      // Reagenda uno de esos 10 turnos existentes (no crea uno nuevo) a una fecha/hora libre.
+      const targetId = appointmentIds[0];
+      const newDate = getFutureDate(25);
+
+      const res = await request(app)
+        .patch(`/api/appointments/${targetId}/reschedule`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ date: newDate, startTime: '11:00', barberId });
+
+      expect(res.status).toBe(200);
+      expect(res.body.appointment.date).toBe(newDate);
+      expect(res.body.appointment.startTime).toBe('11:00');
+
+      // El cliente sigue teniendo exactamente 10 turnos Confirmado — reprogramar no creó ni destruyó ninguno.
+      const activeCount = await AppointmentModel.countDocuments({
+        clientId: new mongoose.Types.ObjectId(clientId),
+        status: 'Confirmado',
+      });
+      expect(activeCount).toBe(10);
     });
   });
 

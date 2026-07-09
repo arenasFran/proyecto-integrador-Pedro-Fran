@@ -8,6 +8,7 @@ import { SendReminderUseCase } from '../../../application/use-cases/appointment/
 import { ChangeBarberUseCase } from '../../../application/use-cases/appointment/ChangeBarberUseCase';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import type { AppointmentStatus, PaymentStatus } from '../../../domain/types/appointment';
@@ -16,6 +17,7 @@ export class AppointmentController {
   constructor(
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly barberRepository: MongoBarberRepository,
+    private readonly clientRepository: MongoClientRepository,
     private readonly createAppointment: CreateAppointmentUseCase,
     private readonly cancelAppointment: CancelAppointmentUseCase,
     private readonly updateAppointmentStatus: UpdateAppointmentStatusUseCase,
@@ -39,6 +41,9 @@ export class AppointmentController {
           body.createdBy = { type: 'registered', userId: req.user._id };
         }
       } else {
+        // Sin sesión: nunca confiar en un clientId enviado por el cliente
+        // (evitaría IDOR sobre turnos/membresías de terceros, ver auditoría 2026-07-09).
+        body.clientId = undefined;
         body.createdBy = { type: 'anonymous' };
       }
 
@@ -46,6 +51,23 @@ export class AppointmentController {
       return sendSuccess(res, result, 201);
     } catch (error) {
       return sendError(res, error, 'Error al crear el turno');
+    }
+  };
+
+  searchClients = async (req: Request, res: Response) => {
+    try {
+      const q = req.query.q as string;
+      const clients = await this.clientRepository.searchRegistered(q);
+      return sendSuccess(res, clients.map((c) => ({
+        id: c.id,
+        name: c.name,
+        lastname: c.lastname,
+        phone: c.phone,
+        contactEmail: c.contactEmail,
+        photoUrl: c.photoUrl,
+      })));
+    } catch (error) {
+      return sendError(res, error, 'Error al buscar clientes');
     }
   };
 
@@ -89,6 +111,17 @@ export class AppointmentController {
             ? `${barberMap.get(a.barberId)!.name} ${barberMap.get(a.barberId)!.lastname}`
             : undefined,
           barberPhotoUrl: barberMap.get(a.barberId)?.photoUrl ?? undefined,
+        }));
+      }
+
+      if (req.query.includeClient === 'true') {
+        const clientIds = [...new Set(appointments.map((a) => a.clientId).filter((id): id is string => !!id))];
+        const clients = await this.clientRepository.findByIds(clientIds);
+        const clientMap = new Map(clients.map((c) => [c.id, { photoUrl: c.photoUrl, registeredAt: c.registeredAt }]));
+        appointments = appointments.map((a) => ({
+          ...a,
+          clientPhotoUrl: a.clientId ? clientMap.get(a.clientId)?.photoUrl ?? undefined : undefined,
+          clientRegisteredAt: a.clientId ? clientMap.get(a.clientId)?.registeredAt ?? undefined : undefined,
         }));
       }
 

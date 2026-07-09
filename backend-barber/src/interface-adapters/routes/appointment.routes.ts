@@ -12,6 +12,7 @@ import {
   rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
   changeBarberSchema,
+  searchClientsQuerySchema,
 } from '../validators/appointment.validator';
 
 const anonymousLimiter = rateLimit({
@@ -54,6 +55,14 @@ export const createAppointmentRouter = (deps: {
     deps.authenticate,
     validate({ query: appointmentQuerySchema }),
     deps.appointmentController.getAll
+  );
+
+  router.get(
+    '/clients/search',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ query: searchClientsQuerySchema }),
+    deps.appointmentController.searchClients
   );
 
   router.get(

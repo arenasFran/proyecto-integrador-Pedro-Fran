@@ -35,18 +35,6 @@ const baseAppointment: Appointment = {
 const defaultProps = {
   isOpen: true,
   onClose: vi.fn(),
-  onComplete: vi.fn(),
-  onNoShow: vi.fn(),
-  onCancel: vi.fn(),
-  onReschedule: vi.fn(),
-  onMarkAsPaid: vi.fn(),
-  onDuplicate: vi.fn(),
-  onSendReminder: vi.fn(),
-  onChangeBarber: vi.fn(),
-  isCompleting: false,
-  isMarkingNoShow: false,
-  isMarkingPaid: false,
-  isSendingReminder: false,
 };
 
 describe('AppointmentDetailModal', () => {
@@ -93,74 +81,20 @@ describe('AppointmentDetailModal', () => {
     expect(screen.getByText('Pagado')).toBeDefined();
   });
 
-  it('muestra badge de origen Online', () => {
+  it('muestra badge de origen Web', () => {
     renderWithProviders(
       <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
     );
-    expect(screen.getAllByText('Online').length).toBe(2);
+    expect(screen.getAllByText('Web').length).toBe(2);
   });
 
   it('muestra el historial de cambios', () => {
     renderWithProviders(
       <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
     );
-    expect(screen.getByText('Historial de cambios')).toBeDefined();
+    expect(screen.getByText('Historial')).toBeDefined();
     expect(screen.getAllByText('Confirmado').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText(/por system/)).toBeDefined();
-  });
-
-  it('muestra botones de accion para turno Confirmado', () => {
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
-    );
-    expect(screen.getByText('Completar')).toBeDefined();
-    expect(screen.getByText('No asistió')).toBeDefined();
-    expect(screen.getByText('Reprogramar')).toBeDefined();
-    expect(screen.getByText('Cancelar')).toBeDefined();
-    expect(screen.getByText('Duplicar')).toBeDefined();
-    expect(screen.getByText('Cambiar barbero')).toBeDefined();
-  });
-
-  it('muestra boton Recordatorio solo si el cliente tiene email', () => {
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
-    );
-    expect(screen.getByText('Recordatorio')).toBeDefined();
-  });
-
-  it('oculta boton Recordatorio si el cliente no tiene email', () => {
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps}
-        appointment={{ ...baseAppointment, clientEmail: undefined }}
-      />
-    );
-    expect(screen.queryByText('Recordatorio')).toBeNull();
-  });
-
-  it('muestra boton Marcar pagado para turno Pendiente', () => {
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
-    );
-    expect(screen.getByText('Marcar pagado')).toBeDefined();
-  });
-
-  it('oculta boton Marcar pagado si ya está pagado', () => {
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps}
-        appointment={{ ...baseAppointment, paymentStatus: 'Pagado' }}
-      />
-    );
-    expect(screen.queryByText('Marcar pagado')).toBeNull();
-  });
-
-  it('no muestra botones de accion para turno Completado', () => {
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps}
-        appointment={{ ...baseAppointment, status: 'Completado' }}
-      />
-    );
-    expect(screen.queryByText('Completar')).toBeNull();
-    expect(screen.queryByText('Cancelar')).toBeNull();
   });
 
   it('muestra informacion de cancelacion cuando corresponde', () => {
@@ -176,57 +110,16 @@ describe('AppointmentDetailModal', () => {
       />
     );
     expect(screen.getByText(/No pudo asistir/)).toBeDefined();
-    expect(screen.getByText(/Por: admin/)).toBeDefined();
+    expect(screen.getByText('admin')).toBeDefined();
   });
 
-  it('llama onComplete con el appointment al hacer click en Completar', async () => {
-    const user = userEvent.setup();
-    const onComplete = vi.fn();
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onComplete={onComplete} />
-    );
-    await user.click(screen.getByText('Completar'));
-    expect(onComplete).toHaveBeenCalledWith(baseAppointment);
-  });
-
-  it('llama onMarkAsPaid con el appointment al hacer click en Marcar pagado', async () => {
-    const user = userEvent.setup();
-    const onMarkAsPaid = vi.fn();
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onMarkAsPaid={onMarkAsPaid} />
-    );
-    await user.click(screen.getByText('Marcar pagado'));
-    expect(onMarkAsPaid).toHaveBeenCalledWith(baseAppointment);
-  });
-
-  it('llama onDuplicate con el appointment al hacer click en Duplicar', async () => {
-    const user = userEvent.setup();
-    const onDuplicate = vi.fn();
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onDuplicate={onDuplicate} />
-    );
-    await user.click(screen.getByText('Duplicar'));
-    expect(onDuplicate).toHaveBeenCalledWith(baseAppointment);
-  });
-
-  it('llama onSendReminder con el id al hacer click en Recordatorio', async () => {
-    const user = userEvent.setup();
-    const onSendReminder = vi.fn();
-    renderWithProviders(
-      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onSendReminder={onSendReminder} />
-    );
-    await user.click(screen.getByText('Recordatorio'));
-    expect(onSendReminder).toHaveBeenCalledWith('apt-1');
-  });
-
-  it('muestra origen Admin', () => {
+  it('muestra origen Barbero', () => {
     renderWithProviders(
       <AppointmentDetailModal {...defaultProps}
         appointment={{ ...baseAppointment, createdBy: { type: 'staff', userId: 'admin-1' } }}
       />
     );
-    expect(screen.getAllByText('Admin').length).toBe(2);
-    expect(screen.getByText('ID: admin-1')).toBeDefined();
+    expect(screen.getAllByText('Barbero').length).toBe(2);
   });
 
   it('muestra origen Invitado', () => {
@@ -236,5 +129,36 @@ describe('AppointmentDetailModal', () => {
       />
     );
     expect(screen.getAllByText('Invitado').length).toBe(2);
+  });
+
+  it('muestra el boton "Crear turno para este cliente" y lo llama con el turno', async () => {
+    const user = userEvent.setup();
+    const onCreateAppointment = vi.fn();
+
+    renderWithProviders(
+      <AppointmentDetailModal
+        {...defaultProps}
+        appointment={{ ...baseAppointment, clientId: 'client-1' }}
+        onCreateAppointment={onCreateAppointment}
+      />
+    );
+
+    const button = screen.getByRole('button', { name: /crear turno para este cliente/i });
+    await user.click(button);
+    expect(onCreateAppointment).toHaveBeenCalledWith({ ...baseAppointment, clientId: 'client-1' });
+  });
+
+  it('no muestra el boton de crear turno si el turno no tiene clientId', () => {
+    renderWithProviders(
+      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onCreateAppointment={vi.fn()} />
+    );
+    expect(screen.queryByRole('button', { name: /crear turno para este cliente/i })).not.toBeInTheDocument();
+  });
+
+  it('no muestra el boton de crear turno si no se pasa el callback', () => {
+    renderWithProviders(
+      <AppointmentDetailModal {...defaultProps} appointment={{ ...baseAppointment, clientId: 'client-1' }} />
+    );
+    expect(screen.queryByRole('button', { name: /crear turno para este cliente/i })).not.toBeInTheDocument();
   });
 });

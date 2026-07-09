@@ -9,48 +9,39 @@ import {
   FiClock,
   FiDownload,
   FiInfo,
-  FiMoreVertical,
   FiScissors,
   FiSettings,
   FiX,
   FiXCircle,
 } from 'react-icons/fi';
-import { AnimatedContainer, ConfirmModal, Input, Pagination, Select, Spinner, StatsCards } from '../../../components/common';
+import { AnimatedContainer, Input, Pagination, Select, Spinner, StatsCards } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { detectPreset } from '../../../components/common/dateRangeUtils';
-import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
 import { formatDate } from '../../../utils/formatDate';
-import { AppointmentDetailModal } from './AppointmentDetailModal';
-import { CancelModal } from './CancelModal';
-import { RescheduleModal } from './RescheduleModal';
-import { ChangeBarberModal } from './ChangeBarberModal';
-import { CombinedActionModal } from './CombinedActionModal';
+import { AppointmentActionModals } from './AppointmentActionModals';
+import { AppointmentActionsMenu } from './AppointmentActionsMenu';
 import { useAdminAppointments } from './useAdminAppointments';
 import { statusStyles, methodLabel, statusLabel, formatTimeRange, paymentBadge, originBadge, formatTimestamp, exportCSV } from './helpers';
 
 export const AdminAppointmentsPage: React.FC = () => {
+  const adminAppointments = useAdminAppointments();
   const {
     barbers, appointments, totalPages, isLoading,
     filterDateFrom, filterDateTo, filterBarberId,
     filterStatus, filterPaymentMethod, searchTerm, page, sortBy, sortDir,
-    pageSize, showCustomize, activeMenu, menuRect,
-    cancelTarget, cancelReason, rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId,
-    rescheduleSlots, isLoadingSlots,
-    expandedId, confirmTarget, detailTarget, showQuickCreate, quickCreateDate,
-    changeBarberTarget, changeBarberNewId, combinedActionTarget,
-    isCancelling, isUpdatingStatus, isRescheduling, isMarkingPaid, isSendingReminder, isChangingBarber,
+    pageSize, showCustomize,
+    expandedId,
+    isUpdatingStatus,
     stats,
-    setPageSize, setShowCustomize, setActiveMenu, setMenuRect,
+    setPageSize, setShowCustomize,
     setCancelTarget, setCancelReason, setRescheduleTarget,
     setRescheduleDate, setRescheduleTime, setRescheduleBarberId,
-    setExpandedId, setConfirmTarget, setDetailTarget, setShowQuickCreate,
-    setChangeBarberTarget, setChangeBarberNewId, setCombinedActionTarget,
+    setExpandedId, setDetailTarget,
+    setCombinedActionTarget,
     toggleSort, handleDateRangeChange, clearFilters, updateParams,
-    handleCancelConfirm, handleStatusChange, handleRescheduleConfirm,
-    handleRescheduleDateChange, handleRescheduleBarberChange, handleRescheduleClose,
-    handleSendReminder, handleDuplicate, handleChangeBarberConfirm,
-    handleCompleteOnly, handleCompleteAndPaid, handleMarkPaidOnly,
-  } = useAdminAppointments();
+    handleStatusChange,
+    isCancelling,
+  } = adminAppointments;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden">
@@ -338,7 +329,6 @@ export const AdminAppointmentsPage: React.FC = () => {
                 <tbody>
                   {appointments.map((appointment) => {
                     const style = statusStyles[appointment.status];
-                    const isActive = appointment.status === 'Confirmado';
                     const isExpanded = expandedId === appointment.id;
                     return (
                       <React.Fragment key={appointment.id}>
@@ -404,80 +394,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                         <td className="py-3 pr-4">{originBadge(appointment.createdBy)}</td>
                         <td className="py-3">
                           <div className="flex items-center gap-1.5">
-                            {isActive && (
-                              <div className="relative">
-                                <button
-                                  onClick={(e) => {
-                                    if (activeMenu === appointment.id) {
-                                      setActiveMenu(null);
-                                      setMenuRect(null);
-                                    } else {
-                                      const rect = e.currentTarget.getBoundingClientRect();
-                                      setMenuRect({ top: rect.top, right: rect.right });
-                                      setActiveMenu(appointment.id);
-                                    }
-                                  }}
-                                  className="rounded-[8px] border border-[#282828] p-1.5 text-[#8A8A8A] hover:bg-[#1A1A1A] transition-colors"
-                                  aria-label="Acciones del turno"
-                                  aria-expanded={activeMenu === appointment.id}
-                                >
-                                  <FiMoreVertical className="text-sm" />
-                                </button>
-                                {activeMenu === appointment.id && menuRect && (
-                                  <>
-                                    <div className="fixed inset-0 z-40" onClick={() => { setActiveMenu(null); setMenuRect(null); }} />
-                                    <div
-                                      className="fixed z-50 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl"
-                                      style={{
-                                        right: window.innerWidth - menuRect.right + 4,
-                                        ...(menuRect.top + 200 < window.innerHeight
-                                          ? { top: menuRect.top }
-                                          : { bottom: window.innerHeight - menuRect.top }),
-                                      }}
-                                    >
-                                        <button
-                                          onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Completado' }); setActiveMenu(null); setMenuRect(null); }}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-green-400 hover:bg-[#242424] transition-colors"
-                                          aria-label="Marcar como completado"
-                                        >
-                                          <FiCheck className="text-sm" /> Completado
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            setRescheduleTarget(appointment);
-                                            setRescheduleDate(appointment.date);
-                                            setRescheduleTime(appointment.startTime);
-                                            setRescheduleBarberId(appointment.barberId);
-                                            setActiveMenu(null);
-                                            setMenuRect(null);
-                                          }}
-                                          className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-blue-400 hover:bg-[#242424] transition-colors"
-                                          aria-label="Reprogramar turno"
-                                        >
-                                          <FiClock className="text-sm" /> Reprogramar
-                                        </button>
-                                      <button
-                                        onClick={() => { setConfirmTarget({ id: appointment.id, action: 'NoShow' }); setActiveMenu(null); setMenuRect(null); }}
-                                        disabled={isUpdatingStatus}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-yellow-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                        aria-label="Marcar como no asistió"
-                                      >
-                                        <FiXCircle className="text-sm" /> No asistió
-                                      </button>
-                                      <hr className="border-[#282828] my-1" />
-                                      <button
-                                        onClick={() => { setCancelTarget(appointment); setCancelReason(''); setActiveMenu(null); setMenuRect(null); }}
-                                        disabled={isCancelling}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors disabled:opacity-50"
-                                        aria-label="Cancelar turno"
-                                      >
-                                        <FiX className="text-sm" /> Cancelar
-                                      </button>
-                                    </div>
-                                  </>
-                                )}
-                              </div>
-                            )}
+                            <AppointmentActionsMenu appointment={appointment} actions={adminAppointments} />
                             {appointment.status === 'Cancelado' && appointment.cancelReason && (
                               <span className="text-[11px] text-[#8A8A8A] max-w-[120px] truncate" title={appointment.cancelReason}>
                                 {appointment.cancelReason}
@@ -505,9 +422,6 @@ export const AdminAppointmentsPage: React.FC = () => {
                                 <div className="flex items-center gap-2">
                                   {originBadge(appointment.createdBy)}
                                 </div>
-                                {appointment.createdBy?.userId && (
-                                  <p className="text-[11px] text-[#8A8A8A]">ID: {appointment.createdBy.userId}</p>
-                                )}
                               </div>
                               <div className="space-y-2">
                                 <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Cliente</h4>
@@ -560,91 +474,7 @@ export const AdminAppointmentsPage: React.FC = () => {
         </AnimatedContainer>
       </div>
 
-      <CancelModal
-        target={cancelTarget}
-        reason={cancelReason}
-        isCancelling={isCancelling}
-        onReasonChange={setCancelReason}
-        onConfirm={handleCancelConfirm}
-        onClose={() => setCancelTarget(null)}
-      />
-
-      <RescheduleModal
-        target={rescheduleTarget}
-        date={rescheduleDate}
-        time={rescheduleTime}
-        barberId={rescheduleBarberId}
-        isRescheduling={isRescheduling}
-        barbers={barbers}
-        slots={rescheduleSlots}
-        isLoadingSlots={isLoadingSlots}
-        onDateChange={handleRescheduleDateChange}
-        onTimeChange={setRescheduleTime}
-        onBarberChange={handleRescheduleBarberChange}
-        onConfirm={handleRescheduleConfirm}
-        onClose={handleRescheduleClose}
-      />
-
-      <ConfirmModal
-        isOpen={confirmTarget !== null}
-        onClose={() => setConfirmTarget(null)}
-        onConfirm={() => {
-          if (confirmTarget) {
-            handleStatusChange(confirmTarget.id, confirmTarget.action);
-            setConfirmTarget(null);
-          }
-        }}
-        title="Marcar como no asistió"
-        message="¿Estás seguro de marcar este turno como no asistido? Esta acción no se puede deshacer."
-        confirmText="Sí, marcar como no asistió"
-        variant="danger"
-        loading={isUpdatingStatus}
-      />
-
-      <CombinedActionModal
-        target={combinedActionTarget}
-        isUpdatingStatus={isUpdatingStatus}
-        isMarkingPaid={isMarkingPaid}
-        onCompleteOnly={handleCompleteOnly}
-        onCompleteAndPaid={handleCompleteAndPaid}
-        onMarkPaidOnly={handleMarkPaidOnly}
-        onClose={() => setCombinedActionTarget(null)}
-      />
-
-      <AppointmentDetailModal
-        appointment={detailTarget}
-        isOpen={detailTarget !== null}
-        onClose={() => setDetailTarget(null)}
-        onComplete={(appt) => { setCombinedActionTarget({ appointment: appt, primaryAction: 'Completado' }); setDetailTarget(null); }}
-        onNoShow={(id) => { setConfirmTarget({ id, action: 'NoShow' }); setDetailTarget(null); }}
-        onCancel={(appt) => { setCancelTarget(appt); setCancelReason(''); setDetailTarget(null); }}
-        onReschedule={(appt) => { setRescheduleTarget(appt); setRescheduleDate(appt.date); setRescheduleTime(appt.startTime); setRescheduleBarberId(appt.barberId); setDetailTarget(null); }}
-        onMarkAsPaid={(appt) => { setCombinedActionTarget({ appointment: appt, primaryAction: 'Pagado' }); setDetailTarget(null); }}
-        onDuplicate={handleDuplicate}
-        onSendReminder={handleSendReminder}
-        onChangeBarber={(appt) => { setChangeBarberTarget(appt); setChangeBarberNewId(''); setDetailTarget(null); }}
-        isCompleting={isUpdatingStatus}
-        isMarkingNoShow={isUpdatingStatus}
-        isMarkingPaid={isMarkingPaid}
-        isSendingReminder={isSendingReminder}
-      />
-
-      <ChangeBarberModal
-        target={changeBarberTarget}
-        newBarberId={changeBarberNewId}
-        isChangingBarber={isChangingBarber}
-        barbers={barbers}
-        onBarberChange={setChangeBarberNewId}
-        onConfirm={handleChangeBarberConfirm}
-        onClose={() => setChangeBarberTarget(null)}
-      />
-
-      {showQuickCreate && (
-        <QuickCreateModal
-          dateStr={quickCreateDate}
-          onClose={() => setShowQuickCreate(false)}
-        />
-      )}
+      <AppointmentActionModals {...adminAppointments} />
     </div>
   );
 };

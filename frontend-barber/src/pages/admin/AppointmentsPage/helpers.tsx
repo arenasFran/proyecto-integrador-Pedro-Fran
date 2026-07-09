@@ -35,8 +35,8 @@ export function paymentBadge(ps: Appointment['paymentStatus']) {
 export function originBadge(cb?: CreatedBy) {
   if (!cb) return <span className="text-[11px] text-[#8A8A8A]">—</span>;
   const config: Record<string, { label: string; color: string }> = {
-    staff: { label: 'Admin', color: 'bg-purple-500/10 text-purple-400' },
-    registered: { label: 'Online', color: 'bg-blue-500/10 text-blue-400' },
+    staff: { label: 'Barbero', color: 'bg-purple-500/10 text-purple-400' },
+    registered: { label: 'Web', color: 'bg-blue-500/10 text-blue-400' },
     anonymous: { label: 'Invitado', color: 'bg-gray-500/10 text-gray-400' },
   };
   const c = config[cb.type] ?? { label: cb.type, color: 'bg-gray-500/10 text-gray-400' };
@@ -71,7 +71,7 @@ export function exportCSV(appointments: Appointment[]) {
     a.status,
     a.paymentStatus,
     methodLabelExport[a.paymentMethod] ?? a.paymentMethod,
-    a.createdBy?.type === 'staff' ? 'Admin' : a.createdBy?.type === 'registered' ? 'Online' : a.createdBy?.type === 'anonymous' ? 'Invitado' : '',
+    a.createdBy?.type === 'staff' ? 'Barbero' : a.createdBy?.type === 'registered' ? 'Web' : a.createdBy?.type === 'anonymous' ? 'Invitado' : '',
   ]);
   const bom = '\uFEFF';
   const csv = [headers.join(','), ...rows.map((r) => r.map((c) => `"${c.replace(/"/g, '""')}"`).join(','))].join('\n');

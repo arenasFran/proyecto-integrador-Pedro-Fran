@@ -1,8 +1,10 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import { v2 as cloudinary } from 'cloudinary';
 import { Employee } from '../repositories/mongodb/models/barber.model';
-import { RegisteredClient } from '../repositories/mongodb/models/client.model';
+import { RegisteredClient, UnregisteredClient } from '../repositories/mongodb/models/client.model';
 import AppointmentModel from '../repositories/mongodb/models/appointment.model';
+import { getConfig } from '../config/env';
 
 // ── Servicios ──────────────────────────────────────────────
 const SEED_SERVICES = [
@@ -288,6 +290,20 @@ const TURNOS: RawTurno[] = [
 
 // ── Lógica de seed ────────────────────────────────────────
 
+async function uploadAvatar(email: string): Promise<string | null> {
+  try {
+    const publicId = `avatar_${email.replace(/[@.]/g, '_')}`;
+    const result = await cloudinary.uploader.upload(
+      `https://i.pravatar.cc/150?u=${email}`,
+      { folder: 'avatars', public_id: publicId, overwrite: true },
+    );
+    return result.secure_url;
+  } catch (err) {
+    console.warn(`  No se pudo subir avatar para ${email}:`, (err as Error).message);
+    return null;
+  }
+}
+
 async function getOrCreateBarber(email: string, name: string, lastname: string): Promise<mongoose.Types.ObjectId> {
   const existing = await Employee.findOne({ email });
   if (existing) return existing._id as mongoose.Types.ObjectId;
@@ -295,6 +311,7 @@ async function getOrCreateBarber(email: string, name: string, lastname: string):
   const hash = await bcrypt.hash('test123', 10);
   const emptyDay = () => ({ startTime: null, endTime: null, breaks: [] });
   const workDay = (start: string, end: string) => ({ startTime: start, endTime: end, breaks: [] });
+  const photoUrl = await uploadAvatar(email);
   const barber = await Employee.create({
     email, password: hash, name, lastname,
     phone: `099${Math.floor(100000 + Math.random() * 900000)}`,
@@ -306,8 +323,9 @@ async function getOrCreateBarber(email: string, name: string, lastname: string):
       friday: workDay('09:00', '18:00'), saturday: workDay('09:00', '14:00'),
       sunday: emptyDay(),
     },
-    isActive: true, photoUrl: null,
+    isActive: true, photoUrl,
   });
+  console.log(`  Barbero ${email} creado${photoUrl ? ' (con avatar)' : ''}`);
   return barber._id as mongoose.Types.ObjectId;
 }
 
@@ -318,6 +336,7 @@ async function getOrCreateRegisteredClients(): Promise<mongoose.Types.ObjectId[]
     if (existing) {
       ids.push(existing._id as mongoose.Types.ObjectId);
     } else {
+      const photoUrl = await uploadAvatar(profile.email);
       const client = await RegisteredClient.create({
         email: profile.email,
         name: profile.name,
@@ -325,6 +344,34 @@ async function getOrCreateRegisteredClients(): Promise<mongoose.Types.ObjectId[]
         phone: profile.phone,
         password: 'not-used',
         authProvider: 'local',
+        photoUrl,
+      });
+      console.log(`  Cliente ${profile.email} creado${photoUrl ? ' (con avatar)' : ''}`);
+      ids.push(client._id as mongoose.Types.ObjectId);
+    }
+  }
+  return ids;
+}
+
+// Réplica de findOrCreateUnregisteredClient (CreateAppointmentUseCase): en
+// producción cada turno anónimo crea/reutiliza una ficha en `clients` para
+// que el cliente aparezca en la vista de Clientes. Sin esto, el turno solo
+// queda con el nombre embebido y el cliente no figura en su padrón.
+async function getOrCreateAnonymousClients(): Promise<mongoose.Types.ObjectId[]> {
+  const ids: mongoose.Types.ObjectId[] = [];
+  for (const profile of ANONYMOUS_PROFILES) {
+    const existing = await UnregisteredClient.findOne({ phone: profile.phone });
+    if (existing) {
+      ids.push(existing._id as mongoose.Types.ObjectId);
+    } else {
+      const client = await UnregisteredClient.create({
+        name: profile.name,
+        lastname: profile.lastname,
+        phone: profile.phone,
+        // Los clientes reales creados vía la app siempre tienen teléfono Y email
+        // (createAppointmentSchema exige ambos); estos perfiles de seed deben
+        // reflejar esa misma invariante para no simular un estado inalcanzable.
+        contactEmail: `anon${profile.phone}@seed.local`,
       });
       ids.push(client._id as mongoose.Types.ObjectId);
     }
@@ -332,13 +379,16 @@ async function getOrCreateRegisteredClients(): Promise<mongoose.Types.ObjectId[]
   return ids;
 }
 
-function getAnonymousProfile(index: number) {
-  return ANONYMOUS_PROFILES[index % ANONYMOUS_PROFILES.length];
-}
-
 async function seedAll() {
   await mongoose.connect(process.env.MONGO_URI as string);
   console.log('Conectado a MongoDB');
+
+  const cfg = getConfig();
+  cloudinary.config({
+    cloud_name: cfg.cloudinaryCloudName,
+    api_key: cfg.cloudinaryApiKey,
+    api_secret: cfg.cloudinaryApiSecret,
+  });
 
   const barberIds = await Promise.all(
     BARBERS.map(b => getOrCreateBarber(b.email, b.name, b.lastname)),
@@ -347,6 +397,9 @@ async function seedAll() {
 
   const registeredClientIds = await getOrCreateRegisteredClients();
   console.log(`${REGISTERED_CLIENTS.length} clientes registrados listos`);
+
+  const anonymousClientIds = await getOrCreateAnonymousClients();
+  console.log(`${ANONYMOUS_PROFILES.length} fichas de clientes anónimos listas`);
 
   let count = 0;
   const countsByService = new Map<string, number>();
@@ -370,11 +423,12 @@ async function seedAll() {
       clientPhone = profile.phone;
       clientId = registeredClientIds[t.registeredClientIdx];
     } else {
-      const profile = getAnonymousProfile(anonymousCycle++);
+      const anonymousIdx = anonymousCycle++ % ANONYMOUS_PROFILES.length;
+      const profile = ANONYMOUS_PROFILES[anonymousIdx];
       clientName = profile.name;
       clientLastname = profile.lastname;
       clientPhone = profile.phone;
-      clientId = undefined;
+      clientId = anonymousClientIds[anonymousIdx];
     }
 
     await AppointmentModel.create({
@@ -423,6 +477,7 @@ async function cleanupTestData() {
   const appsDeleted = await AppointmentModel.deleteMany({ barberId: { $in: seedBarberIds } });
   await Employee.deleteMany({ email: { $regex: /^seed-/ } });
   await RegisteredClient.deleteMany({ email: { $regex: /(^seed-reg@|@email\.com$)/ } });
+  await UnregisteredClient.deleteMany({ phone: { $regex: /^099300/ } });
   console.log(`Limpieza completada: ${appsDeleted.deletedCount} turnos eliminados, barberos y clientes seed eliminados`);
 }
 

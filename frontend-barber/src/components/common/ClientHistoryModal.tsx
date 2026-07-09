@@ -1,5 +1,7 @@
+import { FiCalendar } from 'react-icons/fi';
 import { Modal } from './Modal';
 import { Spinner } from './Spinner';
+import { Button } from './Button';
 import { useGetClientAppointmentsQuery } from '../../services/analyticsApi';
 import type { ClienteData } from '../../types/analytics';
 
@@ -14,11 +16,28 @@ const statusBadge = (status: string) => {
   return <span className={`text-[10px] font-medium ${s.bg} ${s.text} rounded-full px-2 py-0.5`}>{status}</span>;
 };
 
-export function ClientHistoryModal({ isOpen, onClose, client }: { isOpen: boolean; onClose: () => void; client: ClienteData }) {
+export function ClientHistoryModal({
+  isOpen,
+  onClose,
+  client,
+  onCreateAppointment,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  client: ClienteData;
+  onCreateAppointment?: (client: ClienteData) => void;
+}) {
   const { data: appointments = [], isLoading } = useGetClientAppointmentsQuery(client.key, { skip: !isOpen });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Historial: ${client.clientName} ${client.clientLastname}`} size="lg">
+      {onCreateAppointment && client.clientId && (
+        <div className="flex justify-end mb-3">
+          <Button variant="outline" size="sm" icon={FiCalendar} onClick={() => onCreateAppointment(client)}>
+            Crear turno
+          </Button>
+        </div>
+      )}
       <div className="flex flex-wrap gap-3 mb-4 p-3 rounded-[10px] bg-[#1A1A1A] text-[12px]">
         <div className="flex flex-col gap-0.5">
           <span className="text-[#6A6A6A] text-[10px] uppercase tracking-wider">Teléfono</span>

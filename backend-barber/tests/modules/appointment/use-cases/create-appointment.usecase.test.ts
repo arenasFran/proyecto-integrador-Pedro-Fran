@@ -614,5 +614,70 @@ describe('CreateAppointmentUseCase', () => {
       expect(membershipRepository.save).not.toHaveBeenCalled();
     });
   });
+
+  describe('RN15 — límite de turnos activos', () => {
+    const setupBaseMocks = () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber());
+      serviceRepository.findById.mockResolvedValue(makeService());
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+      appointmentRepository.create.mockResolvedValue(makeAppointment());
+    };
+
+    const makeActiveAppointments = (count: number, status: AppointmentProps['status'] = 'Confirmado') =>
+      Array.from({ length: count }, (_, i) =>
+        makeAppointment({ id: `apt-active-${i}`, status, date: '2099-12-31', startTime: '10:00', endTime: '11:00' })
+      );
+
+    it('debe permitir crear turno si tiene menos de 10 turnos activos', async () => {
+      appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(9));
+      setupBaseMocks();
+
+      const result = await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-06-15',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+      });
+
+      expect(result.message).toMatch(/Turno creado/);
+    });
+
+    it('debe bloquear si el cliente ya tiene 10 turnos activos', async () => {
+      appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(10));
+      setupBaseMocks();
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-06-15',
+          startTime: '14:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientId: 'client-1',
+        })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('no cuenta turnos Cancelado para el límite de activos', async () => {
+      appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(10, 'Cancelado'));
+      setupBaseMocks();
+
+      const result = await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-06-15',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+      });
+
+      expect(result.message).toMatch(/Turno creado/);
+    });
+  });
 });
 

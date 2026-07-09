@@ -1,4 +1,5 @@
-import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import mongoose from 'mongoose';
+import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
@@ -15,7 +16,6 @@ import {
   toMinutes,
   doesOverlap,
   getNowInTimezone,
-  getNowDateInTimezone,
   validateAppointmentSlot,
 } from '../../../domain/utils/time';
 import { VALID_TRANSITIONS } from '../../../domain/types/appointment';
@@ -97,85 +97,76 @@ export class RescheduleAppointmentUseCase {
       dto.startTime, dto.date, barber
     );
 
-    // RN04 — Colisión
-    const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
-      dto.barberId,
-      dto.date
-    );
-    for (const existing of existingAppointments) {
-      if (existing.status === 'Cancelado') continue;
-      if (existing.id === id) continue; // excluirse a sí mismo
-      if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
-        throw new AppError('El horario seleccionado ya está ocupado.', 409);
+    // Transacción: colisión + turno activo + actualización del turno
+    const session = await mongoose.startSession();
+    let updated;
+    try {
+      session.startTransaction();
+
+      // RN04 — Colisión
+      const existingAppointments = await this.appointmentRepository.findByBarberAndDate(
+        dto.barberId,
+        dto.date,
+        session
+      );
+      for (const existing of existingAppointments) {
+        if (existing.status === 'Cancelado') continue;
+        if (existing.id === id) continue; // excluirse a sí mismo
+        if (doesOverlap(dto.startTime, endTime, existing.startTime, existing.endTime)) {
+          throw new AppError('El horario seleccionado ya está ocupado.', 409);
+        }
       }
-    }
 
-    // RN04b — Colisión con bloques del barbero
-    const blocks = await this.blockRepository.findByBarberAndDate(dto.barberId, dto.date);
-    for (const block of blocks) {
-      if (doesOverlap(dto.startTime, endTime, block.startTime, block.endTime)) {
-        throw new AppError('El horario seleccionado está bloqueado para este barbero.', 409);
+      // RN04b — Colisión con bloques del barbero
+      const blocks = await this.blockRepository.findByBarberAndDate(dto.barberId, dto.date, session);
+      for (const block of blocks) {
+        if (doesOverlap(dto.startTime, endTime, block.startTime, block.endTime)) {
+          throw new AppError('El horario seleccionado está bloqueado para este barbero.', 409);
+        }
       }
-    }
 
-    // RN15 — Límite de 1 turno activo total (excluyéndose a sí mismo)
-    let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
-    if (appointment.clientId) {
-      activeAppointments = await this.appointmentRepository.findByClientId(appointment.clientId);
-    } else if (appointment.clientEmail && appointment.clientPhone) {
-      activeAppointments = await this.appointmentRepository.findByContact(
-        appointment.clientEmail,
-        appointment.clientPhone
-      );
-    }
-    const filtered = activeAppointments.filter((a) => a.id !== id);
-    const now = getNowDateInTimezone();
-    const hasActive = filtered.some((a) => {
-      if (a.status !== 'Confirmado') return false;
-      const appointmentEnd = new Date(`${a.date}T${a.endTime}:00`);
-      return appointmentEnd > now;
-    });
-    if (hasActive) {
-      throw new AppError(
-        'Ya tenés un turno activo completo. Cancelalo antes de reagendar.',
-        409
-      );
-    }
+      updated = await this.appointmentRepository.update(id, {
+        date: dto.date,
+        startTime: dto.startTime,
+        endTime,
+        barberId: dto.barberId,
+        version: appointment.version,
+      }, session);
 
-    const updated = await this.appointmentRepository.update(id, {
-      date: dto.date,
-      startTime: dto.startTime,
-      endTime,
-      barberId: dto.barberId,
-      version: appointment.version,
-    });
+      if (!updated) {
+        throw new AppError(
+          'El turno fue modificado por otro usuario. Recargá e intentá de nuevo.',
+          409
+        );
+      }
 
-    if (!updated) {
-      throw new AppError(
-        'El turno fue modificado por otro usuario. Recargá e intentá de nuevo.',
-        409
-      );
+      const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
+      const actor = (userKind && actorMap[userKind]) || 'cliente';
+      await this.appointmentRepository.updateStatus(id, {
+        statusHistoryEntry: {
+          status: updated.status,
+          timestamp: new Date(),
+          actor: `${actor} (reprogramado)`,
+        },
+      }, session);
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = (userKind && actorMap[userKind]) || 'cliente';
-    await this.appointmentRepository.updateStatus(id, {
-      statusHistoryEntry: {
-        status: updated.status,
-        timestamp: new Date(),
-        actor: `${actor} (reprogramado)`,
-      },
-    });
 
     // RN17 — Email notification (async)
-    const clientEmail = updated.clientEmail;
+    const clientEmail = updated!.clientEmail;
     if (clientEmail) {
       this.emailService
         .sendMail({
           to: clientEmail,
           subject: 'Turno reprogramado',
           html: `<p>Tu turno fue reprogramado.</p>
-<p>Nueva fecha: ${updated.date} a las ${updated.startTime}</p>
+<p>Nueva fecha: ${updated!.date} a las ${updated!.startTime}</p>
 <p>Barbero: ${barber.name} ${barber.lastname}</p>`,
         })
         .catch((error) => {
@@ -185,7 +176,7 @@ export class RescheduleAppointmentUseCase {
 
     return {
       message: 'Turno reagendado exitosamente',
-      appointment: updated.toPrimitives(),
+      appointment: updated!.toPrimitives(),
     };
   }
 }

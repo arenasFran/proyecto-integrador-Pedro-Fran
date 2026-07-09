@@ -220,18 +220,18 @@ export class MongoAppointmentRepository {
     return docs.map((doc) => toAppointmentEntity(doc));
   }
 
-  async findByClientId(clientId: string): Promise<Appointment[]> {
+  async findByClientId(clientId: string, session?: mongoose.ClientSession): Promise<Appointment[]> {
     const docs = await AppointmentModel.find({
       clientId: new mongoose.Types.ObjectId(clientId),
-    }).lean();
+    }).session(session ?? null).lean();
     return docs.map((doc) => toAppointmentEntity(doc));
   }
 
-  async findByContact(clientEmail: string, clientPhone: string): Promise<Appointment[]> {
+  async findByContact(clientEmail: string, clientPhone: string, session?: mongoose.ClientSession): Promise<Appointment[]> {
     const docs = await AppointmentModel.find({
       clientEmail,
       clientPhone,
-    }).lean();
+    }).session(session ?? null).lean();
     return docs.map((doc) => toAppointmentEntity(doc));
   }
 
@@ -255,7 +255,11 @@ export class MongoAppointmentRepository {
     }
   }
 
-  async update(id: string, data: UpdateAppointmentData & { version?: number }): Promise<Appointment | null> {
+  async update(
+    id: string,
+    data: UpdateAppointmentData & { version?: number },
+    session?: mongoose.ClientSession
+  ): Promise<Appointment | null> {
     const updateData: Record<string, unknown> = {};
 
     if (data.date !== undefined) updateData.date = data.date;
@@ -274,14 +278,21 @@ export class MongoAppointmentRepository {
       updateData.version = data.version + 1;
     }
 
-    const doc = await AppointmentModel.findOneAndUpdate(
-      filter,
-      { $set: updateData, $currentDate: { updatedAt: true } },
-      { returnDocument: 'after' }
-    ).lean();
+    try {
+      const doc = await AppointmentModel.findOneAndUpdate(
+        filter,
+        { $set: updateData, $currentDate: { updatedAt: true } },
+        { returnDocument: 'after', session: session ?? null }
+      ).lean();
 
-    if (!doc) return null;
-    return toAppointmentEntity(doc);
+      if (!doc) return null;
+      return toAppointmentEntity(doc);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new AppError('El horario seleccionado ya está ocupado.', 409);
+      }
+      throw error;
+    }
   }
 
   async updateClientId(id: string, clientId: string, version?: number): Promise<Appointment | null> {

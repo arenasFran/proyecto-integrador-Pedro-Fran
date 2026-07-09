@@ -47,7 +47,7 @@ describe('Membership routes — cancel / reactivate', () => {
     it('debe cancelar la renovación automática exitosamente', async () => {
       const mem = activeMembership();
       membershipRepo.findById.mockResolvedValue(mem);
-      membershipRepo.save.mockResolvedValue(mem);
+      membershipRepo.updateAutoRenew.mockResolvedValue(cancelledMembership());
 
       const response = await request(app)
         .post('/api/memberships/507f1f77bcf86cd799439011/cancel');
@@ -105,7 +105,7 @@ describe('Membership routes — cancel / reactivate', () => {
     it('debe reactivar la renovación automática exitosamente', async () => {
       const mem = cancelledMembership();
       membershipRepo.findById.mockResolvedValue(mem);
-      membershipRepo.save.mockResolvedValue(mem);
+      membershipRepo.updateAutoRenew.mockResolvedValue(activeMembership());
 
       const response = await request(app)
         .post('/api/memberships/507f1f77bcf86cd799439011/reactivate');

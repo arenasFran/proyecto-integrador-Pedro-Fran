@@ -71,21 +71,8 @@ export class MongoMembershipRepository {
     return docs.map((d) => this.toDomain(d));
   }
 
-  async save(membership: Membership, session?: mongoose.ClientSession): Promise<Membership> {
+  async create(membership: Membership, session?: mongoose.ClientSession): Promise<Membership> {
     const data = membership.toPrimitives();
-
-    if (data.id) {
-      await MembershipModel.findByIdAndUpdate(data.id, {
-        $set: {
-          status: data.status,
-          couponsUsed: data.couponsUsed,
-          endDate: data.endDate,
-          autoRenew: data.autoRenew,
-          updatedAt: new Date(),
-        },
-      }, session ? { session } : {});
-      return membership;
-    }
 
     const doc = await MembershipModel.create([{
       userId: new mongoose.Types.ObjectId(data.userId),
@@ -106,6 +93,27 @@ export class MongoMembershipRepository {
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
     });
+  }
+
+  // Update atómico: solo toca couponsUsed (clampeado en [0, ∞)), nunca status/endDate/autoRenew.
+  // Evita el lost-update que produciría reescribir la entidad completa con save().
+  async incrementCouponsUsed(id: string, delta: number, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const doc = await MembershipModel.findByIdAndUpdate(
+      id,
+      [{ $set: { couponsUsed: { $max: [0, { $add: ['$couponsUsed', delta] }] }, updatedAt: '$$NOW' } }],
+      { returnDocument: 'after', session, updatePipeline: true }
+    );
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  // Update atómico: solo toca autoRenew, nunca couponsUsed/status/endDate.
+  async updateAutoRenew(id: string, autoRenew: boolean, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const doc = await MembershipModel.findByIdAndUpdate(
+      id,
+      { $set: { autoRenew, updatedAt: new Date() } },
+      { returnDocument: 'after', session }
+    );
+    return doc ? this.toDomain(doc) : null;
   }
 
   async hasActiveMembership(userId: string): Promise<boolean> {

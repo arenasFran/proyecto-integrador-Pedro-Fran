@@ -118,3 +118,64 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
     expect(result.renewed).toBe(1);
   });
 });
+
+describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de lost-update)', () => {
+  let repository: MongoMembershipRepository;
+  const userId = new mongoose.Types.ObjectId();
+
+  const createMembershipDoc = async (overrides: { couponsUsed?: number; autoRenew?: boolean } = {}) => {
+    return MembershipModel.create({
+      userId,
+      status: 'active',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      couponsTotal: 4,
+      couponsUsed: overrides.couponsUsed ?? 0,
+      productDiscount: 10,
+      createdBy: 'client',
+      autoRenew: overrides.autoRenew ?? true,
+    });
+  };
+
+  beforeEach(() => {
+    repository = new MongoMembershipRepository();
+  });
+
+  afterEach(async () => {
+    await MembershipModel.deleteMany({ userId });
+  });
+
+  it('debe aplicar dos incrementCouponsUsed concurrentes sin perder ninguno (a diferencia del viejo save() que sobreescribía todo)', async () => {
+    const doc = await createMembershipDoc({ couponsUsed: 0 });
+
+    await Promise.all([
+      repository.incrementCouponsUsed(doc._id.toString(), 1),
+      repository.incrementCouponsUsed(doc._id.toString(), 1),
+    ]);
+
+    const updated = await MembershipModel.findById(doc._id);
+    expect(updated!.couponsUsed).toBe(2);
+  });
+
+  it('incrementCouponsUsed no debe bajar de 0', async () => {
+    const doc = await createMembershipDoc({ couponsUsed: 0 });
+
+    await repository.incrementCouponsUsed(doc._id.toString(), -1);
+
+    const updated = await MembershipModel.findById(doc._id);
+    expect(updated!.couponsUsed).toBe(0);
+  });
+
+  it('updateAutoRenew no debe tocar couponsUsed aunque haya cambiado por otra operación concurrente', async () => {
+    const doc = await createMembershipDoc({ couponsUsed: 2, autoRenew: true });
+
+    await Promise.all([
+      repository.incrementCouponsUsed(doc._id.toString(), 1),
+      repository.updateAutoRenew(doc._id.toString(), false),
+    ]);
+
+    const updated = await MembershipModel.findById(doc._id);
+    expect(updated!.couponsUsed).toBe(3);
+    expect(updated!.autoRenew).toBe(false);
+  });
+});

@@ -66,7 +66,9 @@ export const makeMockMembershipRepository = () => ({
   findByUser: jest.fn(),
   findById: jest.fn(),
   findAll: jest.fn(),
-  save: jest.fn(),
+  create: jest.fn(),
+  incrementCouponsUsed: jest.fn(),
+  updateAutoRenew: jest.fn(),
   hasActiveMembership: jest.fn(),
   expireExpiredMemberships: jest.fn(),
 });
@@ -107,6 +109,8 @@ export const makeMockClientRepository = () => ({
   findByPhone: jest.fn(),
   findByBoth: jest.fn(),
   createUnregistered: jest.fn(),
+  findByIds: jest.fn(),
+  searchRegistered: jest.fn(),
 });
 
 export const makeMockBarberBlockRepository = () => ({

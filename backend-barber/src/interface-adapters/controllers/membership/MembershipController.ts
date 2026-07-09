@@ -34,6 +34,11 @@ export class MembershipController {
     try {
       const { userId, couponsTotal, productDiscount } = req.body;
 
+      const isStaff = req.user!.kind === 'Admin' || req.user!.kind === 'Empleado';
+      if (req.user!._id !== userId && !isStaff) {
+        throw new AppError('No podés crear una membresía para otro usuario.', 403);
+      }
+
       const user = await this.userRepo.findById(userId);
       if (!user) {
         throw new AppError('Usuario no encontrado.', 404);
@@ -54,7 +59,7 @@ export class MembershipController {
         productDiscount,
       });
 
-      const saved = await this.membershipRepo.save(membership);
+      const saved = await this.membershipRepo.create(membership);
 
       return sendSuccess(res, saved.toPrimitives(), 201);
     } catch (error) {
@@ -111,11 +116,12 @@ export class MembershipController {
       }
 
       membership.redeemCoupon();
-      await this.membershipRepo.save(membership);
+      const updated = await this.membershipRepo.incrementCouponsUsed(membership.id, 1);
 
+      const result = updated ?? membership;
       return sendSuccess(res, {
-        remainingCoupons: membership.remainingCoupons,
-        couponsUsed: membership.couponsUsed,
+        remainingCoupons: result.remainingCoupons,
+        couponsUsed: result.couponsUsed,
       });
     } catch (error) {
       return sendError(res, error, 'Error al canjear cupón');
@@ -132,8 +138,8 @@ export class MembershipController {
         throw new AppError('No tenés permisos para cancelar esta membresía.', 403);
       }
       membership.cancel();
-      await this.membershipRepo.save(membership);
-      return sendSuccess(res, membership.toPrimitives());
+      const updated = await this.membershipRepo.updateAutoRenew(membership.id, false);
+      return sendSuccess(res, (updated ?? membership).toPrimitives());
     } catch (error) {
       return sendError(res, error, 'Error al cancelar membresía');
     }
@@ -149,8 +155,8 @@ export class MembershipController {
         throw new AppError('No tenés permisos para reactivar esta membresía.', 403);
       }
       membership.reactivate();
-      await this.membershipRepo.save(membership);
-      return sendSuccess(res, membership.toPrimitives());
+      const updated = await this.membershipRepo.updateAutoRenew(membership.id, true);
+      return sendSuccess(res, (updated ?? membership).toPrimitives());
     } catch (error) {
       return sendError(res, error, 'Error al reactivar membresía');
     }

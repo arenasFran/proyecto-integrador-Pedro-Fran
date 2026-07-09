@@ -12,7 +12,7 @@ import {
   useUpdateAppointmentStatusMutation,
 } from '../../../services/appointmentApi';
 import { useToast } from '../../../components/common';
-import { professionalService } from '../../../services/professional.service';
+import { useAvailableSlots } from '../../../hooks/useAvailableSlots';
 import { extractError } from './helpers';
 import type { Appointment } from '../../../types/booking';
 
@@ -62,8 +62,11 @@ export function useAdminAppointments() {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
-  const [rescheduleSlots, setRescheduleSlots] = useState<string[]>([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const { slots: rescheduleSlots, isLoading: isLoadingSlots } = useAvailableSlots(
+    rescheduleBarberId,
+    rescheduleDate,
+    !!rescheduleTarget
+  );
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
@@ -166,7 +169,6 @@ export function useAdminAppointments() {
       setRescheduleDate('');
       setRescheduleTime('');
       setRescheduleBarberId('');
-      setRescheduleSlots([]);
     } catch (err) {
       showToast(extractError(err), 'error');
     }
@@ -184,28 +186,7 @@ export function useAdminAppointments() {
 
   const handleRescheduleClose = useCallback(() => {
     setRescheduleTarget(null);
-    setRescheduleSlots([]);
   }, []);
-
-  useEffect(() => {
-    if (!rescheduleDate || !rescheduleBarberId || !rescheduleTarget) {
-      setRescheduleSlots([]);
-      return;
-    }
-    let cancelled = false;
-    setIsLoadingSlots(true);
-    professionalService.getSlots(rescheduleBarberId, rescheduleDate)
-      .then((res) => {
-        if (!cancelled) setRescheduleSlots(res.slots);
-      })
-      .catch(() => {
-        if (!cancelled) setRescheduleSlots([]);
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoadingSlots(false);
-      });
-    return () => { cancelled = true; };
-  }, [rescheduleDate, rescheduleBarberId, rescheduleTarget]);
 
   const handleSendReminder = useCallback(async (id: string) => {
     try {

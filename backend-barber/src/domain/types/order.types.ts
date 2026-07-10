@@ -1,4 +1,10 @@
-export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled';
+export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled' | 'refunded' | 'disputed';
+
+export type StatusHistoryEntry = {
+  status: OrderStatus;
+  timestamp: Date;
+  actor: string;
+};
 
 export type OrderItemData = {
   productId: string;
@@ -14,6 +20,10 @@ export type OrderData = {
   total: number;
   status: OrderStatus;
   paymentId?: string;
+  mpPaymentId?: string;
+  mpStatusDetail?: string;
+  paymentMethod?: string;
+  statusHistory: StatusHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
 };

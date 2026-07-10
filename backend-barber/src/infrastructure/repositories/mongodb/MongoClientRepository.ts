@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { Client } from '../../../domain/entities/Client';
+import { AppError } from '../../../domain/errors/AppError';
 import { UnregisteredClient } from './models/client.model';
 
 export type UnregisteredClientData = {
@@ -39,12 +40,19 @@ export class MongoClientRepository {
   }
 
   async createUnregistered(data: UnregisteredClientData): Promise<Client> {
-    const doc = await UnregisteredClient.create({
-      name: data.name,
-      lastname: data.lastname,
-      phone: data.phone,
-      contactEmail: data.contactEmail,
-    });
-    return toClientEntity(doc);
+    try {
+      const doc = await UnregisteredClient.create({
+        name: data.name,
+        lastname: data.lastname,
+        phone: data.phone,
+        contactEmail: data.contactEmail,
+      });
+      return toClientEntity(doc);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        throw new AppError('El número de teléfono ya está registrado. Probá con otro o iniciá sesión.', 409);
+      }
+      throw error;
+    }
   }
 }

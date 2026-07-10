@@ -6,6 +6,7 @@ export type ProductData = {
   description: string;
   price: number;
   stock: number;
+  minStock: number;
   imageUrl: string;
   gallery: string[];
   category: string;

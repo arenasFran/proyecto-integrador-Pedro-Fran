@@ -9,10 +9,13 @@ import { runFullSeed } from './infrastructure/scripts/seed-full';
 import { MongoMembershipRepository } from './infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoAppointmentRepository } from './infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoPaymentRepository } from './infrastructure/repositories/mongodb/MongoPaymentRepository';
+import { MongoOrderRepository } from './infrastructure/repositories/mongodb/MongoOrderRepository';
 
 const EXPIRATION_CHECK_MS = 24 * 60 * 60 * 1000;
 const PENDING_PAYMENT_CHECK_MS = 5 * 60 * 1000;
 const PENDING_PAYMENT_TIMEOUT_MIN = 30;
+const PENDING_ORDER_CHECK_MS = 5 * 60 * 1000;
+const PENDING_ORDER_TIMEOUT_MIN = 60;
 
 const startServer = async () => {
   await connectDB();
@@ -21,8 +24,10 @@ const startServer = async () => {
   const membershipRepo = new MongoMembershipRepository();
   const appointmentRepo = new MongoAppointmentRepository();
   const paymentRepo = new MongoPaymentRepository();
+  const orderRepo = new MongoOrderRepository();
   let running = false;
   let pendingPaymentRunning = false;
+  let pendingOrderRunning = false;
 
   const expireJob = async () => {
     if (running) return;
@@ -56,11 +61,30 @@ const startServer = async () => {
     }
   };
 
+  const cancelPendingOrders = async () => {
+    if (pendingOrderRunning) return;
+    pendingOrderRunning = true;
+    try {
+      const cutoff = new Date(Date.now() - PENDING_ORDER_TIMEOUT_MIN * 60 * 1000);
+      const cancelled = await orderRepo.cancelPendingOlderThan(cutoff);
+      if (cancelled > 0) {
+        console.log(`[PendingOrderCancel] ${cancelled} orden(es) cancelada(s) por pago pendiente > ${PENDING_ORDER_TIMEOUT_MIN} min`);
+      }
+    } catch (err) {
+      console.error('[PendingOrderCancel] Error:', err);
+    } finally {
+      pendingOrderRunning = false;
+    }
+  };
+
   await expireJob();
   setInterval(expireJob, EXPIRATION_CHECK_MS);
 
   await cancelPendingPaymentAppointments();
   setInterval(cancelPendingPaymentAppointments, PENDING_PAYMENT_CHECK_MS);
+
+  await cancelPendingOrders();
+  setInterval(cancelPendingOrders, PENDING_ORDER_CHECK_MS);
 
   const { default: app } = await import('./app');
 

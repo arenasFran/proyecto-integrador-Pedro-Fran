@@ -235,15 +235,17 @@ export class CreateAppointmentUseCase {
           sandboxInitPoint: paymentResult.sandboxInitPoint,
         };
       } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Error desconocido';
+        console.error('[CreateAppointment] Error al crear preferencia de pago:', errMsg);
         await this.appointmentRepository.updateStatus(created!.id, {
           status: 'Cancelado',
           paymentStatus: 'Cancelado',
-          cancelReason: 'Error al procesar el pago online',
+          cancelReason: `Error al procesar el pago online: ${errMsg}`,
           cancelledAt: new Date(),
           cancelledBy: 'system',
           statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
         });
-        throw error;
+        throw new AppError(`Error al procesar el pago online: ${errMsg}`, 500);
       }
     }
 
@@ -260,6 +262,10 @@ export class CreateAppointmentUseCase {
   ): Promise<import('../../../domain/entities/Client').Client> {
     if (dto.clientEmail && dto.clientPhone) {
       const client = await this.clientRepository.findByBoth(dto.clientEmail, dto.clientPhone);
+      if (client) return client;
+    }
+    if (dto.clientPhone) {
+      const client = await this.clientRepository.findByPhone(dto.clientPhone);
       if (client) return client;
     }
     return this.clientRepository.createUnregistered({

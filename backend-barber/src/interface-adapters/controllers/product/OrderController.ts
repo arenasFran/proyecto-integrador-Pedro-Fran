@@ -3,6 +3,9 @@ import { CreateOrderUseCase } from '../../../application/use-cases/product/Creat
 import { GetOrderUseCase } from '../../../application/use-cases/product/GetOrderUseCase';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
+import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
+import { IEmailService } from '../../../application/ports/IEmailService';
+import { IUserRepository } from '../../../application/ports/IUserRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 
@@ -11,15 +14,18 @@ export class OrderController {
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly getOrderUseCase: GetOrderUseCase,
     private readonly orderRepository: MongoOrderRepository,
-    private readonly productRepository: MongoProductRepository
+    private readonly productRepository: MongoProductRepository,
+    private readonly paymentRepository?: MongoPaymentRepository,
+    private readonly emailService?: IEmailService,
+    private readonly userRepository?: IUserRepository
   ) {}
 
   create = async (req: Request, res: Response) => {
     try {
       const userId = req.user!._id;
-      const { items } = req.body;
+      const { items, paymentMethod } = req.body;
 
-      const result = await this.createOrderUseCase.execute({ userId, items, payerEmail: req.user!.email });
+      const result = await this.createOrderUseCase.execute({ userId, items, payerEmail: req.user!.email, paymentMethod });
 
       return sendSuccess(res, result, 201);
     } catch (error) {
@@ -83,15 +89,25 @@ export class OrderController {
     }
   }
 
+  private async getUserEmail(userId: string): Promise<string | null> {
+    if (!this.userRepository) return null;
+    try {
+      return await this.userRepository.findEmailById(userId);
+    } catch {
+      return null;
+    }
+  }
+
   updateStatus = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { status } = req.body as { status: string };
+      const actor = req.user?.kind || 'Admin';
 
       const order = await this.orderRepository.findById(id as string);
       if (!order) throw new AppError('Orden no encontrada.', 404);
 
-      const wasPaid = order.status === 'paid';
+      const previousStatus = order.status;
 
       switch (status) {
         case 'paid':
@@ -101,7 +117,7 @@ export class OrderController {
           order.deliver();
           break;
         case 'cancelled':
-          order.cancel();
+          order.cancel(actor);
           break;
         default:
           throw new AppError('Estado inválido.', 400);
@@ -109,9 +125,34 @@ export class OrderController {
 
       if (status === 'cancelled') {
         await this.restoreStock(order);
+        if (this.paymentRepository && order.paymentId) {
+          try {
+            const payment = await this.paymentRepository.findById(order.paymentId);
+            if (payment && payment.status === 'approved') {
+              payment.cancel();
+              await this.paymentRepository.save(payment);
+            }
+          } catch (err) {
+            console.error('[OrderController] Error al actualizar Payment:', err);
+          }
+        }
       }
 
       const saved = await this.orderRepository.save(order);
+
+      if (status === 'delivered' && previousStatus !== 'delivered') {
+        const userEmail = await this.getUserEmail(order.userId);
+        if (userEmail && this.emailService) {
+          this.emailService.sendMail({
+            to: userEmail,
+            subject: 'Orden entregada - Barbería SA',
+            html: `<p>Tu orden <strong>#${order.id}</strong> ha sido marcada como entregada.</p>
+<p>Total: $${order.total}</p>
+<p>Gracias por tu compra.</p>`,
+          }).catch(() => {});
+        }
+      }
+
       return sendSuccess(res, { order: saved.toPrimitives() });
     } catch (error) {
       return sendError(res, error, 'Error al actualizar estado de la orden');

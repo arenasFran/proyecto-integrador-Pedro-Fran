@@ -11,6 +11,7 @@ const productSchema = new Schema<IProductDocument>(
     description: { type: String, required: true },
     price: { type: Number, required: true, min: 0 },
     stock: { type: Number, required: true, min: 0, default: 0 },
+    minStock: { type: Number, default: 5 },
     imageUrl: { type: String, default: '' },
     gallery: { type: [String], default: [] },
     category: { type: String, default: '' },

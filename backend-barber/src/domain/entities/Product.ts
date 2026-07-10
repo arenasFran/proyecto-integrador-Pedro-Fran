@@ -14,6 +14,7 @@ export class Product {
     description: string;
     price: number;
     stock: number;
+    minStock?: number;
     imageUrl: string;
     gallery?: string[];
     category: string;
@@ -25,6 +26,7 @@ export class Product {
       description: data.description,
       price: data.price,
       stock: data.stock,
+      minStock: data.minStock ?? 5,
       imageUrl: data.imageUrl,
       gallery: data.gallery ?? [],
       category: data.category,
@@ -43,6 +45,8 @@ export class Product {
   get description(): string { return this.props.description; }
   get price(): number { return this.props.price; }
   get stock(): number { return this.props.stock; }
+  get minStock(): number { return this.props.minStock; }
+  get isLowStock(): boolean { return this.props.stock <= this.props.minStock; }
   get imageUrl(): string { return this.props.imageUrl; }
   get gallery(): string[] { return [...this.props.gallery]; }
   get category(): string { return this.props.category; }
@@ -54,11 +58,12 @@ export class Product {
     return { ...this.props };
   }
 
-  update(data: { name?: string; description?: string; price?: number; stock?: number; imageUrl?: string; gallery?: string[]; category?: string; status?: ProductStatus }): void {
+  update(data: { name?: string; description?: string; price?: number; stock?: number; minStock?: number; imageUrl?: string; gallery?: string[]; category?: string; status?: ProductStatus }): void {
     if (data.name !== undefined) this.props.name = data.name;
     if (data.description !== undefined) this.props.description = data.description;
     if (data.price !== undefined) this.props.price = data.price;
     if (data.stock !== undefined) this.props.stock = data.stock;
+    if (data.minStock !== undefined) this.props.minStock = data.minStock;
     if (data.imageUrl !== undefined) this.props.imageUrl = data.imageUrl;
     if (data.gallery !== undefined) this.props.gallery = data.gallery;
     if (data.category !== undefined) this.props.category = data.category;

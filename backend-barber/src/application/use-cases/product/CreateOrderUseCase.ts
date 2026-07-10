@@ -9,13 +9,14 @@ export type CreateOrderDTO = {
   userId: string;
   items: { productId: string; quantity: number }[];
   payerEmail?: string;
+  paymentMethod?: 'online' | 'local';
 };
 
 export type CreateOrderResult = {
-  preferenceId: string;
-  initPoint: string;
-  sandboxInitPoint?: string;
   orderId: string;
+  preferenceId?: string;
+  initPoint?: string;
+  sandboxInitPoint?: string;
 };
 
 export class CreateOrderUseCase {
@@ -43,7 +44,7 @@ export class CreateOrderUseCase {
     for (let i = 0; i < dto.items.length; i++) {
       const product = products[i];
       if (!product) {
-        throw new AppError(`Producto no encontrado: ${dto.items[i].productId}`, 404);
+        throw new AppError('Algunos productos del carrito ya no están disponibles. Limpiá el carrito y volvé a intentar.', 404);
       }
       if (product.status !== 'active') {
         throw new AppError(`"${product.name}" no está disponible actualmente`, 400);
@@ -70,6 +71,15 @@ export class CreateOrderUseCase {
     });
 
     const saved = await this.orderRepository.save(order);
+
+    const paymentMethod = dto.paymentMethod || 'online';
+
+    if (paymentMethod === 'local') {
+      for (const item of resolvedItems) {
+        await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+      }
+      return { orderId: saved.id };
+    }
 
     let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string };
     try {

@@ -10,6 +10,7 @@ export const createOrderSchema = Joi.object({
     )
     .min(1)
     .required(),
+  paymentMethod: Joi.string().valid('online', 'local').optional(),
 });
 
 export const orderIdParamSchema = Joi.object({
@@ -17,7 +18,7 @@ export const orderIdParamSchema = Joi.object({
 });
 
 export const queryOrdersSchema = Joi.object({
-  status: Joi.string().valid('pending', 'paid', 'delivered', 'cancelled').optional(),
+  status: Joi.string().valid('pending', 'paid', 'delivered', 'cancelled', 'refunded', 'disputed').optional(),
   page: Joi.number().integer().min(1).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 });

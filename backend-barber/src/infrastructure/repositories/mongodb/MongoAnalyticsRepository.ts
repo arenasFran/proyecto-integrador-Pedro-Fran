@@ -15,6 +15,8 @@ export type OverviewResult = {
   ingresosPendientes: number;
   nuevosClientes: number;
   estadisticasPorEstado: Record<string, number>;
+  totalOrders: number;
+  cancelledOrders: number;
 };
 
 export type HeatmapEntry = {
@@ -144,6 +146,23 @@ export class MongoAnalyticsRepository {
       ])
     );
 
+    const ecommerceAgg = await OrderModel.aggregate([
+      { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      {
+        $facet: {
+          totalOrders: [{ $count: 'count' }],
+          cancelledCount: [{ $match: { status: 'cancelled' } }, { $count: 'count' }],
+        },
+      },
+    ]);
+
+    const ecommerceData = ecommerceAgg[0] || { totalOrders: [], cancelledCount: [] };
+    const totalOrders = (ecommerceData.totalOrders as Array<{ count: number }>)[0]?.count ?? 0;
+    const cancelledOrdersEcom = (ecommerceData.cancelledCount as Array<{ count: number }>)[0]?.count ?? 0;
+
+    estadisticasPorEstado['cancelled_order'] = cancelledOrdersEcom;
+    estadisticasPorEstado['total_orders'] = totalOrders;
+
     return {
       totalReservas: (data.totalReservas as Array<{ count: number }>)[0]?.count ?? 0,
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
@@ -151,6 +170,8 @@ export class MongoAnalyticsRepository {
       ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (productPending[0]?.total ?? 0),
       nuevosClientes: (registrados[0]?.total ?? 0) + (noRegistrados[0]?.total ?? 0),
       estadisticasPorEstado,
+      totalOrders,
+      cancelledOrders: cancelledOrdersEcom,
     };
   }
 

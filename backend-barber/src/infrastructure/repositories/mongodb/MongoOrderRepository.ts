@@ -52,6 +52,22 @@ export class MongoOrderRepository {
     };
   }
 
+  async cancelPendingOlderThan(cutoff: Date): Promise<number> {
+    const result = await OrderModel.updateMany(
+      {
+        status: 'pending',
+        createdAt: { $lt: cutoff },
+      },
+      {
+        $set: {
+          status: 'cancelled',
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.modifiedCount;
+  }
+
   async delete(id: string): Promise<void> {
     await OrderModel.findByIdAndDelete(id);
   }
@@ -65,6 +81,10 @@ export class MongoOrderRepository {
         updatedAt: new Date(),
       };
       if (data.paymentId) update.paymentId = data.paymentId;
+      if (data.mpPaymentId) update.mpPaymentId = data.mpPaymentId;
+      if (data.mpStatusDetail !== undefined) update.mpStatusDetail = data.mpStatusDetail;
+      if (data.paymentMethod !== undefined) update.paymentMethod = data.paymentMethod;
+      if (data.statusHistory) update.statusHistory = data.statusHistory;
 
       const query = OrderModel.findByIdAndUpdate(data.id, { $set: update });
       if (session) query.session(session);
@@ -77,6 +97,7 @@ export class MongoOrderRepository {
       items: data.items,
       total: data.total,
       status: data.status,
+      statusHistory: data.statusHistory,
     }], session ? { session } : {});
 
     return Order.restore({
@@ -100,6 +121,14 @@ export class MongoOrderRepository {
       total: doc.total,
       status: doc.status,
       paymentId: doc.paymentId ?? undefined,
+      mpPaymentId: doc.mpPaymentId ?? undefined,
+      mpStatusDetail: doc.mpStatusDetail ?? undefined,
+      paymentMethod: doc.paymentMethod ?? undefined,
+      statusHistory: (doc.statusHistory ?? []).map((h) => ({
+        status: h.status,
+        timestamp: h.timestamp,
+        actor: h.actor,
+      })),
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });

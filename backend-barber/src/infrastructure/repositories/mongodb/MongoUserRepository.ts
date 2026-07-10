@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { User } from '../../../domain/entities/User';
+import { AppError } from '../../../domain/errors/AppError';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
 import { IUserRepository } from '../../../application/ports/IUserRepository';
@@ -161,8 +162,21 @@ export class MongoUserRepository implements IUserRepository {
   }
 
   async createRegisteredClient(user: User): Promise<User> {
-    const doc = await RegisteredClient.create(userToRegisteredClientData(user));
-    return userFromRegisteredClient(doc);
+    try {
+      const doc = await RegisteredClient.create(userToRegisteredClientData(user));
+      return userFromRegisteredClient(doc);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        if (error?.keyPattern?.phone) {
+          throw new AppError('El número de teléfono ya está registrado.', 409);
+        }
+        if (error?.keyPattern?.email) {
+          throw new AppError('El email ya está registrado.', 409);
+        }
+        throw new AppError('El registro ya existe.', 409);
+      }
+      throw error;
+    }
   }
 
   async update(userId: string, data: UserUpdate): Promise<User | null> {

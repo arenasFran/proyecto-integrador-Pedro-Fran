@@ -85,11 +85,14 @@ export class ProcessWebhookUseCase {
       return;
     }
 
+    const mpStatusDetail = mpPayment.statusDetail;
+    const paymentMethod = mpPayment.paymentMethodId;
+
     switch (mpPayment.status) {
       case 'approved':
         payment.approve(mpPaymentId);
         await this.paymentRepository.save(payment);
-        await this.handleApproved(payment);
+        await this.handleApproved(payment, mpStatusDetail, paymentMethod);
         break;
       case 'rejected':
         payment.reject();
@@ -97,9 +100,25 @@ export class ProcessWebhookUseCase {
         await this.handleRejected(payment);
         break;
       case 'cancelled':
+      case 'by_collector':
         payment.cancel();
         await this.paymentRepository.save(payment);
         await this.handleCancelled(payment);
+        break;
+      case 'refunded':
+        payment.approve(mpPaymentId);
+        await this.paymentRepository.save(payment);
+        await this.handleRefunded(payment, mpStatusDetail, paymentMethod);
+        break;
+      case 'charge_back':
+        payment.approve(mpPaymentId);
+        await this.paymentRepository.save(payment);
+        await this.handleChargeBack(payment, mpStatusDetail, paymentMethod);
+        break;
+      case 'in_mediation':
+        payment.approve(mpPaymentId);
+        await this.paymentRepository.save(payment);
+        await this.handleInMediation(payment, mpStatusDetail, paymentMethod);
         break;
       default:
         break;
@@ -213,7 +232,7 @@ export class ProcessWebhookUseCase {
     await this.membershipRepository.save(membership);
   }
 
-  private async handleApproved(payment: Payment): Promise<void> {
+  private async handleApproved(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
     switch (payment.type) {
       case 'appointment': {
         const appointment = await this.appointmentRepository.findById(payment.referenceId);
@@ -244,6 +263,7 @@ export class ProcessWebhookUseCase {
         const order = await this.orderRepository.findById(payment.referenceId);
         if (order && order.status === 'pending') {
           order.pay(payment.id);
+          order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
           await this.orderRepository.save(order);
           for (const item of order.items) {
             await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
@@ -289,11 +309,60 @@ export class ProcessWebhookUseCase {
     if (payment.type === 'product_order') {
       const order = await this.orderRepository.findById(payment.referenceId);
       if (order && order.status === 'pending') {
-        order.cancel();
+        order.cancel('system');
         await this.orderRepository.save(order);
       }
     }
     await this.sendPaymentNotification(payment, 'cancelado');
+  }
+
+  private async handleRefunded(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
+    if (payment.type === 'product_order') {
+      const order = await this.orderRepository.findById(payment.referenceId);
+      if (order && order.status === 'paid') {
+        order.refund();
+        order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
+        await this.orderRepository.save(order);
+        for (const item of order.items) {
+          await this.productRepository.atomicIncreaseStock(item.productId, item.quantity);
+        }
+        const userEmail = await this.getUserEmail(payment.userId);
+        if (userEmail && this.emailService) {
+          this.emailService.sendMail({
+            to: userEmail,
+            subject: 'Reembolso procesado - Barbería SA',
+            html: `<p>Tu pago por la orden <strong>#${order.id}</strong> fue reembolsado.</p>
+<p>Total: $${order.total}</p>
+<p>El importe será acreditado en tu método de pago.</p>`,
+          }).catch(() => {});
+        }
+      }
+    }
+    await this.sendPaymentNotification(payment, 'reembolsado');
+  }
+
+  private async handleChargeBack(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
+    if (payment.type === 'product_order') {
+      const order = await this.orderRepository.findById(payment.referenceId);
+      if (order) {
+        order.markAsDisputed();
+        order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
+        await this.orderRepository.save(order);
+      }
+    }
+    console.log(`[MP-WEBHOOK] Chargeback detectado para payment ${payment.id} - orden ${payment.referenceId}`);
+  }
+
+  private async handleInMediation(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
+    if (payment.type === 'product_order') {
+      const order = await this.orderRepository.findById(payment.referenceId);
+      if (order) {
+        order.markAsDisputed();
+        order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
+        await this.orderRepository.save(order);
+      }
+    }
+    console.log(`[MP-WEBHOOK] Mediación iniciada para payment ${payment.id} - orden ${payment.referenceId}`);
   }
 
   private async getUserEmail(userId: string): Promise<string | null> {

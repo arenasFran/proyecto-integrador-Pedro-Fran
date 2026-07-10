@@ -9,6 +9,8 @@ import { buildPaymentDependencies } from './payment';
 import { CreatePaymentUseCase } from '../application/use-cases/payment/CreatePaymentUseCase';
 import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
+import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
+import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 
 export const buildOrderRouter = () => {
   const orderRepository = new MongoOrderRepository();
@@ -21,7 +23,17 @@ export const buildOrderRouter = () => {
   const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase);
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
 
-  const orderController = new OrderController(createOrderUseCase, getOrderUseCase, orderRepository, productRepository);
+  const emailService = new NodemailerEmailService();
+  const userRepository = new MongoUserRepository();
+  const orderController = new OrderController(
+    createOrderUseCase,
+    getOrderUseCase,
+    orderRepository,
+    productRepository,
+    paymentRepository,
+    emailService,
+    userRepository,
+  );
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

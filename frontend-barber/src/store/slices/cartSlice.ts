@@ -10,7 +10,6 @@ interface CartState {
   items: CartItem[];
   isOpen: boolean;
   checkoutPreferenceId: string | null;
-  checkoutPaymentId: string | null;
 }
 
 const CART_STORAGE_KEY = 'barberia_cart';
@@ -37,7 +36,6 @@ const initialState: CartState = {
   items: loadCart(),
   isOpen: false,
   checkoutPreferenceId: null,
-  checkoutPaymentId: null,
 };
 
 const cartSlice = createSlice({
@@ -78,13 +76,11 @@ const cartSlice = createSlice({
     toggleCart: (state) => {
       state.isOpen = !state.isOpen;
     },
-    setCheckoutResult: (state, action: PayloadAction<{ preferenceId: string; paymentId: string }>) => {
+    setCheckoutResult: (state, action: PayloadAction<{ preferenceId: string }>) => {
       state.checkoutPreferenceId = action.payload.preferenceId;
-      state.checkoutPaymentId = action.payload.paymentId;
     },
     clearCheckoutResult: (state) => {
       state.checkoutPreferenceId = null;
-      state.checkoutPaymentId = null;
     },
   },
 });

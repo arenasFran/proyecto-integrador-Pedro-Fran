@@ -11,9 +11,13 @@ export const paymentApi = createApi({
       query: (id) => ({ url: `/api/payments/${id}` }),
       providesTags: (_result, _error, id) => [{ type: 'Payment', id }],
     }),
+    getPaymentByPreferenceId: builder.query<{ payment: Payment | null }, string>({
+      query: (preferenceId) => ({ url: `/api/payments/by-preference/${preferenceId}` }),
+    }),
   }),
 });
 
 export const {
   useGetPaymentByIdQuery,
+  useGetPaymentByPreferenceIdQuery,
 } = paymentApi;

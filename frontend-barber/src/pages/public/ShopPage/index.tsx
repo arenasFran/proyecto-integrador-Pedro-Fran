@@ -17,13 +17,9 @@ export default function ShopPage() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentPreferenceId, setPaymentPreferenceId] = useState('');
-  const [paymentId, setPaymentId] = useState('');
+  const [preferenceId, setPreferenceId] = useState('');
 
-  const checkoutResult = useAppSelector((state) => ({
-    preferenceId: state.cart.checkoutPreferenceId,
-    paymentId: state.cart.checkoutPaymentId,
-  }));
+  const checkoutPrefId = useAppSelector((state) => state.cart.checkoutPreferenceId);
 
   const { data: productsData, isLoading } = useGetProductsQuery({
     category: selectedCategory || undefined,
@@ -37,13 +33,12 @@ export default function ShopPage() {
   const products = productsData?.products ?? [];
 
   useEffect(() => {
-    if (checkoutResult.preferenceId) {
-      setPaymentPreferenceId(checkoutResult.preferenceId);
-      setPaymentId(checkoutResult.paymentId || '');
+    if (checkoutPrefId) {
+      setPreferenceId(checkoutPrefId);
       setShowPaymentModal(true);
       dispatch(clearCheckoutResult());
     }
-  }, [checkoutResult, dispatch]);
+  }, [checkoutPrefId, dispatch]);
 
   const handleAddToCart = (product: Product) => {
     dispatch(addItem({ product }));
@@ -60,8 +55,7 @@ export default function ShopPage() {
         items: [{ productId: product.id, quantity: 1 }],
       }).unwrap();
       if (result.preferenceId) {
-        setPaymentPreferenceId(result.preferenceId);
-        setPaymentId(result.paymentId || '');
+        setPreferenceId(result.preferenceId);
         setShowPaymentModal(true);
       }
     } catch {
@@ -70,8 +64,7 @@ export default function ShopPage() {
 
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
-    setPaymentPreferenceId('');
-    setPaymentId('');
+    setPreferenceId('');
     navigate('/mis-ordenes');
   };
 
@@ -146,8 +139,7 @@ export default function ShopPage() {
 
       <PaymentModal
         isOpen={showPaymentModal}
-        preferenceId={paymentPreferenceId}
-        paymentId={paymentId}
+        preferenceId={preferenceId}
         onClose={handlePaymentClose}
         title="Pagar orden"
       />

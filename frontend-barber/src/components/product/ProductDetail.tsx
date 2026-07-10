@@ -36,6 +36,7 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
 
   const product = data.product;
   const outOfStock = product.stock === 0;
+  const notAvailable = product.status !== 'active';
   const hasGallery = product.gallery && product.gallery.length > 0;
   const displayImage = selectedImage || product.imageUrl;
 
@@ -94,7 +95,12 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
           <p className="text-[32px] font-bold text-[#FF5C00]">${product.price}</p>
 
           <div className="flex items-center gap-2">
-            {outOfStock ? (
+            {notAvailable ? (
+              <>
+                <FiXCircle className="text-red-400" />
+                <span className="text-[13px] text-red-400">No disponible</span>
+              </>
+            ) : outOfStock ? (
               <>
                 <FiXCircle className="text-red-400" />
                 <span className="text-[13px] text-red-400">Sin stock</span>
@@ -117,14 +123,14 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
               className="flex-1"
               icon={FiShoppingCart}
               onClick={() => onAddToCart(product.id)}
-              disabled={outOfStock}
+              disabled={outOfStock || notAvailable}
             >
-              Agregar al carrito
+              {notAvailable ? 'No disponible' : 'Agregar al carrito'}
             </Button>
             <Button
               className="flex-1"
               onClick={() => onBuyNow(product.id)}
-              disabled={outOfStock}
+              disabled={outOfStock || notAvailable}
             >
               Comprar ahora
             </Button>

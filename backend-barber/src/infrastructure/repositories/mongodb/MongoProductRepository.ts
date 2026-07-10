@@ -27,10 +27,12 @@ export class MongoProductRepository {
   async findAll(params: FindAllParams = {}): Promise<FindAllResult> {
     const filter: Record<string, unknown> = {};
 
-    if (params.status) {
+    if (params.status === 'all') {
+      // no status filter — muestra todos (activos, inactivos, etc.)
+    } else if (params.status) {
       filter.status = params.status;
     } else {
-      filter.status = { $ne: 'deleted' };
+      filter.status = 'active';
     }
 
     if (params.category) {

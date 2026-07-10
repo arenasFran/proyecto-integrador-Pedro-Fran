@@ -23,7 +23,7 @@ const INITIAL_FORM: CreateProductPayload = {
 
 export const ProductsPage: React.FC = () => {
   const [includeInactive, setIncludeInactive] = useState(false);
-  const { data, isLoading } = useGetProductsQuery({ status: includeInactive ? undefined : 'active' });
+  const { data, isLoading } = useGetProductsQuery({ status: includeInactive ? 'all' : 'active' });
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct] = useDeleteProductMutation();

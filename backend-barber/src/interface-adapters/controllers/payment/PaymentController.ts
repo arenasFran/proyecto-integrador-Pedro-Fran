@@ -11,6 +11,15 @@ export class PaymentController {
 
   handleWebhook = async (req: Request, res: Response) => {
     try {
+      console.log('[MP-DEBUG-WEBHOOK] ===== WEBHOOK RECIBIDO =====');
+      console.log('[MP-DEBUG-WEBHOOK] headers:', JSON.stringify({
+        'x-signature': req.headers['x-signature'],
+        'x-request-id': req.headers['x-request-id'],
+        'content-type': req.headers['content-type'],
+        'user-agent': req.headers['user-agent'],
+      }));
+      console.log('[MP-DEBUG-WEBHOOK] body completo:', JSON.stringify(req.body, null, 2));
+
       const xSignature = (req.headers['x-signature'] as string) || '';
       const xRequestId = (req.headers['x-request-id'] as string) || '';
 
@@ -20,6 +29,19 @@ export class PaymentController {
     } catch (error) {
       console.error('[PaymentWebhook] Error:', error);
       return sendError(res, error, 'Error al procesar webhook');
+    }
+  };
+
+  getByPreferenceId = async (req: Request, res: Response) => {
+    try {
+      const preferenceId = req.params.preferenceId as string;
+      const payment = await this.paymentRepository.findByMpPreferenceId(preferenceId);
+      if (!payment) {
+        return sendSuccess(res, { payment: null });
+      }
+      return sendSuccess(res, { payment: payment.toPrimitives() });
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener el pago por preferencia');
     }
   };
 

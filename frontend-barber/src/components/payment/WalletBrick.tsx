@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Wallet } from '@mercadopago/sdk-react';
 
 interface WalletBrickProps {
@@ -7,11 +8,13 @@ interface WalletBrickProps {
 }
 
 export default function WalletBrick({ preferenceId, onError, onReady }: WalletBrickProps) {
+  const initialization = useMemo(() => ({ preferenceId, redirectMode: 'blank' }), [preferenceId]);
+
   return (
     <Wallet
-      initialization={{ preferenceId }}
+      initialization={initialization}
       onReady={onReady}
-      onError={(error) => onError?.(error)}
+      onError={onError}
     />
   );
 }

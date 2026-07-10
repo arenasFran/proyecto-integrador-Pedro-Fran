@@ -9,10 +9,13 @@ export type CreatePaymentDTO = {
   amount: number;
   userId: string;
   items: { title: string; quantity: number; unitPrice: number; id?: string }[];
+  payerEmail?: string;
 };
 
 export type CreatePaymentResult = {
   preferenceId: string;
+  initPoint: string;
+  sandboxInitPoint?: string;
   paymentId: string;
 };
 
@@ -33,22 +36,27 @@ export class CreatePaymentUseCase {
       userId: dto.userId,
     });
 
+    const saved = await this.paymentRepository.save(payment);
+
     const preference = await this.mercadoPagoService.createPreference({
       items: dto.items,
-      externalReference: payment.id,
+      externalReference: saved.id,
       notificationUrl: config.mpNotificationUrl,
       backUrls: {
         success: `${frontendUrl}/payment/result?status=success`,
         failure: `${frontendUrl}/payment/result?status=failure`,
         pending: `${frontendUrl}/payment/result?status=pending`,
       },
+      payerEmail: dto.payerEmail,
     });
 
-    payment.assignPreference(preference.preferenceId);
-    const saved = await this.paymentRepository.save(payment);
+    saved.assignPreference(preference.preferenceId);
+    await this.paymentRepository.save(saved);
 
     return {
       preferenceId: preference.preferenceId,
+      initPoint: preference.initPoint,
+      sandboxInitPoint: preference.sandboxInitPoint,
       paymentId: saved.id,
     };
   }

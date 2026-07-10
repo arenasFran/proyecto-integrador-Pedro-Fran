@@ -12,10 +12,9 @@ export default function PaymentResultPage() {
   const externalRef = searchParams.get('external_reference');
   const [paymentType, setPaymentType] = useState<string>('unknown');
 
-  const pollId = externalRef || paymentId;
-
   const { data: paymentData } = useGetPaymentByIdQuery(externalRef || '', {
     skip: !externalRef,
+    pollingInterval: status === 'pending' ? 3000 : 0,
   });
 
   useEffect(() => {
@@ -23,23 +22,6 @@ export default function PaymentResultPage() {
       setPaymentType(paymentData.payment.type);
     }
   }, [paymentData]);
-
-  useEffect(() => {
-    if (status === 'pending' && pollId) {
-      const checkInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/payments/${pollId}`);
-          const data = await res.json();
-          if (data.payment?.status === 'approved') {
-            clearInterval(checkInterval);
-            window.location.reload();
-          }
-        } catch {
-        }
-      }, 3000);
-      return () => clearInterval(checkInterval);
-    }
-  }, [status, pollId]);
 
   const getTitle = () => {
     switch (status) {

@@ -178,7 +178,8 @@ function RegisterPageWrapper() {
 }
 
 function OptionalAppLayout({ children }: { children: React.ReactNode }) {
-  const token = getAccessToken();
+  const loginToken = useAppSelector((state) => state.auth.loginToken);
+  const token = loginToken || getAccessToken();
 
   if (!token) return <>{children}</>;
 

@@ -35,7 +35,7 @@ export const CartDrawer = () => {
       const result = await createOrder({
         items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
       }).unwrap();
-      dispatch(setCheckoutResult({ preferenceId: result.preferenceId, paymentId: result.paymentId }));
+      dispatch(setCheckoutResult({ preferenceId: result.preferenceId }));
       dispatch(closeCart());
       dispatch(clearCart());
       navigate('/tienda');

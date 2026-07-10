@@ -1,37 +1,48 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, memo } from 'react';
+import { Wallet } from '@mercadopago/sdk-react';
 import { AnimatedContainer, Button } from '../common';
-import WalletBrick from './WalletBrick';
+
+const WalletBrick = memo(function WalletBrick({ preferenceId, onError }: { preferenceId: string; onError: () => void }) {
+  return (
+    <Wallet
+      initialization={{ preferenceId, redirectMode: 'blank' }}
+      onError={onError}
+    />
+  );
+});
 
 interface PaymentModalProps {
   isOpen: boolean;
   preferenceId: string;
-  paymentId?: string;
   onClose: () => void;
-  onPaymentSuccess?: () => void;
   title?: string;
 }
 
-export default function PaymentModal({ isOpen, preferenceId, paymentId, onClose, onPaymentSuccess, title }: PaymentModalProps) {
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+export default function PaymentModal({ isOpen, preferenceId, onClose, title }: PaymentModalProps) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    if (!isOpen || !paymentId) return;
+    if (!isOpen || !preferenceId) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/payments/${paymentId}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.data?.payment?.status === 'approved') {
-          clearInterval(interval);
-          onPaymentSuccess?.();
+        const res = await fetch(`${BASE_URL}/api/payments/by-preference/${preferenceId}`);
+        const json = await res.json();
+        if (json?.payment?.status === 'approved') {
+          onCloseRef.current();
         }
       } catch {
+        // ignore network errors
       }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [isOpen, paymentId, onPaymentSuccess]);
+  }, [isOpen, preferenceId]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !preferenceId) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -47,15 +58,12 @@ export default function PaymentModal({ isOpen, preferenceId, paymentId, onClose,
         </div>
 
         <p className="text-[13px] text-[#8A8A8A] mb-6">
-          Elegí tu medio de pago para completar la transacción de forma segura.
+          Hacé clic en el botón de Mercado Pago para completar el pago de forma segura.
         </p>
 
-        <WalletBrick
-          preferenceId={preferenceId}
-          onReady={() => {}}
-          onError={(error) => {
-            console.error('[PaymentModal] Error en Wallet Brick:', error);
-          }}
+        <Wallet
+          initialization={{ preferenceId, redirectMode: 'blank' }}
+          onError={onClose}
         />
 
         <div className="mt-4">

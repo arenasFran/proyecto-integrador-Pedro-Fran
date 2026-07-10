@@ -31,6 +31,8 @@ type CreateAppointmentResult = {
   message: string;
   appointment: AppointmentProps;
   preferenceId?: string;
+  initPoint?: string;
+  sandboxInitPoint?: string;
 };
 import {
   toMinutes,
@@ -220,6 +222,7 @@ export class CreateAppointmentUseCase {
           amount: service.price,
           userId: dto.clientId || '',
           items: [{ title: service.name, quantity: 1, unitPrice: service.price }],
+          payerEmail: dto.clientEmail,
         });
 
         this.sendCreationEmail(created!, barber.name, barber.lastname);
@@ -228,6 +231,8 @@ export class CreateAppointmentUseCase {
           message: 'Turno creado exitosamente. Redirigiendo al pago...',
           appointment: created!.toPrimitives(),
           preferenceId: paymentResult.preferenceId,
+          initPoint: paymentResult.initPoint,
+          sandboxInitPoint: paymentResult.sandboxInitPoint,
         };
       } catch (error) {
         await this.appointmentRepository.updateStatus(created!.id, {

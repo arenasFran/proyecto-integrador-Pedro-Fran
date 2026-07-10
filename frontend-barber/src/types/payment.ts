@@ -19,10 +19,12 @@ export type Payment = {
 export type InitiatePaymentResponse = {
   preferenceId: string;
   initPoint: string;
+  sandboxInitPoint?: string;
   paymentId: string;
 };
 
 export type CreateSubscriptionResponse = {
   preapprovalId: string;
   initPoint: string;
+  sandboxInitPoint?: string;
 };

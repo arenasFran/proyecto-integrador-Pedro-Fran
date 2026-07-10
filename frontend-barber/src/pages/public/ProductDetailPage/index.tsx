@@ -10,8 +10,7 @@ export default function ProductDetailPage() {
   const navigate = useNavigate();
   const [createOrder] = useCreateOrderMutation();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentPreferenceId, setPaymentPreferenceId] = useState('');
-  const [paymentId, setPaymentId] = useState('');
+  const [preferenceId, setPreferenceId] = useState('');
 
   const handleBack = () => navigate('/tienda');
 
@@ -30,8 +29,7 @@ export default function ProductDetailPage() {
         items: [{ productId, quantity: 1 }],
       }).unwrap();
       if (result.preferenceId) {
-        setPaymentPreferenceId(result.preferenceId);
-        setPaymentId(result.paymentId || '');
+        setPreferenceId(result.preferenceId);
         setShowPaymentModal(true);
       }
     } catch {
@@ -40,8 +38,7 @@ export default function ProductDetailPage() {
 
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
-    setPaymentPreferenceId('');
-    setPaymentId('');
+    setPreferenceId('');
     navigate('/mis-ordenes');
   };
 
@@ -60,8 +57,7 @@ export default function ProductDetailPage() {
       />
       <PaymentModal
         isOpen={showPaymentModal}
-        preferenceId={paymentPreferenceId}
-        paymentId={paymentId}
+        preferenceId={preferenceId}
         onClose={handlePaymentClose}
         title="Pagar producto"
       />

@@ -9,14 +9,17 @@ import { createAnalyticsRouter } from "./interface-adapters/routes/analytics.rou
 import { createAuthenticate } from "./interface-adapters/middlewares/auth.middleware";
 import { buildTokenService } from "./wiring/auth";
 import { getConfig } from "./infrastructure/config/env";
+import { buildDebugRouter } from "./interface-adapters/routes/debug.routes";
 
 const app = express();
+app.set('trust proxy', 1);
 const config = getConfig();
 
 app.use(express.json());
 app.use(
   helmet({
     crossOriginOpenerPolicy: false,
+    contentSecurityPolicy: false,
   })
 );
 
@@ -93,6 +96,7 @@ app.use("/api/memberships", buildMembershipRouter());
 app.use("/api/payments", buildPaymentRouter());
 app.use("/api/products", buildProductRouter());
 app.use("/api/orders", buildOrderRouter());
+app.use("/api/debug", buildDebugRouter());
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });

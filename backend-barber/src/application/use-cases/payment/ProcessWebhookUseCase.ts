@@ -26,19 +26,26 @@ export class ProcessWebhookUseCase {
     const notification = rawBody as { type?: string; topic?: string; action?: string; data?: { id?: string } };
 
     if (!notification || !notification.data?.id) {
+      console.log('[MP-DEBUG-WEBHOOK] Webhook recibido SIN data.id — no se puede procesar');
+      console.log('[MP-DEBUG-WEBHOOK] body raw:', JSON.stringify(rawBody));
       return;
     }
 
     const topic = notification.type || notification.topic;
+    console.log('[MP-DEBUG-WEBHOOK] topic:', topic, '| action:', notification.action, '| data.id:', notification.data.id);
 
     if (topic === 'preapproval' || topic === 'subscription_preapproval') {
+      console.log('[MP-DEBUG-WEBHOOK] Notificación de preapproval — data.id:', notification.data.id);
       await this.handlePreapprovalNotification(notification.data.id, xSignature, xRequestId);
       return;
     }
 
     if (topic !== 'payment') {
+      console.log('[MP-DEBUG-WEBHOOK] Topic desconocido:', topic, '— ignorando');
       return;
     }
+
+    console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', notification.data.id);
 
     const dataId = notification.data.id;
     const valid = this.mercadoPagoService.validateWebhookSignature({
@@ -46,14 +53,19 @@ export class ProcessWebhookUseCase {
       xRequestId,
       dataId,
     });
+    console.log('[MP-DEBUG-WEBHOOK] HMAC validation result:', valid);
     if (!valid) {
+      console.error('[MP-DEBUG-WEBHOOK] Firma HMAC inválida — xSignature:', xSignature, 'xRequestId:', xRequestId, 'dataId:', dataId);
       throw new Error('Firma HMAC inválida en el webhook de MercadoPago.');
     }
 
     const mpPaymentId = notification.data.id;
+    await this.debugFetchPayment(mpPaymentId);
+
     const mpPayment = await this.mercadoPagoService.getPayment(mpPaymentId);
     if (!mpPayment) {
-      throw new Error(`Pago ${mpPaymentId} no encontrado en MercadoPago.`);
+      console.log(`[MP-DEBUG-WEBHOOK] Pago ${mpPaymentId} no encontrado en MercadoPago — ignorando.`);
+      return;
     }
 
     if (mpPayment.preapprovalId) {
@@ -91,6 +103,48 @@ export class ProcessWebhookUseCase {
         break;
       default:
         break;
+    }
+  }
+
+  private async debugFetchPayment(paymentId: string): Promise<void> {
+    try {
+      const token = getConfig().mpAccessToken;
+      if (!token) {
+        console.error('[MP-DEBUG-WEBHOOK] MP_ACCESS_TOKEN no configurado para debug');
+        return;
+      }
+
+      const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = await response.json();
+
+      console.log('[MP-DEBUG-WEBHOOK] ===== DETALLE COMPLETO DEL PAGO =====');
+      console.log('[MP-DEBUG-WEBHOOK] id:', data.id);
+      console.log('[MP-DEBUG-WEBHOOK] status:', data.status);
+      console.log('[MP-DEBUG-WEBHOOK] status_detail:', data.status_detail);
+      console.log('[MP-DEBUG-WEBHOOK] status_reason (raw):', JSON.stringify(data.status_reason ?? data.statusDetail ?? null));
+      console.log('[MP-DEBUG-WEBHOOK] status_code:', data.status_code);
+      console.log('[MP-DEBUG-WEBHOOK] date_created:', data.date_created);
+      console.log('[MP-DEBUG-WEBHOOK] date_approved:', data.date_approved);
+      console.log('[MP-DEBUG-WEBHOOK] payment_method:', JSON.stringify({
+        id: data.payment_method?.id,
+        type: data.payment_method?.type,
+        issuer_id: data.payment_method?.issuer_id,
+      }));
+      console.log('[MP-DEBUG-WEBHOOK] transaction_amount:', data.transaction_amount);
+      console.log('[MP-DEBUG-WEBHOOK] transaction_details:', JSON.stringify(data.transaction_details));
+      console.log('[MP-DEBUG-WEBHOOK] processing_mode:', data.processing_mode);
+      console.log('[MP-DEBUG-WEBHOOK] payer:', JSON.stringify({ id: data.payer?.id, email: data.payer?.email, type: data.payer?.type, identification: data.payer?.identification }));
+      console.log('[MP-DEBUG-WEBHOOK] collector:', JSON.stringify(data.collector ?? data.collector_id));
+      console.log('[MP-DEBUG-WEBHOOK] live_mode:', data.live_mode);
+      console.log('[MP-DEBUG-WEBHOOK] error:', JSON.stringify(data.error));
+      console.log('[MP-DEBUG-WEBHOOK] cause:', JSON.stringify(data.cause));
+      console.log('[MP-DEBUG-WEBHOOK] api_response:', JSON.stringify(data.api_response));
+      console.log('[MP-DEBUG-WEBHOOK] response completo:', JSON.stringify(data, null, 2));
+    } catch (error) {
+      console.error('[MP-DEBUG-WEBHOOK] Error al obtener detalle del pago desde API MP:', error);
     }
   }
 

@@ -216,10 +216,13 @@ export class MembershipController {
         amount: membershipPrice,
         userId,
         items: [{ title: 'Membresía Mensual', quantity: 1, unitPrice: membershipPrice }],
+        payerEmail: req.user!.email,
       });
 
       return sendSuccess(res, {
         preferenceId: result.preferenceId,
+        initPoint: result.initPoint,
+        sandboxInitPoint: result.sandboxInitPoint,
         paymentId: result.paymentId,
       }, 201);
     } catch (error) {

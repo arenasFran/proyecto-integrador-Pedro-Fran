@@ -39,7 +39,7 @@ export default function MembershipPage() {
       const user = JSON.parse(atob(token.split('.')[1]));
       const result = await createSubscription({ userId: user.id, email: user.email }).unwrap();
       if (result.initPoint) {
-        window.location.href = result.initPoint;
+        window.open(result.initPoint, '_blank', 'noopener,noreferrer');
       }
     } catch {
     }

@@ -3,11 +3,13 @@ export type CreatePreferenceParams = {
   externalReference: string;
   backUrls: { success: string; failure: string; pending: string };
   notificationUrl?: string;
+  payerEmail?: string;
 };
 
 export type CreatePreferenceResult = {
   preferenceId: string;
   initPoint: string;
+  sandboxInitPoint?: string;
 };
 
 export type GetPaymentResult = {
@@ -49,7 +51,7 @@ export type GetPreapprovalResult = {
 
 export interface IPaymentService {
   createPreference(params: CreatePreferenceParams): Promise<CreatePreferenceResult>;
-  getPayment(paymentId: string): Promise<GetPaymentResult>;
+  getPayment(paymentId: string): Promise<GetPaymentResult | null>;
   validateWebhookSignature(params: ValidateWebhookParams): boolean;
   createPreapproval(params: CreatePreapprovalParams): Promise<CreatePreapprovalResult>;
   getPreapproval(preapprovalId: string): Promise<GetPreapprovalResult>;

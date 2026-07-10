@@ -8,10 +8,13 @@ import { AppError } from '../../../domain/errors/AppError';
 export type CreateOrderDTO = {
   userId: string;
   items: { productId: string; quantity: number }[];
+  payerEmail?: string;
 };
 
 export type CreateOrderResult = {
   preferenceId: string;
+  initPoint: string;
+  sandboxInitPoint?: string;
   orderId: string;
 };
 
@@ -39,8 +42,11 @@ export class CreateOrderUseCase {
 
     for (let i = 0; i < dto.items.length; i++) {
       const product = products[i];
-      if (!product || product.status !== 'active') {
+      if (!product) {
         throw new AppError(`Producto no encontrado: ${dto.items[i].productId}`, 404);
+      }
+      if (product.status !== 'active') {
+        throw new AppError(`"${product.name}" no está disponible actualmente`, 400);
       }
       if (product.stock < dto.items[i].quantity) {
         throw new AppError(`Stock insuficiente para: ${product.name}`, 400);
@@ -65,7 +71,7 @@ export class CreateOrderUseCase {
 
     const saved = await this.orderRepository.save(order);
 
-    let paymentResult: { preferenceId: string };
+    let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string };
     try {
       paymentResult = await this.createPaymentUseCase.execute({
         type: 'product_order',
@@ -78,6 +84,7 @@ export class CreateOrderUseCase {
           unitPrice: i.price,
           id: i.productId,
         })),
+        payerEmail: dto.payerEmail,
       });
     } catch (error) {
       await this.orderRepository.delete(saved.id);
@@ -86,6 +93,8 @@ export class CreateOrderUseCase {
 
     return {
       preferenceId: paymentResult.preferenceId,
+      initPoint: paymentResult.initPoint,
+      sandboxInitPoint: paymentResult.sandboxInitPoint ?? '',
       orderId: saved.id,
     };
   }

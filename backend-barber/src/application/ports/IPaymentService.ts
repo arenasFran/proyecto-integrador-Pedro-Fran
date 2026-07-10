@@ -4,6 +4,7 @@ export type CreatePreferenceParams = {
   backUrls: { success: string; failure: string; pending: string };
   notificationUrl?: string;
   payerEmail?: string;
+  idempotencyKey?: string;
 };
 
 export type CreatePreferenceResult = {

@@ -34,12 +34,15 @@ export class MercadoPagoService implements IPaymentService {
       items: params.items.map((item) => ({
         id: item.id ?? '',
         title: item.title,
+        description: item.title,
         quantity: item.quantity,
         unit_price: item.unitPrice,
         currency_id: 'UYU',
       })),
       payer: params.payerEmail ? { email: params.payerEmail } : undefined,
       external_reference: params.externalReference,
+      statement_descriptor: 'Barbería',
+      binary_mode: true,
       back_urls: {
         success: params.backUrls.success,
         failure: params.backUrls.failure,
@@ -55,8 +58,12 @@ export class MercadoPagoService implements IPaymentService {
     console.log('[MP-DEBUG] back_urls:', JSON.stringify(params.backUrls));
     console.log('[MP-DEBUG] Body completo:', JSON.stringify(body, null, 2));
 
+    const requestOptions = params.idempotencyKey
+      ? { idempotencyKey: params.idempotencyKey }
+      : undefined;
+
     try {
-      const response = await preference.create({ body });
+      const response = await preference.create({ body, requestOptions });
 
       const responseAny = response as any;
 

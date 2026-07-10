@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Payment } from '../../../domain/entities/Payment';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { IPaymentService } from '../../ports/IPaymentService';
@@ -48,6 +49,7 @@ export class CreatePaymentUseCase {
         pending: `${frontendUrl}/payment/result?status=pending`,
       },
       payerEmail: dto.payerEmail,
+      idempotencyKey: crypto.randomUUID(),
     });
 
     saved.assignPreference(preference.preferenceId);

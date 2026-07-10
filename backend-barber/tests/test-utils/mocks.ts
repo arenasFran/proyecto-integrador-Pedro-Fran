@@ -65,6 +65,7 @@ export const makeMockMembershipRepository = () => ({
   findByUser: jest.fn(),
   findById: jest.fn(),
   findAll: jest.fn(),
+  findByPreapprovalId: jest.fn(),
   save: jest.fn(),
   hasActiveMembership: jest.fn(),
   expireExpiredMemberships: jest.fn(),
@@ -121,4 +122,43 @@ export const makeMockBarberBlockRepository = () => ({
 export const makeMockPasswordResetRepository = () => ({
   create: jest.fn(),
   verifyAndConsume: jest.fn(),
+});
+
+export const makeMockPaymentRepository = () => ({
+  findById: jest.fn(),
+  findByMpPreferenceId: jest.fn(),
+  findByMpPaymentId: jest.fn(),
+  findByReference: jest.fn(),
+  findByUser: jest.fn(),
+  save: jest.fn(),
+  cancelPendingByAppointments: jest.fn(),
+});
+
+export const makeMockPaymentService = () => ({
+  createPreference: jest.fn(),
+  getPayment: jest.fn(),
+  validateWebhookSignature: jest.fn(),
+  createPreapproval: jest.fn(),
+  getPreapproval: jest.fn(),
+  cancelPreapproval: jest.fn(),
+});
+
+export const makeMockOrderRepository = () => ({
+  findById: jest.fn(),
+  findByUser: jest.fn(),
+  findByUserId: jest.fn(),
+  findAll: jest.fn(),
+  save: jest.fn(),
+  updateStatus: jest.fn(),
+});
+
+export const makeMockProductRepository = () => ({
+  findById: jest.fn(),
+  findByIds: jest.fn(),
+  findAll: jest.fn(),
+  findByCategory: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  softDelete: jest.fn(),
+  atomicDecreaseStock: jest.fn(),
 });

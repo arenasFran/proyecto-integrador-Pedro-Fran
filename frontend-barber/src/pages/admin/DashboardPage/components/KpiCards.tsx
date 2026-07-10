@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientesListQuery, useGetEcommerceOverviewQuery } from '../../../../services/analyticsApi';
@@ -20,14 +20,6 @@ interface KpiCardsProps {
 
 function formatCurrency(value: number): string {
   return '$' + value.toLocaleString('es-UY');
-}
-
-function formatDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}M`;
-  if (m === 0) return `${h}H`;
-  return `${h}H ${m}M`;
 }
 
 function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; ecommerceData?: { totalRevenue: number; totalOrders: number; averageTicket: number } | null }) {
@@ -229,7 +221,6 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
 
 const CARDS_CONFIG = [
   { key: 'reservas', label: 'Reservas', icon: FiUsers, format: (v: number) => String(v), clickable: true },
-  { key: 'duracion', label: 'Duración total', icon: FiClock, format: (v: number) => formatDuration(v), clickable: false },
   { key: 'ingresos', label: 'Ingresos totales', icon: FiDollarSign, format: (v: number) => formatCurrency(v), clickable: true },
   { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true },
   { key: 'tasaCancelacion', label: 'Tasa cancelación', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false },
@@ -282,7 +273,6 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
   const values = data
     ? [
         data.totalReservas,
-        data.duracionTotalMinutos,
         data.ingresosTotales,
         data.ingresosPendientes,
         tasaCancelacion,
@@ -291,7 +281,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
         ecommerceData?.totalOrders ?? 0,
         pendingOrders,
       ]
-    : [null, null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
@@ -334,7 +324,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
           )}
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         {CARDS_CONFIG.map((card, idx) => {
           if (!card.clickable) {
             return (

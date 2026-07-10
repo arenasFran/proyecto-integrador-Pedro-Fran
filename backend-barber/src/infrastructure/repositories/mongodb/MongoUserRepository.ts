@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { User } from '../../../domain/entities/User';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
+import { IUserRepository } from '../../../application/ports/IUserRepository';
 
 export type TwoFactorUpdate = {
   codeHash?: string;
@@ -87,7 +88,14 @@ const userToRegisteredClientData = (user: User) => ({
   resetLockedUntil: user.resetLockedUntil ?? undefined,
 });
 
-export class MongoUserRepository {
+export class MongoUserRepository implements IUserRepository {
+  async findEmailById(userId: string): Promise<string | null> {
+    const client = await RegisteredClient.findById(userId).select('email').lean();
+    if (client?.email) return client.email;
+    const barber = await Barber.findById(userId).select('email').lean();
+    return barber?.email ?? null;
+  }
+
   async findByIds(ids: string[]): Promise<Map<string, User>> {
     const userMap = new Map<string, User>();
     if (ids.length === 0) return userMap;

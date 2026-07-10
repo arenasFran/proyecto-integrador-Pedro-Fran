@@ -6,10 +6,9 @@ import { MongoOrderRepository } from '../../../infrastructure/repositories/mongo
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { IPaymentService } from '../../ports/IPaymentService';
 import { IEmailService } from '../../ports/IEmailService';
+import { IUserRepository } from '../../ports/IUserRepository';
 import { Membership } from '../../../domain/entities/Membership';
 import { getConfig } from '../../../infrastructure/config/env';
-import { RegisteredClient } from '../../../infrastructure/repositories/mongodb/models/client.model';
-import { Barber } from '../../../infrastructure/repositories/mongodb/models/barber.model';
 
 export class ProcessWebhookUseCase {
   constructor(
@@ -19,7 +18,8 @@ export class ProcessWebhookUseCase {
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly mercadoPagoService: IPaymentService,
-    private readonly emailService?: IEmailService
+    private readonly emailService?: IEmailService,
+    private readonly userRepository?: IUserRepository
   ) {}
 
   async execute(rawBody: unknown, xSignature: string, xRequestId: string): Promise<void> {
@@ -297,11 +297,9 @@ export class ProcessWebhookUseCase {
   }
 
   private async getUserEmail(userId: string): Promise<string | null> {
+    if (!this.userRepository) return null;
     try {
-      const client = await RegisteredClient.findById(userId).select('email').lean();
-      if (client?.email) return client.email;
-      const barber = await Barber.findById(userId).select('email').lean();
-      return barber?.email ?? null;
+      return await this.userRepository.findEmailById(userId);
     } catch {
       return null;
     }

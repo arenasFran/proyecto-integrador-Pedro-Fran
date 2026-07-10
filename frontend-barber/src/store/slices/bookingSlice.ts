@@ -134,7 +134,17 @@ export const submitAppointment = createAsyncThunk(
 
       return response.appointment;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error al crear la reserva';
+      let message = 'Error al crear la reserva';
+      if (error && typeof error === 'object') {
+        const errObj = error as Record<string, unknown>;
+        if (typeof errObj.data === 'string') {
+          message = errObj.data;
+        } else if (typeof errObj.error === 'string') {
+          message = errObj.error;
+        } else if (typeof errObj.message === 'string') {
+          message = errObj.message;
+        }
+      }
       return rejectWithValue(message);
     } finally {
       if (tempLockId) {

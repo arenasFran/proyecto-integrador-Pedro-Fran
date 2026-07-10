@@ -18,7 +18,7 @@ const statusColor: Record<ProductStatus, string> = {
 };
 
 const INITIAL_FORM: CreateProductPayload = {
-  name: '', description: '', price: 0, stock: 0, imageUrl: '', gallery: [], category: '',
+  name: '', description: '', price: 0, stock: 0, minStock: 5, imageUrl: '', gallery: [], category: '',
 };
 
 export const ProductsPage: React.FC = () => {
@@ -49,6 +49,7 @@ export const ProductsPage: React.FC = () => {
       description: product.description,
       price: product.price,
       stock: product.stock,
+      minStock: product.minStock,
       imageUrl: product.imageUrl,
       gallery: product.gallery,
       category: product.category,

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiShoppingCart, FiSearch } from 'react-icons/fi';
+import { FiShoppingCart, FiSearch, FiCreditCard, FiMapPin, FiX } from 'react-icons/fi';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
 import ProductList from '../../../components/product/ProductList';
 import PaymentModal from '../../../components/payment/PaymentModal';
@@ -10,6 +10,7 @@ import { addItem, openCart, clearCheckoutResult } from '../../../store/slices/ca
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import type { Product } from '../../../types/product';
+import { Button } from '../../../components/common';
 
 export default function ShopPage() {
   const dispatch = useAppDispatch();
@@ -18,6 +19,7 @@ export default function ShopPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [preferenceId, setPreferenceId] = useState('');
+  const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
 
   const checkoutPrefId = useAppSelector((state) => state.cart.checkoutPreferenceId);
 
@@ -44,19 +46,29 @@ export default function ShopPage() {
     dispatch(addItem({ product }));
   };
 
-  const handleBuyNow = async (product: Product) => {
+  const handleBuyNow = (product: Product) => {
     const token = getAccessToken();
     if (!token) {
       navigate('/login?returnUrl=/tienda');
       return;
     }
+    setBuyNowProduct(product);
+  };
+
+  const handleBuyNowPayment = async (paymentMethod: 'online' | 'local') => {
+    if (!buyNowProduct) return;
     try {
       const result = await createOrder({
-        items: [{ productId: product.id, quantity: 1 }],
+        items: [{ productId: buyNowProduct.id, quantity: 1 }],
+        paymentMethod,
       }).unwrap();
-      if (result.preferenceId) {
+      setBuyNowProduct(null);
+
+      if (paymentMethod === 'online' && result.preferenceId) {
         setPreferenceId(result.preferenceId);
         setShowPaymentModal(true);
+      } else {
+        navigate('/mis-ordenes');
       }
     } catch {
     }
@@ -65,12 +77,47 @@ export default function ShopPage() {
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
     setPreferenceId('');
-    navigate('/mis-ordenes');
   };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <CartDrawer />
+
+      {buyNowProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-[16px] font-bold text-white">Elegí cómo pagar</h2>
+              <button
+                onClick={() => setBuyNowProduct(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+            <p className="text-[13px] text-[#8A8A8A] mb-5">
+              <span className="text-white font-medium">{buyNowProduct.name}</span> — ${buyNowProduct.price}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button
+                className="w-full"
+                icon={FiCreditCard}
+                onClick={() => handleBuyNowPayment('online')}
+              >
+                Pagar online con MercadoPago
+              </Button>
+              <Button
+                className="w-full"
+                variant="outline"
+                icon={FiMapPin}
+                onClick={() => handleBuyNowPayment('local')}
+              >
+                Pago al levantar en el local
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="flex items-center justify-between mb-8">

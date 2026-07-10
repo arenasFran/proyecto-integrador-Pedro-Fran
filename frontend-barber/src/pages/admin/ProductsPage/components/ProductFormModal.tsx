@@ -29,6 +29,7 @@ export default function ProductFormModal({ product, formData, onChange, onSave, 
         description: product.description,
         price: product.price,
         stock: product.stock,
+        minStock: product.minStock,
         imageUrl: product.imageUrl,
         gallery: product.gallery,
         category: product.category,
@@ -119,6 +120,17 @@ export default function ProductFormModal({ product, formData, onChange, onSave, 
                   value={formData.stock.toString()}
                   onChange={(e) => set('stock', parseInt(e.target.value) || 0)}
                   placeholder="0"
+                  className={inputClass + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Stock mínimo</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={(formData.minStock ?? 5).toString()}
+                  onChange={(e) => set('minStock', parseInt(e.target.value) || 0)}
+                  placeholder="5"
                   className={inputClass + ' [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'}
                 />
               </div>

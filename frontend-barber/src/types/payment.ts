@@ -17,10 +17,11 @@ export type Payment = {
 };
 
 export type InitiatePaymentResponse = {
-  preferenceId: string;
-  initPoint: string;
+  preferenceId?: string;
+  initPoint?: string;
   sandboxInitPoint?: string;
-  paymentId: string;
+  paymentId?: string;
+  orderId: string;
 };
 
 export type CreateSubscriptionResponse = {

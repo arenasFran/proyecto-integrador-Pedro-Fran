@@ -5,6 +5,8 @@ export interface OverviewData {
   ingresosPendientes: number;
   nuevosClientes: number;
   estadisticasPorEstado: Record<string, number>;
+  totalOrders?: number;
+  cancelledOrders?: number;
 }
 
 export interface HeatmapEntry {

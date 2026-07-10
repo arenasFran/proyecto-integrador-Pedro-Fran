@@ -10,6 +10,8 @@ const statusLabels: Record<OrderStatus, { label: string; bg: string; text: strin
   paid: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400' },
   delivered: { label: 'Entregado', bg: 'bg-blue-500/10', text: 'text-blue-400' },
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400' },
+  refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400' },
+  disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400' },
 };
 
 export const MyOrdersPage: React.FC = () => {

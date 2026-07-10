@@ -11,13 +11,14 @@ interface ProductCardProps {
 
 export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDetail }: ProductCardProps) {
   const outOfStock = product.stock === 0;
+  const lowStock = !outOfStock && product.stock <= (product.minStock || 5);
 
   return (
     <div
       className="group rounded-[16px] border border-[#282828] bg-[#121212] overflow-hidden hover:border-[#555] transition-all cursor-pointer"
       onClick={() => onViewDetail?.(product)}
     >
-      <div className="aspect-square bg-[#1A1A1A] overflow-hidden">
+      <div className="aspect-square bg-[#1A1A1A] overflow-hidden relative">
         {product.imageUrl ? (
           <img
             src={product.imageUrl}
@@ -27,6 +28,16 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
         ) : (
           <div className="flex h-full items-center justify-center text-[#282828]">
             <FiGrid size={32} />
+          </div>
+        )}
+        {outOfStock && (
+          <div className="absolute top-2 right-2 bg-red-500/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Sin stock
+          </div>
+        )}
+        {lowStock && (
+          <div className="absolute top-2 right-2 bg-yellow-500/90 text-black text-[10px] font-bold px-2 py-0.5 rounded-full">
+            Quedan {product.stock}
           </div>
         )}
       </div>

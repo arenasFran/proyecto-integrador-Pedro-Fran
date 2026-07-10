@@ -10,6 +10,8 @@ const statusLabels: Record<OrderStatus, { label: string; bg: string; text: strin
   paid: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400' },
   delivered: { label: 'Entregado', bg: 'bg-blue-500/10', text: 'text-blue-400' },
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400' },
+  refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400' },
+  disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400' },
 };
 
 export const OrdersPage: React.FC = () => {
@@ -31,7 +33,12 @@ export const OrdersPage: React.FC = () => {
   const handleStatus = async (id: string, status: string) => {
     try {
       await updateStatus({ id, status }).unwrap();
-      showToast(`Orden ${status === 'paid' ? 'marcada como pagada' : status === 'delivered' ? 'marcada como entregada' : 'cancelada'} con éxito`);
+      const msgs: Record<string, string> = {
+        paid: 'marcada como pagada',
+        delivered: 'marcada como entregada',
+        cancelled: 'cancelada',
+      };
+      showToast(`Orden ${msgs[status] || 'actualizada'} con éxito`);
     } catch {
       showToast('Error al actualizar estado', 'error');
     }
@@ -54,9 +61,14 @@ export const OrdersPage: React.FC = () => {
     return (
       <div className="flex gap-1.5 mt-2 pt-2 border-t border-[#282828]">
         {isPending && (
-          <Button size="sm" variant="outline" className="text-[11px] h-[30px] px-2.5" onClick={() => handleStatus(order.id, 'paid')} loading={isUpdating}>
-            <FiDollarSign className="mr-1" size={12} /> Pagar
-          </Button>
+          <>
+            <Button size="sm" variant="outline" className="text-[11px] h-[30px] px-2.5" onClick={() => handleStatus(order.id, 'paid')} loading={isUpdating}>
+              <FiDollarSign className="mr-1" size={12} /> Pagar
+            </Button>
+            <Button size="sm" variant="outline" className="text-[11px] h-[30px] px-2.5" onClick={() => handleStatus(order.id, 'delivered')} loading={isUpdating}>
+              <FiTruck className="mr-1" size={12} /> Pagar y entregar
+            </Button>
+          </>
         )}
         {isPaid && (
           <Button size="sm" variant="outline" className="text-[11px] h-[30px] px-2.5" onClick={() => handleStatus(order.id, 'delivered')} loading={isUpdating}>
@@ -105,6 +117,8 @@ export const OrdersPage: React.FC = () => {
               { value: 'paid', label: 'Pagado' },
               { value: 'delivered', label: 'Entregado' },
               { value: 'cancelled', label: 'Cancelado' },
+              { value: 'refunded', label: 'Reembolsado' },
+              { value: 'disputed', label: 'En disputa' },
             ]}
           />
         </div>

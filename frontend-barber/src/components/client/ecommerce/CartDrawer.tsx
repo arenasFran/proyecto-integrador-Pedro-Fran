@@ -1,5 +1,6 @@
+import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiShoppingCart, FiX } from 'react-icons/fi';
+import { FiShoppingCart, FiX, FiCreditCard, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -10,11 +11,13 @@ import {
   selectCartTotal,
   selectCartCount,
   setCheckoutResult,
+  syncWithProducts,
 } from '../../../store/slices/cartSlice';
 import CartItem from '../../product/CartItem';
 import { Button } from '../../common';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
+import { useGetProductsQuery } from '../../../services/productApi';
 
 export const CartDrawer = () => {
   const dispatch = useAppDispatch();
@@ -24,7 +27,15 @@ export const CartDrawer = () => {
   const count = useAppSelector(selectCartCount);
   const [createOrder] = useCreateOrderMutation();
 
-  const handleCheckout = async () => {
+  const { data: allProductsData } = useGetProductsQuery({});
+
+  useEffect(() => {
+    if (allProductsData?.products && items.length > 0) {
+      dispatch(syncWithProducts(allProductsData.products));
+    }
+  }, [allProductsData?.products, dispatch]);
+
+  const handleCheckout = async (paymentMethod: 'online' | 'local') => {
     const token = getAccessToken();
     if (!token) {
       navigate('/login?returnUrl=/tienda');
@@ -34,11 +45,17 @@ export const CartDrawer = () => {
     try {
       const result = await createOrder({
         items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
+        paymentMethod,
       }).unwrap();
-      dispatch(setCheckoutResult({ preferenceId: result.preferenceId }));
       dispatch(closeCart());
       dispatch(clearCart());
-      navigate('/tienda');
+
+      if (paymentMethod === 'online' && result.preferenceId) {
+        dispatch(setCheckoutResult({ preferenceId: result.preferenceId }));
+        navigate('/tienda');
+      } else {
+        navigate('/mis-ordenes');
+      }
     } catch {
     }
   };
@@ -100,9 +117,25 @@ export const CartDrawer = () => {
                       <span className="text-[13px] text-[#8A8A8A]">Subtotal</span>
                       <span className="text-[16px] font-bold text-white">${total}</span>
                     </div>
-                    <Button className="w-full" onClick={handleCheckout}>
-                      Ir al pago
-                    </Button>
+
+                    <div className="flex gap-2">
+                      <Button
+                        className="flex-1 text-[12px]"
+                        onClick={() => handleCheckout('online')}
+                        icon={FiCreditCard}
+                      >
+                        Pagar online
+                      </Button>
+                      <Button
+                        className="flex-1 text-[12px]"
+                        variant="outline"
+                        onClick={() => handleCheckout('local')}
+                        icon={FiMapPin}
+                      >
+                        Pago al levantar
+                      </Button>
+                    </div>
+
                     <button
                       onClick={() => dispatch(clearCart())}
                       className="w-full text-center text-[12px] text-[#555] hover:text-red-400"

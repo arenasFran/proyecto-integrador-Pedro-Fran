@@ -41,7 +41,7 @@ export const orderApi = createApi({
         method: 'PATCH',
         data: { status },
       }),
-      invalidatesTags: ['Orders'],
+      invalidatesTags: ['Orders', 'Order'],
     }),
 
     deleteOrder: builder.mutation<{ message: string }, string>({

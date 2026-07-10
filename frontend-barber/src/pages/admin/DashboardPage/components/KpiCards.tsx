@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight } from 'react-icons/fi';
+import { FiUsers, FiClock, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientesListQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientesListQuery, useGetEcommerceOverviewQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
+import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData, ClienteData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
 import { ClientHistoryModal } from '../../../../components/common/ClientHistoryModal';
@@ -29,35 +30,50 @@ function formatDuration(minutes: number): string {
   return `${h}H ${m}M`;
 }
 
-function IncomeBreakdownModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
+function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; ecommerceData?: { totalRevenue: number; totalOrders: number; averageTicket: number } | null }) {
   const { data, isLoading } = useGetDistribucionQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
   const entries = data?.byBarber ?? [];
+
+  const totalAppointments = entries.reduce((s, e) => s + e.ingresos, 0);
+  const totalProducts = ecommerceData?.totalRevenue ?? 0;
+  const totalCombined = totalAppointments + totalProducts;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Desglose de ingresos" size="md">
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="lg" /></div>
-      ) : entries.length === 0 ? (
-        <p className="text-[14px] text-[#8A8A8A] text-center py-4">No hay datos de ingresos para este período.</p>
       ) : (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between text-[12px] text-[#8A8A8A] uppercase tracking-wider px-1 pb-2 border-b border-[#282828]">
-            <span>Barbero</span>
-            <span>Turnos</span>
-            <span>Ingresos</span>
-          </div>
-          {entries.map((entry) => (
-            <div key={entry.barberId} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] px-3 py-2.5 text-[13px]">
-              <span className="text-white font-medium">{entry.nombre}</span>
-              <span className="text-[#8A8A8A]">{entry.cantidad}</span>
-              <span className="text-green-400 font-medium">{formatCurrency(entry.ingresos)}</span>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
+              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Turnos</span>
+              <span className="text-[22px] font-bold text-green-400">{formatCurrency(totalAppointments)}</span>
             </div>
-          ))}
-          <div className="flex items-center justify-between rounded-[10px] bg-[#242424] px-3 py-3 text-[14px] font-bold mt-1">
-            <span className="text-white">Total</span>
-            <span className="text-[#8A8A8A]">{entries.reduce((s, e) => s + e.cantidad, 0)}</span>
-            <span className="text-green-400">{formatCurrency(entries.reduce((s, e) => s + e.ingresos, 0))}</span>
+            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
+              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Productos</span>
+              <span className="text-[22px] font-bold text-[#FF5C00]">{formatCurrency(totalProducts)}</span>
+            </div>
           </div>
+          <div className="rounded-[10px] bg-[#242424] p-3 flex items-center justify-between">
+            <span className="text-[13px] font-bold text-white">Total combinado</span>
+            <span className="text-[18px] font-bold text-green-400">{formatCurrency(totalCombined)}</span>
+          </div>
+          {entries.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between text-[12px] text-[#8A8A8A] uppercase tracking-wider px-1 pb-2 border-b border-[#282828]">
+                <span>Barbero</span>
+                <span>Turnos</span>
+                <span>Ingresos</span>
+              </div>
+              {entries.map((entry) => (
+                <div key={entry.barberId} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] px-3 py-2.5 text-[13px]">
+                  <span className="text-white font-medium">{entry.nombre}</span>
+                  <span className="text-[#8A8A8A]">{entry.cantidad}</span>
+                  <span className="text-green-400 font-medium">{formatCurrency(entry.ingresos)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </Modal>
@@ -219,6 +235,8 @@ const CARDS_CONFIG = [
   { key: 'tasaCancelacion', label: 'Tasa cancelación', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false },
   { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true },
   { key: 'retorno', label: 'Clientes recurrentes', icon: FiRefreshCw, format: (v: number) => `${v}%`, clickable: false },
+  { key: 'ordenes', label: 'Órdenes totales', icon: FiShoppingCart, format: (v: number) => String(v), clickable: true },
+  { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true },
 ];
 
 export default function KpiCards({ data, loading, error, desde, hasta }: KpiCardsProps) {
@@ -233,6 +251,16 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
     { skip: !desde || !hasta },
   );
 
+  const { data: ecommerceData } = useGetEcommerceOverviewQuery(
+    { desde, hasta },
+    { skip: !desde || !hasta },
+  );
+
+  const { data: productsData } = useGetProductsQuery({});
+  const allProducts = productsData?.products ?? [];
+  const lowStockProducts = allProducts.filter((p) => p.stock > 0 && p.stock <= (p.minStock || 5));
+  const pendingOrders = ecommerceData?.ordersByStatus?.pending ?? 0;
+
   if (error) {
     return (
       <div className="text-[#FF5C00] text-sm bg-[#1A1A1A] rounded-2xl p-5 border border-[#282828]">
@@ -241,12 +269,29 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
     );
   }
 
-  const totalCancelados = data ? (data.estadisticasPorEstado.cancelado ?? 0) + (data.estadisticasPorEstado.noshow ?? 0) : 0;
-  const tasaCancelacion = data && data.totalReservas > 0 ? Math.round((totalCancelados / data.totalReservas) * 100) : 0;
+  const totalCancelados = data
+    ? (data.estadisticasPorEstado.cancelado ?? 0) +
+      (data.estadisticasPorEstado.noshow ?? 0) +
+      (data.estadisticasPorEstado.cancelled_order ?? 0)
+    : 0;
+  const totalParaTasa = data
+    ? data.totalReservas + (data.estadisticasPorEstado.total_orders ?? 0)
+    : 0;
+  const tasaCancelacion = data && totalParaTasa > 0 ? Math.round((totalCancelados / totalParaTasa) * 100) : 0;
 
   const values = data
-    ? [data.totalReservas, data.duracionTotalMinutos, data.ingresosTotales, data.ingresosPendientes, tasaCancelacion, data.nuevosClientes, retornoData?.tasaRetorno ?? null]
-    : [null, null, null, null, null, null, null];
+    ? [
+        data.totalReservas,
+        data.duracionTotalMinutos,
+        data.ingresosTotales,
+        data.ingresosPendientes,
+        tasaCancelacion,
+        data.nuevosClientes,
+        retornoData?.tasaRetorno ?? null,
+        ecommerceData?.totalOrders ?? 0,
+        pendingOrders,
+      ]
+    : [null, null, null, null, null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
@@ -262,12 +307,34 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
       case 'clientes':
         setShowNewClientsModal(true);
         break;
+      case 'ordenes':
+        navigate('/admin/ordenes');
+        break;
+      case 'ordenesPendientes':
+        navigate('/admin/ordenes?status=pending');
+        break;
     }
   };
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
+      {(lowStockProducts.length > 0 || pendingOrders > 0) && (
+        <div className="flex flex-col gap-2 mb-2">
+          {pendingOrders > 0 && (
+            <div className="flex items-center gap-2 rounded-[10px] bg-yellow-500/10 border border-yellow-500/20 px-4 py-2">
+              <FiAlertCircle className="text-yellow-400 shrink-0" size={16} />
+              <span className="text-[12px] text-yellow-300">{pendingOrders} orden(es) pendiente(s) de pago</span>
+            </div>
+          )}
+          {lowStockProducts.length > 0 && (
+            <div className="flex items-center gap-2 rounded-[10px] bg-orange-500/10 border border-orange-500/20 px-4 py-2">
+              <FiAlertTriangle className="text-orange-400 shrink-0" size={16} />
+              <span className="text-[12px] text-orange-300">{lowStockProducts.length} producto(s) con stock bajo</span>
+            </div>
+          )}
+        </div>
+      )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-9 gap-4">
         {CARDS_CONFIG.map((card, idx) => {
           if (!card.clickable) {
             return (
@@ -314,7 +381,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
           );
         })}
       </div>
-      <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} />
+      <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
       <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} />
       <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
       {historyClient && <ClientHistoryModal isOpen={!!historyClient} onClose={() => setHistoryClient(null)} client={historyClient} />}

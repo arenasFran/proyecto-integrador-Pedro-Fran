@@ -82,6 +82,41 @@ const cartSlice = createSlice({
     clearCheckoutResult: (state) => {
       state.checkoutPreferenceId = null;
     },
+    syncWithProducts: (state, action: PayloadAction<Product[]>) => {
+      const validIds = new Set(action.payload.map((p) => p.id));
+      const productMap = new Map(action.payload.map((p) => [p.id, p]));
+      let changed = false;
+
+      state.items = state.items.filter((item) => {
+        const id = item.product.id;
+        if (!validIds.has(id)) {
+          changed = true;
+          return false;
+        }
+        const current = productMap.get(id)!;
+        if (current.stock === 0) {
+          changed = true;
+          return false;
+        }
+        if (item.quantity > current.stock) {
+          item.quantity = current.stock;
+          changed = true;
+        }
+        if (item.product.price !== current.price) {
+          item.product.price = current.price;
+          changed = true;
+        }
+        if (item.product.stock !== current.stock) {
+          item.product.stock = current.stock;
+          changed = true;
+        }
+        return true;
+      });
+
+      if (changed) {
+        saveCart(state.items);
+      }
+    },
   },
 });
 
@@ -95,6 +130,7 @@ export const {
   toggleCart,
   setCheckoutResult,
   clearCheckoutResult,
+  syncWithProducts,
 } = cartSlice.actions;
 
 export const selectCartTotal = (state: { cart: CartState }): number =>

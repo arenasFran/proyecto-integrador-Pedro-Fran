@@ -6,6 +6,7 @@ export type Product = {
   description: string;
   price: number;
   stock: number;
+  minStock: number;
   imageUrl: string;
   gallery: string[];
   category: string;
@@ -33,6 +34,7 @@ export type CreateProductPayload = {
   description: string;
   price: number;
   stock: number;
+  minStock?: number;
   imageUrl?: string;
   gallery?: string[];
   category?: string;

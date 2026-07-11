@@ -38,17 +38,49 @@ export class UserController {
   updateMe = async (req: Request, res: Response) => {
     try {
       const dto = { ...req.body };
+      const currentPassword = dto.currentPassword;
+      delete dto.currentPassword;
 
-      if (dto.password) {
-        Password.create(dto.password);
-        dto.passwordHash = await this.passwordHasher.hash(dto.password);
-        delete dto.password;
+      let oldEmail: string | undefined;
+
+      if (dto.email) {
+        const user = await this.userRepository.findById(req.user!._id);
+        if (!user) {
+          throw new AppError('Usuario no encontrado.', 404);
+        }
+
+        if (dto.email !== user.email) {
+          if (!currentPassword) {
+            throw new AppError('La contraseña actual es obligatoria para cambiar el email.', 400);
+          }
+          const isCurrentPasswordValid = await this.passwordHasher.compare(
+            currentPassword,
+            user.passwordHash!
+          );
+          if (!isCurrentPasswordValid) {
+            throw new AppError('Contraseña actual incorrecta.', 401);
+          }
+          oldEmail = user.email;
+        }
       }
 
       const updated = await this.userRepository.update(req.user!._id, dto);
       if (!updated) {
         throw new AppError('Usuario no encontrado.', 404);
       }
+
+      if (oldEmail) {
+        this.emailService
+          .sendMail({
+            to: oldEmail,
+            subject: 'El email de tu cuenta fue actualizado',
+            html: `<p>El email de tu cuenta se cambió a ${updated.email}.</p><p>Si no fuiste vos, contactanos de inmediato.</p>`,
+          })
+          .catch((error) => {
+            console.error('Error enviando email de cambio de email:', error);
+          });
+      }
+
       return sendSuccess(res, {
         id: updated.id,
         name: updated.name,

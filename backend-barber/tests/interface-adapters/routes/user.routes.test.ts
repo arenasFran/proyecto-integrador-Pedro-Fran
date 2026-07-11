@@ -77,6 +77,86 @@ describe('User routes', () => {
     expect(response.body).toEqual({ error: 'Error al obtener perfil' });
   });
 
+  describe('PUT /api/user/me', () => {
+    it('debe actualizar nombre/telefono sin pedir contraseña cuando no cambia el email', async () => {
+      const user = makeUser();
+      userRepository.update.mockResolvedValue(User.create({ ...user.toPrimitives(), name: 'Carlos' }));
+
+      const response = await request(app)
+        .put('/api/user/me')
+        .send({ name: 'Carlos' });
+
+      expect(response.status).toBe(200);
+      expect(userRepository.update).toHaveBeenCalledWith('user-1', { name: 'Carlos' });
+    });
+
+    it('el campo password ya no está en el contrato: la validación lo rechaza', async () => {
+      const response = await request(app)
+        .put('/api/user/me')
+        .send({ password: 'NuevaPass123' });
+
+      expect(response.status).toBe(400);
+      expect(userRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('debe rechazar el cambio de email sin currentPassword', async () => {
+      const user = makeUser();
+      userRepository.findById.mockResolvedValue(user);
+
+      const response = await request(app)
+        .put('/api/user/me')
+        .send({ email: 'nuevo@example.com' });
+
+      expect(response.status).toBe(400);
+      expect(userRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('debe rechazar el cambio de email con currentPassword incorrecta', async () => {
+      const user = makeUser();
+      userRepository.findById.mockResolvedValue(user);
+      passwordHasher.compare.mockResolvedValue(false);
+
+      const response = await request(app)
+        .put('/api/user/me')
+        .send({ email: 'nuevo@example.com', currentPassword: 'wrong' });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toEqual({ error: 'Contraseña actual incorrecta.' });
+    });
+
+    it('debe cambiar el email con currentPassword correcta', async () => {
+      const user = makeUser();
+      userRepository.findById.mockResolvedValue(user);
+      passwordHasher.compare.mockResolvedValue(true);
+      userRepository.update.mockResolvedValue(User.create({ ...user.toPrimitives(), email: 'nuevo@example.com' }));
+
+      const response = await request(app)
+        .put('/api/user/me')
+        .send({ email: 'nuevo@example.com', currentPassword: 'CurrentPass1' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.email).toBe('nuevo@example.com');
+    });
+
+    it('debe aplicar el rate limit compartido con el cambio de contraseña tras 5 intentos', async () => {
+      const user = makeUser();
+      userRepository.findById.mockResolvedValue(user);
+      passwordHasher.compare.mockResolvedValue(false);
+
+      for (let i = 0; i < 5; i++) {
+        await request(app)
+          .put('/api/user/me')
+          .send({ email: 'nuevo@example.com', currentPassword: 'wrong' });
+      }
+
+      const response = await request(app)
+        .put('/api/user/me')
+        .send({ email: 'nuevo@example.com', currentPassword: 'wrong' });
+
+      expect(response.status).toBe(429);
+    });
+  });
+
   describe('PATCH /api/user/me/password', () => {
     const validBody = {
       currentPassword: 'CurrentPass1',

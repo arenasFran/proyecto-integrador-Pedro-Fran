@@ -22,7 +22,7 @@ export const updateCurrentUser = createAsyncThunk(
     lastname?: string;
     email?: string;
     phone?: string;
-    password?: string;
+    currentPassword?: string;
     photoUrl?: string | null;
   }, { rejectWithValue }) => {
     try {

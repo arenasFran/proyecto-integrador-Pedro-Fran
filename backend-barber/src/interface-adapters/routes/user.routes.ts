@@ -26,6 +26,7 @@ export const createUserRouter = (deps: {
     '/me',
     deps.authenticate,
     authorize('Registrado'),
+    changePasswordLimiter,
     validate({ body: updateUserSchema }),
     deps.userController.updateMe
   );

@@ -157,6 +157,32 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
     expect(updated!.couponsUsed).toBe(2);
   });
 
+  it('incrementCouponsUsed no debe permitir superar couponsTotal (canje concurrente)', async () => {
+    const doc = await createMembershipDoc({ couponsUsed: 3 }); // couponsTotal: 4, queda 1 cupón
+
+    const [first, second] = await Promise.all([
+      repository.incrementCouponsUsed(doc._id.toString(), 1),
+      repository.incrementCouponsUsed(doc._id.toString(), 1),
+    ]);
+
+    const results = [first, second];
+    expect(results.filter((r) => r !== null)).toHaveLength(1);
+    expect(results.filter((r) => r === null)).toHaveLength(1);
+
+    const updated = await MembershipModel.findById(doc._id);
+    expect(updated!.couponsUsed).toBe(4);
+  });
+
+  it('incrementCouponsUsed devuelve null si ya no quedan cupones disponibles', async () => {
+    const doc = await createMembershipDoc({ couponsUsed: 4 }); // couponsTotal: 4, sin cupones
+
+    const result = await repository.incrementCouponsUsed(doc._id.toString(), 1);
+
+    expect(result).toBeNull();
+    const updated = await MembershipModel.findById(doc._id);
+    expect(updated!.couponsUsed).toBe(4);
+  });
+
   it('incrementCouponsUsed no debe bajar de 0', async () => {
     const doc = await createMembershipDoc({ couponsUsed: 0 });
 

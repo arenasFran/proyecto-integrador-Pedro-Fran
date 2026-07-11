@@ -97,9 +97,15 @@ export class MongoMembershipRepository {
 
   // Update atómico: solo toca couponsUsed (clampeado en [0, ∞)), nunca status/endDate/autoRenew.
   // Evita el lost-update que produciría reescribir la entidad completa con save().
+  // Para delta > 0 (canje), el filtro $expr rechaza el update si ya no quedan cupones,
+  // en vez de dejar que couponsUsed supere couponsTotal por una carrera entre dos canjes concurrentes.
   async incrementCouponsUsed(id: string, delta: number, session?: mongoose.ClientSession): Promise<Membership | null> {
-    const doc = await MembershipModel.findByIdAndUpdate(
-      id,
+    const filter: Record<string, unknown> = { _id: id };
+    if (delta > 0) {
+      filter.$expr = { $lt: ['$couponsUsed', '$couponsTotal'] };
+    }
+    const doc = await MembershipModel.findOneAndUpdate(
+      filter,
       [{ $set: { couponsUsed: { $max: [0, { $add: ['$couponsUsed', delta] }] }, updatedAt: '$$NOW' } }],
       { returnDocument: 'after', session, updatePipeline: true }
     );

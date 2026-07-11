@@ -9,6 +9,7 @@ import {
   redeemCouponSchema,
   queryMembershipsSchema,
   membershipIdParamSchema,
+  membershipUserIdParamSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -54,6 +55,15 @@ export const createMembershipRouter = (deps: {
     authorize('Admin'),
     validate({ query: queryMembershipsSchema }),
     deps.membershipController.getAll
+  );
+
+  router.get(
+    '/user/:userId',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ params: membershipUserIdParamSchema }),
+    deps.membershipController.getByUserId
   );
 
   router.get(

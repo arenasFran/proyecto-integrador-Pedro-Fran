@@ -11,20 +11,31 @@ export class MembershipController {
     private readonly userRepo: MongoUserRepository
   ) {}
 
+  private async buildMembershipSummary(userId: string) {
+    const membership = await this.membershipRepo.findActiveByUser(userId);
+    const history = await this.membershipRepo.findByUser(userId);
+    return {
+      active: membership ? membership.toPrimitives() : null,
+      history: history.map((m) => m.toPrimitives()),
+    };
+  }
+
   getMyMembership = async (req: Request, res: Response) => {
     try {
-      const membership = await this.membershipRepo.findActiveByUser(req.user!._id);
+      const summary = await this.buildMembershipSummary(req.user!._id);
+      return sendSuccess(res, summary);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener membresía');
+    }
+  };
 
-      if (!membership) {
-        const history = await this.membershipRepo.findByUser(req.user!._id);
-        return sendSuccess(res, { active: null, history: history.map((m) => m.toPrimitives()) });
-      }
-
-      const history = await this.membershipRepo.findByUser(req.user!._id);
-      return sendSuccess(res, {
-        active: membership.toPrimitives(),
-        history: history.map((m) => m.toPrimitives()),
-      });
+  // Para que un admin/barbero vea la membresía de un cliente puntual desde su
+  // ficha (cupones canjeados, estado), sin exponer el listado completo de
+  // membresías (eso ya está detrás de authorize('Admin') en GET /).
+  getByUserId = async (req: Request, res: Response) => {
+    try {
+      const summary = await this.buildMembershipSummary(req.params.userId as string);
+      return sendSuccess(res, summary);
     } catch (error) {
       return sendError(res, error, 'Error al obtener membresía');
     }
@@ -55,8 +66,8 @@ export class MembershipController {
         userId,
         createdBy,
         adminId: createdBy === 'admin' ? req.user!._id : undefined,
-        couponsTotal,
-        productDiscount,
+        couponsTotal: isStaff ? couponsTotal : undefined,
+        productDiscount: isStaff ? productDiscount : undefined,
       });
 
       const saved = await this.membershipRepo.create(membership);
@@ -117,11 +128,13 @@ export class MembershipController {
 
       membership.redeemCoupon();
       const updated = await this.membershipRepo.incrementCouponsUsed(membership.id, 1);
+      if (!updated) {
+        throw new AppError('No quedan cupones disponibles.', 409);
+      }
 
-      const result = updated ?? membership;
       return sendSuccess(res, {
-        remainingCoupons: result.remainingCoupons,
-        couponsUsed: result.couponsUsed,
+        remainingCoupons: updated.remainingCoupons,
+        couponsUsed: updated.couponsUsed,
       });
     } catch (error) {
       return sendError(res, error, 'Error al canjear cupón');

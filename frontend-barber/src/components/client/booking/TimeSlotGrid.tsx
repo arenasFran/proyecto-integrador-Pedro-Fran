@@ -1,6 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiAlertTriangle, FiClock } from 'react-icons/fi';
+import type { SlotsReason } from '../../../types/professional';
+
+const emptySlotsMessage: Record<SlotsReason, string> = {
+  'day-off': 'Este día no se trabaja.',
+  'already-past': 'Ya pasaron los horarios de hoy. Elegí otro día.',
+  'fully-booked': 'No quedan horarios libres este día.',
+};
 
 interface TimeSlotGridProps {
   slots: string[];
@@ -8,6 +15,7 @@ interface TimeSlotGridProps {
   selectedDate: string | null;
   isLoading: boolean;
   error?: boolean;
+  reason?: SlotsReason;
   onSelect: (time: string) => void;
 }
 
@@ -17,6 +25,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   selectedDate,
   isLoading,
   error,
+  reason,
   onSelect,
 }) => {
   if (isLoading) {
@@ -62,7 +71,9 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
         <h3 className="text-[14px] font-semibold text-white mb-3">Horarios</h3>
         <div className="flex flex-col items-center gap-3 py-5">
           <FiClock className="w-7 h-7 text-[#8A8A8A]" />
-          <p className="text-[13px] text-[#8A8A8A]">Sin horarios disponibles</p>
+          <p className="text-[13px] text-[#8A8A8A]">
+            {reason ? emptySlotsMessage[reason] : 'Sin horarios disponibles'}
+          </p>
         </div>
       </div>
     );

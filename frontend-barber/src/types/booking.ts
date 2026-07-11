@@ -1,3 +1,5 @@
+import type { BarberSchedule } from './professional';
+
 export type BarberPublic = {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export type BarberPublic = {
   isActive: boolean;
   slotDuration: number;
   maxAdvanceDays: number;
+  schedule: BarberSchedule;
 };
 
 export type ServiceStatus = 'active' | 'inactive' | 'deleted';

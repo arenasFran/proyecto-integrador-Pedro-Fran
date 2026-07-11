@@ -15,7 +15,7 @@ export const AppointmentActionModals: React.FC<AppointmentActions> = (actions) =
   const {
     barbers,
     cancelTarget, cancelReason, rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId,
-    rescheduleSlots, isLoadingSlots, slotsError,
+    rescheduleSlots, slotsReason, isLoadingSlots, slotsError,
     confirmTarget, detailTarget, showQuickCreate, quickCreateDate, quickCreateClient,
     changeBarberTarget, changeBarberNewId, combinedActionTarget,
     isCancelling, isUpdatingStatus, isRescheduling, isMarkingPaid, isChangingBarber,
@@ -51,6 +51,7 @@ export const AppointmentActionModals: React.FC<AppointmentActions> = (actions) =
         slots={rescheduleSlots}
         isLoadingSlots={isLoadingSlots}
         slotsError={slotsError}
+        slotsReason={slotsReason}
         onDateChange={handleRescheduleDateChange}
         onTimeChange={setRescheduleTime}
         onBarberChange={handleRescheduleBarberChange}

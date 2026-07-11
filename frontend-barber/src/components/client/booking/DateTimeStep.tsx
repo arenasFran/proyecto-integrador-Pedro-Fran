@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { AnimatedContainer } from '../../common';
-import { BookingCalendar } from './BookingCalendar';
+import React, { useEffect } from 'react';
+import { AnimatedContainer, Calendar } from '../../common';
 import { TimeSlotGrid } from './TimeSlotGrid';
 import { useAppDispatch } from '../../../store/hooks';
 import { fetchAvailableSlots } from '../../../store/slices/bookingSlice';
+import type { BarberSchedule, SlotsReason } from '../../../types/professional';
 
 interface DateTimeStepProps {
   barberId: string;
   maxAdvanceDays: number;
+  schedule?: BarberSchedule;
   selectedDate: string | null;
   selectedTime: string | null;
   availableSlots: string[];
+  slotsReason?: SlotsReason;
   isLoadingSlots: boolean;
   onSelectDate: (date: string) => void;
   onSelectTime: (time: string) => void;
@@ -19,35 +21,16 @@ interface DateTimeStepProps {
 export const DateTimeStep: React.FC<DateTimeStepProps> = ({
   barberId,
   maxAdvanceDays,
+  schedule,
   selectedDate,
   selectedTime,
   availableSlots,
+  slotsReason,
   isLoadingSlots,
   onSelectDate,
   onSelectTime,
 }) => {
   const dispatch = useAppDispatch();
-  const today = new Date();
-  const [month, setMonth] = useState(today.getMonth());
-  const [year, setYear] = useState(today.getFullYear());
-
-  const handlePrevMonth = () => {
-    if (month === 0) {
-      setMonth(11);
-      setYear((y) => y - 1);
-    } else {
-      setMonth((m) => m - 1);
-    }
-  };
-
-  const handleNextMonth = () => {
-    if (month === 11) {
-      setMonth(0);
-      setYear((y) => y + 1);
-    } else {
-      setMonth((m) => m + 1);
-    }
-  };
 
   useEffect(() => {
     if (selectedDate && barberId) {
@@ -63,14 +46,11 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
       <div className="p-6 space-y-5">
         <p className="text-[13px] text-[#8A8A8A]">Elegí la fecha y el horario</p>
         <div className="grid gap-4 md:grid-cols-[1fr_1.2fr]">
-          <BookingCalendar
+          <Calendar
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
-            month={month}
-            year={year}
             maxAdvanceDays={maxAdvanceDays}
-            onPrevMonth={handlePrevMonth}
-            onNextMonth={handleNextMonth}
+            schedule={schedule}
           />
 
           <TimeSlotGrid
@@ -78,6 +58,7 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
             selectedTime={selectedTime}
             selectedDate={selectedDate}
             isLoading={isLoadingSlots}
+            reason={slotsReason}
             onSelect={onSelectTime}
           />
         </div>

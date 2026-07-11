@@ -53,6 +53,7 @@ export const BookingPage: React.FC = () => {
       barbers,
       services,
       availableSlots,
+      slotsReason,
       isLoadingBarbers,
       isLoadingServices,
       isLoadingSlots,
@@ -262,9 +263,11 @@ export const BookingPage: React.FC = () => {
                 <DateTimeStep
                   barberId={selectedBarber.id}
                   maxAdvanceDays={selectedBarber.maxAdvanceDays}
+                  schedule={selectedBarber.schedule}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
                   availableSlots={availableSlots}
+                  slotsReason={slotsReason}
                   isLoadingSlots={isLoadingSlots}
                   onSelectDate={(date) => dispatch(setSelectedDate(date))}
                   onSelectTime={(time) => dispatch(setSelectedTime(time))}

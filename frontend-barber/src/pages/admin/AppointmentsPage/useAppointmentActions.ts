@@ -36,10 +36,11 @@ export function useAppointmentActions() {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
-  const { slots: rescheduleSlots, isLoading: isLoadingSlots, error: slotsError } = useAvailableSlots(
+  const { slots: rescheduleSlots, reason: slotsReason, isLoading: isLoadingSlots, error: slotsError } = useAvailableSlots(
     rescheduleBarberId,
     rescheduleDate,
-    !!rescheduleTarget
+    !!rescheduleTarget,
+    rescheduleTarget?.id
   );
 
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
@@ -183,7 +184,7 @@ export function useAppointmentActions() {
   return {
     barbers,
     cancelTarget, cancelReason, rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId,
-    rescheduleSlots, isLoadingSlots, slotsError,
+    rescheduleSlots, slotsReason, isLoadingSlots, slotsError,
     confirmTarget, detailTarget, showQuickCreate, quickCreateDate, quickCreateClient,
     changeBarberTarget, changeBarberNewId, combinedActionTarget,
     isCancelling, isUpdatingStatus, isRescheduling, isMarkingPaid, isSendingReminder, isChangingBarber,

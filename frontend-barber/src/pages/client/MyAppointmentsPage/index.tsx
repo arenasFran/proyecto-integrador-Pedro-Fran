@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, Pagination, Select, useToast, DatePicker } from '../../../components/common';
+import { AnimatedContainer, Button, Input, Pagination, Select, useToast, Calendar } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
 import {
@@ -47,10 +47,11 @@ export const MyAppointmentsPage: React.FC = () => {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
-  const { slots: rescheduleSlots, isLoading: isLoadingSlots, error: slotsError } = useAvailableSlots(
+  const { slots: rescheduleSlots, reason: slotsReason, isLoading: isLoadingSlots, error: slotsError } = useAvailableSlots(
     rescheduleBarberId,
     rescheduleDate,
-    !!rescheduleTarget
+    !!rescheduleTarget,
+    rescheduleTarget?.id
   );
 
   const barbers = useAppSelector((state) => state.booking.async.barbers);
@@ -304,17 +305,22 @@ export const MyAppointmentsPage: React.FC = () => {
               {rescheduleTarget.serviceName} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4">
-              <DatePicker
-                label="Nueva fecha"
-                value={rescheduleDate}
-                onChange={handleRescheduleDateChange}
-              />
+              <div>
+                <p className="text-[13px] font-medium text-[#8A8A8A] mb-1">Nueva fecha</p>
+                <Calendar
+                  selectedDate={rescheduleDate || null}
+                  onSelectDate={handleRescheduleDateChange}
+                  maxAdvanceDays={barbers.find((b) => b.id === rescheduleBarberId)?.maxAdvanceDays ?? 30}
+                  schedule={barbers.find((b) => b.id === rescheduleBarberId)?.schedule}
+                />
+              </div>
               <TimeSlotGrid
                 slots={rescheduleSlots}
                 selectedTime={rescheduleTime}
                 selectedDate={rescheduleDate}
                 isLoading={isLoadingSlots}
                 error={slotsError}
+                reason={slotsReason}
                 onSelect={setRescheduleTime}
               />
               <Select

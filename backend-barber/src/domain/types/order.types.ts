@@ -11,11 +11,15 @@ export type OrderItemData = {
   name: string;
   price: number;
   quantity: number;
+  imageUrl?: string;
 };
 
 export type OrderData = {
   id: string;
   userId: string;
+  clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   items: OrderItemData[];
   total: number;
   status: OrderStatus;

@@ -1,12 +1,15 @@
 import mongoose from 'mongoose';
 import { OrderModel, IOrderDocument } from './models/order.model';
 import { Order } from '../../../domain/entities/Order';
+import { parseLocalDateRange } from '../../../common/dateUtils';
 
 type FindAllParams = {
   userId?: string;
   status?: string;
   page?: number;
   limit?: number;
+  desde?: string;
+  hasta?: string;
 };
 
 type FindAllResult = {
@@ -33,6 +36,19 @@ export class MongoOrderRepository {
 
     if (params.userId) filter.userId = params.userId;
     if (params.status) filter.status = params.status;
+    if (params.desde || params.hasta) {
+      filter.createdAt = {} as Record<string, Date>;
+      if (params.desde && params.hasta) {
+        const range = parseLocalDateRange(params.desde, params.hasta);
+        (filter.createdAt as Record<string, Date>).$gte = range.desdeDate;
+        (filter.createdAt as Record<string, Date>).$lte = range.hastaDate;
+      } else if (params.desde) {
+        (filter.createdAt as Record<string, Date>).$gte = parseLocalDateRange(params.desde, params.desde).desdeDate;
+      } else if (params.hasta) {
+        const range = parseLocalDateRange(params.hasta, params.hasta);
+        (filter.createdAt as Record<string, Date>).$lte = range.hastaDate;
+      }
+    }
 
     const page = params.page || 1;
     const limit = params.limit || 50;
@@ -94,6 +110,9 @@ export class MongoOrderRepository {
 
     const [doc] = await OrderModel.create([{
       userId: data.userId,
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      clientPhone: data.clientPhone,
       items: data.items,
       total: data.total,
       status: data.status,
@@ -112,11 +131,15 @@ export class MongoOrderRepository {
     return Order.restore({
       id: doc._id.toString(),
       userId: doc.userId,
+      clientName: doc.clientName,
+      clientEmail: doc.clientEmail,
+      clientPhone: doc.clientPhone,
       items: doc.items.map((i) => ({
         productId: i.productId,
         name: i.name,
         price: i.price,
         quantity: i.quantity,
+        imageUrl: i.imageUrl ?? undefined,
       })),
       total: doc.total,
       status: doc.status,

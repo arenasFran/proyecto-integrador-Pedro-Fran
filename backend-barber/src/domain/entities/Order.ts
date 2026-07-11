@@ -12,13 +12,19 @@ export class Order {
 
   static create(data: {
     userId: string;
-    items: { productId: string; name: string; price: number; quantity: number }[];
+    clientName?: string;
+    clientEmail?: string;
+    clientPhone?: string;
+    items: { productId: string; name: string; price: number; quantity: number; imageUrl?: string }[];
   }): Order {
     const now = new Date();
     const total = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
     return new Order({
       id: '',
       userId: data.userId,
+      clientName: data.clientName,
+      clientEmail: data.clientEmail,
+      clientPhone: data.clientPhone,
       items: data.items.map((i) => ({ ...i })),
       total,
       status: 'pending',

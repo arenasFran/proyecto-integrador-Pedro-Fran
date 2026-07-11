@@ -39,7 +39,7 @@ export class CreateOrderUseCase {
     const membership = await this.membershipRepository.findActiveByUser(dto.userId);
     const discountPercent = membership?.productDiscount ?? 0;
 
-    const resolvedItems: { productId: string; name: string; price: number; quantity: number }[] = [];
+    const resolvedItems: { productId: string; name: string; price: number; quantity: number; imageUrl?: string }[] = [];
 
     for (let i = 0; i < dto.items.length; i++) {
       const product = products[i];
@@ -62,6 +62,7 @@ export class CreateOrderUseCase {
         name: product.name,
         price,
         quantity: dto.items[i].quantity,
+        imageUrl: product.imageUrl || undefined,
       });
     }
 

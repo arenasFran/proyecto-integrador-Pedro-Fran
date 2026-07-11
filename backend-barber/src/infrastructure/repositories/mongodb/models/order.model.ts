@@ -11,6 +11,7 @@ const orderItemSchema = new Schema<OrderItemData>(
     name: { type: String, required: true },
     price: { type: Number, required: true },
     quantity: { type: Number, required: true, min: 1 },
+    imageUrl: { type: String, default: undefined },
   },
   { _id: false }
 );
@@ -27,6 +28,9 @@ const statusHistoryEntrySchema = new Schema<StatusHistoryEntry>(
 const orderSchema = new Schema<IOrderDocument>(
   {
     userId: { type: String, required: true, index: true },
+    clientName: { type: String, default: undefined },
+    clientEmail: { type: String, default: undefined },
+    clientPhone: { type: String, default: undefined },
     items: { type: [orderItemSchema], required: true },
     total: { type: Number, required: true },
     status: {

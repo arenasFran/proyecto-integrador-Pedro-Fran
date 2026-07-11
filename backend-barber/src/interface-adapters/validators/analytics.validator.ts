@@ -80,6 +80,11 @@ export const clientesListQuerySchema = Joi.object({
   hasta: Joi.string().pattern(ISO_DATE).required(),
 }).custom(rangeValidation);
 
+export const nuevosClientesQuerySchema = Joi.object({
+  desde: Joi.string().pattern(ISO_DATE).required(),
+  hasta: Joi.string().pattern(ISO_DATE).required(),
+}).custom(rangeValidation);
+
 const CURRENT_YEAR = new Date().getFullYear();
 
 export const heatmapQuerySchema = Joi.object({

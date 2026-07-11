@@ -264,14 +264,14 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Input label="Email" type="email" value={form.email} onChange={handleFieldChange('email')} required placeholder="juan@barberia.com" />
-            <Input label="Teléfono" value={form.phone} onChange={handleFieldChange('phone')} required placeholder="099123456" />
+            <Input label="Teléfono" value={form.phone} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
           </div>
           <PasswordInput
             label={professional ? 'Nueva contraseña (opcional)' : 'Contraseña'}
             value={form.password}
             onChange={handleFieldChange('password')}
             required={!professional}
-            placeholder={professional ? 'Dejar vacío para no cambiar' : 'Mínimo 6 caracteres'}
+            placeholder={professional ? 'Dejar vacío para no cambiar' : 'Mínimo 8 caracteres, mayúscula, minúscula y número'}
           />
           <Input label="Edad" type="number" min={0} value={form.age} onChange={handleFieldChange('age')} placeholder="28" />
 

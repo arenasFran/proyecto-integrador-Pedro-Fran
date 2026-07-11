@@ -30,6 +30,7 @@ export class Membership {
       couponsTotal: data.couponsTotal ?? MEMBERSHIP_DEFAULTS.couponsTotal,
       couponsUsed: 0,
       productDiscount: data.productDiscount ?? MEMBERSHIP_DEFAULTS.productDiscount,
+      autoRenew: true,
       createdBy: data.createdBy,
       adminId: data.adminId,
       createdAt: now,
@@ -51,6 +52,7 @@ export class Membership {
   get couponsTotal(): number { return this.props.couponsTotal; }
   get couponsUsed(): number { return this.props.couponsUsed; }
   get productDiscount(): number { return this.props.productDiscount; }
+  get autoRenew(): boolean { return this.props.autoRenew; }
   get createdBy(): MembershipSource { return this.props.createdBy; }
   get adminId(): string | undefined { return this.props.adminId; }
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
@@ -84,7 +86,21 @@ export class Membership {
     if (this.props.status !== 'active') {
       throw new AppError('La membresía no está activa.', 400);
     }
-    this.props.status = 'cancelled';
+    if (!this.props.autoRenew) {
+      throw new AppError('La renovación automática ya está desactivada.', 400);
+    }
+    this.props.autoRenew = false;
+    this.props.updatedAt = new Date();
+  }
+
+  reactivate(): void {
+    if (this.props.status !== 'active') {
+      throw new AppError('La membresía no está activa.', 400);
+    }
+    if (this.props.autoRenew) {
+      throw new AppError('La renovación automática ya está activa.', 400);
+    }
+    this.props.autoRenew = true;
     this.props.updatedAt = new Date();
   }
 

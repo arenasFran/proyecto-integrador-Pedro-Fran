@@ -10,6 +10,7 @@ import type { ResetPasswordFormData } from '../../../../types/auth';
 
 interface ResetPasswordFormProps {
   email: string;
+  initialToken?: string;
 }
 
 const initialValues: ResetPasswordFormData = {
@@ -19,11 +20,11 @@ const initialValues: ResetPasswordFormData = {
   email: '',
 };
 
-export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email }) => {
+export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email, initialToken }) => {
   const [resetPassword, { isLoading, error }] = useResetPasswordMutation();
   const navigate = useNavigate();
 
-  const formInit = { ...initialValues, email };
+  const formInit = { ...initialValues, email, token: initialToken ?? '' };
   const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit);
 
   const handleSubmit = async (e: React.FormEvent) => {

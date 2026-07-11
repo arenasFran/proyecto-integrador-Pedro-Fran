@@ -21,9 +21,8 @@ function formatTime(time: string) {
 }
 
 export const DayCard: React.FC<DayCardProps> = ({ date, appointments, blocks, isToday, onShowMore, onCreateTurno, onCreateBlock }) => {
-  const active = appointments.filter(a => a.status === 'Confirmado' || a.status === 'Completado');
-  const first = active[0];
-  const remaining = active.length - 1;
+  const first = appointments[0];
+  const remaining = appointments.length - 1;
 
   return (
     <div
@@ -86,7 +85,7 @@ export const DayCard: React.FC<DayCardProps> = ({ date, appointments, blocks, is
           <div className="h-[26px]" />
         )}
 
-        {active.length === 0 ? (
+        {appointments.length === 0 ? (
           blocks.length === 0 && (
             <div className="flex flex-1 items-center justify-center">
               <p className="text-[13px] text-[#505050]">Sin turnos</p>
@@ -94,7 +93,11 @@ export const DayCard: React.FC<DayCardProps> = ({ date, appointments, blocks, is
           )
         ) : (
           <div className="flex flex-1 flex-col">
-            <div className="flex flex-col items-center gap-2 rounded-[14px] border border-[#282828] bg-[#1A1A1A] px-4 py-3.5 text-center">
+            <button
+              type="button"
+              onClick={onShowMore}
+              className="flex flex-col items-center gap-2 rounded-[14px] border border-[#282828] bg-[#1A1A1A] px-4 py-3.5 text-center cursor-pointer hover:border-[#FF5C00]/50 transition-colors"
+            >
               <BarberAvatar
                 name={first.barberName?.split(' ')[0] ?? '?'}
                 lastname={first.barberName?.split(' ').slice(1).join(' ') ?? '?'}
@@ -110,7 +113,7 @@ export const DayCard: React.FC<DayCardProps> = ({ date, appointments, blocks, is
                   {formatTime(first.startTime)}
                 </span>
               </div>
-            </div>
+            </button>
 
             {remaining > 0 && (
               <button

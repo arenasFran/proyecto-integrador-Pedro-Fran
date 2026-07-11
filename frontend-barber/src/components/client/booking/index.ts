@@ -5,7 +5,6 @@ export { BarberCard } from './BarberCard';
 export { BarberSelectionStep } from './BarberSelectionStep';
 export { ServiceCard } from './ServiceCard';
 export { ServiceSelectionStep } from './ServiceSelectionStep';
-export { BookingCalendar } from './BookingCalendar';
 export { TimeSlotGrid } from './TimeSlotGrid';
 export { DateTimeStep } from './DateTimeStep';
 export { BookingSuccessModal } from './BookingSuccessModal';

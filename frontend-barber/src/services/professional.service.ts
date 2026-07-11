@@ -40,6 +40,7 @@ const mapBarberPublic = (raw: PublicBarbersResponse['barbers'][number]): BarberP
     isActive: raw.isActive,
     slotDuration: raw.slotDuration,
     maxAdvanceDays: raw.maxAdvanceDays ?? 30,
+    schedule: raw.schedule,
   };
 };
 
@@ -105,9 +106,9 @@ export const professionalService = {
     return response.data.schedule;
   },
 
-  getSlots: async (id: string, date: string): Promise<SlotsResponse> => {
+  getSlots: async (id: string, date: string, excludeAppointmentId?: string): Promise<SlotsResponse> => {
     const response = await api.get<SlotsResponse>(`/api/barbers/${id}/slots`, {
-      params: { date },
+      params: excludeAppointmentId ? { date, excludeAppointmentId } : { date },
     });
     return response.data;
   },

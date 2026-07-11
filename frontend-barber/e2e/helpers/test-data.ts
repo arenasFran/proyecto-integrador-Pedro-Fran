@@ -29,7 +29,7 @@ export const buildTestUser = (): TestUser => {
     repeatPassword: password,
     name: `Test${id.slice(-3)}`,
     lastname: `User${id.slice(-2)}`,
-    phone: `+54911${randomDigits(8)}`,
+    phone: `+598${randomDigits(9)}`,
   };
 };
 

@@ -5,7 +5,7 @@ import { ResetPasswordForm } from './ResetPasswordForm';
 import { renderWithProviders } from '../../../../test/utils';
 
 const mockResetPasswordFn = vi.hoisted(() => vi.fn());
-const mockUseResetPasswordMutation = vi.hoisted(() => vi.fn(() => [mockResetPasswordFn, { isLoading: false, error: null }]));
+const mockUseResetPasswordMutation = vi.hoisted(() => vi.fn(() => [mockResetPasswordFn, { isLoading: false, error: null as Error | null }]));
 
 const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
 
@@ -44,6 +44,11 @@ describe('ResetPasswordForm', () => {
     expect(screen.getByLabelText(/token de recuperación/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/nueva contraseña/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
+  });
+
+  it('prefills the token field when initialToken is provided', () => {
+    renderWithProviders(<ResetPasswordForm email="test@example.com" initialToken="token-from-email" />);
+    expect(screen.getByLabelText(/token de recuperación/i)).toHaveValue('token-from-email');
   });
 
   it('does not submit when form is invalid', async () => {

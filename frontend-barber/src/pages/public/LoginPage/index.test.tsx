@@ -76,4 +76,33 @@ describe('LoginPage', () => {
       expect(screen.getByText('Credenciales inválidas')).toBeInTheDocument();
     });
   });
+
+  it('shows resend button on code step and resends code when clicked', async () => {
+    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Código enviado' }) });
+
+    const user = userEvent.setup({ delay: 50 });
+    renderWithProviders(<LoginPage />);
+
+    await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'Password1');
+    await user.click(screen.getByRole('button', { name: /enviar código de verificación/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Reenviar código')).toBeInTheDocument();
+    });
+
+    mockSendTwoFactorCode.mockClear();
+    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Nuevo código enviado' }) });
+
+    await user.click(screen.getByText('Reenviar código'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Nuevo código enviado')).toBeInTheDocument();
+    });
+
+    expect(mockSendTwoFactorCode).toHaveBeenCalledWith({
+      email: 'user@test.com',
+      password: 'Password1',
+    });
+  });
 });

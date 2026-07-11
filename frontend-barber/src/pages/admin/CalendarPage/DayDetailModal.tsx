@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { FiClock, FiLock, FiTrash2, FiUser } from 'react-icons/fi';
 import { Modal, BarberAvatar, ConfirmModal } from '../../../components/common';
 import { getAccessToken } from '../../../services/api';
+import { AppointmentActionsMenu } from '../AppointmentsPage/AppointmentActionsMenu';
+import type { AppointmentActions } from '../AppointmentsPage/useAppointmentActions';
 import type { Appointment, BarberBlock } from '../../../types/booking';
 
 interface DayDetailModalProps {
@@ -11,6 +13,7 @@ interface DayDetailModalProps {
   blocks: BarberBlock[];
   onClose: () => void;
   onBlockDeleted: () => void;
+  actions: AppointmentActions;
 }
 
 const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -33,7 +36,7 @@ const statusStyles: Record<string, { bg: string; text: string; label: string }> 
   NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
 };
 
-export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, appointments, blocks, onClose, onBlockDeleted }) => {
+export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, appointments, blocks, onClose, onBlockDeleted, actions }) => {
   const [confirmDeleteBlock, setConfirmDeleteBlock] = useState<BarberBlock | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -110,19 +113,27 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, ap
                       <p className="text-[12px] text-[#8A8A8A] truncate">{a.serviceName}</p>
                     </div>
                   </div>
-                  <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
-                    {style.label}
-                  </span>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
+                      {style.label}
+                    </span>
+                    <AppointmentActionsMenu appointment={a} actions={actions} />
+                  </div>
                 </div>
                 <div className="mt-3 flex items-center gap-4 text-[12px] text-[#8A8A8A]">
                   <span className="flex items-center gap-1.5">
                     <FiClock className="text-[#FF5C00]" />
                     {formatTime(a.startTime)} - {formatTime(a.endTime)}
                   </span>
-                  <span className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => actions.setDetailTarget(a)}
+                    className="flex items-center gap-1.5 text-[#8A8A8A] hover:text-[#FF5C00] transition-colors cursor-pointer"
+                    title="Ver detalle del turno"
+                  >
                     <FiUser className="text-[#FF5C00]" />
-                    {a.clientName} {a.clientLastname}
-                  </span>
+                    <span className="underline decoration-dotted underline-offset-2">{a.clientName} {a.clientLastname}</span>
+                  </button>
                 </div>
               </div>
             );

@@ -157,13 +157,14 @@ async function seed() {
     client: mongoose.Document;
     couponsUsed: number;
     label: string;
-    expired?: boolean;
+    status: 'active' | 'expired' | 'cancelled';
   }> = [
-    { client: clientA, couponsUsed: 0, label: 'Cliente A — 4 cupones disponibles' },
-    { client: clientB, couponsUsed: 2, label: 'Cliente B — 2 cupones usados, 2 restantes' },
-    { client: clientD, couponsUsed: 0, label: 'Cliente D — membresía expirada', expired: true },
-    { client: clientE, couponsUsed: 4, label: 'Cliente E — cupones agotados (4/4)' },
-    { client: clientG, couponsUsed: 0, label: 'Cliente G — 4 cupones disponibles' },
+    { client: clientA, couponsUsed: 0, status: 'active', label: 'Cliente A — 4 cupones disponibles' },
+    { client: clientB, couponsUsed: 2, status: 'active', label: 'Cliente B — 2 cupones usados, 2 restantes' },
+    { client: clientD, couponsUsed: 0, status: 'expired', label: 'Cliente D — membresía expirada' },
+    { client: clientE, couponsUsed: 4, status: 'expired', label: 'Cliente E — cupones agotados (4/4), expirada' },
+    { client: clientF, couponsUsed: 0, status: 'cancelled', label: 'Cliente F — membresía cancelada' },
+    { client: clientG, couponsUsed: 0, status: 'active', label: 'Cliente G — 4 cupones disponibles' },
   ];
 
   const membershipDocs: Array<{ doc: mongoose.Document; label: string }> = [];
@@ -172,8 +173,7 @@ async function seed() {
     const clientId = m.client._id;
     const existing = await MembershipModel.findOne({
       userId: clientId,
-      status: 'active',
-      endDate: { $gte: new Date() },
+      status: m.status,
     });
     if (existing) {
       console.log(`Membresía para ${(m.client as any).email} ya existe — omitido`);
@@ -183,7 +183,7 @@ async function seed() {
 
     const now = new Date();
     const endDate = new Date(now);
-    if (m.expired) {
+    if (m.status === 'expired') {
       endDate.setDate(endDate.getDate() - 30);
     } else {
       endDate.setDate(endDate.getDate() + 30);
@@ -191,7 +191,7 @@ async function seed() {
 
     const doc = await MembershipModel.create({
       userId: clientId,
-      status: 'active',
+      status: m.status,
       startDate: now,
       endDate,
       couponsTotal: 4,
@@ -207,6 +207,7 @@ async function seed() {
   const membershipB = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientB._id.toString())!;
   const membershipD = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientD._id.toString())!;
   const membershipE = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientE._id.toString())!;
+  const membershipF = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientF._id.toString())!;
   const membershipG = membershipDocs.find((m) => (m.doc as any).userId.toString() === clientG._id.toString())!;
 
   const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -532,10 +533,10 @@ async function seed() {
   console.log('\nResumen:');
   for (const c of clientDocs) {
     const email = (c as any).email;
-    const mem = await MembershipModel.findOne({ userId: c._id, status: 'active' });
+    const mem = await MembershipModel.findOne({ userId: c._id });
     const appts = await AppointmentModel.countDocuments({ clientId: c._id });
     if (mem) {
-      console.log(`  ${email} — membresía activa, cupones: ${mem.couponsUsed}/${mem.couponsTotal} usados, turnos: ${appts}`);
+      console.log(`  ${email} — membresía ${mem.status}, cupones: ${mem.couponsUsed}/${mem.couponsTotal} usados, turnos: ${appts}`);
     } else {
       console.log(`  ${email} — sin membresía, turnos: ${appts}`);
     }

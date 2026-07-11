@@ -151,5 +151,39 @@ describe('SlotService', () => {
 
       expect(result.slots).toEqual(['09:00', '09:30', '10:00', '10:30']);
     });
+
+    it('debe marcar reason day-off si el barbero no trabaja ese dia', () => {
+      const schedule = createSchedule({ startTime: null, endTime: null });
+      const result = service.execute('2099-01-05', schedule, 30);
+
+      expect(result.slots).toEqual([]);
+      expect(result.reason).toBe('day-off');
+    });
+
+    it('debe marcar reason fully-booked si todos los horarios del dia estan ocupados', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '10:00' });
+      const occupiedSlots = [{ startTime: '09:00', endTime: '10:00', status: 'Confirmado' }];
+      const result = service.execute('2099-01-05', schedule, 30, occupiedSlots);
+
+      expect(result.slots).toEqual([]);
+      expect(result.reason).toBe('fully-booked');
+    });
+
+    it('debe marcar reason already-past si hoy ya pasaron todos los horarios del dia', () => {
+      jest.useFakeTimers({ now: new Date('2099-01-05T21:00:00.000Z') });
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const result = service.execute('2099-01-05', schedule, 30);
+
+      expect(result.slots).toEqual([]);
+      expect(result.reason).toBe('already-past');
+      jest.useRealTimers();
+    });
+
+    it('no debe tener reason si hay slots disponibles', () => {
+      const schedule = createSchedule({ startTime: '09:00', endTime: '11:00' });
+      const result = service.execute('2099-01-05', schedule, 30);
+
+      expect(result.reason).toBeUndefined();
+    });
   });
 });

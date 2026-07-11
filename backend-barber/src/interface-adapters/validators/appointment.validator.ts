@@ -11,9 +11,10 @@ export const createAppointmentSchema = Joi.object({
     .pattern(TIME_REGEX)
     .messages({ 'string.pattern.base': 'startTime debe tener formato HH:mm (ej. 09:30)' })
     .required(),
+  clientId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
   clientName: Joi.string().trim().min(1).max(100).required(),
   clientLastname: Joi.string().trim().min(1).max(100).required(),
-  clientPhone: Joi.string().trim().max(20).allow('', null),
+  clientPhone: Joi.string().trim().min(7).max(20).required(),
   clientEmail: Joi.string().pattern(EMAIL_REGEX).trim().required(),
   paymentMethod: Joi.string().valid('local', 'online', 'memberPass').optional(),
   tempLockId: Joi.string().optional(),
@@ -31,6 +32,7 @@ export const appointmentQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),
   includeBarber: Joi.string().valid('true'),
+  includeClient: Joi.string().valid('true'),
   sortBy: Joi.string().valid('date', 'startTime'),
   sortDir: Joi.string().valid('asc', 'desc'),
 });
@@ -55,10 +57,10 @@ export const rescheduleAppointmentSchema = Joi.object({
 });
 
 export const anonymousQuerySchema = Joi.object({
-  email: Joi.string().pattern(EMAIL_REGEX).trim(),
-  phone: Joi.string().trim().max(20),
+  email: Joi.string().pattern(EMAIL_REGEX).trim().required(),
+  phone: Joi.string().trim().max(20).required(),
   date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
-}).min(1);
+});
 
 export const updateAppointmentStatusSchema = Joi.object({
   status: Joi.string()
@@ -74,5 +76,9 @@ export const updateAppointmentStatusSchema = Joi.object({
 
 export const changeBarberSchema = Joi.object({
   barberId: Joi.string().required(),
+});
+
+export const searchClientsQuerySchema = Joi.object({
+  q: Joi.string().trim().min(2).max(100).required(),
 });
 

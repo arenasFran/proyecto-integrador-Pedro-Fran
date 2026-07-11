@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiSave, FiSettings, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, BarberAvatar, Button, ImageUpload, Input, PasswordInput, Spinner } from '../../../components/common';
+import { FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSettings, FiUser } from 'react-icons/fi';
+import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner, useToast } from '../../../components/common';
 import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { updateCurrentUser } from '../../../store/slices/authSlice';
+import { logout, updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
+import { useChangePasswordMutation, useRequestResetMutation } from '../../../services/authApi';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import type { DayKey } from '../../../types/professional';
 import {
   createEmptySchedule,
@@ -44,15 +46,26 @@ export const ProfilePage: React.FC = () => {
   }, [authUser, barbers, isBarber]);
 
   const [activeTab, setActiveTab] = useState<'personal' | 'agenda'>('personal');
-  const [password, setPassword] = useState('');
   const [pageError, setPageError] = useState<string | null>(null);
   const [pageMessage, setPageMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordFieldErrors, setPasswordFieldErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
+
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
+  const [emailPasswordError, setEmailPasswordError] = useState<string | null>(null);
+
+  const [changePasswordMutation, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+  const [requestReset, { isLoading: isRequestingReset }] = useRequestResetMutation();
+  const { showToast } = useToast();
+
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [uploadKey, setUploadKey] = useState(0);
-  const [photoSaved, setPhotoSaved] = useState(false);
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
   const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
@@ -90,6 +103,9 @@ export const ProfilePage: React.FC = () => {
 
   const isLoading = !authUser || (isBarber && barbers.length === 0 && barbersLoading);
 
+  const originalEmail = isBarber ? barberData?.email : authUser?.email;
+  const emailChanged = String(formData?.email ?? '').trim() !== String(originalEmail ?? '').trim();
+
   const scheduleSummary = isBarber ? days
     .filter((d) => schedule[d.key].startTime && schedule[d.key].endTime)
     .map((d) => {
@@ -122,6 +138,7 @@ export const ProfilePage: React.FC = () => {
 
     setPageError(null);
     setPageMessage(null);
+    setEmailPasswordError(null);
 
     if (isBarber) {
       const scheduleError = validateSchedule(schedule);
@@ -137,6 +154,12 @@ export const ProfilePage: React.FC = () => {
       }
     }
 
+    if (emailChanged && !emailCurrentPassword) {
+      setEmailPasswordError('La contraseña actual es obligatoria');
+      setPageError('Ingresá tu contraseña actual para confirmar el cambio de email.');
+      return;
+    }
+
     setIsSaving(true);
 
     try {
@@ -145,14 +168,11 @@ export const ProfilePage: React.FC = () => {
       if (photoFile) {
         photoUrl = await uploadAvatar(photoFile, photoUrl ?? undefined);
         setPhotoFile(null);
-        setPhotoSaved(true);
-        setUploadKey((k) => k + 1);
       }
 
       if (isBarber) {
         const payload: Record<string, unknown> = {
           email: String(formData.email ?? '').trim(),
-          password: password.trim() || undefined,
           name: String(formData.name ?? '').trim(),
           lastname: String(formData.lastname ?? '').trim(),
           phone: String(formData.phone ?? '').trim(),
@@ -167,32 +187,93 @@ export const ProfilePage: React.FC = () => {
           payload.schedule = scheduleFromForm(editedSchedule);
         }
 
+        if (emailChanged) {
+          payload.currentPassword = emailCurrentPassword;
+        }
+
         await dispatch(updateBarberMe(payload)).unwrap();
         setEditedFields({});
-        setPassword('');
+        setEmailCurrentPassword('');
         setPageMessage('Perfil actualizado con éxito.');
       } else {
         await dispatch(updateCurrentUser({
           email: String(formData.email ?? '').trim() || undefined,
-          password: password.trim() || undefined,
           name: String(formData.name ?? '').trim() || undefined,
           lastname: String(formData.lastname ?? '').trim() || undefined,
           phone: String(formData.phone ?? '').trim() || undefined,
           photoUrl: photoUrl ?? undefined,
+          currentPassword: emailChanged ? emailCurrentPassword : undefined,
         })).unwrap();
         setEditedFields({});
-        setPassword('');
+        setEmailCurrentPassword('');
         setPageMessage('Perfil actualizado con éxito.');
       }
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Error al guardar el perfil';
+      const msg = getErrorMessage(error, 'Error al guardar el perfil');
       if (msg.includes('409') || msg.toLowerCase().includes('email en uso')) {
         setPageError('El email ya está en uso');
+      } else if (msg.toLowerCase().includes('contraseña actual')) {
+        setEmailPasswordError(msg);
+        setPageError(msg);
       } else {
         setPageError(msg);
       }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordFieldErrors({});
+
+    const errors: { currentPassword?: string; newPassword?: string; confirmPassword?: string } = {};
+
+    if (!currentPassword) errors.currentPassword = 'La contraseña actual es obligatoria';
+    if (!newPassword) errors.newPassword = 'La nueva contraseña es obligatoria';
+    if (!confirmPassword) errors.confirmPassword = 'La confirmación es obligatoria';
+
+    if (newPassword && newPassword.length < 8) errors.newPassword = 'Debe tener al menos 8 caracteres';
+    if (newPassword && confirmPassword && newPassword !== confirmPassword) errors.confirmPassword = 'Las contraseñas no coinciden';
+    if (currentPassword && newPassword && currentPassword === newPassword) errors.newPassword = 'Debe ser diferente a la actual';
+
+    if (Object.keys(errors).length > 0) {
+      setPasswordFieldErrors(errors);
+      return;
+    }
+
+    try {
+      await changePasswordMutation({
+        currentPassword,
+        newPassword,
+        newPasswordConfirmation: confirmPassword,
+      }).unwrap();
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setShowChangePassword(false);
+      showToast('Contraseña actualizada. Iniciá sesión de nuevo con tu nueva contraseña.', 'success');
+      dispatch(logout());
+      navigate('/login', { replace: true });
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, 'Error al cambiar la contraseña');
+      if (msg.toLowerCase().includes('contraseña actual incorrecta')) {
+        setPasswordFieldErrors({ currentPassword: 'Contraseña actual incorrecta' });
+      } else {
+        showToast(msg, 'error');
+      }
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!authUser?.email) return;
+
+    try {
+      await requestReset({ email: authUser.email }).unwrap();
+      showToast('Te enviamos un email para restablecer tu contraseña.', 'success');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Error al solicitar el restablecimiento'), 'error');
     }
   };
 
@@ -212,7 +293,6 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
-  const title = role ? roleTitle[role] ?? 'Perfil' : 'Perfil';
   const displayName = isBarber
     ? `${String(formData.name ?? '')} ${String(formData.lastname ?? '')}`
     : `${String(formData.name ?? '')} ${String(formData.lastname ?? '')}`;
@@ -222,25 +302,29 @@ export const ProfilePage: React.FC = () => {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <BarberAvatar
+              <ImageUpload
+                variant="avatar"
                 name={String(formData.name ?? '')}
                 lastname={String(formData.lastname ?? '')}
-                photoUrl={formData.photoUrl ? String(formData.photoUrl) : null}
-                size="2xl"
+                currentUrl={formData.photoUrl ? String(formData.photoUrl) : null}
+                onFileSelect={(file) => {
+                  setPhotoFile(file);
+                  setEditedFields((prev) => ({ ...prev, photoUrl: null }));
+                }}
+                helperText="Arrastrá o hacé clic para cambiar"
               />
-              <div>
-                <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
-                  {displayName}
-                </h1>
-                <p className="text-[14px] text-[#8A8A8A]">{title}</p>
-              </div>
+              <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
+                {displayName}
+              </h1>
             </div>
 
-            <Button variant="secondary" icon={FiArrowLeft} onClick={() => navigate(-1)}>
-              Volver
-            </Button>
+            {role && role !== 'Registrado' && (
+              <span className="shrink-0 inline-flex items-center rounded-full bg-purple-500/10 px-3 py-1 text-[12px] font-medium text-purple-400">
+                {roleTitle[role]}
+              </span>
+            )}
           </div>
         </AnimatedContainer>
 
@@ -287,19 +371,21 @@ export const ProfilePage: React.FC = () => {
                 </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
-                  <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="099000000" />
+                  <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
                 </div>
-                <PasswordInput label="Nueva contraseña (opcional)" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Dejar vacío para no cambiar" />
-                <ImageUpload
-                  key={uploadKey}
-                  currentUrl={photoSaved ? null : (formData.photoUrl ? String(formData.photoUrl) : null)}
-                  onFileSelect={(file) => {
-                    if (file) setPhotoSaved(false);
-                    setPhotoFile(file);
-                    setEditedFields((prev) => ({ ...prev, photoUrl: null }));
-                  }}
-                  helperText="Arrastrá una imagen o hacé clic para subir"
-                />
+                {emailChanged && (
+                  <PasswordInput
+                    label="Contraseña actual"
+                    value={emailCurrentPassword}
+                    onChange={(e) => {
+                      setEmailCurrentPassword(e.target.value);
+                      setEmailPasswordError(null);
+                    }}
+                    placeholder="Ingresá tu contraseña actual"
+                    helperText="Requerida para confirmar el cambio de email"
+                    error={emailPasswordError ?? undefined}
+                  />
+                )}
               </>
             )}
 
@@ -386,6 +472,84 @@ export const ProfilePage: React.FC = () => {
               </Button>
             </div>
           </form>
+        </AnimatedContainer>
+
+        <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FiLock className="w-5 h-5 text-[#FF5C00]" />
+              <h2 className="text-[18px] font-bold text-white">Cambiar contraseña</h2>
+            </div>
+            {!showChangePassword && (
+              <Button type="button" variant="secondary" onClick={() => setShowChangePassword(true)}>
+                Cambiar
+              </Button>
+            )}
+          </div>
+
+          {showChangePassword && (
+            <div className="grid gap-4">
+              <div className="grid gap-1.5">
+                <PasswordInput
+                  label="Contraseña actual"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Ingresá tu contraseña actual"
+                  error={passwordFieldErrors.currentPassword}
+                />
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  disabled={isRequestingReset}
+                  className="self-start text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] transition-colors disabled:opacity-50"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+              <PasswordInput
+                label="Nueva contraseña"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres, mayúscula, minúscula y número"
+                error={passwordFieldErrors.newPassword}
+              />
+              <PasswordInput
+                label="Confirmar nueva contraseña"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repetí la nueva contraseña"
+                error={passwordFieldErrors.confirmPassword}
+              />
+
+              {passwordError && (
+                <p className="text-[12px] text-red-400 text-center">{passwordError}</p>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="button"
+                  onClick={handleChangePassword}
+                  loading={isChangingPassword}
+                >
+                  Actualizar contraseña
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setShowChangePassword(false);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError(null);
+                    setPasswordFieldErrors({});
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </div>
+          )}
         </AnimatedContainer>
       </div>
     </div>

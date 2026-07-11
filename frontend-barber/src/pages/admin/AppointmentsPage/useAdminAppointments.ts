@@ -1,30 +1,10 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchBarbers } from '../../../store/slices/barbersSlice';
-import {
-  useCancelAppointmentMutation,
-  useChangeBarberMutation,
-  useGetAppointmentsPaginatedQuery,
-  useMarkAsPaidMutation,
-  useRescheduleAppointmentMutation,
-  useSendReminderMutation,
-  useUpdateAppointmentStatusMutation,
-} from '../../../services/appointmentApi';
-import { useToast } from '../../../components/common';
-import { extractError } from './helpers';
-import type { Appointment } from '../../../types/booking';
+import { useGetAppointmentsPaginatedQuery } from '../../../services/appointmentApi';
+import { useAppointmentActions } from './useAppointmentActions';
 
 export function useAdminAppointments() {
-  const dispatch = useAppDispatch();
-  const barbers = useAppSelector((state) => state.barbers.list);
-  const { showToast } = useToast();
-
-  useEffect(() => {
-    if (barbers.length === 0) {
-      dispatch(fetchBarbers());
-    }
-  }, [dispatch, barbers.length]);
+  const actions = useAppointmentActions();
 
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -52,27 +32,7 @@ export function useAdminAppointments() {
 
   const [pageSize, setPageSize] = useState(15);
   const [showCustomize, setShowCustomize] = useState(false);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const [menuRect, setMenuRect] = useState<{ top: number; right: number } | null>(null);
-
-  const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [rescheduleTarget, setRescheduleTarget] = useState<Appointment | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState('');
-  const [rescheduleTime, setRescheduleTime] = useState('');
-  const [rescheduleBarberId, setRescheduleBarberId] = useState('');
-
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [confirmTarget, setConfirmTarget] = useState<{ id: string; action: 'NoShow' } | null>(null);
-  const [detailTarget, setDetailTarget] = useState<Appointment | null>(null);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const [quickCreateDate, setQuickCreateDate] = useState('');
-  const [changeBarberTarget, setChangeBarberTarget] = useState<Appointment | null>(null);
-  const [changeBarberNewId, setChangeBarberNewId] = useState('');
-  const [combinedActionTarget, setCombinedActionTarget] = useState<{
-    appointment: Appointment;
-    primaryAction: 'Completado' | 'Pagado';
-  } | null>(null);
 
   const toggleSort = useCallback((column: 'date' | 'time') => {
     if (sortBy === column) {
@@ -99,6 +59,7 @@ export function useAdminAppointments() {
     if (filterPaymentMethod) params.paymentMethod = filterPaymentMethod;
     if (searchTerm.trim()) params.searchTerm = searchTerm.trim();
     params.includeBarber = 'true';
+    params.includeClient = 'true';
     params.page = page;
     params.limit = pageSize;
     if (sortBy) {
@@ -113,13 +74,6 @@ export function useAdminAppointments() {
   const totalResults = paginatedData?.total ?? 0;
   const totalPages = paginatedData?.totalPages ?? 1;
 
-  const [cancelAppointment, { isLoading: isCancelling }] = useCancelAppointmentMutation();
-  const [updateStatus, { isLoading: isUpdatingStatus }] = useUpdateAppointmentStatusMutation();
-  const [rescheduleAppointment, { isLoading: isRescheduling }] = useRescheduleAppointmentMutation();
-  const [markAsPaid, { isLoading: isMarkingPaid }] = useMarkAsPaidMutation();
-  const [sendReminder, { isLoading: isSendingReminder }] = useSendReminderMutation();
-  const [changeBarber, { isLoading: isChangingBarber }] = useChangeBarberMutation();
-
   const stats = useMemo(() => {
     const total = totalResults;
     const confirmed = appointments.filter((a) => a.status === 'Confirmado').length;
@@ -128,112 +82,17 @@ export function useAdminAppointments() {
     return { total, confirmed, completed, cancelled };
   }, [appointments, totalResults]);
 
-  const handleCancelConfirm = useCallback(async () => {
-    if (!cancelTarget) return;
-    try {
-      await cancelAppointment({ id: cancelTarget.id, reason: cancelReason || undefined }).unwrap();
-      showToast('Turno cancelado con éxito');
-      setCancelTarget(null);
-      setCancelReason('');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  }, [cancelTarget, cancelReason, cancelAppointment, showToast]);
-
-  const handleStatusChange = useCallback(async (id: string, status: 'Completado' | 'NoShow') => {
-    try {
-      await updateStatus({ id, status }).unwrap();
-      showToast(`Turno ${status === 'Completado' ? 'completado' : 'marcado como no asistió'} con éxito`);
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  }, [updateStatus, showToast]);
-
-  const handleRescheduleConfirm = useCallback(async () => {
-    if (!rescheduleTarget || !rescheduleDate || !rescheduleTime || !rescheduleBarberId) return;
-    try {
-      await rescheduleAppointment({
-        id: rescheduleTarget.id,
-        date: rescheduleDate,
-        startTime: rescheduleTime,
-        barberId: rescheduleBarberId,
-      }).unwrap();
-      showToast('Turno reprogramado con éxito');
-      setRescheduleTarget(null);
-      setRescheduleDate('');
-      setRescheduleTime('');
-      setRescheduleBarberId('');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  }, [rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId, rescheduleAppointment, showToast]);
-
-  const handleSendReminder = useCallback(async (id: string) => {
-    try {
-      await sendReminder({ id }).unwrap();
-      showToast('Recordatorio enviado con éxito');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  }, [sendReminder, showToast]);
-
-  const handleDuplicate = useCallback((appointment: Appointment) => {
-    setDetailTarget(null);
-    setQuickCreateDate(appointment.date);
-    setShowQuickCreate(true);
-  }, []);
-
-  const handleChangeBarberConfirm = useCallback(async () => {
-    if (!changeBarberTarget || !changeBarberNewId) return;
-    try {
-      await changeBarber({ id: changeBarberTarget.id, barberId: changeBarberNewId }).unwrap();
-      showToast('Barbero cambiado con éxito');
-      setChangeBarberTarget(null);
-      setChangeBarberNewId('');
-    } catch (err) {
-      showToast(extractError(err), 'error');
-    }
-  }, [changeBarberTarget, changeBarberNewId, changeBarber, showToast]);
-
-  const handleCompleteOnly = useCallback(async (id: string) => {
-    await handleStatusChange(id, 'Completado');
-    setCombinedActionTarget(null);
-  }, [handleStatusChange]);
-
-  const handleCompleteAndPaid = useCallback(async (id: string) => {
-    await handleStatusChange(id, 'Completado');
-    await markAsPaid({ id }).unwrap();
-    showToast('Turno completado y pago registrado');
-    setCombinedActionTarget(null);
-  }, [handleStatusChange, markAsPaid, showToast]);
-
-  const handleMarkPaidOnly = useCallback(async (id: string) => {
-    await markAsPaid({ id }).unwrap();
-    showToast('Pago registrado con éxito');
-    setCombinedActionTarget(null);
-  }, [markAsPaid, showToast]);
-
   return {
+    ...actions,
     // State
-    barbers, appointments, totalResults, totalPages, isLoading,
+    appointments, totalResults, totalPages, isLoading,
     searchParams, filterDateFrom, filterDateTo, filterBarberId,
     filterStatus, filterPaymentMethod, searchTerm, page, sortBy, sortDir,
-    pageSize, showCustomize, activeMenu, menuRect,
-    cancelTarget, cancelReason, rescheduleTarget, rescheduleDate, rescheduleTime, rescheduleBarberId,
-    expandedId, confirmTarget, detailTarget, showQuickCreate, quickCreateDate,
-    changeBarberTarget, changeBarberNewId, combinedActionTarget,
-    isCancelling, isUpdatingStatus, isRescheduling, isMarkingPaid, isSendingReminder, isChangingBarber,
+    pageSize, showCustomize, expandedId,
     stats,
     // Setters
-    setPageSize, setShowCustomize, setActiveMenu, setMenuRect,
-    setCancelTarget, setCancelReason, setRescheduleTarget,
-    setRescheduleDate, setRescheduleTime, setRescheduleBarberId,
-    setExpandedId, setConfirmTarget, setDetailTarget, setShowQuickCreate,
-    setQuickCreateDate, setChangeBarberTarget, setChangeBarberNewId, setCombinedActionTarget,
+    setPageSize, setShowCustomize, setExpandedId,
     // Actions
     toggleSort, handleDateRangeChange, clearFilters, updateParams,
-    handleCancelConfirm, handleStatusChange, handleRescheduleConfirm,
-    handleSendReminder, handleDuplicate, handleChangeBarberConfirm,
-    handleCompleteOnly, handleCompleteAndPaid, handleMarkPaidOnly,
   };
 }

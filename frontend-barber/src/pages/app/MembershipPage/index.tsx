@@ -1,7 +1,8 @@
-import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
-import { AnimatedContainer, Spinner, Button } from '../../../components/common';
-import { useGetMyMembershipQuery, useCreateMembershipMutation } from '../../../services/membershipApi';
+import { AnimatedContainer, Spinner, Button, ConfirmModal } from '../../../components/common';
+import { useGetMyMembershipQuery, useCreateMembershipMutation, useCancelMembershipMutation, useReactivateMembershipMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 
@@ -11,6 +12,11 @@ export default function MembershipPage() {
 
   const { data, isLoading } = useGetMyMembershipQuery();
   const [createMembership, { isLoading: isCreating }] = useCreateMembershipMutation();
+  const [cancelMembership, { isLoading: isCancelling }] = useCancelMembershipMutation();
+  const [reactivateMembership, { isLoading: isReactivating }] = useReactivateMembershipMutation();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<'cancel' | 'reactivate' | null>(null);
 
   if (!token) return <Navigate to="/login" replace />;
   if (kind === 'Admin' || kind === 'Empleado') return <Navigate to="/admin/membresias" replace />;
@@ -34,6 +40,30 @@ export default function MembershipPage() {
       await createMembership({ userId: user.id }).unwrap();
     } catch {
       // handled by RTK
+    }
+  };
+
+  const openModal = (action: 'cancel' | 'reactivate') => {
+    setModalAction(action);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalAction(null);
+  };
+
+  const handleConfirm = async () => {
+    if (!modalAction || !active) return;
+    try {
+      if (modalAction === 'cancel') {
+        await cancelMembership(active.id).unwrap();
+      } else {
+        await reactivateMembership(active.id).unwrap();
+      }
+      closeModal();
+    } catch {
+      closeModal();
     }
   };
 
@@ -120,6 +150,28 @@ export default function MembershipPage() {
                   </div>
                   <span className="text-[18px] font-bold text-white">{active.productDiscount}% OFF</span>
                   <p className="text-[11px] text-[#555] mt-1">Próximamente disponible</p>
+                </div>
+
+                <div className="mt-4 rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiRefreshCw className="text-[#FF5C00] text-sm" />
+                    <span className="text-[11px] text-[#8A8A8A]">Renovación automática</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`flex h-2.5 w-2.5 rounded-full ${active.autoRenew ? 'bg-[#22C55E]' : 'bg-[#8A8A8A]'}`} />
+                    <span className={`text-[14px] font-semibold ${active.autoRenew ? 'text-[#22C55E]' : 'text-[#8A8A8A]'}`}>
+                      {active.autoRenew ? 'Activada' : 'Desactivada'}
+                    </span>
+                  </div>
+                  {active.autoRenew ? (
+                    <Button variant="danger" onClick={() => openModal('cancel')} loading={isCancelling}>
+                      Cancelar renovación
+                    </Button>
+                  ) : (
+                    <Button variant="primary" onClick={() => openModal('reactivate')} loading={isReactivating}>
+                      Reactivar renovación
+                    </Button>
+                  )}
                 </div>
               </div>
             </AnimatedContainer>
@@ -216,6 +268,21 @@ export default function MembershipPage() {
           </AnimatedContainer>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        onConfirm={handleConfirm}
+        title={modalAction === 'cancel' ? 'Cancelar renovación' : 'Reactivar renovación'}
+        message={
+          modalAction === 'cancel'
+            ? 'Al cancelar la renovación automática, tu membresía seguirá activa hasta la fecha de vencimiento pero no se renovará. ¿Querés continuar?'
+            : 'Vas a reactivar la renovación automática de tu membresía. Al vencer, se renovará automáticamente. ¿Querés continuar?'
+        }
+        confirmText={modalAction === 'cancel' ? 'Cancelar renovación' : 'Reactivar'}
+        variant={modalAction === 'cancel' ? 'danger' : 'primary'}
+        loading={isCancelling || isReactivating}
+      />
     </div>
   );
 }

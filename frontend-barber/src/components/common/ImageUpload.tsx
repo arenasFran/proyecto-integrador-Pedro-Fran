@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FiUpload, FiX } from 'react-icons/fi';
+import { FiCamera, FiUpload, FiX } from 'react-icons/fi';
 
 type ImageUploadProps = {
   currentUrl?: string | null;
   onFileSelect: (file: File | null) => void;
   error?: string;
   helperText?: string;
+  variant?: 'box' | 'avatar';
+  name?: string;
+  lastname?: string;
 };
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -13,6 +16,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onFileSelect,
   error,
   helperText,
+  variant = 'box',
+  name,
+  lastname,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
@@ -57,6 +63,51 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     setLocalPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const initials = name && lastname
+    ? `${name.charAt(0).toUpperCase()}${lastname.charAt(0).toUpperCase()}`
+    : name
+      ? name.charAt(0).toUpperCase()
+      : '?';
+
+  if (variant === 'avatar') {
+    return (
+      <div className="relative">
+        <div
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className="group relative w-24 h-24 cursor-pointer"
+        >
+          <div className="w-full h-full rounded-full overflow-hidden border-2 border-[#282828]">
+            {previewUrl ? (
+              <img
+                src={previewUrl}
+                alt="Foto de perfil"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-[#242424] flex items-center justify-center">
+                <span className="text-[28px] font-bold text-[#8A8A8A]">{initials}</span>
+              </div>
+            )}
+          </div>
+          <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <FiCamera className="w-6 h-6 text-white" />
+          </div>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+        {error && <p className="text-[11px] text-red-500 mt-1 text-center">{error}</p>}
+        {helperText && <p className="text-[11px] text-[#8A8A8A] mt-1 text-center">{helperText}</p>}
+      </div>
+    );
+  }
 
   return (
     <div>

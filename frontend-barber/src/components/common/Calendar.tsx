@@ -1,21 +1,22 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import type { BarberSchedule, DayKey } from '../../types/professional';
 
-interface BookingCalendarProps {
+interface CalendarProps {
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
-  month: number;
-  year: number;
   maxAdvanceDays: number;
-  onPrevMonth: () => void;
-  onNextMonth: () => void;
+  schedule?: BarberSchedule | null;
 }
 
 const DAYS = ['LU', 'MA', 'MI', 'JU', 'VI', 'SA', 'DO'];
 const MONTHS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+];
+const DAY_KEY_BY_WEEKDAY: DayKey[] = [
+  'sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
 ];
 
 const todayString = () => {
@@ -29,15 +30,16 @@ const maxDateString = (maxAdvanceDays: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-export const BookingCalendar: React.FC<BookingCalendarProps> = ({
+export const Calendar: React.FC<CalendarProps> = ({
   selectedDate,
   onSelectDate,
-  month,
-  year,
   maxAdvanceDays,
-  onPrevMonth,
-  onNextMonth,
+  schedule,
 }) => {
+  const today = useMemo(() => new Date(), []);
+  const [month, setMonth] = useState(today.getMonth());
+  const [year, setYear] = useState(today.getFullYear());
+
   const calendarDays = useMemo(() => {
     const firstDay = new Date(year, month, 1);
     const startDay = (firstDay.getDay() + 6) % 7;
@@ -54,27 +56,34 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
     return days;
   }, [month, year]);
 
-  const isPastDate = (day: number): boolean => {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return dateStr < todayString() || dateStr > maxDateString(maxAdvanceDays);
+  const buildDateStr = (day: number) =>
+    `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  const isNonWorkingDay = (dateStr: string): boolean => {
+    if (!schedule) return false;
+    const weekday = new Date(`${dateStr}T12:00:00`).getDay();
+    const daySchedule = schedule[DAY_KEY_BY_WEEKDAY[weekday]];
+    return !daySchedule.startTime || !daySchedule.endTime;
+  };
+
+  const isDisabledDate = (day: number): boolean => {
+    const dateStr = buildDateStr(day);
+    return dateStr < todayString() || dateStr > maxDateString(maxAdvanceDays) || isNonWorkingDay(dateStr);
   };
 
   const isSelectedDate = (day: number): boolean => {
     if (!selectedDate) return false;
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return dateStr === selectedDate;
+    return buildDateStr(day) === selectedDate;
   };
 
   const handleSelectDay = (day: number) => {
-    if (isPastDate(day)) return;
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    onSelectDate(dateStr);
+    if (isDisabledDate(day)) return;
+    onSelectDate(buildDateStr(day));
   };
 
   const canGoPrev = useMemo(() => {
-    const today = new Date();
     return year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth());
-  }, [month, year]);
+  }, [month, year, today]);
 
   const canGoNext = useMemo(() => {
     const maxDate = new Date();
@@ -84,11 +93,29 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
     return year < maxYear || (year === maxYear && month < maxMonth);
   }, [month, year, maxAdvanceDays]);
 
+  const handlePrevMonth = () => {
+    if (month === 0) {
+      setMonth(11);
+      setYear((y) => y - 1);
+    } else {
+      setMonth((m) => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (month === 11) {
+      setMonth(0);
+      setYear((y) => y + 1);
+    } else {
+      setMonth((m) => m + 1);
+    }
+  };
+
   return (
     <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-5">
       <div className="flex items-center justify-between mb-4">
         <motion.button
-          onClick={canGoPrev ? onPrevMonth : undefined}
+          onClick={canGoPrev ? handlePrevMonth : undefined}
           disabled={!canGoPrev}
           whileHover={canGoPrev ? { scale: 1.1 } : {}}
           whileTap={canGoPrev ? { scale: 0.9 } : {}}
@@ -103,7 +130,7 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
         </span>
 
         <motion.button
-          onClick={canGoNext ? onNextMonth : undefined}
+          onClick={canGoNext ? handleNextMonth : undefined}
           disabled={!canGoNext}
           whileHover={canGoNext ? { scale: 1.1 } : {}}
           whileTap={canGoNext ? { scale: 0.9 } : {}}
@@ -126,13 +153,13 @@ export const BookingCalendar: React.FC<BookingCalendarProps> = ({
             return <div key={`empty-${index}`} className="h-10" />;
           }
 
-          const disabled = isPastDate(day);
+          const disabled = isDisabledDate(day);
           const selected = isSelectedDate(day);
 
           return (
             <motion.button
               key={`day-${day}`}
-              onClick={() => !disabled && handleSelectDay(day)}
+              onClick={() => handleSelectDay(day)}
               disabled={disabled}
               whileHover={!disabled ? { scale: 1.1 } : {}}
               whileTap={!disabled ? { scale: 0.95 } : {}}

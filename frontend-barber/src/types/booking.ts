@@ -1,3 +1,5 @@
+import type { BarberSchedule } from './professional';
+
 export type BarberPublic = {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export type BarberPublic = {
   isActive: boolean;
   slotDuration: number;
   maxAdvanceDays: number;
+  schedule: BarberSchedule;
 };
 
 export type ServiceStatus = 'active' | 'inactive' | 'deleted';
@@ -44,12 +47,22 @@ export type CreateAppointmentPayload = {
   serviceId: string;
   date: string;
   startTime: string;
+  clientId?: string;
   clientName: string;
   clientLastname: string;
   clientPhone: string;
   clientEmail: string;
   paymentMethod?: PaymentMethod;
   tempLockId?: string;
+};
+
+export type ClientSearchResult = {
+  id: string;
+  name: string;
+  lastname: string;
+  phone?: string;
+  contactEmail?: string;
+  photoUrl?: string | null;
 };
 
 export type Appointment = {
@@ -62,6 +75,8 @@ export type Appointment = {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  clientPhotoUrl?: string;
+  clientRegisteredAt?: string;
   serviceId: string;
   serviceName: string;
   servicePrice: number;

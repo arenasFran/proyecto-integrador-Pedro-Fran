@@ -9,11 +9,13 @@ import type {
   BookingStep,
   CreateAppointmentPayload,
 } from '../../types/booking';
+import type { SlotsReason } from '../../types/professional';
 
 interface BookingAsyncState {
   barbers: BarberPublic[];
   services: Service[];
   availableSlots: string[];
+  slotsReason?: SlotsReason;
   isLoadingBarbers: boolean;
   isLoadingServices: boolean;
   isLoadingSlots: boolean;
@@ -49,6 +51,7 @@ const initialState: BookingState = {
     barbers: [],
     services: [],
     availableSlots: [],
+    slotsReason: undefined,
     isLoadingBarbers: false,
     isLoadingServices: false,
     isLoadingSlots: false,
@@ -93,8 +96,7 @@ export const fetchAvailableSlots = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await professionalService.getSlots(barberId, date);
-      return response.slots;
+      return await professionalService.getSlots(barberId, date);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Error al cargar horarios';
       return rejectWithValue(message);
@@ -153,6 +155,7 @@ const bookingSlice = createSlice({
       state.flow.selectedDate = null;
       state.flow.selectedTime = null;
       state.async.availableSlots = [];
+      state.async.slotsReason = undefined;
       if (action.payload) {
         state.flow.currentStep = 'service';
       }
@@ -164,9 +167,11 @@ const bookingSlice = createSlice({
       }
     },
     setSelectedDate: (state, action: PayloadAction<string | null>) => {
+      if (state.flow.selectedDate === action.payload) return;
       state.flow.selectedDate = action.payload;
       state.flow.selectedTime = null;
       state.async.availableSlots = [];
+      state.async.slotsReason = undefined;
     },
     setSelectedTime: (state, action: PayloadAction<string | null>) => {
       state.flow.selectedTime = action.payload;
@@ -223,11 +228,13 @@ const bookingSlice = createSlice({
       })
       .addCase(fetchAvailableSlots.fulfilled, (state, action) => {
         state.async.isLoadingSlots = false;
-        state.async.availableSlots = action.payload;
+        state.async.availableSlots = action.payload.slots;
+        state.async.slotsReason = action.payload.reason;
       })
       .addCase(fetchAvailableSlots.rejected, (state, action) => {
         state.async.isLoadingSlots = false;
         state.async.slotsError = action.payload as string;
+        state.async.slotsReason = undefined;
       })
       .addCase(submitAppointment.pending, (state) => {
         state.async.isConfirming = true;

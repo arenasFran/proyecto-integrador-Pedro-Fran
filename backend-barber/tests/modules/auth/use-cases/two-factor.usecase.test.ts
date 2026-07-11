@@ -90,6 +90,65 @@ describe('TwoFactor use cases', () => {
       ).rejects.toBeInstanceOf(AppError);
     });
 
+    it('debe incrementar twoFactorFailedAttempts si la password es incorrecta (mismo contador que el código 2FA)', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser({ twoFactorFailedAttempts: 2 }));
+      passwordHasher.compare.mockResolvedValue(false);
+      const useCase = new SendTwoFactorCodeUseCase(
+        userRepository,
+        passwordHasher,
+        emailService,
+        hashService
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', password: 'incorrecta' })
+      ).rejects.toMatchObject({ statusCode: 401 });
+
+      expect(userRepository.updateUserSecurity).toHaveBeenCalledWith('user-1', {
+        twoFactorFailedAttempts: 3,
+      });
+    });
+
+    it('debe bloquear la cuenta 15 minutos tras 5 intentos fallidos de password', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser({ twoFactorFailedAttempts: 4 }));
+      passwordHasher.compare.mockResolvedValue(false);
+      const useCase = new SendTwoFactorCodeUseCase(
+        userRepository,
+        passwordHasher,
+        emailService,
+        hashService
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', password: 'incorrecta' })
+      ).rejects.toMatchObject({ statusCode: 429 });
+
+      expect(userRepository.updateUserSecurity).toHaveBeenCalledWith('user-1', {
+        twoFactorFailedAttempts: 5,
+        twoFactorLockedUntil: expect.any(Date),
+      });
+    });
+
+    it('debe rechazar el envío si la cuenta ya está bloqueada, sin llegar a validar la password', async () => {
+      userRepository.findByEmail.mockResolvedValue(
+        makeUser({ twoFactorLockedUntil: new Date(now.getTime() + 10 * 60 * 1000) })
+      );
+      jest.useFakeTimers({ now });
+      const useCase = new SendTwoFactorCodeUseCase(
+        userRepository,
+        passwordHasher,
+        emailService,
+        hashService
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', password: 'lo-que-sea' })
+      ).rejects.toMatchObject({ statusCode: 429 });
+
+      expect(passwordHasher.compare).not.toHaveBeenCalled();
+      jest.useRealTimers();
+    });
+
     it('debe enviar el codigo y actualizar 2FA', async () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
       passwordHasher.compare.mockResolvedValue(true);
@@ -199,6 +258,51 @@ describe('TwoFactor use cases', () => {
       await expect(
         useCase.execute({ email: 'test@example.com', code: '123456' })
       ).rejects.toBeInstanceOf(AppError);
+      jest.useRealTimers();
+    });
+
+    it('debe incrementar twoFactorFailedAttempts si el codigo es incorrecto', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser({ twoFactorFailedAttempts: 1 }));
+      jest.useFakeTimers({ now: now });
+      hashService.sha256.mockReturnValue('hash-diferente');
+      hashService.constantTimeEqual.mockReturnValue(false);
+      const useCase = new VerifyTwoFactorUseCase(
+        userRepository,
+        tokenService,
+        hashService,
+        refreshTokenRepository
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', code: '123456' })
+      ).rejects.toMatchObject({ statusCode: 401 });
+
+      expect(userRepository.updateUserSecurity).toHaveBeenCalledWith('user-1', {
+        twoFactorFailedAttempts: 2,
+      });
+      jest.useRealTimers();
+    });
+
+    it('debe bloquear la cuenta 15 minutos tras 5 intentos fallidos de codigo', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser({ twoFactorFailedAttempts: 4 }));
+      jest.useFakeTimers({ now: now });
+      hashService.sha256.mockReturnValue('hash-diferente');
+      hashService.constantTimeEqual.mockReturnValue(false);
+      const useCase = new VerifyTwoFactorUseCase(
+        userRepository,
+        tokenService,
+        hashService,
+        refreshTokenRepository
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', code: '123456' })
+      ).rejects.toMatchObject({ statusCode: 429 });
+
+      expect(userRepository.updateUserSecurity).toHaveBeenCalledWith('user-1', {
+        twoFactorFailedAttempts: 5,
+        twoFactorLockedUntil: expect.any(Date),
+      });
       jest.useRealTimers();
     });
 

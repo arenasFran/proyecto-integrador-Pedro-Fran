@@ -11,6 +11,7 @@ export type MembershipData = {
   couponsTotal: number;
   couponsUsed: number;
   productDiscount: number;
+  autoRenew: boolean;
   createdBy: MembershipSource;
   adminId?: string;
   createdAt: Date;

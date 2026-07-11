@@ -77,7 +77,7 @@ export const RegisterForm: React.FC = () => {
       <Input
         label="Teléfono"
         type="tel"
-        placeholder="+54 9 11 1234 5678"
+        placeholder="598 91 234 567"
         {...getFieldProps('phone')}
         required
         error={touched.phone ? errors.phone : undefined}

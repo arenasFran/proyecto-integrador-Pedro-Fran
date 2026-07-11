@@ -63,10 +63,12 @@ export const LoginPage: React.FC = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const location = useLocation();
+  const toastHandled = useRef(false);
 
   useEffect(() => {
     const state = location.state as { toast?: string; toastType?: 'success' | 'error' } | null;
-    if (state?.toast) {
+    if (state?.toast && !toastHandled.current) {
+      toastHandled.current = true;
       showToast(state.toast, state.toastType || 'success');
       window.history.replaceState({}, document.title);
     }
@@ -257,6 +259,19 @@ export const LoginPage: React.FC = () => {
     await handleCredentialsSubmit();
   };
 
+  const handleResendCode = async () => {
+    setSuccessMessage(null);
+    try {
+      const result = await sendTwoFactorCode({
+        email: credentialsValues.email,
+        password: credentialsValues.password,
+      }).unwrap();
+      setSuccessMessage(result.message);
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Error al reenviar el código'), 'error');
+    }
+  };
+
   const handleBackToCredentials = () => {
     setTwoFactorPendingEmail(null);
     setSuccessMessage(null);
@@ -298,7 +313,7 @@ export const LoginPage: React.FC = () => {
           className="w-full max-w-md"
         >
           <motion.div variants={itemVariants} className="text-center mb-8">
-            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-56 w-auto mx-auto mb-3" />
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-72 w-auto mx-auto mb-1" />
             <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
               Iniciar sesión
             </h1>
@@ -356,8 +371,9 @@ export const LoginPage: React.FC = () => {
                     <Input
                       label="Teléfono"
                       type="tel"
-                      placeholder="+54 9 11 1234 5678"
+                      placeholder="598 91 234 567"
                       {...getProfileFieldProps('phone')}
+                      required
                       error={profileTouched.phone ? profileErrors.phone : undefined}
                     />
                   </motion.div>
@@ -413,6 +429,21 @@ export const LoginPage: React.FC = () => {
                       required
                       error={codeTouched.token ? codeErrors.token : undefined}
                     />
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-center"
+                  >
+                    <button
+                      type="button"
+                      onClick={handleResendCode}
+                      disabled={isLoading}
+                      className="text-[#FF5C00] text-[14px] font-medium hover:text-[#FF5C00]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Reenviar código
+                    </button>
                   </motion.div>
                 </>
               )}

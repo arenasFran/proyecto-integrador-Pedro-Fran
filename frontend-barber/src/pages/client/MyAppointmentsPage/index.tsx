@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { skipToken } from '@reduxjs/toolkit/query';
 import { FiCalendar, FiClock, FiRefreshCw, FiScissors, FiX } from 'react-icons/fi';
-import { AnimatedContainer, Button, Input, Pagination, Select, useToast, DatePicker } from '../../../components/common';
+import { AnimatedContainer, Button, Input, Pagination, Select, useToast, Calendar } from '../../../components/common';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
 import {
@@ -12,6 +12,8 @@ import {
 } from '../../../services/appointmentApi';
 import { useAppSelector, useAppDispatch } from '../../../store/hooks';
 import { fetchPublicBarbers } from '../../../store/slices/bookingSlice';
+import { useAvailableSlots } from '../../../hooks/useAvailableSlots';
+import { TimeSlotGrid } from '../../../components/client/booking/TimeSlotGrid';
 import type { Appointment, AppointmentStatus } from '../../../types/booking';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
@@ -45,6 +47,12 @@ export const MyAppointmentsPage: React.FC = () => {
   const [rescheduleDate, setRescheduleDate] = useState('');
   const [rescheduleTime, setRescheduleTime] = useState('');
   const [rescheduleBarberId, setRescheduleBarberId] = useState('');
+  const { slots: rescheduleSlots, reason: slotsReason, isLoading: isLoadingSlots, error: slotsError } = useAvailableSlots(
+    rescheduleBarberId,
+    rescheduleDate,
+    !!rescheduleTarget,
+    rescheduleTarget?.id
+  );
 
   const barbers = useAppSelector((state) => state.booking.async.barbers);
   const dispatch = useAppDispatch();
@@ -82,6 +90,16 @@ export const MyAppointmentsPage: React.FC = () => {
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Error al reprogramar turno', 'error');
     }
+  };
+
+  const handleRescheduleDateChange = (date: string) => {
+    setRescheduleDate(date);
+    setRescheduleTime('');
+  };
+
+  const handleRescheduleBarberChange = (barberId: string) => {
+    setRescheduleBarberId(barberId);
+    setRescheduleTime('');
   };
 
   const [pastPage, setPastPage] = useState(1);
@@ -287,21 +305,28 @@ export const MyAppointmentsPage: React.FC = () => {
               {rescheduleTarget.serviceName} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4">
-              <DatePicker
-                label="Nueva fecha"
-                value={rescheduleDate}
-                onChange={setRescheduleDate}
-              />
-              <Input
-                label="Nueva hora"
-                type="time"
-                value={rescheduleTime}
-                onChange={(e) => setRescheduleTime(e.target.value)}
+              <div>
+                <p className="text-[13px] font-medium text-[#8A8A8A] mb-1">Nueva fecha</p>
+                <Calendar
+                  selectedDate={rescheduleDate || null}
+                  onSelectDate={handleRescheduleDateChange}
+                  maxAdvanceDays={barbers.find((b) => b.id === rescheduleBarberId)?.maxAdvanceDays ?? 30}
+                  schedule={barbers.find((b) => b.id === rescheduleBarberId)?.schedule}
+                />
+              </div>
+              <TimeSlotGrid
+                slots={rescheduleSlots}
+                selectedTime={rescheduleTime}
+                selectedDate={rescheduleDate}
+                isLoading={isLoadingSlots}
+                error={slotsError}
+                reason={slotsReason}
+                onSelect={setRescheduleTime}
               />
               <Select
                 label="Barbero"
                 value={rescheduleBarberId}
-                onChange={setRescheduleBarberId}
+                onChange={handleRescheduleBarberChange}
                 options={[
                   { value: '', label: 'Seleccionar barbero' },
                   ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),

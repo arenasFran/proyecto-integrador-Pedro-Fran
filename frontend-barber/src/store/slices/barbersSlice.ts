@@ -151,7 +151,7 @@ export const updateBarberMe = createAsyncThunk(
     lastname?: string;
     email?: string;
     phone?: string;
-    password?: string;
+    currentPassword?: string;
     photoUrl?: string | null;
     services?: string[];
     age?: number | null;

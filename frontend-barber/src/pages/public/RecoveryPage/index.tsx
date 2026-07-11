@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft, FiLock } from 'react-icons/fi';
 import { RequestResetForm } from './components/RequestResetForm';
 import { ResetPasswordForm } from './components/ResetPasswordForm';
@@ -27,8 +27,12 @@ const itemVariants = {
 };
 
 export const RecoveryPage: React.FC = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [resetEmail, setResetEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const tokenFromUrl = searchParams.get('token') ?? '';
+  const emailFromUrl = searchParams.get('email') ?? '';
+
+  const [currentStep, setCurrentStep] = useState(tokenFromUrl ? 2 : 1);
+  const [resetEmail, setResetEmail] = useState(emailFromUrl);
 
   const handleRequestSuccess = (email: string) => {
     setResetEmail(email);
@@ -84,7 +88,7 @@ export const RecoveryPage: React.FC = () => {
           {currentStep === 1 ? (
             <RequestResetForm onSuccess={handleRequestSuccess} />
           ) : (
-            <ResetPasswordForm email={resetEmail} />
+            <ResetPasswordForm email={resetEmail} initialToken={tokenFromUrl} />
           )}
         </motion.div>
 

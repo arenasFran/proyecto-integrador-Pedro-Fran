@@ -144,23 +144,33 @@ describe('ChangeBarberUseCase', () => {
     useCase = new ChangeBarberUseCase(appointmentRepository, barberRepository);
   });
 
-  it('debe cambiar barbero exitosamente', async () => {
+  it('debe cambiar barbero exitosamente y registrar el nombre real del admin como actor', async () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment());
     barberRepository.findBarberById.mockImplementation((id: string) => {
       if (id === 'barber-2') return Promise.resolve({ id: 'barber-2', name: 'Pedro', lastname: 'Garcia', isActive: true } as any);
-      return Promise.resolve({ id: 'barber-1', name: 'Carlos', lastname: 'Lopez', isActive: true } as any);
+      if (id === 'barber-1') return Promise.resolve({ id: 'barber-1', name: 'Carlos', lastname: 'Lopez', isActive: true } as any);
+      if (id === 'admin-1') return Promise.resolve({ id: 'admin-1', name: 'Ana', lastname: 'Reyes', isActive: true } as any);
+      return Promise.resolve(null);
     });
     appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
     appointmentRepository.update.mockResolvedValue(makeAppointment({ barberId: 'barber-2' }));
 
     const result = await useCase.execute('apt-1', 'barber-2', 'admin-1', 'Admin');
 
-    expect(appointmentRepository.update).toHaveBeenCalledWith('apt-1', { barberId: 'barber-2', version: 0 });
-    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
-      statusHistoryEntry: expect.objectContaining({
-        actor: expect.stringContaining('Carlos Lopez'),
-      }),
-    });
+    expect(appointmentRepository.update).toHaveBeenCalledWith(
+      'apt-1',
+      { barberId: 'barber-2', version: 0 },
+      expect.anything()
+    );
+    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith(
+      'apt-1',
+      {
+        statusHistoryEntry: expect.objectContaining({
+          actor: expect.stringContaining('Ana Reyes'),
+        }),
+      },
+      expect.anything()
+    );
     expect(result.message).toMatch(/Carlos Lopez/);
   });
 

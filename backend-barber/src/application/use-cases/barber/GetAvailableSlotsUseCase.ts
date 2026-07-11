@@ -17,7 +17,7 @@ export class GetAvailableSlotsUseCase {
     private readonly blockRepository: MongoBarberBlockRepository
   ) {}
 
-  async execute(barberId: string, date: string): Promise<SlotsResult> {
+  async execute(barberId: string, date: string, excludeAppointmentId?: string): Promise<SlotsResult> {
     if (!this.slotService.isValidDate(date)) {
       throw new AppError('Fecha inválida. Formato esperado: YYYY-MM-DD.', 400);
     }
@@ -31,11 +31,14 @@ export class GetAvailableSlotsUseCase {
     }
 
     const appointments = await this.appointmentRepository.findByBarberAndDate(barberId, date);
+    const relevantAppointments = excludeAppointmentId
+      ? appointments.filter((apt) => apt.id !== excludeAppointmentId)
+      : appointments;
     const tempLocks = await this.tempLockRepository.findByBarberAndDate(barberId, date);
     const blocks = await this.blockRepository.findByBarberAndDate(barberId, date);
 
     const occupiedSlots: OccupiedSlot[] = [
-      ...appointments.map((apt) => ({
+      ...relevantAppointments.map((apt) => ({
         startTime: apt.startTime,
         endTime: apt.endTime,
         status: apt.status,

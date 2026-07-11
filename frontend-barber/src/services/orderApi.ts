@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
-import type { Order, OrdersResponse, CreateOrderPayload } from '../types/order';
+import type { Order, OrdersResponse, CreateOrderPayload, CreateManualOrderPayload } from '../types/order';
 import type { InitiatePaymentResponse } from '../types/payment';
 
 export const orderApi = createApi({
@@ -22,7 +22,7 @@ export const orderApi = createApi({
       providesTags: ['Orders'],
     }),
 
-    getAllOrders: builder.query<OrdersResponse, { status?: string; page?: number; limit?: number } | void>({
+    getAllOrders: builder.query<OrdersResponse, { status?: string; page?: number; limit?: number; desde?: string; hasta?: string } | void>({
       query: (params) => ({
         url: '/api/orders',
         params: params ?? undefined,
@@ -51,6 +51,15 @@ export const orderApi = createApi({
       }),
       invalidatesTags: ['Orders'],
     }),
+
+    createManualOrder: builder.mutation<{ order: Order }, CreateManualOrderPayload>({
+      query: (data) => ({
+        url: '/api/orders/manual',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['Orders'],
+    }),
   }),
 });
 
@@ -61,4 +70,5 @@ export const {
   useGetOrderByIdQuery,
   useUpdateOrderStatusMutation,
   useDeleteOrderMutation,
+  useCreateManualOrderMutation,
 } = orderApi;

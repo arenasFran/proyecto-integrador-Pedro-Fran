@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { RefreshTokenUseCase } from '../../../application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../../../application/use-cases/auth/RegisterUserUseCase';
+import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
+import { IHashService } from '../../../application/ports/IHashService';
 import { sendSuccess, sendError } from '../../../common/response';
 import { setRefreshCookie, clearRefreshCookie } from './TwoFactorController';
 
@@ -16,7 +18,9 @@ function getRefreshTokenFromReq(req: Request): string | null {
 export class AuthController {
   constructor(
     private readonly registerUser: RegisterUserUseCase,
-    private readonly refreshTokenUseCase: RefreshTokenUseCase
+    private readonly refreshTokenUseCase: RefreshTokenUseCase,
+    private readonly refreshTokenRepository: MongoRefreshTokenRepository,
+    private readonly hashService: IHashService
   ) {}
 
   register = async (req: Request, res: Response) => {
@@ -44,7 +48,12 @@ export class AuthController {
     }
   };
 
-  logout = async (_req: Request, res: Response) => {
+  logout = async (req: Request, res: Response) => {
+    const refreshToken = getRefreshTokenFromReq(req);
+    if (refreshToken) {
+      const tokenHash = this.hashService.sha256(refreshToken);
+      await this.refreshTokenRepository.revoke(tokenHash);
+    }
     clearRefreshCookie(res);
     return sendSuccess(res, { message: 'Sesión cerrada exitosamente' }, 200);
   };

@@ -5,7 +5,7 @@ import { RequestResetForm } from './RequestResetForm';
 import { renderWithProviders } from '../../../../test/utils';
 
 const mockRequestResetFn = vi.hoisted(() => vi.fn());
-const mockUseRequestResetMutation = vi.hoisted(() => vi.fn(() => [mockRequestResetFn, { isLoading: false, error: null }]));
+const mockUseRequestResetMutation = vi.hoisted(() => vi.fn(() => [mockRequestResetFn, { isLoading: false, error: null as Error | null }]));
 
 const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
 

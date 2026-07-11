@@ -5,7 +5,7 @@ import { RegisterForm } from './RegisterForm';
 import { renderWithProviders } from '../../../../test/utils';
 
 const mockRegisterFn = vi.hoisted(() => vi.fn());
-const mockUseRegisterMutation = vi.hoisted(() => vi.fn(() => [mockRegisterFn, { isLoading: false, error: null }]));
+const mockUseRegisterMutation = vi.hoisted(() => vi.fn(() => [mockRegisterFn, { isLoading: false, error: null as Error | null }]));
 
 const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
 

@@ -5,7 +5,7 @@ import { ResetPasswordForm } from './ResetPasswordForm';
 import { renderWithProviders } from '../../../../test/utils';
 
 const mockResetPasswordFn = vi.hoisted(() => vi.fn());
-const mockUseResetPasswordMutation = vi.hoisted(() => vi.fn(() => [mockResetPasswordFn, { isLoading: false, error: null }]));
+const mockUseResetPasswordMutation = vi.hoisted(() => vi.fn(() => [mockResetPasswordFn, { isLoading: false, error: null as Error | null }]));
 
 const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
 

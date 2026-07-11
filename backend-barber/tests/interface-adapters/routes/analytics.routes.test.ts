@@ -130,6 +130,41 @@ describeIfMongo('Analytics Routes (new endpoints)', () => {
     });
   });
 
+  describe('GET /api/analytics/clientes', () => {
+    it('permite acceso a Admin', async () => {
+      const res = await request(app)
+        .get('/api/analytics/clientes')
+        .query({ desde: '2025-06-01', hasta: '2025-06-30' })
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('permite acceso a Empleado (barbero) — necesario para la ficha de cliente', async () => {
+      const barberToken = signToken({ id: barber1Id, kind: 'Empleado' }).token;
+
+      const res = await request(app)
+        .get('/api/analytics/clientes')
+        .query({ desde: '2025-06-01', hasta: '2025-06-30' })
+        .set('Authorization', `Bearer ${barberToken}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('rechaza a un cliente Registrado', async () => {
+      const clientToken = signToken({ id: 'cliente-1', kind: 'Registrado' }).token;
+
+      const res = await request(app)
+        .get('/api/analytics/clientes')
+        .query({ desde: '2025-06-01', hasta: '2025-06-30' })
+        .set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.status).toBe(403);
+    });
+  });
+
   describe('GET /api/analytics/charts/ingresos-servicio', () => {
     it('devuelve 200 con estructura correcta', async () => {
       const res = await request(app)

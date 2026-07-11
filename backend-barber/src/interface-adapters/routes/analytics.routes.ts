@@ -94,7 +94,7 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
   router.get(
     '/clientes',
     authenticate,
-    authorize('Admin'),
+    authorize('Admin', 'Empleado'),
     validate({ query: clientesListQuerySchema }),
     controller.getClientesListHandler,
   );

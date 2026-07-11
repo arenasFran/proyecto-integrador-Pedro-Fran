@@ -235,16 +235,22 @@ describeIfMongo('Appointment routes — integración real', () => {
   });
 
   describe('GET /api/appointments/anonymous — consulta anónima', () => {
-    it('devuelve turnos por email', async () => {
+    it('devuelve turnos por email Y teléfono coincidentes', async () => {
       const { barberId } = await seedBarber();
       const { serviceId } = await seedService();
       const date = getFutureDate(15);
-      await seedAppointment({ barberId, serviceId, clientEmail: 'consulta@test.com', date, startTime: '10:00' });
-      await seedAppointment({ barberId, serviceId, clientEmail: 'otro@test.com', date, startTime: '11:00' });
+      await seedAppointment({
+        barberId, serviceId, date, startTime: '10:00',
+        clientEmail: 'consulta@test.com', clientPhone: '099111111',
+      });
+      await seedAppointment({
+        barberId, serviceId, date, startTime: '11:00',
+        clientEmail: 'otro@test.com', clientPhone: '099222222',
+      });
 
       const res = await request(app)
         .get('/api/appointments/anonymous')
-        .query({ email: 'consulta@test.com' });
+        .query({ email: 'consulta@test.com', phone: '099111111' });
 
       expect(res.status).toBe(200);
       expect(res.body.appointments).toHaveLength(1);
@@ -257,6 +263,45 @@ describeIfMongo('Appointment routes — integración real', () => {
         .query({});
 
       expect(res.status).toBe(400);
+    });
+
+    it('falla si solo se envía email (ownership real: no alcanza con un solo dato)', async () => {
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      await seedAppointment({
+        barberId, serviceId,
+        clientEmail: 'consulta@test.com', clientPhone: '099111111',
+      });
+
+      const res = await request(app)
+        .get('/api/appointments/anonymous')
+        .query({ email: 'consulta@test.com' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('falla si solo se envía phone', async () => {
+      const res = await request(app)
+        .get('/api/appointments/anonymous')
+        .query({ phone: '099111111' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('no devuelve turnos ajenos si el email coincide pero el teléfono no', async () => {
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      await seedAppointment({
+        barberId, serviceId,
+        clientEmail: 'consulta@test.com', clientPhone: '099111111',
+      });
+
+      const res = await request(app)
+        .get('/api/appointments/anonymous')
+        .query({ email: 'consulta@test.com', phone: '099999999' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.appointments).toHaveLength(0);
     });
   });
 

@@ -57,10 +57,10 @@ export const rescheduleAppointmentSchema = Joi.object({
 });
 
 export const anonymousQuerySchema = Joi.object({
-  email: Joi.string().pattern(EMAIL_REGEX).trim(),
-  phone: Joi.string().trim().max(20),
+  email: Joi.string().pattern(EMAIL_REGEX).trim().required(),
+  phone: Joi.string().trim().max(20).required(),
   date: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
-}).min(1);
+});
 
 export const updateAppointmentStatusSchema = Joi.object({
   status: Joi.string()

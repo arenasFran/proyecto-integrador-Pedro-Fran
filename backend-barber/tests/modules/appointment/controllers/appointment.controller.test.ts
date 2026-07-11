@@ -464,47 +464,39 @@ describe('AppointmentController', () => {
   });
 
   describe('getAnonymous', () => {
-    it('debe devolver turnos del anonimo', async () => {
-      appointmentRepository.findMany.mockResolvedValue({ data: [], total: 0, page: 1, totalPages: 1, limit: 20 });
+    // email/phone son ambos requeridos por anonymousQuerySchema (validado en la ruta,
+    // no acá) precisamente para evitar que alcance con un solo dato para ver turnos ajenos.
+    it('debe buscar por email Y teléfono (ownership real, no un OR)', async () => {
+      appointmentRepository.findByContact.mockResolvedValue([]);
       const req = createMockReq();
-      (req as any).query = { email: 'juan@test.com' };
+      (req as any).query = { email: 'juan@test.com', phone: '099123456' };
       const res = createMockRes();
 
       await controller.getAnonymous(req, res);
 
-      expect(appointmentRepository.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ clientEmail: 'juan@test.com' })
-      );
+      expect(appointmentRepository.findByContact).toHaveBeenCalledWith('juan@test.com', '099123456');
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('debe pasar date si se proporciona', async () => {
-      appointmentRepository.findMany.mockResolvedValue({ data: [], total: 0, page: 1, totalPages: 1, limit: 20 });
+    it('debe filtrar por date si se proporciona', async () => {
+      appointmentRepository.findByContact.mockResolvedValue([
+        { date: '2099-01-01', toPrimitives: () => ({ date: '2099-01-01' }) },
+        { date: '2099-02-02', toPrimitives: () => ({ date: '2099-02-02' }) },
+      ] as any);
       const req = createMockReq();
-      (req as any).query = { email: 'juan@test.com', date: '2099-01-01' };
+      (req as any).query = { email: 'juan@test.com', phone: '099123456', date: '2099-01-01' };
       const res = createMockRes();
 
       await controller.getAnonymous(req, res);
 
-      expect(appointmentRepository.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ date: '2099-01-01' })
-      );
-    });
-
-    it('debe fallar si no hay email ni phone', async () => {
-      const req = createMockReq();
-      (req as any).query = {};
-      const res = createMockRes();
-
-      await controller.getAnonymous(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
+      const response = (res.json as jest.Mock).mock.calls[0][0];
+      expect(response.appointments).toEqual([{ date: '2099-01-01' }]);
     });
 
     it('debe manejar error', async () => {
-      appointmentRepository.findMany.mockRejectedValue(new AppError('Error', 400));
+      appointmentRepository.findByContact.mockRejectedValue(new AppError('Error', 400));
       const req = createMockReq();
-      (req as any).query = { email: 'juan@test.com' };
+      (req as any).query = { email: 'juan@test.com', phone: '099123456' };
       const res = createMockRes();
 
       await controller.getAnonymous(req, res);

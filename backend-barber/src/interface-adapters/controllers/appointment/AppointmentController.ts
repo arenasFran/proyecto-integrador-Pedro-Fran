@@ -189,17 +189,16 @@ export class AppointmentController {
 
   getAnonymous = async (req: Request, res: Response) => {
     try {
-      const clientEmail = req.query.email as string | undefined;
-      const clientPhone = req.query.phone as string | undefined;
-      if (!clientEmail && !clientPhone) {
-        throw new AppError('Debe proporcionar email o teléfono.', 400);
-      }
-      const result = await this.appointmentRepository.findMany({
-        clientEmail,
-        clientPhone,
-        date: req.query.date as string | undefined,
-      });
-      return sendSuccess(res, { appointments: result.data.map((a) => a.toPrimitives()) }, 200);
+      const clientEmail = req.query.email as string;
+      const clientPhone = req.query.phone as string;
+      const date = req.query.date as string | undefined;
+
+      // Ownership: exigir email Y teléfono (no uno solo) para evitar que alcance
+      // con un solo dato filtrado/adivinado para ver turnos ajenos.
+      const appointments = await this.appointmentRepository.findByContact(clientEmail, clientPhone);
+      const filtered = date ? appointments.filter((a) => a.date === date) : appointments;
+
+      return sendSuccess(res, { appointments: filtered.map((a) => a.toPrimitives()) }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
     }

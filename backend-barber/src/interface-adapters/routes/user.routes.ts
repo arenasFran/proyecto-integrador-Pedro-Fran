@@ -20,5 +20,12 @@ export const createUserRouter = (deps: {
     deps.userController.updateMe
   );
 
+  router.get(
+    '/clients',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.userController.getClients
+  );
+
   return router;
 };

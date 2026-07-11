@@ -58,6 +58,22 @@ export class UserController {
       return sendError(res, error, 'Error al actualizar perfil');
     }
   };
+
+  getClients = async (_req: Request, res: Response) => {
+    try {
+      const clients = await this.userRepository.findRegisteredClients();
+      return sendSuccess(res, { clients: clients.map((c) => ({
+        id: c.id,
+        name: c.name,
+        lastname: c.lastname,
+        email: c.email,
+        phone: c.phone || '',
+        photoUrl: c.photoUrl ?? null,
+      })) });
+    } catch (error) {
+      return sendError(res, error, 'Error al listar clientes');
+    }
+  };
 }
 
 

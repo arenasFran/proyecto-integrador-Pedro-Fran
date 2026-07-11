@@ -97,11 +97,19 @@ export class MongoUserRepository implements IUserRepository {
     return barber?.email ?? null;
   }
 
+  async findRegisteredClients(): Promise<User[]> {
+    const docs = await RegisteredClient.find({}).sort({ name: 1 }).lean();
+    return docs.map((doc) => userFromRegisteredClient(doc));
+  }
+
   async findByIds(ids: string[]): Promise<Map<string, User>> {
     const userMap = new Map<string, User>();
     if (ids.length === 0) return userMap;
 
-    const objectIds = ids.map(id => new mongoose.Types.ObjectId(id));
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    const validIds = ids.filter((id) => objectIdRegex.test(id));
+    if (validIds.length === 0) return userMap;
+    const objectIds = validIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const barbers = await Barber.find({ _id: { $in: objectIds } }).lean();
     for (const doc of barbers) {

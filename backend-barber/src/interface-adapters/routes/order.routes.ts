@@ -23,6 +23,13 @@ export const createOrderRouter = (deps: {
     deps.orderController.create
   );
 
+  router.post(
+    '/manual',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.orderController.createManual
+  );
+
   router.get(
     '/me',
     deps.authenticate,

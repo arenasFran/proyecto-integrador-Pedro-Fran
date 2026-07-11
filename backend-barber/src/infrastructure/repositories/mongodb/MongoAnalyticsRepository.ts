@@ -3,6 +3,7 @@ import { STATUS_CATEGORIES, VALID_TRANSITIONS } from '../../../domain/types/appo
 import AppointmentModel from './models/appointment.model';
 import { PaymentModel } from './models/payment.model';
 import { OrderModel } from './models/order.model';
+import { parseLocalDate, parseLocalDateRange } from '../../../common/dateUtils';
 
 const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
   Object.keys(VALID_TRANSITIONS).map(s => [s.toLowerCase(), s])
@@ -82,8 +83,7 @@ const DATE_CONVERSION_STAGE = { $addFields: { dateObj: { $toDate: '$date' } } };
 
 export class MongoAnalyticsRepository {
   async getOverview(desde: string, hasta: string): Promise<OverviewResult> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const facetPipeline = [
       DATE_CONVERSION_STAGE,
@@ -185,8 +185,8 @@ export class MongoAnalyticsRepository {
       gte = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     } else {
       const year = param.year ?? new Date().getFullYear();
-      gte = new Date(`${year}-01-01`);
-      lte = new Date(`${year}-12-31`);
+      gte = parseLocalDate(`${year}-01-01`);
+      lte = parseLocalDate(`${year}-12-31`);
     }
 
     const pipeline = [
@@ -211,8 +211,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getDistribucion(desde: string, hasta: string): Promise<DistribucionEntry[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
       DATE_CONVERSION_STAGE,
@@ -271,8 +270,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getHorasDistribution(desde: string, hasta: string, barberId?: string): Promise<{ hora: number; cantidad: number }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const matchStage: Record<string, unknown> = {
       dateObj: { $gte: desdeDate, $lte: hastaDate },
@@ -297,8 +295,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getDiasSemanaDistribution(desde: string, hasta: string, barberId?: string): Promise<{ dia: number; diaNombre: string; cantidad: number }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const matchStage: Record<string, unknown> = {
       dateObj: { $gte: desdeDate, $lte: hastaDate },
@@ -332,9 +329,10 @@ export class MongoAnalyticsRepository {
   }
 
   async getClientesRecurrentes(desde: string, hasta: string): Promise<{ totalClientes: number; recurrentes: number; tasaRetorno: number; nuevos: number }> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
     const pipeline = [
       DATE_CONVERSION_STAGE,
-      { $match: { dateObj: { $gte: new Date(desde), $lte: new Date(hasta) }, status: { $in: STATUS_CATEGORIES.countsAsActivity } } },
+      { $match: { dateObj: { $gte: desdeDate, $lte: hastaDate }, status: { $in: STATUS_CATEGORIES.countsAsActivity } } },
       {
         $group: {
           _id: { $ifNull: ['$clientId', '$clientPhone'] },
@@ -380,8 +378,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getIngresosPorServicio(desde: string, hasta: string): Promise<{ serviceId: string; serviceName: string; cantidad: number; ingresos: number }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
       DATE_CONVERSION_STAGE,
@@ -439,8 +436,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getClientesList(desde: string, hasta: string): Promise<ClienteListEntry[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
       DATE_CONVERSION_STAGE,
@@ -664,8 +660,7 @@ export class MongoAnalyticsRepository {
     paidOrders: number;
     cancelledOrders: number;
   }> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const [ordersAgg, paymentsAgg] = await Promise.all([
       OrderModel.aggregate([
@@ -711,8 +706,7 @@ export class MongoAnalyticsRepository {
     totalRevenue: number;
     timesOrdered: number;
   }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
       { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate }, status: { $in: ['paid', 'delivered'] } } },

@@ -3,6 +3,7 @@ import { OrderModel } from '../../../infrastructure/repositories/mongodb/models/
 import { PaymentModel } from '../../../infrastructure/repositories/mongodb/models/payment.model';
 import { ProductModel } from '../../../infrastructure/repositories/mongodb/models/product.model';
 import { sendError } from '../../../common/response';
+import { parseLocalDateRange, parseLocalDate } from '../../../common/dateUtils';
 
 export class ReportsController {
   exportOrdersCsv = async (req: Request, res: Response) => {
@@ -11,8 +12,17 @@ export class ReportsController {
       const filter: Record<string, unknown> = {};
       if (desde || hasta) {
         filter.createdAt = {};
-        if (desde) (filter.createdAt as Record<string, unknown>).$gte = new Date(desde);
-        if (hasta) (filter.createdAt as Record<string, unknown>).$lte = new Date(hasta);
+        if (desde && hasta) {
+          const range = parseLocalDateRange(desde, hasta);
+          (filter.createdAt as Record<string, unknown>).$gte = range.desdeDate;
+          (filter.createdAt as Record<string, unknown>).$lte = range.hastaDate;
+        } else if (desde) {
+          (filter.createdAt as Record<string, unknown>).$gte = parseLocalDate(desde);
+        } else if (hasta) {
+          const d = parseLocalDate(hasta);
+          d.setHours(23, 59, 59, 999);
+          (filter.createdAt as Record<string, unknown>).$lte = d;
+        }
       }
       if (status) filter.status = status;
 
@@ -45,8 +55,17 @@ export class ReportsController {
       const filter: Record<string, unknown> = { type: 'product_order', status: 'approved' };
       if (desde || hasta) {
         filter.createdAt = {};
-        if (desde) (filter.createdAt as Record<string, unknown>).$gte = new Date(desde);
-        if (hasta) (filter.createdAt as Record<string, unknown>).$lte = new Date(hasta);
+        if (desde && hasta) {
+          const range = parseLocalDateRange(desde, hasta);
+          (filter.createdAt as Record<string, unknown>).$gte = range.desdeDate;
+          (filter.createdAt as Record<string, unknown>).$lte = range.hastaDate;
+        } else if (desde) {
+          (filter.createdAt as Record<string, unknown>).$gte = parseLocalDate(desde);
+        } else if (hasta) {
+          const d = parseLocalDate(hasta);
+          d.setHours(23, 59, 59, 999);
+          (filter.createdAt as Record<string, unknown>).$lte = d;
+        }
       }
 
       const payments = await PaymentModel.find(filter).sort({ createdAt: -1 }).lean();

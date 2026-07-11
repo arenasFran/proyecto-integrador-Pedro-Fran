@@ -2,6 +2,7 @@ import { MongoRefreshTokenRepository } from '../../../infrastructure/repositorie
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { AppError } from '../../../domain/errors/AppError';
+import { registerTwoFactorFailure } from './twoFactorLockout';
 
 type TwoFactorVerifyDTO = {
   email: string;
@@ -9,9 +10,6 @@ type TwoFactorVerifyDTO = {
 };
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
-
-const MAX_2FA_ATTEMPTS = 5;
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
 export class VerifyTwoFactorUseCase {
   constructor(
@@ -49,22 +47,12 @@ export class VerifyTwoFactorUseCase {
     }
 
     if (!this.hashService.constantTimeEqual(user.twoFactor.codeHash, this.hashService.sha256(dto.code))) {
-      const currentAttempts = (user.twoFactorFailedAttempts || 0) + 1;
-      if (currentAttempts >= MAX_2FA_ATTEMPTS) {
-        const lockedUntil = new Date(new Date().getTime() + LOCKOUT_DURATION_MS);
-        await this.userRepository.updateUserSecurity(user.id, {
-          twoFactorFailedAttempts: currentAttempts,
-          twoFactorLockedUntil: lockedUntil,
-        });
-        throw new AppError(
-          `Demasiados intentos fallidos. Intentalo de nuevo en ${LOCKOUT_DURATION_MS / 60000} minutos.`,
-          429
-        );
-      }
-      await this.userRepository.updateUserSecurity(user.id, {
-        twoFactorFailedAttempts: currentAttempts,
-      });
-      throw new AppError('Código incorrecto.', 401);
+      await registerTwoFactorFailure(
+        this.userRepository,
+        user.id,
+        user.twoFactorFailedAttempts || 0,
+        'Código incorrecto.'
+      );
     }
 
     await this.userRepository.updateUserSecurity(user.id, {

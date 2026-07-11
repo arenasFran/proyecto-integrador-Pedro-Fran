@@ -2,6 +2,8 @@ import crypto from 'crypto';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
 import { AppError } from '../../../domain/errors/AppError';
+import { registerTwoFactorFailure } from './twoFactorLockout';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 type TwoFactorSendDTO = {
   email: string;
@@ -34,11 +36,6 @@ export class SendTwoFactorCodeUseCase {
       );
     }
 
-    const isValid = await this.passwordHasher.compare(dto.password, user.passwordHash);
-    if (!isValid) {
-      throw new AppError('Email y/o contraseña incorrectos.', 401);
-    }
-
     if (user.twoFactorLockedUntil && new Date() < user.twoFactorLockedUntil) {
       const remainingMin = Math.ceil(
         (user.twoFactorLockedUntil.getTime() - new Date().getTime()) / 60000
@@ -49,37 +46,33 @@ export class SendTwoFactorCodeUseCase {
       );
     }
 
+    const isValid = await this.passwordHasher.compare(dto.password, user.passwordHash);
+    if (!isValid) {
+      // Cuenta la contraseña incorrecta contra el mismo contador/bloqueo que el código 2FA:
+      // sin esto, alcanzaba con el rate limit por IP para probar contraseñas sin límite por cuenta.
+      await registerTwoFactorFailure(
+        this.userRepository,
+        user.id,
+        user.twoFactorFailedAttempts || 0,
+        'Email y/o contraseña incorrectos.'
+      );
+    }
+
     const code = crypto.randomInt(100000, 999999).toString();
     const expiresAt = new Date(new Date().getTime() + 5 * 60 * 1000);
     const codeHash = this.hashService.sha256(code);
 
-    let lastError: unknown;
-    let sent = false;
-    for (let attempt = 0; attempt <= 2; attempt++) {
-      try {
-        await this.emailService.sendMail({
-          to: email,
-          subject: 'Tu código de verificación',
-          html: `<h2>Tu código es: <strong>${code}</strong></h2><p>Expira en 5 minutos.</p>`,
-        });
-        sent = true;
-        break;
-      } catch (error) {
-        lastError = error;
-        console.error(
-          'Error enviando email 2FA (intento %d) a %s: %s',
-          attempt + 1,
-          email,
-          error instanceof Error ? error.message : 'Error desconocido'
-        );
-        if (attempt < 2) {
-          await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 500));
-        }
-      }
-    }
+    const sent = await sendMailWithRetry(
+      this.emailService,
+      {
+        to: email,
+        subject: 'Tu código de verificación',
+        html: `<h2>Tu código es: <strong>${code}</strong></h2><p>Expira en 5 minutos.</p>`,
+      },
+      `Error enviando email 2FA a ${email}`
+    );
 
     if (!sent) {
-      console.error('Fallo al enviar email después de 3 intentos:', lastError);
       throw new AppError(
         'No se pudo enviar el código de verificación. Servicio de correo no disponible, intentá de nuevo.',
         500

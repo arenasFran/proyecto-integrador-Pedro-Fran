@@ -5,6 +5,7 @@ import { MongoMembershipRepository } from '../../../infrastructure/repositories/
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 export class CancelAppointmentUseCase {
   constructor(
@@ -111,16 +112,16 @@ export class CancelAppointmentUseCase {
     // RN17 — Email notification (async, non-blocking)
     const clientEmail = appointment.clientEmail;
     if (clientEmail) {
-      this.emailService
-        .sendMail({
+      void sendMailWithRetry(
+        this.emailService,
+        {
           to: clientEmail,
           subject: 'Turno cancelado',
           html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue cancelado.</p>
 ${reason ? `<p>Motivo: ${reason}</p>` : ''}`,
-        })
-        .catch((error) => {
-          console.error('Error enviando email de cancelacion:', error);
-        });
+        },
+        'Error enviando email de cancelacion'
+      );
     }
 
     return { message: 'Turno cancelado exitosamente' };

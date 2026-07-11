@@ -6,6 +6,7 @@ import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 export type UpdateAppointmentStatusDTO = {
   status: AppointmentStatus;
@@ -144,25 +145,25 @@ export class UpdateAppointmentStatusUseCase {
     const clientEmail = appointment.clientEmail;
     if (clientEmail) {
       if (dto.status === 'Completado') {
-        this.emailService
-          .sendMail({
+        void sendMailWithRetry(
+          this.emailService,
+          {
             to: clientEmail,
             subject: 'Turno completado',
             html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue marcado como completado. ¡Gracias por visitarnos!</p>`,
-          })
-          .catch((error) => {
-            console.error('Error enviando email de completado:', error);
-          });
+          },
+          'Error enviando email de completado'
+        );
       } else if (dto.status === 'NoShow') {
-        this.emailService
-          .sendMail({
+        void sendMailWithRetry(
+          this.emailService,
+          {
             to: clientEmail,
             subject: 'Turno no concretado (NoShow)',
             html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue marcado como no concretado por inasistencia.</p>`,
-          })
-          .catch((error) => {
-            console.error('Error enviando email de NoShow:', error);
-          });
+          },
+          'Error enviando email de NoShow'
+        );
       }
     }
 

@@ -6,6 +6,7 @@ import { MongoBarberBlockRepository } from '../../../infrastructure/repositories
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 type RescheduleAppointmentDTO = {
   date: string;
@@ -162,17 +163,17 @@ export class RescheduleAppointmentUseCase {
     // RN17 — Email notification (async)
     const clientEmail = updated!.clientEmail;
     if (clientEmail) {
-      this.emailService
-        .sendMail({
+      void sendMailWithRetry(
+        this.emailService,
+        {
           to: clientEmail,
           subject: 'Turno reprogramado',
           html: `<p>Tu turno fue reprogramado.</p>
 <p>Nueva fecha: ${updated!.date} a las ${updated!.startTime}</p>
 <p>Barbero: ${barber.name} ${barber.lastname}</p>`,
-        })
-        .catch((error) => {
-          console.error('Error enviando email de reprogramacion:', error);
-        });
+        },
+        'Error enviando email de reprogramacion'
+      );
     }
 
     return {

@@ -11,6 +11,7 @@ import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
 import { Phone } from '../../../domain/value-objects/Phone';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 type CreateAppointmentDTO = {
   barberId: string;
@@ -269,18 +270,18 @@ export class CreateAppointmentUseCase {
     const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
-      this.emailService
-        .sendMail({
-          to: clientEmail,
-          subject: 'Turno agendado',
-          html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
+    void sendMailWithRetry(
+      this.emailService,
+      {
+        to: clientEmail,
+        subject: 'Turno agendado',
+        html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
 <p>Servicio: ${appointment.serviceName}</p>
 <p>Precio: $${appointment.servicePrice}</p>
 <p>Estado de pago: ${appointment.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
-      })
-      .catch((error) => {
-        console.error('Error enviando email de creación:', error);
-      });
+      },
+      'Error enviando email de creación'
+    );
   }
 }
 

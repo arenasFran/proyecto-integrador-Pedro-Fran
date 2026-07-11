@@ -1,12 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
-import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp, FiAward, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp, FiAward, FiChevronLeft, FiChevronRight, FiInfo } from 'react-icons/fi';
 import { Spinner } from '../../../components/common/Spinner';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
-import { ClientHistoryModal } from '../../../components/common/ClientHistoryModal';
-import { QuickCreateModal } from '../CalendarPage/QuickCreateModal';
-import { getTodayDateString } from '../../../utils/formatDate';
-import type { ClienteData } from '../../../types/analytics';
 
 const PAGE_SIZE = 20;
 
@@ -16,6 +13,7 @@ const kindBadge = (kind: string) => {
 };
 
 export default function ClientsPage() {
+  const navigate = useNavigate();
   const [desde, setDesde] = useState(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 1);
     return d.toISOString().slice(0, 10);
@@ -23,8 +21,6 @@ export default function ClientsPage() {
   const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [historyClient, setHistoryClient] = useState<ClienteData | null>(null);
-  const [creatingClient, setCreatingClient] = useState<ClienteData | null>(null);
 
   const { data: clientes = [], isLoading, isFetching } = useGetClientesListQuery({ desde, hasta });
 
@@ -85,7 +81,15 @@ export default function ClientsPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} skipMountEffect />
+        <div className="flex items-center gap-1.5">
+          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} skipMountEffect />
+          <span
+            title="Este rango afecta las estadísticas de reservas y gastado por cliente, no cuáles clientes aparecen en la lista."
+            className="text-[#6A6A6A] hover:text-[#8A8A8A] cursor-help shrink-0"
+          >
+            <FiInfo size={14} />
+          </span>
+        </div>
         <div className="relative flex-1 max-w-xs">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6A6A6A]" size={16} />
           <input
@@ -113,7 +117,7 @@ export default function ClientsPage() {
             {paged.map((c) => (
               <div
                 key={c.key}
-                onClick={() => setHistoryClient(c)}
+                onClick={() => navigate(`/admin/clientes/${c.key}`, { state: { client: c } })}
                 className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-start justify-between gap-2">
@@ -183,7 +187,7 @@ export default function ClientsPage() {
                 {paged.map((c) => (
                   <tr
                     key={c.key}
-                    onClick={() => setHistoryClient(c)}
+                    onClick={() => navigate(`/admin/clientes/${c.key}`, { state: { client: c } })}
                     className="border-b border-[#282828]/50 hover:bg-[#1A1A1A] cursor-pointer transition-colors last:border-b-0"
                   >
                     <td className="px-4 py-3">
@@ -237,32 +241,6 @@ export default function ClientsPage() {
             </div>
           )}
         </>
-      )}
-
-      {historyClient && (
-        <ClientHistoryModal
-          isOpen={!!historyClient}
-          onClose={() => setHistoryClient(null)}
-          client={historyClient}
-          onCreateAppointment={(c) => {
-            setHistoryClient(null);
-            setCreatingClient(c);
-          }}
-        />
-      )}
-
-      {creatingClient && creatingClient.clientId && (
-        <QuickCreateModal
-          dateStr={getTodayDateString()}
-          onClose={() => setCreatingClient(null)}
-          initialClient={{
-            id: creatingClient.clientId,
-            name: creatingClient.clientName,
-            lastname: creatingClient.clientLastname,
-            phone: creatingClient.clientPhone,
-            email: creatingClient.clientEmail,
-          }}
-        />
       )}
     </div>
   );

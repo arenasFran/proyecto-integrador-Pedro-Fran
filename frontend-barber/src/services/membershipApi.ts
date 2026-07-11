@@ -43,6 +43,13 @@ export const membershipApi = createApi({
       providesTags: (_result, _error, id) => [{ type: 'Membership', id }],
     }),
 
+    getMembershipByUserId: builder.query<MyMembershipResponse, string>({
+      query: (userId) => ({
+        url: `/api/memberships/user/${userId}`,
+      }),
+      providesTags: ['Membership'],
+    }),
+
     redeemCoupon: builder.mutation<{ remainingCoupons: number; couponsUsed: number }, { userId: string }>({
       query: (data) => ({
         url: '/api/memberships/redeem',
@@ -75,6 +82,7 @@ export const {
   useCreateMembershipMutation,
   useGetAllMembershipsQuery,
   useGetMembershipByIdQuery,
+  useGetMembershipByUserIdQuery,
   useRedeemCouponMutation,
   useCancelMembershipMutation,
   useReactivateMembershipMutation,

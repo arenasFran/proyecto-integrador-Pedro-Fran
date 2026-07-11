@@ -41,6 +41,7 @@ export type ClienteListEntry = {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  clientPhotoUrl: string | null;
   kind: 'Registrado' | 'NoRegistrado';
   registeredAt: string;
   totalVisits: number;
@@ -513,6 +514,7 @@ export class MongoAnalyticsRepository {
           clientLastname: '$lastname',
           clientPhone: '$phone',
           clientEmail: { $ifNull: ['$email', '$contactEmail'] },
+          clientPhotoUrl: { $ifNull: ['$photoUrl', null] },
           kind: { $ifNull: ['$kind', 'NoRegistrado'] },
           registeredAt: { $dateToString: { date: '$registeredAt' } },
           totalVisits: { $size: '$turnos' },

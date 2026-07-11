@@ -118,6 +118,7 @@ describeIfMongo('MongoAnalyticsRepository', () => {
     await RegisteredClient.create({
       _id: oidAt('2025-06-05T10:00:00Z'),
       name: 'Juan', lastname: 'Perez', email: 'juan@test.com', password: 'hash',
+      photoUrl: 'https://example.com/juan.jpg',
     });
     await UnregisteredClient.create({
       _id: oidAt('2025-06-10T12:00:00Z'),
@@ -364,6 +365,15 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       });
       expect(result[2].key.startsWith('reg_')).toBe(true);
       expect(result[3]).toMatchObject({ clientName: 'Ana', kind: 'Registrado', totalVisits: 0 });
+    });
+
+    it('incluye clientPhotoUrl cuando el cliente tiene foto, y null cuando no', async () => {
+      const result = await repository.getClientesList(DESDE, HASTA);
+
+      const juan = result.find((c) => c.clientName === 'Juan');
+      const ana = result.find((c) => c.clientName === 'Ana');
+      expect(juan?.clientPhotoUrl).toBe('https://example.com/juan.jpg');
+      expect(ana?.clientPhotoUrl).toBeNull();
     });
 
     it('no incluye actividad fuera del rango en las estadísticas', async () => {

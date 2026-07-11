@@ -16,6 +16,7 @@ import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
 import CalendarPage from './pages/admin/CalendarPage';
 import ServicesPage from './pages/admin/ServicesPage';
 import ClientsPage from './pages/admin/ClientsPage';
+import ClientDetailPage from './pages/admin/ClientDetailPage';
 import MembershipsPage from './pages/admin/MembershipsPage';
 import MembershipPage from './pages/app/MembershipPage';
 import ProfilePage from './pages/app/ProfilePage';
@@ -92,6 +93,7 @@ function App() {
               <Route path="calendario" element={<CalendarPage />} />
               <Route path="servicios" element={<ServicesPage />} />
               <Route path="clientes" element={<ClientsPage />} />
+              <Route path="clientes/:clientKey" element={<ClientDetailPage />} />
               <Route path="membresias" element={<MembershipsPage />} />
               <Route index element={<Navigate to="dashboard" replace />} />
             </Route>

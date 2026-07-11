@@ -5,9 +5,8 @@ import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetNuevosClientesQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
-import type { OverviewData, ClienteData } from '../../../../types/analytics';
+import type { OverviewData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
-import { ClientHistoryModal } from '../../../../components/common/ClientHistoryModal';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -225,7 +224,6 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
-  const [historyClient, setHistoryClient] = useState<ClienteData | null>(null);
 
   const { data: retornoData } = useGetClientesRecurrentesQuery(
     { desde, hasta },
@@ -316,7 +314,6 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
       <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} />
       <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} />
       <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
-      {historyClient && <ClientHistoryModal isOpen={!!historyClient} onClose={() => setHistoryClient(null)} client={historyClient} />}
     </>
   );
 }

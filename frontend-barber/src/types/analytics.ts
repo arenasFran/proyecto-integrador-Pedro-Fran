@@ -63,6 +63,7 @@ export interface ClienteData {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  clientPhotoUrl: string | null;
   kind: 'Registrado' | 'NoRegistrado';
   registeredAt: string;
   totalVisits: number;

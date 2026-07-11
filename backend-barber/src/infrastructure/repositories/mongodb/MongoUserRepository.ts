@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { User } from '../../../domain/entities/User';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
+import { AppError } from '../../../domain/errors/AppError';
 
 export type TwoFactorUpdate = {
   codeHash?: string;
@@ -153,8 +154,21 @@ export class MongoUserRepository {
   }
 
   async createRegisteredClient(user: User): Promise<User> {
-    const doc = await RegisteredClient.create(userToRegisteredClientData(user));
-    return userFromRegisteredClient(doc);
+    try {
+      const doc = await RegisteredClient.create(userToRegisteredClientData(user));
+      return userFromRegisteredClient(doc);
+    } catch (error: any) {
+      if (error?.code === 11000) {
+        if (error.keyPattern?.email) {
+          throw new AppError('Email en uso.', 409);
+        }
+        if (error.keyPattern?.phone) {
+          throw new AppError('Teléfono en uso.', 409);
+        }
+        throw new AppError('Ya existe un usuario con esos datos.', 409);
+      }
+      throw error;
+    }
   }
 
   async update(userId: string, data: UserUpdate): Promise<User | null> {

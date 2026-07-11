@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Routes, Route } from 'react-router-dom';
 import { renderWithProviders } from '../../../test/utils';
 import { AppointmentDetailModal } from './AppointmentDetailModal';
 import type { Appointment } from '../../../types/booking';
@@ -160,5 +161,35 @@ describe('AppointmentDetailModal', () => {
       <AppointmentDetailModal {...defaultProps} appointment={{ ...baseAppointment, clientId: 'client-1' }} />
     );
     expect(screen.queryByRole('button', { name: /crear turno para este cliente/i })).not.toBeInTheDocument();
+  });
+
+  it('el nombre del cliente redirige a su ficha y cierra el modal si tiene clientId', async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    renderWithProviders(
+      <>
+        <AppointmentDetailModal
+          {...defaultProps}
+          onClose={onClose}
+          appointment={{ ...baseAppointment, clientId: 'client-1', clientKind: 'Registrado' }}
+        />
+        <Routes>
+          <Route path="/admin/clientes/:clientKey" element={<div data-testid="detail-page" />} />
+        </Routes>
+      </>
+    );
+
+    await user.click(screen.getAllByText('Juan Perez')[0]);
+
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.getByTestId('detail-page')).toBeInTheDocument();
+  });
+
+  it('el nombre del cliente no es clickeable si el turno no tiene clientId', () => {
+    renderWithProviders(
+      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} />
+    );
+    const name = screen.getAllByText('Juan Perez')[0];
+    expect(name.className).not.toMatch(/cursor-pointer/);
   });
 });

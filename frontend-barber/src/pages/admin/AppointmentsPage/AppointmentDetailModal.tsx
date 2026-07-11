@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import type { IconType } from 'react-icons';
 import {
@@ -70,6 +71,17 @@ function originBadge(cb?: CreatedBy) {
   return <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${c.color}`}>{c.label}</span>;
 }
 
+function originWithName(cb?: CreatedBy, actorName?: string) {
+  const badge = originBadge(cb);
+  if (cb?.type !== 'staff' || !actorName) return badge;
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {badge}
+      <span className="text-white">{actorName}</span>
+    </span>
+  );
+}
+
 function paymentBadge(ps: Appointment['paymentStatus']) {
   const styles: Record<string, { bg: string; text: string }> = {
     Pendiente: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
@@ -107,25 +119,43 @@ interface AppointmentDetailModalProps {
   onCreateAppointment?: (appointment: Appointment) => void;
 }
 
-// Modal mayormente informativo: muestra los datos del cliente, el turno, el pago,
-// el origen, la cancelación (si aplica) y el historial. Las acciones sobre ESTE
-// turno (completar, cancelar, reprogramar, etc.) viven en el menú de "..." de
-// cada fila/card (ver AppointmentActionsMenu), no acá. La única acción que vive
-// acá es "Crear turno" para el mismo cliente, ya que este modal es el punto de
-// entrada natural a los datos del cliente (p.ej. clickeando su nombre en el calendario).
+interface TimelineEntry {
+  key: string;
+  icon: IconType;
+  styles: { bg: string; text: string };
+  label: string;
+  timestamp: string;
+  origin?: CreatedBy;
+  actor?: string;
+}
+
 export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   appointment,
   isOpen,
   onClose,
   onCreateAppointment,
 }) => {
+  const navigate = useNavigate();
+
   if (!appointment) return null;
 
   const style = statusStyles[appointment.status];
   const clientSinceYear = appointment.clientRegisteredAt ? new Date(appointment.clientRegisteredAt).getFullYear() : null;
 
-  const timeline = [
-    { key: 'created', icon: timelineIcon.created, styles: timelineStyles.created, label: 'Turno creado', timestamp: appointment.createdAt, origin: appointment.createdBy },
+  // El backend nunca completa clientKind en un turno, así que no podemos
+  // armar acá la clave compuesta "reg_"/"anon_" que usa /admin/clientes.
+  // Navegamos con el clientId a secas; ClientDetailPage matchea por clientId
+  // además de por key.
+  const goToClientDetail = () => {
+    if (!appointment.clientId) return;
+    onClose();
+    navigate(`/admin/clientes/${appointment.clientId}`);
+  };
+
+  const creationActor = appointment.statusHistory?.[0]?.actor;
+
+  const timeline: TimelineEntry[] = [
+    { key: 'created', icon: timelineIcon.created, styles: timelineStyles.created, label: 'Turno creado', timestamp: appointment.createdAt, origin: appointment.createdBy, actor: creationActor },
     ...(appointment.statusHistory ?? []).map((entry, idx) => ({
       key: `status-${idx}`,
       icon: timelineIcon[entry.status],
@@ -149,7 +179,12 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
               size="xl"
             />
             <div className="min-w-0 flex-1">
-              <h3 className="text-[18px] sm:text-[26px] font-bold text-white tracking-tight break-words sm:truncate">
+              <h3
+                onClick={appointment.clientId ? goToClientDetail : undefined}
+                className={`text-[18px] sm:text-[26px] font-bold text-white tracking-tight break-words sm:truncate ${
+                  appointment.clientId ? 'cursor-pointer hover:text-[#FF5C00] transition-colors' : ''
+                }`}
+              >
                 {appointment.clientName} {appointment.clientLastname}
               </h3>
               {clientSinceYear && (
@@ -231,7 +266,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
         <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] px-4 py-3 flex items-center justify-between gap-3">
           <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A] shrink-0">Origen</h4>
           <div className="flex items-center gap-2 min-w-0">
-            {originBadge(appointment.createdBy)}
+            {originWithName(appointment.createdBy, creationActor)}
           </div>
         </div>
 
@@ -272,7 +307,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
                       <span className="text-[11px] text-[#8A8A8A]">{formatTimestamp(entry.timestamp)}</span>
                     </div>
                     <p className="text-[11px] text-[#6A6A6A] mt-0.5">
-                      {entry.origin ? originBadge(entry.origin) : `por ${entry.actor}`}
+                      {entry.origin ? originWithName(entry.origin, entry.actor) : `por ${entry.actor}`}
                     </p>
                   </div>
                 );

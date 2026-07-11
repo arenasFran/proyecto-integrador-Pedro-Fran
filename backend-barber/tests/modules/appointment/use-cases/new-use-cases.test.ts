@@ -157,12 +157,20 @@ describe('ChangeBarberUseCase', () => {
 
     const result = await useCase.execute('apt-1', 'barber-2', 'admin-1', 'Admin');
 
-    expect(appointmentRepository.update).toHaveBeenCalledWith('apt-1', { barberId: 'barber-2', version: 0 });
-    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith('apt-1', {
-      statusHistoryEntry: expect.objectContaining({
-        actor: expect.stringContaining('Ana Reyes'),
-      }),
-    });
+    expect(appointmentRepository.update).toHaveBeenCalledWith(
+      'apt-1',
+      { barberId: 'barber-2', version: 0 },
+      expect.anything()
+    );
+    expect(appointmentRepository.updateStatus).toHaveBeenCalledWith(
+      'apt-1',
+      {
+        statusHistoryEntry: expect.objectContaining({
+          actor: expect.stringContaining('Ana Reyes'),
+        }),
+      },
+      expect.anything()
+    );
     expect(result.message).toMatch(/Carlos Lopez/);
   });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSettings, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSettings, FiUser } from 'react-icons/fi';
 import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner, useToast } from '../../../components/common';
 import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -57,6 +57,9 @@ export const ProfilePage: React.FC = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordFieldErrors, setPasswordFieldErrors] = useState<{ currentPassword?: string; newPassword?: string; confirmPassword?: string }>({});
 
+  const [emailCurrentPassword, setEmailCurrentPassword] = useState('');
+  const [emailPasswordError, setEmailPasswordError] = useState<string | null>(null);
+
   const [changePasswordMutation, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const [requestReset, { isLoading: isRequestingReset }] = useRequestResetMutation();
   const { showToast } = useToast();
@@ -100,6 +103,9 @@ export const ProfilePage: React.FC = () => {
 
   const isLoading = !authUser || (isBarber && barbers.length === 0 && barbersLoading);
 
+  const originalEmail = isBarber ? barberData?.email : authUser?.email;
+  const emailChanged = String(formData?.email ?? '').trim() !== String(originalEmail ?? '').trim();
+
   const scheduleSummary = isBarber ? days
     .filter((d) => schedule[d.key].startTime && schedule[d.key].endTime)
     .map((d) => {
@@ -132,6 +138,7 @@ export const ProfilePage: React.FC = () => {
 
     setPageError(null);
     setPageMessage(null);
+    setEmailPasswordError(null);
 
     if (isBarber) {
       const scheduleError = validateSchedule(schedule);
@@ -145,6 +152,12 @@ export const ProfilePage: React.FC = () => {
         setPageError('La duración del slot debe ser un número entero mayor o igual a 1.');
         return;
       }
+    }
+
+    if (emailChanged && !emailCurrentPassword) {
+      setEmailPasswordError('La contraseña actual es obligatoria');
+      setPageError('Ingresá tu contraseña actual para confirmar el cambio de email.');
+      return;
     }
 
     setIsSaving(true);
@@ -174,8 +187,13 @@ export const ProfilePage: React.FC = () => {
           payload.schedule = scheduleFromForm(editedSchedule);
         }
 
+        if (emailChanged) {
+          payload.currentPassword = emailCurrentPassword;
+        }
+
         await dispatch(updateBarberMe(payload)).unwrap();
         setEditedFields({});
+        setEmailCurrentPassword('');
         setPageMessage('Perfil actualizado con éxito.');
       } else {
         await dispatch(updateCurrentUser({
@@ -184,14 +202,19 @@ export const ProfilePage: React.FC = () => {
           lastname: String(formData.lastname ?? '').trim() || undefined,
           phone: String(formData.phone ?? '').trim() || undefined,
           photoUrl: photoUrl ?? undefined,
+          currentPassword: emailChanged ? emailCurrentPassword : undefined,
         })).unwrap();
         setEditedFields({});
+        setEmailCurrentPassword('');
         setPageMessage('Perfil actualizado con éxito.');
       }
     } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Error al guardar el perfil';
+      const msg = getErrorMessage(error, 'Error al guardar el perfil');
       if (msg.includes('409') || msg.toLowerCase().includes('email en uso')) {
         setPageError('El email ya está en uso');
+      } else if (msg.toLowerCase().includes('contraseña actual')) {
+        setEmailPasswordError(msg);
+        setPageError(msg);
       } else {
         setPageError(msg);
       }
@@ -234,12 +257,11 @@ export const ProfilePage: React.FC = () => {
       dispatch(logout());
       navigate('/login', { replace: true });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('401') || msg.toLowerCase().includes('contraseña actual incorrecta')) {
+      const msg = getErrorMessage(err, 'Error al cambiar la contraseña');
+      if (msg.toLowerCase().includes('contraseña actual incorrecta')) {
         setPasswordFieldErrors({ currentPassword: 'Contraseña actual incorrecta' });
       } else {
-        const errorMsg = msg || 'Error al cambiar la contraseña';
-        showToast(errorMsg, 'error');
+        showToast(msg, 'error');
       }
     }
   };
@@ -280,7 +302,7 @@ export const ProfilePage: React.FC = () => {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <ImageUpload
                 variant="avatar"
@@ -293,19 +315,16 @@ export const ProfilePage: React.FC = () => {
                 }}
                 helperText="Arrastrá o hacé clic para cambiar"
               />
-              <div>
-                <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
-                  {displayName}
-                </h1>
-                {role && role !== 'Registrado' && (
-                  <p className="text-[14px] text-[#8A8A8A]">{roleTitle[role]}</p>
-                )}
-              </div>
+              <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
+                {displayName}
+              </h1>
             </div>
 
-            <Button variant="secondary" icon={FiArrowLeft} onClick={() => navigate(-1)}>
-              Volver
-            </Button>
+            {role && role !== 'Registrado' && (
+              <span className="shrink-0 inline-flex items-center rounded-full bg-purple-500/10 px-3 py-1 text-[12px] font-medium text-purple-400">
+                {roleTitle[role]}
+              </span>
+            )}
           </div>
         </AnimatedContainer>
 
@@ -354,6 +373,19 @@ export const ProfilePage: React.FC = () => {
                   <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
                   <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
                 </div>
+                {emailChanged && (
+                  <PasswordInput
+                    label="Contraseña actual"
+                    value={emailCurrentPassword}
+                    onChange={(e) => {
+                      setEmailCurrentPassword(e.target.value);
+                      setEmailPasswordError(null);
+                    }}
+                    placeholder="Ingresá tu contraseña actual"
+                    helperText="Requerida para confirmar el cambio de email"
+                    error={emailPasswordError ?? undefined}
+                  />
+                )}
               </>
             )}
 

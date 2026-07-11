@@ -7,6 +7,7 @@ import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongo
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoRefreshTokenRepository } from '../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
+import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
@@ -32,13 +33,14 @@ export const buildBarberRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
   const tempLockRepository = new MongoTempLockRepository();
   const blockRepository = new MongoBarberBlockRepository();
+  const membershipRepository = new MongoMembershipRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
   const slotService = new SlotService();
   const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository, blockRepository);
-  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService);
+  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService, membershipRepository);
 
   const barberController = new BarberController(
     barberRepository,
@@ -47,7 +49,8 @@ export const buildBarberRouter = () => {
     getAvailableSlots,
     deleteBarber,
     blockRepository,
-    appointmentRepository
+    appointmentRepository,
+    emailService
   );
 
   const authenticate = createAuthenticate(tokenService);

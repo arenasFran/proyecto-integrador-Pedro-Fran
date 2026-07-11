@@ -5,7 +5,7 @@ import { Barber, BarberProps, BarberSchedule } from '../../../../src/domain/enti
 import { Email } from '../../../../src/domain/value-objects/Email';
 import { Phone } from '../../../../src/domain/value-objects/Phone';
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
-import { makeMockBarberRepository, makeMockUserRepository, makeMockAppointmentRepository } from '../../../test-utils/mocks';
+import { makeMockBarberRepository, makeMockUserRepository, makeMockAppointmentRepository, makeMockEmailService } from '../../../test-utils/mocks';
 import { DeleteBarberUseCase } from '../../../../src/application/use-cases/barber/DeleteBarberUseCase';
 
 const createScheduleDay = () => ({
@@ -50,6 +50,7 @@ describe('BarberController', () => {
   let passwordHasher: { hash: jest.Mock; compare: jest.Mock };
   let getAvailableSlots: jest.Mocked<GetAvailableSlotsUseCase>;
   let deleteBarber: jest.Mocked<DeleteBarberUseCase>;
+  let emailService: ReturnType<typeof makeMockEmailService>;
   let controller: BarberController;
 
   beforeEach(() => {
@@ -58,6 +59,7 @@ describe('BarberController', () => {
     passwordHasher = { hash: jest.fn(), compare: jest.fn() };
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
+    emailService = makeMockEmailService();
     const blockRepository = {
       findByBarberAndDate: jest.fn(),
       findByBarberAndDateRange: jest.fn(),
@@ -73,7 +75,8 @@ describe('BarberController', () => {
       getAvailableSlots,
       deleteBarber,
       blockRepository as any,
-      appointmentRepository as any
+      appointmentRepository as any,
+      emailService
     );
   });
 
@@ -176,6 +179,19 @@ describe('BarberController', () => {
         barbers: [expect.objectContaining({ id: 'barber-1' })],
       });
     });
+
+    it('debe incluir el schedule semanal (necesario para deshabilitar días no laborables en el calendario público)', async () => {
+      barberRepository.findAllBarbers.mockResolvedValue([makeBarberEntity()]);
+
+      const req = createMockReq();
+      const res = createMockRes();
+
+      await controller.getAllPublic(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({
+        barbers: [expect.objectContaining({ schedule: expect.any(Object) })],
+      });
+    });
   });
 
   describe('getById', () => {
@@ -269,6 +285,108 @@ describe('BarberController', () => {
       await controller.updateSchedule(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
+
+  describe('updateMe', () => {
+    const makeReq = (body: Record<string, unknown>) =>
+      ({
+        body,
+        user: { _id: 'barber-1', email: 'barber@example.com', kind: 'Empleado' },
+      }) as unknown as import('express').Request;
+
+    it('debe actualizar nombre/telefono sin pedir contraseña cuando no cambia el email', async () => {
+      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ name: 'Carlos' }));
+
+      const req = makeReq({ name: 'Carlos' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(barberRepository.findBarberById).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe permitir reenviar el mismo email sin pedir contraseña', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity());
+
+      const req = makeReq({ email: 'barber@example.com' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(emailService.sendMail).not.toHaveBeenCalled();
+    });
+
+    it('debe rechazar el cambio de email sin currentPassword', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      userRepository.findByEmail.mockResolvedValue(null);
+
+      const req = makeReq({ email: 'nuevo@example.com' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(barberRepository.updateBarber).not.toHaveBeenCalled();
+    });
+
+    it('debe rechazar el cambio de email con currentPassword incorrecta', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      userRepository.findByEmail.mockResolvedValue(null);
+      passwordHasher.compare.mockResolvedValue(false);
+
+      const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'wrong' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({ error: 'Contraseña actual incorrecta.' });
+      expect(barberRepository.updateBarber).not.toHaveBeenCalled();
+    });
+
+    it('debe cambiar el email con currentPassword correcta y avisar al email viejo', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      userRepository.findByEmail.mockResolvedValue(null);
+      passwordHasher.compare.mockResolvedValue(true);
+      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ email: 'nuevo@example.com' }));
+
+      const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'CurrentPass1' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({ to: 'barber@example.com' })
+      );
+    });
+
+    it('debe rechazar el cambio de email si ya está en uso por otro usuario', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
+      userRepository.findByEmail.mockResolvedValue({ id: 'otro-usuario' } as any);
+
+      const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'CurrentPass1' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(barberRepository.updateBarber).not.toHaveBeenCalled();
+    });
+
+    it('ya no hashea ni procesa un campo password aunque llegue en el body', async () => {
+      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity());
+
+      const req = makeReq({ name: 'Carlos', password: 'Ignorado123' });
+      const res = createMockRes();
+
+      await controller.updateMe(req, res);
+
+      expect(passwordHasher.hash).not.toHaveBeenCalled();
     });
   });
 

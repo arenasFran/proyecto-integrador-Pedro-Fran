@@ -130,4 +130,39 @@ describe('GetAvailableSlotsUseCase', () => {
     expect(result.slots).toContain('09:00');
     expect(result.slots).toContain('09:30');
   });
+
+  describe('excludeAppointmentId (reprogramación)', () => {
+    it('sin excludeAppointmentId, el horario del turno propio aparece ocupado', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([
+        makeAppointment({ startTime: '09:00', endTime: '09:50' }),
+      ]);
+
+      const result = await useCase.execute('barber-1', '2099-01-05');
+
+      expect(result.slots).not.toContain('09:00');
+    });
+
+    it('con excludeAppointmentId igual al del turno propio, su horario aparece disponible', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([
+        makeAppointment({ startTime: '09:00', endTime: '09:50' }),
+      ]);
+
+      const result = await useCase.execute('barber-1', '2099-01-05', 'apt-1');
+
+      expect(result.slots).toContain('09:00');
+    });
+
+    it('con excludeAppointmentId de OTRO turno, ese horario sigue ocupado', async () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([
+        makeAppointment({ startTime: '09:00', endTime: '09:50' }),
+      ]);
+
+      const result = await useCase.execute('barber-1', '2099-01-05', 'otro-turno');
+
+      expect(result.slots).not.toContain('09:00');
+    });
+  });
 });

@@ -1,4 +1,4 @@
-export type MembershipStatus = 'active' | 'expired' | 'cancelled';
+export type MembershipStatus = 'active' | 'expired' | 'cancelled' | 'pending';
 
 export type MembershipSource = 'client' | 'admin';
 
@@ -12,10 +12,13 @@ export type MembershipData = {
   couponsTotal: number;
   couponsUsed: number;
   productDiscount: number;
+  autoRenew: boolean;
   createdBy: MembershipSource;
   adminId?: string;
   mpPreapprovalId?: string;
   nextBillingDate?: Date;
+  approvedBy?: string;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };

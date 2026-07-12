@@ -1,16 +1,19 @@
 import mongoose from 'mongoose';
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 export class CancelAppointmentUseCase {
   constructor(
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
-    private readonly cancelMinHoursBefore: number
+    private readonly cancelMinHoursBefore: number,
+    private readonly barberRepository: MongoBarberRepository
   ) {}
 
   async execute(
@@ -54,8 +57,7 @@ export class CancelAppointmentUseCase {
       }
     }
 
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = actorMap[userKind] || 'cliente';
+    const actor = await this.resolveCancelActor(userId, isAdmin || isAssignedBarber, appointment);
 
     // Entity validates transition internally
     try {
@@ -70,6 +72,7 @@ export class CancelAppointmentUseCase {
 
     const updateData: UpdateStatusData = {
       status: appointment.status,
+      paymentStatus: appointment.paymentStatus,
       statusHistoryEntry: lastEntry,
     };
 
@@ -94,7 +97,7 @@ export class CancelAppointmentUseCase {
         const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
         if (membership) {
           membership.restoreCoupon();
-          await this.membershipRepository.save(membership, session);
+          await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
         }
       }
 
@@ -109,19 +112,34 @@ export class CancelAppointmentUseCase {
     // RN17 — Email notification (async, non-blocking)
     const clientEmail = appointment.clientEmail;
     if (clientEmail) {
-      this.emailService
-        .sendMail({
+      void sendMailWithRetry(
+        this.emailService,
+        {
           to: clientEmail,
           subject: 'Turno cancelado',
           html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue cancelado.</p>
 ${reason ? `<p>Motivo: ${reason}</p>` : ''}`,
-        })
-        .catch((error) => {
-          console.error('Error enviando email de cancelacion:', error);
-        });
+        },
+        'Error enviando email de cancelacion'
+      );
     }
 
     return { message: 'Turno cancelado exitosamente' };
+  }
+
+  private async resolveCancelActor(
+    userId: string,
+    isStaff: boolean,
+    appointment: import('../../../domain/entities/Appointment').Appointment
+  ): Promise<string> {
+    if (isStaff) {
+      const staffMember = await this.barberRepository.findBarberById(userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+      return 'Personal';
+    }
+    return `${appointment.clientName} ${appointment.clientLastname}`;
   }
 }
 

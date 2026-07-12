@@ -5,12 +5,22 @@ export function sendSuccess<T>(res: Response, payload: T, status = 200) {
   return res.status(status).json(payload);
 }
 
+function safeStringify(obj: object): string {
+  try {
+    return JSON.stringify(obj);
+  } catch {
+    return String(obj);
+  }
+}
+
 export function sendError(res: Response, error: unknown, fallbackMessage: string) {
   if (error instanceof AppError) {
     return res.status(error.statusCode).json({ error: error.message });
   }
 
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof Error ? error.message
+    : typeof error === 'object' && error !== null ? safeStringify(error)
+    : String(error);
   console.error(`[sendError] ${fallbackMessage}. Causa:`, message);
   if (error instanceof Error && error.stack) {
     console.error('[sendError] Stack:', error.stack);

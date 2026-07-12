@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 export type UpdateAppointmentStatusDTO = {
   status: AppointmentStatus;
@@ -16,7 +18,8 @@ export class UpdateAppointmentStatusUseCase {
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
-    private readonly cancelMinHoursBefore: number
+    private readonly cancelMinHoursBefore: number,
+    private readonly barberRepository: MongoBarberRepository
   ) {}
 
   async execute(
@@ -35,8 +38,15 @@ export class UpdateAppointmentStatusUseCase {
       return { message: 'El turno ya se encontraba cancelado' };
     }
 
-    const actorMap: Record<string, string> = { Admin: 'admin', Empleado: 'empleado' };
-    const actor = (userKind && actorMap[userKind]) || 'system';
+    // Permission check
+    const isOwner = appointment.clientId === userId;
+    const isAdmin = userKind === 'Admin';
+    const isAssignedBarber = userKind === 'Empleado' && appointment.barberId === userId;
+    if (!isOwner && !isAdmin && !isAssignedBarber) {
+      throw new AppError('No tenés permiso para modificar este turno.', 403);
+    }
+
+    const actor = await this.resolveStaffActor(userId);
 
     // Application-level rules before entity mutation
     if (dto.status === 'Cancelado') {
@@ -119,7 +129,7 @@ export class UpdateAppointmentStatusUseCase {
         const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
         if (membership) {
           membership.restoreCoupon();
-          await this.membershipRepository.save(membership, session);
+          await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
         }
       }
 
@@ -135,29 +145,39 @@ export class UpdateAppointmentStatusUseCase {
     const clientEmail = appointment.clientEmail;
     if (clientEmail) {
       if (dto.status === 'Completado') {
-        this.emailService
-          .sendMail({
+        void sendMailWithRetry(
+          this.emailService,
+          {
             to: clientEmail,
             subject: 'Turno completado',
             html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue marcado como completado. ¡Gracias por visitarnos!</p>`,
-          })
-          .catch((error) => {
-            console.error('Error enviando email de completado:', error);
-          });
+          },
+          'Error enviando email de completado'
+        );
       } else if (dto.status === 'NoShow') {
-        this.emailService
-          .sendMail({
+        void sendMailWithRetry(
+          this.emailService,
+          {
             to: clientEmail,
             subject: 'Turno no concretado (NoShow)',
             html: `<p>Tu turno del ${appointment.date} a las ${appointment.startTime} fue marcado como no concretado por inasistencia.</p>`,
-          })
-          .catch((error) => {
-            console.error('Error enviando email de NoShow:', error);
-          });
+          },
+          'Error enviando email de NoShow'
+        );
       }
     }
 
     return { message: `Estado actualizado a ${dto.status}` };
+  }
+
+  private async resolveStaffActor(userId?: string): Promise<string> {
+    if (userId) {
+      const staffMember = await this.barberRepository.findBarberById(userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+    }
+    return 'Personal';
   }
 }
 

@@ -156,25 +156,51 @@ export class MercadoPagoService implements IPaymentService {
     this.ensureConfigured();
     const preapproval = new PreApproval(this.config);
 
-    const response = await preapproval.create({
-      body: {
-        reason: params.reason,
-        external_reference: params.externalReference,
-        payer_email: params.payerEmail,
-        auto_recurring: {
-          frequency: 1,
-          frequency_type: 'months',
-          transaction_amount: params.transactionAmount,
-          currency_id: 'UYU',
-        },
-        back_url: params.backUrl,
+    const body: Record<string, unknown> = {
+      reason: params.reason,
+      external_reference: params.externalReference,
+      payer_email: params.payerEmail,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: params.transactionAmount,
+        currency_id: 'UYU',
       },
-    });
-
-    return {
-      preapprovalId: response.id!,
-      initPoint: response.init_point!,
     };
+
+    if (params.backUrl) {
+      const isLocal = /localhost|127\.0\.0\.1/i.test(params.backUrl);
+      const isNotHttps = !/^https:\/\//i.test(params.backUrl);
+      if (isLocal || isNotHttps) {
+        console.warn('[MP-DEBUG] back_url inválida para preapproval (MP rechaza localhost/HTTP), usando fallback HTTPS:', params.backUrl);
+        body.back_url = 'https://www.mercadopago.com.uy';
+      } else {
+        body.back_url = params.backUrl;
+      }
+    }
+
+    try {
+      const response = await preapproval.create({ body });
+
+      return {
+        preapprovalId: response.id!,
+        initPoint: response.init_point!,
+      };
+    } catch (error: any) {
+      console.error('[MP-DEBUG] ===== ERROR CREANDO PREAPPROVAL =====');
+      console.error('[MP-DEBUG] error.message:', error?.message);
+      console.error('[MP-DEBUG] error.name:', error?.name);
+      console.error('[MP-DEBUG] error.stack:', error?.stack);
+      console.error('[MP-DEBUG] error.cause:', error?.cause);
+      console.error('[MP-DEBUG] error.status:', error?.status);
+      if (error?.details) {
+        console.error('[MP-DEBUG] error.details:', JSON.stringify(error.details));
+      }
+      if (error?.response) {
+        console.error('[MP-DEBUG] error.response:', JSON.stringify(error.response));
+      }
+      throw error;
+    }
   }
 
   async getPreapproval(preapprovalId: string): Promise<GetPreapprovalResult> {

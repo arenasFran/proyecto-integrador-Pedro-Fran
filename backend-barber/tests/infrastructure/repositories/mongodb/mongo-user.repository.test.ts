@@ -1,6 +1,8 @@
 import { MongoUserRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoUserRepository';
 import { Admin, Barber } from '../../../../src/infrastructure/repositories/mongodb/models/barber.model';
 import { RegisteredClient } from '../../../../src/infrastructure/repositories/mongodb/models/client.model';
+import { User } from '../../../../src/domain/entities/User';
+import { AppError } from '../../../../src/domain/errors/AppError';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
@@ -105,5 +107,62 @@ describeIfMongo('MongoUserRepository', () => {
     const user = await repository.findByPhone('555555');
 
     expect(user?.id).toBe(client._id.toString());
+  });
+
+  const makeNewUser = (overrides: { email: string; phone: string }) =>
+    User.create({
+      id: '',
+      email: overrides.email,
+      name: 'Nuevo',
+      lastname: 'Cliente',
+      phone: overrides.phone,
+      kind: 'Registrado',
+      authProvider: 'local',
+      passwordHash: 'hash',
+    });
+
+  it('debe lanzar 409 si el email ya está en uso (carrera de registro concurrente)', async () => {
+    await RegisteredClient.create({
+      email: 'duplicado@example.com',
+      password: 'hash',
+      name: 'Existente',
+      lastname: 'User',
+      phone: '666666',
+      authProvider: 'local',
+    });
+
+    await expect(
+      repository.createRegisteredClient(makeNewUser({ email: 'duplicado@example.com', phone: '777777' }))
+    ).rejects.toMatchObject({ message: 'Email en uso.', statusCode: 409 });
+  });
+
+  it('debe lanzar 409 si el teléfono ya está en uso', async () => {
+    await RegisteredClient.create({
+      email: 'otro@example.com',
+      password: 'hash',
+      name: 'Existente',
+      lastname: 'User',
+      phone: '888888',
+      authProvider: 'local',
+    });
+
+    await expect(
+      repository.createRegisteredClient(makeNewUser({ email: 'nuevo2@example.com', phone: '888888' }))
+    ).rejects.toMatchObject({ message: 'Teléfono en uso.', statusCode: 409 });
+  });
+
+  it('debe registrar dos intentos concurrentes con el mismo email: uno gana, el otro recibe 409 (no un 500)', async () => {
+    const results = await Promise.allSettled([
+      repository.createRegisteredClient(makeNewUser({ email: 'concurrente@example.com', phone: '999001' })),
+      repository.createRegisteredClient(makeNewUser({ email: 'concurrente@example.com', phone: '999002' })),
+    ]);
+
+    const fulfilled = results.filter((r) => r.status === 'fulfilled');
+    const rejected = results.filter((r) => r.status === 'rejected');
+    expect(fulfilled).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    const rejection = (rejected[0] as PromiseRejectedResult).reason;
+    expect(rejection).toBeInstanceOf(AppError);
+    expect(rejection.statusCode).toBe(409);
   });
 });

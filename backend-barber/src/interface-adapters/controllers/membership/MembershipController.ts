@@ -20,20 +20,33 @@ export class MembershipController {
     private readonly mercadoPagoService?: IPaymentService
   ) {}
 
+  private async buildMembershipSummary(userId: string) {
+    const active = await this.membershipRepo.findActiveByUser(userId);
+    const pending = await this.membershipRepo.findPendingByUser(userId);
+    const history = await this.membershipRepo.findByUser(userId);
+    return {
+      active: active ? active.toPrimitives() : null,
+      pending: pending ? pending.toPrimitives() : null,
+      history: history.map((m) => m.toPrimitives()),
+    };
+  }
+
   getMyMembership = async (req: Request, res: Response) => {
     try {
-      const membership = await this.membershipRepo.findActiveByUser(req.user!._id);
+      const summary = await this.buildMembershipSummary(req.user!._id);
+      return sendSuccess(res, summary);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener membresía');
+    }
+  };
 
-      if (!membership) {
-        const history = await this.membershipRepo.findByUser(req.user!._id);
-        return sendSuccess(res, { active: null, history: history.map((m) => m.toPrimitives()) });
-      }
-
-      const history = await this.membershipRepo.findByUser(req.user!._id);
-      return sendSuccess(res, {
-        active: membership.toPrimitives(),
-        history: history.map((m) => m.toPrimitives()),
-      });
+  // Para que un admin/barbero vea la membresía de un cliente puntual desde su
+  // ficha (cupones canjeados, estado), sin exponer el listado completo de
+  // membresías (eso ya está detrás de authorize('Admin') en GET /).
+  getByUserId = async (req: Request, res: Response) => {
+    try {
+      const summary = await this.buildMembershipSummary(req.params.userId as string);
+      return sendSuccess(res, summary);
     } catch (error) {
       return sendError(res, error, 'Error al obtener membresía');
     }
@@ -42,6 +55,11 @@ export class MembershipController {
   create = async (req: Request, res: Response) => {
     try {
       const { userId, couponsTotal, productDiscount } = req.body;
+
+      const isStaff = req.user!.kind === 'Admin' || req.user!.kind === 'Empleado';
+      if (req.user!._id !== userId && !isStaff) {
+        throw new AppError('No podés crear una membresía para otro usuario.', 403);
+      }
 
       const user = await this.userRepo.findById(userId);
       if (!user) {
@@ -59,11 +77,11 @@ export class MembershipController {
         userId,
         createdBy,
         adminId: createdBy === 'admin' ? req.user!._id : undefined,
-        couponsTotal,
-        productDiscount,
+        couponsTotal: isStaff ? couponsTotal : undefined,
+        productDiscount: isStaff ? productDiscount : undefined,
       });
 
-      const saved = await this.membershipRepo.save(membership);
+      const saved = await this.membershipRepo.create(membership);
 
       return sendSuccess(res, saved.toPrimitives(), 201);
     } catch (error) {
@@ -166,7 +184,7 @@ export class MembershipController {
       }
 
       membership.cancel();
-      await this.membershipRepo.save(membership);
+      await this.membershipRepo.create(membership);
 
       return sendSuccess(res, { message: 'Suscripción cancelada exitosamente.' });
     } catch (error) {
@@ -189,30 +207,37 @@ export class MembershipController {
 
       const alreadyActive = await this.membershipRepo.hasActiveMembership(userId);
       if (alreadyActive) {
-        throw new AppError('El usuario ya tiene una membresía activa.', 400);
+        throw new AppError('Ya tenés una membresía activa o pendiente.', 400);
       }
 
       if (!this.createPaymentUseCase) {
         throw new AppError('MercadoPago no está configurado.', 500);
       }
 
-      const existingPayment = this.paymentRepository
-        ? await this.paymentRepository.findByReference(userId, 'membership')
-        : null;
-      if (existingPayment && existingPayment.status === 'pending' && existingPayment.mpPreferenceId) {
+      const existingPending = await this.membershipRepo.findPendingByUser(userId);
+      if (existingPending && existingPending.mpPreapprovalId) {
         return sendSuccess(res, {
-          preferenceId: existingPayment.mpPreferenceId,
+          preapprovalId: existingPending.mpPreapprovalId,
           initPoint: '',
-          paymentId: existingPayment.id,
+          membershipId: existingPending.id,
         });
       }
+
+      const membership = Membership.create({
+        userId,
+        createdBy: 'client',
+        status: 'pending',
+        price: getConfig().membershipPriceUyu,
+      });
+
+      const savedMembership = await this.membershipRepo.create(membership);
 
       const config = getConfig();
       const membershipPrice = config.membershipPriceUyu;
 
       const result = await this.createPaymentUseCase.execute({
         type: 'membership',
-        referenceId: userId,
+        referenceId: savedMembership.id,
         amount: membershipPrice,
         userId,
         items: [{ title: 'Membresía Mensual', quantity: 1, unitPrice: membershipPrice }],
@@ -224,9 +249,65 @@ export class MembershipController {
         initPoint: result.initPoint,
         sandboxInitPoint: result.sandboxInitPoint,
         paymentId: result.paymentId,
+        membershipId: savedMembership.id,
       }, 201);
     } catch (error) {
       return sendError(res, error, 'Error al iniciar pago de membresía');
+    }
+  };
+
+  requestLocal = async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+
+      if (req.user!._id !== userId) {
+        throw new AppError('No podés solicitar membresía para otro usuario.', 403);
+      }
+
+      const user = await this.userRepo.findById(userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado.', 404);
+      }
+
+      const alreadyActive = await this.membershipRepo.hasActiveMembership(userId);
+      if (alreadyActive) {
+        throw new AppError('Ya tenés una membresía activa o pendiente.', 400);
+      }
+
+      const membership = Membership.create({
+        userId,
+        createdBy: 'client',
+        status: 'pending',
+      });
+
+      const saved = await this.membershipRepo.create(membership);
+
+      return sendSuccess(res, saved.toPrimitives(), 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al solicitar membresía');
+    }
+  };
+
+  approvePending = async (req: Request, res: Response) => {
+    try {
+      const id = req.params.id as string;
+
+      const membership = await this.membershipRepo.findById(id);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+
+      if (!membership.isPending) {
+        throw new AppError('La membresía no está pendiente de pago.', 400);
+      }
+
+      const staffId = req.user!._id;
+      membership.approve(staffId);
+      const updated = await this.membershipRepo.approvePending(id, staffId);
+
+      return sendSuccess(res, (updated ?? membership).toPrimitives());
+    } catch (error) {
+      return sendError(res, error, 'Error al aprobar membresía');
     }
   };
 
@@ -240,14 +321,51 @@ export class MembershipController {
       }
 
       membership.redeemCoupon();
-      await this.membershipRepo.save(membership);
+      const updated = await this.membershipRepo.incrementCouponsUsed(membership.id, 1);
+      if (!updated) {
+        throw new AppError('No quedan cupones disponibles.', 409);
+      }
 
       return sendSuccess(res, {
-        remainingCoupons: membership.remainingCoupons,
-        couponsUsed: membership.couponsUsed,
+        remainingCoupons: updated.remainingCoupons,
+        couponsUsed: updated.couponsUsed,
       });
     } catch (error) {
       return sendError(res, error, 'Error al canjear cupón');
+    }
+  };
+
+  cancel = async (req: Request, res: Response) => {
+    try {
+      const membership = await this.membershipRepo.findById(req.params.id as string);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+      if (membership.userId !== req.user!._id) {
+        throw new AppError('No tenés permisos para cancelar esta membresía.', 403);
+      }
+      membership.cancel();
+      const updated = await this.membershipRepo.updateAutoRenew(membership.id, false);
+      return sendSuccess(res, (updated ?? membership).toPrimitives());
+    } catch (error) {
+      return sendError(res, error, 'Error al cancelar membresía');
+    }
+  };
+
+  reactivate = async (req: Request, res: Response) => {
+    try {
+      const membership = await this.membershipRepo.findById(req.params.id as string);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+      if (membership.userId !== req.user!._id) {
+        throw new AppError('No tenés permisos para reactivar esta membresía.', 403);
+      }
+      membership.reactivate();
+      const updated = await this.membershipRepo.updateAutoRenew(membership.id, true);
+      return sendSuccess(res, (updated ?? membership).toPrimitives());
+    } catch (error) {
+      return sendError(res, error, 'Error al reactivar membresía');
     }
   };
 }

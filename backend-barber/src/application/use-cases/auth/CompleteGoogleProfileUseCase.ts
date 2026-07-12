@@ -8,7 +8,7 @@ interface CompleteGoogleProfileDTO {
   partialToken: string;
   name: string;
   lastname?: string;
-  phone?: string;
+  phone: string;
 }
 import { IHashService } from '../../ports/IHashService';
 import { ITokenService } from '../../ports/ITokenService';
@@ -41,10 +41,7 @@ export class CompleteGoogleProfileUseCase {
       throw new AppError('El nombre es obligatorio', 400);
     }
 
-    const phone = dto.phone?.trim() || undefined;
-    if (phone) {
-      Phone.create(phone);
-    }
+    const phone = Phone.create(dto.phone).getValue();
 
     const user = User.create({
       id: '',

@@ -64,7 +64,8 @@ export const OrdersPage: React.FC = () => {
     hasta: hasta || undefined,
   });
   const { data: overview } = useGetEcommerceOverviewQuery(
-    desde || hasta ? { desde: desde || undefined, hasta: hasta || undefined } : {}
+    { desde, hasta },
+    { skip: !desde || !hasta },
   );
   const [updateStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
   const [deleteOrder, { isLoading: isDeleting }] = useDeleteOrderMutation();

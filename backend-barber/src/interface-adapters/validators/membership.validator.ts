@@ -25,3 +25,17 @@ export const createSubscriptionSchema = Joi.object({
   userId: Joi.string().required(),
   email: Joi.string().email().required(),
 });
+
+export const membershipIdParamSchema = Joi.object({
+  id: Joi.string().hex().length(24).required().messages({
+    'string.hex': 'ID inválido',
+    'any.required': 'ID es requerido',
+  }),
+});
+
+export const membershipUserIdParamSchema = Joi.object({
+  userId: Joi.string().hex().length(24).required().messages({
+    'string.hex': 'userId debe ser un ObjectId válido',
+    'any.required': 'userId es requerido',
+  }),
+});

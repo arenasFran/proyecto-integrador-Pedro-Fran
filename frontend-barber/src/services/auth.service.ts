@@ -34,6 +34,12 @@ export interface ResetPasswordData {
   email: string;
 }
 
+export interface ChangePasswordData {
+  currentPassword: string;
+  newPassword: string;
+  newPasswordConfirmation: string;
+}
+
 export interface LoginResponse {
   message: string;
   token: string;

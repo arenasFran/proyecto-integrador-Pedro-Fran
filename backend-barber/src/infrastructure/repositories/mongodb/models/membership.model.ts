@@ -10,10 +10,13 @@ export interface IMembershipDocument extends Document {
   couponsTotal: number;
   couponsUsed: number;
   productDiscount: number;
+  autoRenew: boolean;
   createdBy: MembershipSource;
   adminId?: mongoose.Types.ObjectId;
   mpPreapprovalId?: string;
   nextBillingDate?: Date;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,7 +31,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     },
     status: {
       type: String,
-      enum: ['active', 'expired', 'cancelled'],
+      enum: ['active', 'expired', 'cancelled', 'pending'],
       default: 'active',
     },
     price: { type: Number, required: true, default: 0 },
@@ -37,6 +40,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     couponsTotal: { type: Number, required: true, default: 4 },
     couponsUsed: { type: Number, required: true, default: 0 },
     productDiscount: { type: Number, required: true, default: 10 },
+    autoRenew: { type: Boolean, default: true },
     createdBy: {
       type: String,
       enum: ['client', 'admin'],
@@ -51,6 +55,14 @@ const membershipSchema = new Schema<IMembershipDocument>(
       required: false,
     },
     nextBillingDate: {
+      type: Date,
+      required: false,
+    },
+    approvedBy: {
+      type: String,
+      required: false,
+    },
+    approvedAt: {
       type: Date,
       required: false,
     },

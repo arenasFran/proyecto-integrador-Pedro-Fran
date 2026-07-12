@@ -12,12 +12,21 @@ import {
   rescheduleAppointmentSchema,
   updateAppointmentStatusSchema,
   changeBarberSchema,
+  searchClientsQuerySchema,
 } from '../validators/appointment.validator';
 
 const anonymousLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
   message: { error: 'Demasiados intentos. Esperá 15 minutos.' },
+});
+
+const rescheduleMutationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Demasiadas solicitudes de reprogramación. Esperá 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 export const createAppointmentRouter = (deps: {
@@ -49,6 +58,14 @@ export const createAppointmentRouter = (deps: {
   );
 
   router.get(
+    '/clients/search',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ query: searchClientsQuerySchema }),
+    deps.appointmentController.searchClients
+  );
+
+  router.get(
     '/:id',
     deps.authenticate,
     validate({ params: appointmentIdParamSchema }),
@@ -73,6 +90,7 @@ export const createAppointmentRouter = (deps: {
   router.patch(
     '/:id/reschedule',
     deps.authenticate,
+    rescheduleMutationLimiter,
     validate({ params: appointmentIdParamSchema, body: rescheduleAppointmentSchema }),
     deps.appointmentController.reschedule
   );

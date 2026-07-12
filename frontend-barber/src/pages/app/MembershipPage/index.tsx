@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard } from 'react-icons/fi';
+import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiRefreshCw, FiDollarSign } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
-import { AnimatedContainer, Spinner, Button } from '../../../components/common';
-import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation } from '../../../services/membershipApi';
+import { AnimatedContainer, Spinner, Button, ConfirmModal } from '../../../components/common';
+import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation, useCancelMembershipMutation, useReactivateMembershipMutation, useInitiateMembershipPaymentMutation, useRequestLocalPaymentMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 
@@ -11,15 +11,22 @@ export default function MembershipPage() {
   const kind = getTokenKind(token);
 
   const { data, isLoading } = useGetMyMembershipQuery();
-  const [createSubscription, { isLoading: isCreating }] = useCreateSubscriptionMutation();
+  const [createSubscription, { isLoading: isCreatingSub }] = useCreateSubscriptionMutation();
   const [cancelSubscription] = useCancelSubscriptionMutation();
-  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
+  const [cancelMembership, { isLoading: isCancelling }] = useCancelMembershipMutation();
+  const [reactivateMembership, { isLoading: isReactivating }] = useReactivateMembershipMutation();
+  const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
+  const [requestLocal, { isLoading: isRequestingLocal }] = useRequestLocalPaymentMutation();
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<'cancel' | 'reactivate' | null>(null);
+  const [cancellingSub, setCancellingSub] = useState(false);
 
   if (!token) return <Navigate to="/login" replace />;
   if (kind === 'Admin' || kind === 'Empleado') return <Navigate to="/admin/membresias" replace />;
 
   const active = data?.active;
+  const pending = data?.pending;
   const history = data?.history ?? [];
 
   const formatDate = (dateStr: string) => {
@@ -34,7 +41,7 @@ export default function MembershipPage() {
 
   const isSubscription = active?.mpPreapprovalId != null;
 
-  const handlePurchase = async () => {
+  const handlePurchaseOnline = async () => {
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
       const result = await createSubscription({ userId: user.id, email: user.email }).unwrap();
@@ -42,18 +49,62 @@ export default function MembershipPage() {
         window.open(result.initPoint, '_blank', 'noopener,noreferrer');
       }
     } catch {
+      showToast('Error al crear la suscripción. Intentá de nuevo.', 'error');
+    }
+  };
+
+  const handlePayOnline = async () => {
+    try {
+      const user = JSON.parse(atob(token.split('.')[1]));
+      const result = await initiatePayment({ userId: user.id }).unwrap();
+      if (result.initPoint) {
+        window.open(result.initPoint, '_blank', 'noopener,noreferrer');
+      }
+    } catch {
+      showToast('Error al procesar el pago. Intentá de nuevo.', 'error');
+    }
+  };
+
+  const handleRequestLocal = async () => {
+    try {
+      const user = JSON.parse(atob(token.split('.')[1]));
+      await requestLocal({ userId: user.id }).unwrap();
+    } catch {
     }
   };
 
   const handleCancelSubscription = async () => {
     if (!active) return;
-    setCancelling(true);
+    setCancellingSub(true);
     try {
       await cancelSubscription(active.id).unwrap();
     } catch {
     } finally {
-      setCancelling(false);
-      setShowCancelConfirm(false);
+      setCancellingSub(false);
+    }
+  };
+
+  const openModal = (action: 'cancel' | 'reactivate') => {
+    setModalAction(action);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setModalAction(null);
+  };
+
+  const handleConfirm = async () => {
+    if (!modalAction || !active) return;
+    try {
+      if (modalAction === 'cancel') {
+        await cancelMembership(active.id).unwrap();
+      } else {
+        await reactivateMembership(active.id).unwrap();
+      }
+      closeModal();
+    } catch {
+      closeModal();
     }
   };
 
@@ -148,22 +199,33 @@ export default function MembershipPage() {
                   <p className="text-[11px] text-[#22C55E] mt-1">Se aplica automáticamente al comprar en la tienda</p>
                 </div>
 
+                <div className="mt-4 rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <FiRefreshCw className="text-[#FF5C00] text-sm" />
+                    <span className="text-[11px] text-[#8A8A8A]">Renovación automática</span>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`flex h-2.5 w-2.5 rounded-full ${active.autoRenew ? 'bg-[#22C55E]' : 'bg-[#8A8A8A]'}`} />
+                    <span className={`text-[14px] font-semibold ${active.autoRenew ? 'text-[#22C55E]' : 'text-[#8A8A8A]'}`}>
+                      {active.autoRenew ? 'Activada' : 'Desactivada'}
+                    </span>
+                  </div>
+                  {active.autoRenew ? (
+                    <Button variant="danger" onClick={() => openModal('cancel')} loading={isCancelling}>
+                      Cancelar renovación
+                    </Button>
+                  ) : (
+                    <Button variant="primary" onClick={() => openModal('reactivate')} loading={isReactivating}>
+                      Reactivar renovación
+                    </Button>
+                  )}
+                </div>
+
                 {isSubscription && (
                   <div className="mt-4 flex justify-end">
-                    {showCancelConfirm ? (
-                      <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={() => setShowCancelConfirm(false)} disabled={cancelling}>
-                          Volver
-                        </Button>
-                        <Button variant="danger" onClick={handleCancelSubscription} loading={cancelling}>
-                          Confirmar cancelación
-                        </Button>
-                      </div>
-                    ) : (
-                      <Button variant="danger" onClick={() => setShowCancelConfirm(true)}>
-                        Cancelar suscripción
-                      </Button>
-                    )}
+                    <Button variant="danger" onClick={handleCancelSubscription} loading={cancellingSub}>
+                      Cancelar suscripción en Mercado Pago
+                    </Button>
                   </div>
                 )}
               </div>
@@ -186,7 +248,7 @@ export default function MembershipPage() {
                           </div>
                           <div>
                             <p className="text-[13px] text-white font-medium">
-                              {m.status === 'expired' ? 'Vencida' : 'Cancelada'}
+                              {m.status === 'expired' ? 'Vencida' : m.status === 'cancelled' ? 'Cancelada' : m.status}
                             </p>
                             <p className="text-[11px] text-[#8A8A8A]">{formatDate(m.startDate)} - {formatDate(m.endDate)}</p>
                           </div>
@@ -201,6 +263,31 @@ export default function MembershipPage() {
               </AnimatedContainer>
             )}
           </>
+        ) : pending ? (
+          <AnimatedContainer animation="fadeInUp" delay={0.1}>
+            <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-8 text-center">
+              <div className="flex justify-center mb-6">
+                <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-[#FF5C00]/10">
+                  <FiClock className="text-[#FF5C00] text-4xl" />
+                </div>
+              </div>
+              <h2 className="text-[22px] font-bold text-white mb-2">Membresía pendiente</h2>
+              <p className="text-[14px] text-[#8A8A8A] max-w-md mx-auto mb-8">
+                {pending.createdBy === 'client'
+                  ? 'Solicitaste una membresía. Una vez que el pago sea confirmado, se activará automáticamente.'
+                  : 'Tu solicitud de membresía está pendiente de aprobación por el personal.'}
+              </p>
+              <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-4 max-w-sm mx-auto">
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-[#8A8A8A]">Estado</span>
+                  <span className="flex items-center gap-1 text-[13px] text-[#FFB800]">
+                    <span className="flex h-2 w-2 rounded-full bg-[#FFB800]" />
+                    Pendiente
+                  </span>
+                </div>
+              </div>
+            </div>
+          </AnimatedContainer>
         ) : (
           <AnimatedContainer animation="fadeInUp" delay={0.1}>
             <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-8 text-center">
@@ -227,19 +314,31 @@ export default function MembershipPage() {
                 </div>
               </div>
 
-              <div className="text-[13px] text-[#8A8A8A] mb-6">
-                <FiCreditCard className="inline mr-1" />
-                Pago mensual recurrente. Podés cancelar cuando quieras.
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto mb-8">
+                <Button
+                  loading={isCreatingSub}
+                  onClick={handlePurchaseOnline}
+                  icon={FiCreditCard}
+                >
+                  Suscribirme online
+                </Button>
+                <Button
+                  loading={isRequestingLocal}
+                  onClick={handleRequestLocal}
+                  icon={FiDollarSign}
+                  variant="secondary"
+                >
+                  Pago en local
+                </Button>
               </div>
-
-              <Button loading={isCreating} onClick={handlePurchase}>
-                Suscribirme por $399/mes
-              </Button>
+              <p className="text-[11px] text-[#8A8A8A]">
+                Suscripción mensual recurrente por $399/mes. Podés cancelar cuando quieras.
+              </p>
             </div>
           </AnimatedContainer>
         )}
 
-        {history.length > 0 && !active && (
+        {history.length > 0 && !active && !pending && (
           <AnimatedContainer animation="fadeInUp" delay={0.2}>
             <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6 mt-6">
               <h3 className="text-[15px] font-semibold text-white mb-4">Membresías anteriores</h3>
@@ -266,6 +365,21 @@ export default function MembershipPage() {
           </AnimatedContainer>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        onConfirm={handleConfirm}
+        title={modalAction === 'cancel' ? 'Cancelar renovación' : 'Reactivar renovación'}
+        message={
+          modalAction === 'cancel'
+            ? 'Al cancelar la renovación automática, tu membresía seguirá activa hasta la fecha de vencimiento pero no se renovará. ¿Querés continuar?'
+            : 'Vas a reactivar la renovación automática de tu membresía. Al vencer, se renovará automáticamente. ¿Querés continuar?'
+        }
+        confirmText={modalAction === 'cancel' ? 'Cancelar renovación' : 'Reactivar'}
+        variant={modalAction === 'cancel' ? 'danger' : 'primary'}
+        loading={isCancelling || isReactivating}
+      />
     </div>
   );
 }

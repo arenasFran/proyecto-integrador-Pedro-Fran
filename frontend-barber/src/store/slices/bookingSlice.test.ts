@@ -85,7 +85,12 @@ vi.mock('../../services/appointmentApi', () => ({
   },
 }));
 
-const mockBarber = { id: 'b1', name: 'Carlos', lastname: 'López', services: ['s1'], photoUrl: null, isActive: true, slotDuration: 30, maxAdvanceDays: 30 };
+const workingDay = { startTime: '09:00', endTime: '18:00', breaks: [] };
+const mockSchedule = {
+  monday: workingDay, tuesday: workingDay, wednesday: workingDay, thursday: workingDay,
+  friday: workingDay, saturday: workingDay, sunday: { startTime: null, endTime: null, breaks: [] },
+};
+const mockBarber = { id: 'b1', name: 'Carlos', lastname: 'López', services: ['s1'], photoUrl: null, isActive: true, slotDuration: 30, maxAdvanceDays: 30, schedule: mockSchedule };
 const mockService = { id: 's1', name: 'Corte', description: '', price: 500, imageUrl: '', status: 'active' as const };
 
 function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
@@ -263,6 +268,15 @@ describe('bookingSlice', () => {
       await store.dispatch(fetchAvailableSlots({ barberId: 'b1', date: '2025-06-16' }));
       const state = store.getState().booking;
       expect(state.async.slotsError).toBe('Sin horarios');
+    });
+
+    it('fulfilled asigna slotsReason cuando no hay slots disponibles', async () => {
+      mockProfessionalService.getSlots.mockResolvedValueOnce({ date: '2025-06-16', slots: [], reason: 'already-past' });
+      const store = createStore();
+      await store.dispatch(fetchAvailableSlots({ barberId: 'b1', date: '2025-06-16' }));
+      const state = store.getState().booking;
+      expect(state.async.availableSlots).toEqual([]);
+      expect(state.async.slotsReason).toBe('already-past');
     });
   });
 

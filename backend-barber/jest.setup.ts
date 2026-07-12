@@ -11,6 +11,17 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 let mongoServer: MongoMemoryServer | null = null;
 let mongoReady = false;
 
+const clearAllCollections = async () => {
+  if (!mongoReady || mongoose.connection.readyState !== 1) {
+    return;
+  }
+
+  const collections = mongoose.connection.collections;
+  for (const key of Object.keys(collections)) {
+    await collections[key].deleteMany({});
+  }
+};
+
 beforeAll(async () => {
 
   const externalUri = process.env.MONGO_URI;
@@ -31,22 +42,16 @@ beforeAll(async () => {
     console.warn('Mongo no disponible, se omiten tests de integracion.', error);
   }
 
+  // Evita que datos preexistentes de una DB externa (p.ej. un cluster de desarrollo
+  // apuntado por MONGO_URI) contaminen el primer test que corre en la suite.
+  await clearAllCollections();
 });
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
-afterEach(async () => {
-  if (!mongoReady || mongoose.connection.readyState !== 1) {
-    return;
-  }
-
-  const collections = mongoose.connection.collections;
-  for (const key of Object.keys(collections)) {
-    await collections[key].deleteMany({});
-  }
-});
+afterEach(clearAllCollections);
 
 afterAll(async () => {
   if (mongoose.connection.readyState === 1) {

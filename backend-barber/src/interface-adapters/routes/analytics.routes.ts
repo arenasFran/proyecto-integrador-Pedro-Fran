@@ -13,6 +13,7 @@ import {
   clientesRecurrentesQuerySchema,
   ingresosServicioQuerySchema,
   clientesListQuerySchema,
+  nuevosClientesQuerySchema,
 } from '../validators/analytics.validator';
 
 export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
@@ -93,9 +94,17 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
   router.get(
     '/clientes',
     authenticate,
-    authorize('Admin'),
+    authorize('Admin', 'Empleado'),
     validate({ query: clientesListQuerySchema }),
     controller.getClientesListHandler,
+  );
+
+  router.get(
+    '/clientes-nuevos',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: nuevosClientesQuerySchema }),
+    controller.getNuevosClientesHandler,
   );
 
   router.get(

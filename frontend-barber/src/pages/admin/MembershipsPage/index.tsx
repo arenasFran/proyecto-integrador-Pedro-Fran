@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { FiAward, FiPlus, FiSearch, FiCalendar, FiUser } from 'react-icons/fi';
-import { AnimatedContainer, Button, Pagination, Select, Spinner } from '../../../components/common';
-import { useGetAllMembershipsQuery } from '../../../services/membershipApi';
+import { FiAward, FiPlus, FiSearch, FiCalendar, FiUser, FiCheck } from 'react-icons/fi';
+import { AnimatedContainer, Button, Pagination, Select, Spinner, useToast } from '../../../components/common';
+import { useGetAllMembershipsQuery, useApprovePendingMembershipMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 import { CreateMembershipModal } from './components/CreateMembershipModal';
@@ -11,6 +11,7 @@ import type { MembershipStatus } from '../../../types/membership';
 const STATUS_FILTERS = [
   { value: '', label: 'Todas' },
   { value: 'active', label: 'Activas' },
+  { value: 'pending', label: 'Pendientes' },
   { value: 'expired', label: 'Vencidas' },
   { value: 'cancelled', label: 'Canceladas' },
 ];
@@ -18,11 +19,13 @@ const STATUS_FILTERS = [
 const statusBadge = (status: MembershipStatus) => {
   const styles: Record<MembershipStatus, string> = {
     active: 'bg-[#22C55E]/10 text-[#22C55E]',
+    pending: 'bg-[#FFB800]/10 text-[#FFB800]',
     expired: 'bg-[#8A8A8A]/10 text-[#8A8A8A]',
     cancelled: 'bg-red-500/10 text-red-400',
   };
   const labels: Record<MembershipStatus, string> = {
     active: 'Activa',
+    pending: 'Pendiente',
     expired: 'Vencida',
     cancelled: 'Cancelada',
   };
@@ -36,10 +39,13 @@ const statusBadge = (status: MembershipStatus) => {
 export default function MembershipsPage() {
   const token = getAccessToken();
   const kind = getTokenKind(token);
+  const { showToast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+
+  const [approvePending, { isLoading: isApproving }] = useApprovePendingMembershipMutation();
 
   const handleStatusFilter = (v: string) => {
     setStatusFilter(v);
@@ -64,6 +70,15 @@ export default function MembershipsPage() {
   if (!token || (kind !== 'Admin' && kind !== 'Empleado')) {
     return <Navigate to="/login" replace />;
   }
+
+  const handleApprove = async (id: string) => {
+    try {
+      await approvePending(id).unwrap();
+      showToast('Membresía aprobada correctamente', 'success');
+    } catch {
+      showToast('Error al aprobar la membresía', 'error');
+    }
+  };
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -160,6 +175,11 @@ export default function MembershipsPage() {
                     <span className="text-white">{formatDate(m.createdAt)}</span>
                   </div>
                 </div>
+                {m.status === 'pending' && (
+                  <Button icon={FiCheck} variant="primary" onClick={() => handleApprove(m.id)} loading={isApproving} size="sm">
+                    Marcar como pagada
+                  </Button>
+                )}
               </div>
             ))}
           </div>
@@ -174,6 +194,7 @@ export default function MembershipsPage() {
                   <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Cupones</th>
                   <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Vigencia</th>
                   <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Creada</th>
+                  <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase tracking-wider font-medium">Acción</th>
                 </tr>
               </thead>
               <tbody>
@@ -205,6 +226,13 @@ export default function MembershipsPage() {
                     </td>
                     <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">
                       {formatDate(m.createdAt)}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {m.status === 'pending' && (
+                        <Button icon={FiCheck} variant="primary" onClick={() => handleApprove(m.id)} loading={isApproving} size="sm">
+                          Pagada
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}

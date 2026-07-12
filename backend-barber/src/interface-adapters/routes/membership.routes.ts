@@ -10,6 +10,8 @@ import {
   queryMembershipsSchema,
   initiateMembershipPaymentSchema,
   createSubscriptionSchema,
+  membershipIdParamSchema,
+  membershipUserIdParamSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -58,6 +60,15 @@ export const createMembershipRouter = (deps: {
   );
 
   router.get(
+    '/user/:userId',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ params: membershipUserIdParamSchema }),
+    deps.membershipController.getByUserId
+  );
+
+  router.get(
     '/:id',
     deps.authenticate,
     authorize('Admin'),
@@ -96,6 +107,40 @@ export const createMembershipRouter = (deps: {
     authorize('Admin', 'Empleado'),
     validate({ body: redeemCouponSchema }),
     deps.membershipController.redeemCoupon
+  );
+
+  router.post(
+    '/:id/cancel',
+    membershipMutationLimiter,
+    deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.cancel
+  );
+
+  router.post(
+    '/:id/reactivate',
+    membershipMutationLimiter,
+    deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.reactivate
+  );
+
+  router.post(
+    '/request-local',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    validate({ body: initiateMembershipPaymentSchema }),
+    deps.membershipController.requestLocal
+  );
+
+  router.post(
+    '/:id/approve',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.approvePending
   );
 
   return router;

@@ -133,6 +133,7 @@ export async function seedAppointment(overrides: {
   barberId: string;
   clientId?: string;
   clientEmail?: string;
+  clientPhone?: string;
   date?: string;
   startTime?: string;
   status?: string;
@@ -144,7 +145,7 @@ export async function seedAppointment(overrides: {
     clientId: overrides.clientId ? new mongoose.Types.ObjectId(overrides.clientId) : undefined,
     clientName: 'Juan',
     clientLastname: 'Perez',
-    clientPhone: '099333333',
+    clientPhone: overrides.clientPhone ?? '099333333',
     clientEmail: overrides.clientEmail !== undefined ? overrides.clientEmail : 'cliente@test.com',
     serviceId: overrides.serviceId || SERVICE_ID,
     serviceName: 'Corte de pelo',

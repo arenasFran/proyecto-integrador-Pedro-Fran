@@ -94,6 +94,14 @@ export const authApi = createApi({
         data,
       }),
     }),
+
+    changePassword: builder.mutation<{ message: string }, { currentPassword: string; newPassword: string; newPasswordConfirmation: string }>({
+      query: (data) => ({
+        url: '/api/users/me/password',
+        method: 'PATCH',
+        data,
+      }),
+    }),
   }),
 });
 
@@ -109,4 +117,5 @@ export const {
   useRequestResetMutation,
   useResetPasswordMutation,
   useLogoutMutation,
+  useChangePasswordMutation,
 } = authApi;

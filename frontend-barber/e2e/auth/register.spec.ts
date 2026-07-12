@@ -9,7 +9,7 @@ test('registro exitoso', async ({ page }) => {
   await page.getByPlaceholder('Nombre').fill(user.name);
   await page.getByPlaceholder('Apellido').fill(user.lastname);
   await page.getByPlaceholder('correo@email.com').fill(user.email);
-  await page.getByPlaceholder('+54 9 11 1234 5678').fill(user.phone);
+  await page.getByPlaceholder('598 91 234 567').fill(user.phone);
   await page.getByPlaceholder('Mínimo 8 caracteres, mayúscula, minúscula y número').fill(user.password);
   await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
 

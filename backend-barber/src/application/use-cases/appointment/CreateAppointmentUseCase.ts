@@ -11,6 +11,8 @@ import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
 import { CreatePaymentUseCase } from '../../use-cases/payment/CreatePaymentUseCase';
+import { Phone } from '../../../domain/value-objects/Phone';
+import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
 type CreateAppointmentDTO = {
   barberId: string;
@@ -31,8 +33,6 @@ type CreateAppointmentResult = {
   message: string;
   appointment: AppointmentProps;
   preferenceId?: string;
-  initPoint?: string;
-  sandboxInitPoint?: string;
 };
 import {
   toMinutes,
@@ -41,6 +41,8 @@ import {
   getNowDateInTimezone,
   validateAppointmentSlot,
 } from '../../../domain/utils/time';
+
+const MAX_ACTIVE_APPOINTMENTS = 10;
 
 export class CreateAppointmentUseCase {
   constructor(
@@ -56,6 +58,9 @@ export class CreateAppointmentUseCase {
   ) {}
 
   async execute(dto: CreateAppointmentDTO): Promise<CreateAppointmentResult> {
+    if (dto.clientPhone) {
+      dto.clientPhone = Phone.create(dto.clientPhone).getValue();
+    }
     const nowInTz = getNowInTimezone();
 
     // RN01 — Fecha y hora no pueden estar en el pasado
@@ -104,11 +109,9 @@ export class CreateAppointmentUseCase {
       dto.clientId = unregisteredClient.id;
     }
 
-    // RN15 — Máximo 1 turno activo por cliente
-    await this.validateMaxOneActive(dto, undefined, !!dto.clientId);
-
     const now = getNowDateInTimezone();
     const paymentMethod = dto.paymentMethod || 'local';
+    const creationActor = await this.resolveCreationActor(dto);
 
     let needsMembershipRedeem = false;
     if (paymentMethod === 'memberPass') {
@@ -137,7 +140,7 @@ export class CreateAppointmentUseCase {
       paymentStatus: paymentMethod === 'memberPass' ? 'Pagado' : 'Pendiente',
       paymentMethod,
       createdBy: dto.createdBy,
-      statusHistory: [{ status: 'Confirmado', timestamp: now, actor: 'system' }],
+      statusHistory: [{ status: 'Confirmado', timestamp: now, actor: creationActor }],
       version: 0,
       createdAt: now,
       updatedAt: now,
@@ -149,13 +152,16 @@ export class CreateAppointmentUseCase {
     try {
       session.startTransaction();
 
+      // RN15 — Máximo MAX_ACTIVE_APPOINTMENTS turnos activos por cliente
+      await this.validateActiveAppointmentsLimit(dto, session);
+
       if (needsMembershipRedeem) {
         const membership = await this.membershipRepository.findActiveByUser(dto.clientId!, session);
         if (!membership) {
           throw new AppError('No tenés una membresía activa.', 400);
         }
         membership.redeemCoupon();
-        await this.membershipRepository.save(membership, session);
+        await this.membershipRepository.incrementCouponsUsed(membership.id, 1, session);
       }
 
       // RN04 — Colisión con otros turnos activos
@@ -192,14 +198,7 @@ export class CreateAppointmentUseCase {
       }
 
       // Crear el turno
-      try {
-        created = await this.appointmentRepository.create(appointment.toPrimitives(), session);
-      } catch (error: any) {
-        if (error?.code === 11000) {
-          throw new AppError('El horario ya está ocupado.', 409);
-        }
-        throw error;
-      }
+      created = await this.appointmentRepository.create(appointment.toPrimitives(), session);
 
       // Eliminar TempLock si existe
       if (dto.tempLockId) {
@@ -231,8 +230,6 @@ export class CreateAppointmentUseCase {
           message: 'Turno creado exitosamente. Redirigiendo al pago...',
           appointment: created!.toPrimitives(),
           preferenceId: paymentResult.preferenceId,
-          initPoint: paymentResult.initPoint,
-          sandboxInitPoint: paymentResult.sandboxInitPoint,
         };
       } catch (error) {
         const errMsg = error instanceof Error ? error.message : 'Error desconocido';
@@ -257,6 +254,16 @@ export class CreateAppointmentUseCase {
     };
   }
 
+  private async resolveCreationActor(dto: CreateAppointmentDTO): Promise<string> {
+    if (dto.createdBy?.type === 'staff' && dto.createdBy.userId) {
+      const staffMember = await this.barberRepository.findBarberById(dto.createdBy.userId);
+      if (staffMember) {
+        return `${staffMember.name} ${staffMember.lastname}`;
+      }
+    }
+    return `${dto.clientName} ${dto.clientLastname}`;
+  }
+
   private async findOrCreateUnregisteredClient(
     dto: CreateAppointmentDTO
   ): Promise<import('../../../domain/entities/Client').Client> {
@@ -276,42 +283,25 @@ export class CreateAppointmentUseCase {
     });
   }
 
-  async validateMaxOneActive(
+  async validateActiveAppointmentsLimit(
     dto: CreateAppointmentDTO,
-    excludeAppointmentId: string | undefined,
-    isRegistered: boolean
+    session?: mongoose.ClientSession
   ): Promise<void> {
-    let activeAppointments: import('../../../domain/entities/Appointment').Appointment[] = [];
+    let appointments: import('../../../domain/entities/Appointment').Appointment[] = [];
 
     if (dto.clientId) {
-      activeAppointments = await this.appointmentRepository.findByClientId(dto.clientId);
+      appointments = await this.appointmentRepository.findByClientId(dto.clientId, session);
     } else if (dto.clientEmail && dto.clientPhone) {
-      activeAppointments = await this.appointmentRepository.findByContact(dto.clientEmail, dto.clientPhone);
+      appointments = await this.appointmentRepository.findByContact(dto.clientEmail, dto.clientPhone, session);
     }
 
-    const filtered = excludeAppointmentId
-      ? activeAppointments.filter((a) => a.id !== excludeAppointmentId)
-      : activeAppointments;
+    const activeCount = appointments.filter((a) => a.status === 'Confirmado').length;
 
-    const now = getNowDateInTimezone();
-    const hasActive = filtered.some((a) => {
-      if (a.status !== 'Confirmado') return false;
-      const appointmentEnd = new Date(`${a.date}T${a.endTime}:00`);
-      return appointmentEnd > now;
-    });
-
-    if (hasActive) {
-      if (isRegistered) {
-        throw new AppError(
-          'Ya tenés un turno activo. Reagendalo desde Mis Turnos.',
-          409
-        );
-      } else {
-        throw new AppError(
-          'Ya tenés un turno activo con estos datos. Registrate para poder reagendarlo.',
-          409
-        );
-      }
+    if (activeCount >= MAX_ACTIVE_APPOINTMENTS) {
+      throw new AppError(
+        `Alcanzaste el máximo de ${MAX_ACTIVE_APPOINTMENTS} turnos activos. Esperá a que se completen algunos antes de reservar otro.`,
+        409
+      );
     }
   }
 
@@ -332,18 +322,18 @@ export class CreateAppointmentUseCase {
       paymentHtml = '<p>Estado de pago: Pendiente — abonás en el local</p>';
     }
 
-    this.emailService
-      .sendMail({
+    void sendMailWithRetry(
+      this.emailService,
+      {
         to: clientEmail,
         subject: 'Turno agendado',
         html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
 <p>Servicio: ${appointment.serviceName}</p>
 <p>Precio: $${appointment.servicePrice}</p>
 ${paymentHtml}`,
-      })
-      .catch((error) => {
-        console.error('Error enviando email de creación:', error);
-      });
+      },
+      'Error enviando email de creación'
+    );
   }
 }
 

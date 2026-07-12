@@ -5,7 +5,9 @@ import { MongoAppointmentRepository } from '../infrastructure/repositories/mongo
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoRefreshTokenRepository } from '../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
+import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { BcryptPasswordHasher } from '../infrastructure/services/BcryptPasswordHasher';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { JwtTokenService } from '../infrastructure/services/JwtTokenService';
@@ -31,13 +33,14 @@ export const buildBarberRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
   const tempLockRepository = new MongoTempLockRepository();
   const blockRepository = new MongoBarberBlockRepository();
+  const membershipRepository = new MongoMembershipRepository();
   const passwordHasher = new BcryptPasswordHasher();
   const tokenService = buildTokenService();
   const emailService = new NodemailerEmailService();
 
   const slotService = new SlotService();
   const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository, blockRepository);
-  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService);
+  const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService, membershipRepository);
 
   const barberController = new BarberController(
     barberRepository,
@@ -46,7 +49,8 @@ export const buildBarberRouter = () => {
     getAvailableSlots,
     deleteBarber,
     blockRepository,
-    appointmentRepository
+    appointmentRepository,
+    emailService
   );
 
   const authenticate = createAuthenticate(tokenService);
@@ -65,6 +69,7 @@ export const buildUserRouter = () => {
   const config = getConfig();
   const userRepository = new MongoUserRepository();
   const passwordHasher = new BcryptPasswordHasher();
+  const refreshTokenRepository = new MongoRefreshTokenRepository();
   const tokenService = new JwtTokenService({
     accessSecret: config.jwtAccessSecret,
     refreshSecret: config.jwtRefreshSecret,
@@ -75,7 +80,8 @@ export const buildUserRouter = () => {
     audience: config.jwtAudience,
   });
 
-  const userController = new UserController(userRepository, passwordHasher);
+  const emailService = new NodemailerEmailService();
+  const userController = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
   const authenticate = createAuthenticate(tokenService);
 
   return createUserRouter({ authenticate, userController });
@@ -83,7 +89,8 @@ export const buildUserRouter = () => {
 
 export const buildUploadRouter = () => {
   const cloudinaryService = new CloudinaryService();
-  const uploadController = new UploadController(cloudinaryService);
+  const userRepository = new MongoUserRepository();
+  const uploadController = new UploadController(cloudinaryService, userRepository);
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);
 

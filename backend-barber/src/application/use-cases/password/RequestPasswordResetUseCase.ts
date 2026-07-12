@@ -22,14 +22,14 @@ export class RequestPasswordResetUseCase {
     const email = Email.create(dto.email).getValue();
     const user = await this.userRepository.findByEmail(email);
 
-    if (user) {
+    if (user && user.authProvider === 'local') {
       const token = crypto.randomBytes(32).toString('hex');
       const tokenHash = this.hashService.sha256(token);
       const expiresAt = new Date(
         new Date().getTime() + this.expirationMinutes * 60 * 1000
       );
 
-      const url = `${this.frontendUrl}/reset-password?token=${token}`;
+      const url = `${this.frontendUrl}/recovery?token=${token}&email=${encodeURIComponent(user.email)}`;
       const subject = 'Restablece tu contraseña';
       const html = `<p>Para restablecer tu contraseña haz clic <a href="${url}">aquí</a>.</p>`;
 

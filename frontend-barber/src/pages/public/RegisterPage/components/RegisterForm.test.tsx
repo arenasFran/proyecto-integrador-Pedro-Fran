@@ -5,7 +5,7 @@ import { RegisterForm } from './RegisterForm';
 import { renderWithProviders } from '../../../../test/utils';
 
 const mockRegisterFn = vi.hoisted(() => vi.fn());
-const mockUseRegisterMutation = vi.hoisted(() => vi.fn(() => [mockRegisterFn, { isLoading: false, error: null }]));
+const mockUseRegisterMutation = vi.hoisted(() => vi.fn(() => [mockRegisterFn, { isLoading: false, error: null as Error | null }]));
 
 const mockEndpointMatcher = vi.hoisted(() => vi.fn(() => false));
 
@@ -36,7 +36,7 @@ const fillRegisterForm = async () => {
   await user.type(screen.getByLabelText(/nombre/i), 'John');
   await user.type(screen.getByLabelText(/apellido/i), 'Doe');
   await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-  await user.type(screen.getByLabelText(/teléfono/i), '+54 9 11 1234 5678');
+  await user.type(screen.getByLabelText(/teléfono/i), '598 91 234 567');
   await user.type(screen.getByLabelText(/contraseña/i), 'Password1!');
   await user.type(screen.getByLabelText(/confirmar/i), 'Password1!');
 };

@@ -13,7 +13,7 @@ type CreateMembershipModalProps = {
 export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ isOpen, onClose }) => {
   const { showToast } = useToast();
   const [search, setSearch] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [selectedClient, setSelectedClient] = useState<ClienteData | null>(null);
   const [createMembership, { isLoading }] = useCreateMembershipMutation();
 
   const desde = useMemo(() => {
@@ -26,26 +26,26 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
     return d.toISOString().split('T')[0];
   }, []);
 
-  const { data: clients = [] } = useGetClientesListQuery({ desde, hasta });
+  const { data: clients = [] } = useGetClientesListQuery({ desde, hasta }, { skip: !isOpen });
 
   const filtered = (search
     ? clients.filter(
         (c: ClienteData) =>
-          c.clientId !== null && (
+          c.kind === 'Registrado' && (
             c.clientName.toLowerCase().includes(search.toLowerCase()) ||
             c.clientLastname.toLowerCase().includes(search.toLowerCase()) ||
             (c.clientEmail ?? '').toLowerCase().includes(search.toLowerCase())
           )
       )
-    : clients.filter((c: ClienteData) => c.clientId !== null)
+    : clients.filter((c: ClienteData) => c.kind === 'Registrado')
   );
 
   const handleCreate = async () => {
-    if (!selectedUserId) return;
+    if (!selectedClient?.clientId) return;
     try {
-      await createMembership({ userId: selectedUserId }).unwrap();
+      await createMembership({ userId: selectedClient.clientId }).unwrap();
       showToast('Membresía creada correctamente', 'success');
-      setSelectedUserId(null);
+      setSelectedClient(null);
       setSearch('');
       onClose();
     } catch {
@@ -59,11 +59,11 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
         <Input
           label="Buscar cliente"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setSelectedUserId(null); }}
+          onChange={(e) => { setSearch(e.target.value); setSelectedClient(null); }}
           placeholder="Nombre, apellido o email..."
         />
 
-        {!selectedUserId && (
+        {!selectedClient && (
           <div className="max-h-48 overflow-y-auto rounded-[12px] border border-[#282828] bg-[#1A1A1A]">
             {filtered.length === 0 ? (
               <p className="text-[13px] text-[#8A8A8A] p-4 text-center">No se encontraron clientes</p>
@@ -71,7 +71,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
               filtered.map((c: ClienteData) => (
                 <button
                   key={c.key}
-                  onClick={() => setSelectedUserId(c.clientId)}
+                  onClick={() => setSelectedClient(c)}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left text-[13px] text-white hover:bg-[#242424] transition-colors border-b border-[#282828] last:border-b-0"
                 >
                   <FiUser className="text-[#FF5C00] shrink-0" />
@@ -89,16 +89,15 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
           </div>
         )}
 
-        {selectedUserId && (
+        {selectedClient && (
           <div className="flex items-center justify-between rounded-[12px] bg-[#1A1A1A] border border-[#282828] px-4 py-3">
             <div className="flex items-center gap-2">
               <FiUser className="text-[#FF5C00] text-sm" />
               <span className="text-[13px] text-white">
-                {clients.find((c: ClienteData) => c.clientId === selectedUserId)?.clientName}{' '}
-                {clients.find((c: ClienteData) => c.clientId === selectedUserId)?.clientLastname}
+                {selectedClient.clientName} {selectedClient.clientLastname}
               </span>
             </div>
-            <button onClick={() => setSelectedUserId(null)} className="text-[#8A8A8A] hover:text-white transition-colors">
+            <button onClick={() => setSelectedClient(null)} className="text-[#8A8A8A] hover:text-white transition-colors">
               <FiX size={16} />
             </button>
           </div>
@@ -113,7 +112,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
 
         <div className="flex justify-end gap-3 pt-2">
           <Button variant="secondary" onClick={onClose}>Cancelar</Button>
-          <Button loading={isLoading} disabled={!selectedUserId} onClick={handleCreate}>
+          <Button loading={isLoading} disabled={!selectedClient} onClick={handleCreate}>
             Crear membresía
           </Button>
         </div>

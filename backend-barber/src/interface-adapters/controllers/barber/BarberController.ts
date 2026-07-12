@@ -14,6 +14,7 @@ import { MongoBarberBlockRepository } from '../../../infrastructure/repositories
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { AppError } from '../../../domain/errors/AppError';
 import { doesOverlap } from '../../../domain/utils/time';
+import { IEmailService } from '../../../application/ports/IEmailService';
 
 export class BarberController {
   private toResponse(barber: Barber) {
@@ -41,7 +42,8 @@ export class BarberController {
     private readonly getAvailableSlots: GetAvailableSlotsUseCase,
     private readonly deleteBarber: DeleteBarberUseCase,
     private readonly blockRepository: MongoBarberBlockRepository,
-    private readonly appointmentRepository: MongoAppointmentRepository
+    private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly emailService: IEmailService
   ) {}
 
   getAllPublic = async (_req: Request, res: Response) => {
@@ -58,6 +60,7 @@ export class BarberController {
           isActive: b.isActive,
           slotDuration: b.slotDuration,
           maxAdvanceDays: b.maxAdvanceDays,
+          schedule: b.schedule as BarberSchedule,
         }));
       return sendSuccess(res, { barbers: publicBarbers }, 200);
     } catch (error) {
@@ -268,11 +271,37 @@ export class BarberController {
   updateMe = async (req: Request, res: Response) => {
     try {
       const id = req.user!._id;
-      const { schedule: scheduleData, password, ...profileData } = req.body;
+      const { schedule: scheduleData, currentPassword, ...profileData } = req.body;
 
-      if (password) {
-        Password.create(password);
-        profileData.passwordHash = await this.passwordHasher.hash(password);
+      let oldEmail: string | undefined;
+
+      if (profileData.email) {
+        const current = await this.barberRepository.findBarberById(id);
+        if (!current) {
+          throw new AppError('Barbero no encontrado.', 404);
+        }
+
+        const email = Email.create(profileData.email).getValue();
+        profileData.email = email;
+
+        if (email !== current.email) {
+          const existing = await this.userRepository.findByEmail(email);
+          if (existing && existing.id !== current.id) {
+            throw new AppError('Email en uso.', 409);
+          }
+
+          if (!currentPassword) {
+            throw new AppError('La contraseña actual es obligatoria para cambiar el email.', 400);
+          }
+          const isCurrentPasswordValid = await this.passwordHasher.compare(
+            currentPassword,
+            current.passwordHash!
+          );
+          if (!isCurrentPasswordValid) {
+            throw new AppError('Contraseña actual incorrecta.', 401);
+          }
+          oldEmail = current.email;
+        }
       }
 
       const updated = await this.barberRepository.updateBarber(id, profileData);
@@ -285,6 +314,18 @@ export class BarberController {
         throw new AppError('Barbero no encontrado.', 404);
       }
 
+      if (oldEmail) {
+        this.emailService
+          .sendMail({
+            to: oldEmail,
+            subject: 'El email de tu cuenta fue actualizado',
+            html: `<p>El email de tu cuenta se cambió a ${updated.email}.</p><p>Si no fuiste vos, contactanos de inmediato.</p>`,
+          })
+          .catch((error) => {
+            console.error('Error enviando email de cambio de email:', error);
+          });
+      }
+
       return sendSuccess(res, this.toResponse(updated), 200);
     } catch (error) {
       return sendError(res, error, 'Error al actualizar perfil');
@@ -295,7 +336,8 @@ export class BarberController {
     try {
       const id = String(req.params.id);
       const date = String(req.query.date || '');
-      const result = await this.getAvailableSlots.execute(id, date);
+      const excludeAppointmentId = req.query.excludeAppointmentId as string | undefined;
+      const result = await this.getAvailableSlots.execute(id, date, excludeAppointmentId);
       return sendSuccess(res, result, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener los slots');

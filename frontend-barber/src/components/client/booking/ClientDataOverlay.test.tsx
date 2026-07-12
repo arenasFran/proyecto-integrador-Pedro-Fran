@@ -4,9 +4,15 @@ import { describe, it, expect, vi } from 'vitest';
 import { ClientDataOverlay } from './ClientDataOverlay';
 import type { BarberPublic, Service } from '../../../types/booking';
 
+const workingDay = { startTime: '09:00', endTime: '18:00', breaks: [] };
+
 const mockBarber: BarberPublic = {
   id: '1', name: 'Juan', lastname: 'Pérez', services: ['corte'],
   photoUrl: null, isActive: true, slotDuration: 30, maxAdvanceDays: 30,
+  schedule: {
+    monday: workingDay, tuesday: workingDay, wednesday: workingDay, thursday: workingDay,
+    friday: workingDay, saturday: workingDay, sunday: { startTime: null, endTime: null, breaks: [] },
+  },
 };
 
 const mockService: Service = {

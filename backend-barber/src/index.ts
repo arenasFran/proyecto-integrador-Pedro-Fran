@@ -33,12 +33,12 @@ const startServer = async () => {
     if (running) return;
     running = true;
     try {
-      const count = await membershipRepo.expireExpiredMemberships();
-      if (count > 0) {
-        console.log(`[MembershipExpiration] ${count} membresía(s) expirada(s)`);
+      const result = await membershipRepo.expireExpiredMemberships();
+      if (result.expired > 0 || result.renewed > 0) {
+        console.log(`[MembershipExpiration] ${result.expired} expirada(s), ${result.renewed} renovada(s)`);
       }
     } catch (err) {
-      console.error('[MembershipExpiration] Error al expirar membresías:', err);
+      console.error('[MembershipExpiration] Error al procesar membresías:', err);
     } finally {
       running = false;
     }

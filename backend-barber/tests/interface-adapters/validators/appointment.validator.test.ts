@@ -9,6 +9,7 @@ const validPayload = {
   clientName: 'Juan',
   clientLastname: 'Perez',
   clientEmail: 'juan@test.com',
+  clientPhone: '099123456',
 };
 
 describe('createAppointmentSchema', () => {
@@ -74,6 +75,28 @@ describe('createAppointmentSchema', () => {
   it('debe rechazar clientEmail ausente', () => {
     const { clientEmail, ...payload } = validPayload;
     const { error } = createAppointmentSchema.validate(payload);
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar clientPhone ausente', () => {
+    const { clientPhone, ...payload } = validPayload;
+    const { error } = createAppointmentSchema.validate(payload);
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar clientPhone vacio', () => {
+    const { error } = createAppointmentSchema.validate({
+      ...validPayload,
+      clientPhone: '',
+    });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar clientPhone demasiado corto', () => {
+    const { error } = createAppointmentSchema.validate({
+      ...validPayload,
+      clientPhone: '123',
+    });
     expect(error).toBeDefined();
   });
 

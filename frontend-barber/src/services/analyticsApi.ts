@@ -10,6 +10,7 @@ import type {
   HeatmapEntry,
   HoraEntry,
   IngresoServicioEntry,
+  NuevoClienteData,
   OverviewData,
   ReservasGananciasEntry,
 } from '../types/analytics';
@@ -88,6 +89,13 @@ export const analyticsApi = createApi({
       }),
     }),
 
+    getNuevosClientes: builder.query<NuevoClienteData[], { desde: string; hasta: string }>({
+      query: (params) => ({
+        url: '/api/analytics/clientes-nuevos',
+        params,
+      }),
+    }),
+
     getClientAppointments: builder.query<ClientAppointmentEntry[], string>({
       query: (clientKey) => ({
         url: `/api/analytics/clientes/${clientKey}/turnos`,
@@ -138,6 +146,7 @@ export const {
   useGetClientesRecurrentesQuery,
   useGetIngresosPorServicioQuery,
   useGetClientesListQuery,
+  useGetNuevosClientesQuery,
   useGetClientAppointmentsQuery,
   useGetEcommerceOverviewQuery,
   useGetProductPerformanceQuery,

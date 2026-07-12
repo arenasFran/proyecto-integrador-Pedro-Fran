@@ -68,6 +68,13 @@ export const membershipApi = createApi({
       providesTags: (_result, _error, id) => [{ type: 'Membership', id }],
     }),
 
+    getMembershipByUserId: builder.query<MyMembershipResponse, string>({
+      query: (userId) => ({
+        url: `/api/memberships/user/${userId}`,
+      }),
+      providesTags: ['Membership'],
+    }),
+
     redeemCoupon: builder.mutation<{ remainingCoupons: number; couponsUsed: number }, { userId: string }>({
       query: (data) => ({
         url: '/api/memberships/redeem',
@@ -75,6 +82,39 @@ export const membershipApi = createApi({
         data,
       }),
       invalidatesTags: ['Membership'],
+    }),
+
+    cancelMembership: builder.mutation<Membership, string>({
+      query: (id) => ({
+        url: `/api/memberships/${id}/cancel`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Membership'],
+    }),
+
+    reactivateMembership: builder.mutation<Membership, string>({
+      query: (id) => ({
+        url: `/api/memberships/${id}/reactivate`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Membership'],
+    }),
+
+    requestLocalPayment: builder.mutation<Membership, { userId: string }>({
+      query: (data) => ({
+        url: '/api/memberships/request-local',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['Membership', 'Memberships'],
+    }),
+
+    approvePendingMembership: builder.mutation<Membership, string>({
+      query: (id) => ({
+        url: `/api/memberships/${id}/approve`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Membership', 'Memberships'],
     }),
   }),
 });
@@ -87,5 +127,10 @@ export const {
   useInitiateMembershipPaymentMutation,
   useGetAllMembershipsQuery,
   useGetMembershipByIdQuery,
+  useGetMembershipByUserIdQuery,
   useRedeemCouponMutation,
+  useCancelMembershipMutation,
+  useReactivateMembershipMutation,
+  useRequestLocalPaymentMutation,
+  useApprovePendingMembershipMutation,
 } = membershipApi;

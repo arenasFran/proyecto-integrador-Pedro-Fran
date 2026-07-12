@@ -17,9 +17,12 @@ export type OccupiedSlot = {
   status: string;
 };
 
+export type SlotsReason = 'day-off' | 'already-past' | 'fully-booked';
+
 export type SlotsResult = {
   date: string;
   slots: string[];
+  reason?: SlotsReason;
 };
 
 export class SlotService {
@@ -32,10 +35,32 @@ export class SlotService {
     const dayKey = getDayKey(date);
     const daySchedule = schedule[dayKey];
     const slotMinutes = this.getSlotDuration(slotDuration);
-    const slots = this.buildSlotsForDay(daySchedule, date, slotMinutes);
-    const filtered = this.filterOccupiedSlots(slots, slotMinutes, occupiedSlots);
+
+    const scheduledSlots = this.buildSlotsForDay(daySchedule, slotMinutes);
+    if (scheduledSlots.length === 0) {
+      return { date, slots: [], reason: 'day-off' };
+    }
+
+    const upcomingSlots = this.filterPastSlots(scheduledSlots, date);
+    if (upcomingSlots.length === 0) {
+      return { date, slots: [], reason: 'already-past' };
+    }
+
+    const filtered = this.filterOccupiedSlots(upcomingSlots, slotMinutes, occupiedSlots);
+    if (filtered.length === 0) {
+      return { date, slots: [], reason: 'fully-booked' };
+    }
 
     return { date, slots: filtered };
+  }
+
+  private filterPastSlots(slots: string[], date: string): string[] {
+    const nowInfo = getNowInTimezone();
+    if (nowInfo.date !== date) return slots;
+    return slots.filter((slot) => {
+      const minutes = toMinutes(slot);
+      return minutes !== null && minutes > nowInfo.minutes;
+    });
   }
 
   private filterOccupiedSlots(
@@ -65,7 +90,6 @@ export class SlotService {
 
   private buildSlotsForDay(
     day: BarberScheduleDay,
-    date: string,
     slotMinutes: number
   ): string[] {
     if (!day.startTime || !day.endTime) {
@@ -78,15 +102,9 @@ export class SlotService {
       return [];
     }
 
-    const nowInfo = getNowInTimezone();
-    const filterPast = nowInfo.date === date;
-
     const slots: string[] = [];
     for (let minutes = startMinutes; minutes + slotMinutes <= endMinutes; minutes += slotMinutes) {
       if (isInBreakRange(minutes, minutes + slotMinutes, day.breaks)) {
-        continue;
-      }
-      if (filterPast && minutes <= nowInfo.minutes) {
         continue;
       }
       slots.push(toTimeString(minutes));

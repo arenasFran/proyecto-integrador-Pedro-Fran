@@ -46,10 +46,10 @@ export const buildAppointmentRouter = () => {
   const cancelMinHoursBefore = Number(process.env.CANCEL_MIN_HOURS_BEFORE) || 2;
 
   const cancelAppointment = new CancelAppointmentUseCase(
-    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore
+    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository
   );
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
-    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore
+    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository
   );
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,
@@ -74,6 +74,7 @@ export const buildAppointmentRouter = () => {
   const appointmentController = new AppointmentController(
     appointmentRepository,
     barberRepository,
+    clientRepository,
     createAppointment,
     cancelAppointment,
     updateAppointmentStatus,

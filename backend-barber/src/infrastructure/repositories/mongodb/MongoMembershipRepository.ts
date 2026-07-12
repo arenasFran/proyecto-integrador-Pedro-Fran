@@ -3,6 +3,7 @@ import { MembershipModel, IMembershipDocument } from './models/membership.model'
 import { Membership } from '../../../domain/entities/Membership';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
+import { MEMBERSHIP_DEFAULTS } from '../../../domain/types/membership';
 
 export class MongoMembershipRepository {
   async findActiveByUser(userId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
@@ -10,6 +11,17 @@ export class MongoMembershipRepository {
       userId: new mongoose.Types.ObjectId(userId),
       status: 'active',
       endDate: { $gte: new Date() },
+    }).sort({ createdAt: -1 });
+    if (session) query.session(session);
+    const doc = await query;
+
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async findPendingByUser(userId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const query = MembershipModel.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      status: 'pending',
     }).sort({ createdAt: -1 });
     if (session) query.session(session);
     const doc = await query;
@@ -77,7 +89,7 @@ export class MongoMembershipRepository {
     return docs.map((d) => this.toDomain(d));
   }
 
-  async save(membership: Membership, session?: mongoose.ClientSession): Promise<Membership> {
+  async create(membership: Membership, session?: mongoose.ClientSession): Promise<Membership> {
     const data = membership.toPrimitives();
 
     if (data.id) {
@@ -87,12 +99,14 @@ export class MongoMembershipRepository {
           couponsUsed: data.couponsUsed,
           endDate: data.endDate,
           nextBillingDate: data.nextBillingDate,
+          approvedBy: data.approvedBy,
+          approvedAt: data.approvedAt,
+          autoRenew: data.autoRenew,
           updatedAt: new Date(),
         },
       }, session ? { session } : {});
       return membership;
     }
-
     const doc = await MembershipModel.create([{
       userId: new mongoose.Types.ObjectId(data.userId),
       status: data.status,
@@ -106,6 +120,8 @@ export class MongoMembershipRepository {
       adminId: data.adminId ? new mongoose.Types.ObjectId(data.adminId) : undefined,
       mpPreapprovalId: data.mpPreapprovalId,
       nextBillingDate: data.nextBillingDate,
+      approvedBy: data.approvedBy,
+      approvedAt: data.approvedAt,
     }], session ? { session } : {});
     const created = doc[0];
 
@@ -117,24 +133,105 @@ export class MongoMembershipRepository {
     });
   }
 
+  // Update atómico: solo toca couponsUsed (clampeado en [0, ∞)), nunca status/endDate/autoRenew.
+  // Evita el lost-update que produciría reescribir la entidad completa con save().
+  // Para delta > 0 (canje), el filtro $expr rechaza el update si ya no quedan cupones,
+  // en vez de dejar que couponsUsed supere couponsTotal por una carrera entre dos canjes concurrentes.
+  async incrementCouponsUsed(id: string, delta: number, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const filter: Record<string, unknown> = { _id: id };
+    if (delta > 0) {
+      filter.$expr = { $lt: ['$couponsUsed', '$couponsTotal'] };
+    }
+    const doc = await MembershipModel.findOneAndUpdate(
+      filter,
+      [{ $set: { couponsUsed: { $max: [0, { $add: ['$couponsUsed', delta] }] }, updatedAt: '$$NOW' } }],
+      { returnDocument: 'after', session, updatePipeline: true }
+    );
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  // Update atómico: solo toca autoRenew, nunca couponsUsed/status/endDate.
+  async updateAutoRenew(id: string, autoRenew: boolean, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const doc = await MembershipModel.findByIdAndUpdate(
+      id,
+      { $set: { autoRenew, updatedAt: new Date() } },
+      { returnDocument: 'after', session }
+    );
+    return doc ? this.toDomain(doc) : null;
+  }
+
   async hasActiveMembership(userId: string): Promise<boolean> {
     const count = await MembershipModel.countDocuments({
       userId: new mongoose.Types.ObjectId(userId),
-      status: 'active',
+      status: { $in: ['active', 'pending'] },
       endDate: { $gte: new Date() },
     });
     return count > 0;
   }
 
-  async expireExpiredMemberships(): Promise<number> {
-    const result = await MembershipModel.updateMany(
+  async approvePending(id: string, approvedBy: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    const now = new Date();
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
+
+    const doc = await MembershipModel.findByIdAndUpdate(
+      id,
       {
-        status: 'active',
-        endDate: { $lt: new Date() },
+        $set: {
+          status: 'active',
+          endDate,
+          approvedBy,
+          approvedAt: now,
+          updatedAt: now,
+        },
       },
-      { $set: { status: 'expired' } }
+      { returnDocument: 'after', session }
     );
-    return result.modifiedCount;
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async expireExpiredMemberships(): Promise<{ expired: number; renewed: number }> {
+    const expiredDocs = await MembershipModel.find({
+      status: 'active',
+      endDate: { $lt: new Date() },
+    }).lean();
+
+    const operations = expiredDocs.map((doc) => {
+      const autoRenew = (doc as any).autoRenew ?? true;
+
+      if (autoRenew) {
+        const newEndDate = new Date();
+        newEndDate.setDate(newEndDate.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
+        return {
+          renewed: true,
+          op: {
+            updateOne: {
+              filter: { _id: doc._id },
+              update: { $set: { endDate: newEndDate, couponsUsed: 0 } },
+            },
+          },
+        };
+      }
+
+      return {
+        renewed: false,
+        op: {
+          updateOne: {
+            filter: { _id: doc._id },
+            update: { $set: { status: 'expired' as const } },
+          },
+        },
+      };
+    });
+
+    if (operations.length > 0) {
+      await MembershipModel.bulkWrite(operations.map((o) => o.op));
+    }
+
+    return {
+      renewed: operations.filter((o) => o.renewed).length,
+      expired: operations.filter((o) => !o.renewed).length,
+    };
   }
 
   private toDomain(doc: IMembershipDocument): Membership {
@@ -148,10 +245,13 @@ export class MongoMembershipRepository {
       couponsTotal: doc.couponsTotal,
       couponsUsed: doc.couponsUsed,
       productDiscount: doc.productDiscount,
+      autoRenew: (doc as any).autoRenew ?? true,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
       mpPreapprovalId: doc.mpPreapprovalId ?? undefined,
       nextBillingDate: doc.nextBillingDate ?? undefined,
+      approvedBy: doc.approvedBy?.toString(),
+      approvedAt: doc.approvedAt ?? undefined,
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
     });

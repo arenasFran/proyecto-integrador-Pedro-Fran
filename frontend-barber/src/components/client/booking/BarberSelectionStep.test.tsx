@@ -4,6 +4,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { BarberSelectionStep } from './BarberSelectionStep';
 import type { BarberPublic } from '../../../types/booking';
 
+const workingDay = { startTime: '09:00', endTime: '18:00', breaks: [] };
+const mockSchedule = {
+  monday: workingDay, tuesday: workingDay, wednesday: workingDay, thursday: workingDay,
+  friday: workingDay, saturday: workingDay, sunday: { startTime: null, endTime: null, breaks: [] },
+};
+
 const mockBarber1: BarberPublic = {
   id: 'barber1',
   name: 'Carlos',
@@ -13,6 +19,7 @@ const mockBarber1: BarberPublic = {
   isActive: true,
   slotDuration: 30,
   maxAdvanceDays: 30,
+  schedule: mockSchedule,
 };
 
 const mockBarber2: BarberPublic = {
@@ -24,6 +31,7 @@ const mockBarber2: BarberPublic = {
   isActive: true,
   slotDuration: 45,
   maxAdvanceDays: 30,
+  schedule: mockSchedule,
 };
 
 const mockBarbers = [mockBarber1, mockBarber2];

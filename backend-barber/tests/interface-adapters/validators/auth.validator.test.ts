@@ -39,6 +39,7 @@ const validTwoFactorVerify = {
 const validCompleteGoogleProfile = {
   partialToken: 'partial-token-abc',
   name: 'Juan',
+  phone: '123456789',
 };
 
 const validRefreshToken = {
@@ -244,16 +245,15 @@ describe('twoFactorVerifySchema', () => {
 });
 
 describe('completeGoogleProfileSchema', () => {
-  it('debe aceptar un payload valido solo con partialToken y name', () => {
+  it('debe aceptar un payload valido con partialToken, name y phone', () => {
     const { error } = completeGoogleProfileSchema.validate(validCompleteGoogleProfile);
     expect(error).toBeUndefined();
   });
 
-  it('debe aceptar un payload con todos los campos opcionales', () => {
+  it('debe aceptar un payload con lastname', () => {
     const { error } = completeGoogleProfileSchema.validate({
       ...validCompleteGoogleProfile,
       lastname: 'Gomez',
-      phone: '123456789',
     });
     expect(error).toBeUndefined();
   });
@@ -280,6 +280,12 @@ describe('completeGoogleProfileSchema', () => {
 
   it('debe rechazar name vacio', () => {
     const { error } = completeGoogleProfileSchema.validate({ ...validCompleteGoogleProfile, name: '' });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar phone ausente', () => {
+    const { phone, ...payload } = validCompleteGoogleProfile;
+    const { error } = completeGoogleProfileSchema.validate(payload);
     expect(error).toBeDefined();
   });
 });

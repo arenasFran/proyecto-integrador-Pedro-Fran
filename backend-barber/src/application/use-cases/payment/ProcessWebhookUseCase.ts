@@ -206,7 +206,7 @@ export class ProcessWebhookUseCase {
         mpPreapprovalId: preapprovalId,
         nextBillingDate: nextDate,
       });
-      await this.membershipRepository.save(membership);
+      await this.membershipRepository.create(membership);
     }
   }
 
@@ -229,7 +229,7 @@ export class ProcessWebhookUseCase {
     nextDate.setMonth(nextDate.getMonth() + 1);
 
     membership.renew(nextDate);
-    await this.membershipRepository.save(membership);
+    await this.membershipRepository.create(membership);
   }
 
   private async handleApproved(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
@@ -248,14 +248,20 @@ export class ProcessWebhookUseCase {
       case 'membership': {
         const existing = await this.membershipRepository.findActiveByUser(payment.userId);
         if (!existing) {
-          const config = getConfig();
-          const membership = Membership.create({
-            userId: payment.userId,
-            createdBy: 'client',
-            couponsTotal: 4,
-            productDiscount: 10,
-          });
-          await this.membershipRepository.save(membership);
+          const pending = await this.membershipRepository.findPendingByUser(payment.userId);
+          if (pending) {
+            pending.approve('system');
+            await this.membershipRepository.create(pending);
+          } else {
+            const config = getConfig();
+            const membership = Membership.create({
+              userId: payment.userId,
+              createdBy: 'client',
+              couponsTotal: 4,
+              productDiscount: 10,
+            });
+            await this.membershipRepository.create(membership);
+          }
         }
         break;
       }

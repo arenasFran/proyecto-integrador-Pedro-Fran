@@ -5,6 +5,8 @@ export type ClientProps = {
   phone?: string;
   contactEmail?: string;
   kind: 'Registrado' | 'NoRegistrado';
+  photoUrl?: string | null;
+  registeredAt?: Date;
 };
 
 export class Client {
@@ -40,6 +42,14 @@ export class Client {
 
   get kind(): 'Registrado' | 'NoRegistrado' {
     return this.props.kind;
+  }
+
+  get photoUrl(): string | null | undefined {
+    return this.props.photoUrl;
+  }
+
+  get registeredAt(): Date | undefined {
+    return this.props.registeredAt;
   }
 
   toPrimitives(): ClientProps {

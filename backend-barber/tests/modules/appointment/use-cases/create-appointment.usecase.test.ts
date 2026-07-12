@@ -104,6 +104,7 @@ describe('CreateAppointmentUseCase', () => {
   let emailService: jest.Mocked<IEmailService>;
   let blockRepository: ReturnType<typeof makeMockBarberBlockRepository>;
   let useCase: CreateAppointmentUseCase;
+  let capturedSession: any;
 
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
@@ -131,6 +132,18 @@ describe('CreateAppointmentUseCase', () => {
       blockRepository as any,
       membershipRepository as any,
     );
+
+    capturedSession = {
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      abortTransaction: jest.fn().mockResolvedValue(undefined),
+      endSession: jest.fn(),
+    };
+    jest.spyOn(mongoose, 'startSession').mockResolvedValue(capturedSession);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('debe fallar si el barbero no existe', async () => {
@@ -224,8 +237,8 @@ describe('CreateAppointmentUseCase', () => {
         date: '2099-01-01',
         startTime: '10:00',
         endTime: '10:30',
-        clientName: 'Juan',
-      })
+      }),
+      capturedSession
     );
     expect(result.message).toMatch(/Turno creado/);
     expect(result.appointment).toEqual(
@@ -263,9 +276,9 @@ describe('CreateAppointmentUseCase', () => {
         date: '2099-01-01',
         startTime: '09:45',
         endTime: '10:30',
-      })
+      }),
+      capturedSession
     );
-    expect(result.message).toMatch(/Turno creado/);
   });
 
   it('debe fallar si la fecha esta en el pasado', async () => {
@@ -342,7 +355,8 @@ describe('CreateAppointmentUseCase', () => {
         date: '2099-01-01',
         startTime: '10:00',
         endTime: '10:30',
-      })
+      }),
+      capturedSession
     );
     expect(result.message).toMatch(/Turno creado/);
   });
@@ -388,7 +402,8 @@ describe('CreateAppointmentUseCase', () => {
       expect.objectContaining({
         clientId: 'user-1',
         createdBy: { type: 'registered', userId: 'user-1' },
-      })
+      }),
+      capturedSession
     );
   });
 
@@ -411,13 +426,15 @@ describe('CreateAppointmentUseCase', () => {
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
-      expect.not.objectContaining({ clientId: 'emp-1' })
+      expect.not.objectContaining({ clientId: 'emp-1' }),
+      capturedSession
     );
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         createdBy: { type: 'staff', userId: 'emp-1' },
-      })
+      }),
+      capturedSession
     );
   });
 
@@ -442,7 +459,63 @@ describe('CreateAppointmentUseCase', () => {
     expect(appointmentRepository.create).toHaveBeenCalledWith(
       expect.objectContaining({
         createdBy: { type: 'anonymous' },
-      })
+      }),
+      capturedSession
+    );
+  });
+
+  it('debe usar el nombre del cliente como actor cuando el turno lo crea el cliente', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.findByEmail.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: TEST_SERVICE_ID,
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      clientEmail: 'juan@test.com',
+      createdBy: { type: 'registered', userId: 'user-1' },
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusHistory: [{ status: 'Confirmado', timestamp: expect.any(Date), actor: 'Juan Perez' }],
+      }),
+      capturedSession
+    );
+  });
+
+  it('debe usar el nombre del staff como actor cuando el turno lo crea el staff', async () => {
+    barberRepository.findBarberById.mockImplementation((id: string) =>
+      Promise.resolve(id === 'emp-1' ? makeBarber({ id: 'emp-1', name: 'Marta', lastname: 'Diaz' }) : makeBarber())
+    );
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    appointmentRepository.findByClientId.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(makeAppointment());
+
+    await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: TEST_SERVICE_ID,
+      date: '2099-01-01',
+      startTime: '10:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      createdBy: { type: 'staff', userId: 'emp-1' },
+    });
+
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusHistory: [{ status: 'Confirmado', timestamp: expect.any(Date), actor: 'Marta Diaz' }],
+      }),
+      capturedSession
     );
   });
 
@@ -481,6 +554,7 @@ describe('CreateAppointmentUseCase', () => {
         couponsTotal: MEMBERSHIP_DEFAULTS.couponsTotal,
         couponsUsed: 0,
         productDiscount: MEMBERSHIP_DEFAULTS.productDiscount,
+        autoRenew: true,
         createdBy: 'client',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -512,10 +586,8 @@ describe('CreateAppointmentUseCase', () => {
         paymentMethod: 'memberPass',
       });
 
-      expect(membershipRepository.save).toHaveBeenCalledTimes(1);
-      expect(membershipRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ remainingCoupons: MEMBERSHIP_DEFAULTS.couponsTotal - 1 })
-      );
+      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledTimes(1);
+      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledWith('mem-1', 1, capturedSession);
     });
 
     it('debe establecer paymentStatus como Pagado cuando es memberPass', async () => {
@@ -538,7 +610,8 @@ describe('CreateAppointmentUseCase', () => {
         expect.objectContaining({
           paymentMethod: 'memberPass',
           paymentStatus: 'Pagado',
-        })
+        }),
+        capturedSession
       );
     });
 
@@ -590,7 +663,72 @@ describe('CreateAppointmentUseCase', () => {
         paymentMethod: 'local',
       });
 
-      expect(membershipRepository.save).not.toHaveBeenCalled();
+      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('RN15 — límite de turnos activos', () => {
+    const setupBaseMocks = () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber());
+      serviceRepository.findById.mockResolvedValue(makeService());
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+      appointmentRepository.create.mockResolvedValue(makeAppointment());
+    };
+
+    const makeActiveAppointments = (count: number, status: AppointmentProps['status'] = 'Confirmado') =>
+      Array.from({ length: count }, (_, i) =>
+        makeAppointment({ id: `apt-active-${i}`, status, date: '2099-12-31', startTime: '10:00', endTime: '11:00' })
+      );
+
+    it('debe permitir crear turno si tiene menos de 10 turnos activos', async () => {
+      appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(9));
+      setupBaseMocks();
+
+      const result = await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-06-15',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+      });
+
+      expect(result.message).toMatch(/Turno creado/);
+    });
+
+    it('debe bloquear si el cliente ya tiene 10 turnos activos', async () => {
+      appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(10));
+      setupBaseMocks();
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-06-15',
+          startTime: '14:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientId: 'client-1',
+        })
+      ).rejects.toThrow(AppError);
+    });
+
+    it('no cuenta turnos Cancelado para el límite de activos', async () => {
+      appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(10, 'Cancelado'));
+      setupBaseMocks();
+
+      const result = await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-06-15',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+      });
+
+      expect(result.message).toMatch(/Turno creado/);
     });
   });
 });

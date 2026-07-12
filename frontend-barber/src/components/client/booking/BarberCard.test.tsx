@@ -4,6 +4,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { BarberCard } from './BarberCard';
 import type { BarberPublic } from '../../../types/booking';
 
+const workingDay = { startTime: '09:00', endTime: '18:00', breaks: [] };
+
 const mockBarber: BarberPublic = {
   id: '1',
   name: 'Juan',
@@ -13,6 +15,10 @@ const mockBarber: BarberPublic = {
   isActive: true,
   slotDuration: 30,
   maxAdvanceDays: 30,
+  schedule: {
+    monday: workingDay, tuesday: workingDay, wednesday: workingDay, thursday: workingDay,
+    friday: workingDay, saturday: workingDay, sunday: { startTime: null, endTime: null, breaks: [] },
+  },
 };
 
 describe('BarberCard', () => {

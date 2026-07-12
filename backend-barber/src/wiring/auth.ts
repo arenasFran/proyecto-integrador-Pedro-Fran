@@ -87,10 +87,11 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     userRepository,
     passwordResetRepository,
     passwordHasher,
-    hashService
+    hashService,
+    refreshTokenRepository
   );
 
-  const authController = new AuthController(registerUser, refreshTokenUseCase);
+  const authController = new AuthController(registerUser, refreshTokenUseCase, refreshTokenRepository, hashService);
   const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(

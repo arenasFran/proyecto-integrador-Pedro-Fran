@@ -1,6 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
-import type { Appointment, CreateAppointmentPayload } from '../types/booking';
+import type { Appointment, ClientSearchResult, CreateAppointmentPayload } from '../types/booking';
 import type { PaginatedAppointmentsResponse } from './appointment.service';
 
 type QueryParams = {
@@ -16,6 +16,7 @@ type QueryParams = {
   page?: number;
   limit?: number;
   includeBarber?: string;
+  includeClient?: string;
   sortBy?: 'date' | 'startTime';
   sortDir?: 'asc' | 'desc';
 };
@@ -137,6 +138,13 @@ export const appointmentApi = createApi({
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
     }),
+
+    searchClients: builder.query<ClientSearchResult[], string>({
+      query: (q) => ({
+        url: '/api/appointments/clients/search',
+        params: { q },
+      }),
+    }),
   }),
 });
 
@@ -153,4 +161,5 @@ export const {
   useMarkAsPaidMutation,
   useSendReminderMutation,
   useChangeBarberMutation,
+  useLazySearchClientsQuery,
 } = appointmentApi;

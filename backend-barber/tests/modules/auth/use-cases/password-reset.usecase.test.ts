@@ -6,7 +6,7 @@ import { IHashService } from '../../../../src/application/ports/IHashService';
 import { IPasswordHasher } from '../../../../src/application/ports/IPasswordHasher';
 import { User } from '../../../../src/domain/entities/User';
 import { PasswordResetToken } from '../../../../src/domain/entities/PasswordResetToken';
-import { makeMockUserRepository, makeMockPasswordResetRepository, makeMockEmailService, makeMockHashService, makeMockPasswordHasher } from '../../../test-utils/mocks';
+import { makeMockUserRepository, makeMockPasswordResetRepository, makeMockRefreshTokenRepository, makeMockEmailService, makeMockHashService, makeMockPasswordHasher } from '../../../test-utils/mocks';
 
 describe('Password reset use cases', () => {
   const now = new Date('2024-01-01T10:00:00.000Z');
@@ -26,6 +26,7 @@ describe('Password reset use cases', () => {
 
   let userRepository: ReturnType<typeof makeMockUserRepository>;
   let passwordResetRepository: ReturnType<typeof makeMockPasswordResetRepository>;
+  let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let hashService: jest.Mocked<IHashService>;
   let passwordHasher: jest.Mocked<IPasswordHasher>;
@@ -33,12 +34,41 @@ describe('Password reset use cases', () => {
   beforeEach(() => {
     userRepository = makeMockUserRepository();
     passwordResetRepository = makeMockPasswordResetRepository();
+    refreshTokenRepository = makeMockRefreshTokenRepository();
     emailService = makeMockEmailService();
     hashService = makeMockHashService();
     passwordHasher = makeMockPasswordHasher();
   });
 
   describe('RequestPasswordResetUseCase', () => {
+    it('debe NO enviar email ni generar token si el usuario es authProvider google', async () => {
+      const googleUser = User.create({
+        id: 'user-1',
+        email: 'test@example.com',
+        name: 'Juan',
+        lastname: 'Perez',
+        kind: 'Registrado',
+        authProvider: 'google',
+      });
+
+      userRepository.findByEmail.mockResolvedValue(googleUser);
+
+      const useCase = new RequestPasswordResetUseCase(
+        userRepository,
+        passwordResetRepository,
+        emailService,
+        hashService,
+        'http://localhost:5173',
+        60
+      );
+
+      const result = await useCase.execute({ email: 'test@example.com' });
+
+      expect(passwordResetRepository.create).not.toHaveBeenCalled();
+      expect(emailService.sendMail).not.toHaveBeenCalled();
+      expect(result.message).toMatch(/Si el email existe/);
+    });
+
     it('debe responder igual aunque el usuario no exista', async () => {
       userRepository.findByEmail.mockResolvedValue(null);
 
@@ -99,7 +129,8 @@ describe('Password reset use cases', () => {
         userRepository,
         passwordResetRepository,
         passwordHasher,
-        hashService
+        hashService,
+        refreshTokenRepository
       );
 
       await expect(
@@ -122,7 +153,8 @@ describe('Password reset use cases', () => {
         userRepository,
         passwordResetRepository,
         passwordHasher,
-        hashService
+        hashService,
+        refreshTokenRepository
       );
 
       const result = await useCase.execute({
@@ -133,6 +165,7 @@ describe('Password reset use cases', () => {
       });
 
       expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', 'hash');
+      expect(refreshTokenRepository.revokeAllByUserId).toHaveBeenCalledWith('user-1');
       expect(result.message).toMatch(/Contraseña restablecida/);
     });
   });

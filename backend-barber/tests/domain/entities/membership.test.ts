@@ -7,7 +7,7 @@ describe('Membership entity', () => {
     couponsTotal: number;
     couponsUsed: number;
     endDate: Date;
-    status: 'active' | 'expired' | 'cancelled';
+    status: 'active' | 'expired' | 'cancelled' | 'pending';
   }>) => {
     const future = new Date();
     future.setDate(future.getDate() + 30);
@@ -16,11 +16,13 @@ describe('Membership entity', () => {
       id: 'mem-1',
       userId: 'user-1',
       status: overrides?.status ?? 'active',
+      price: 399,
       startDate: new Date(),
       endDate: overrides?.endDate ?? future,
       couponsTotal: overrides?.couponsTotal ?? 4,
       couponsUsed: overrides?.couponsUsed ?? 0,
       productDiscount: 10,
+      autoRenew: true,
       createdBy: 'client',
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -145,16 +147,46 @@ describe('Membership entity', () => {
   });
 
   describe('cancel', () => {
-    it('debe cambiar status a cancelled', () => {
+    it('debe establecer autoRenew en false y mantener status activo', () => {
       const m = makeActiveMembership();
       m.cancel();
-      expect(m.status).toBe('cancelled');
+      expect(m.autoRenew).toBe(false);
+      expect(m.status).toBe('active');
     });
 
     it('debe lanzar error si ya no está activa', () => {
       const m = makeActiveMembership({ status: 'expired' });
       expect(() => m.cancel()).toThrow(AppError);
       expect(() => m.cancel()).toThrow(/no está activa/);
+    });
+
+    it('debe lanzar error si autoRenew ya es false (doble cancelación)', () => {
+      const m = makeActiveMembership();
+      m.cancel();
+      expect(() => m.cancel()).toThrow(AppError);
+      expect(() => m.cancel()).toThrow(/ya está desactivada/);
+    });
+  });
+
+  describe('reactivate', () => {
+    it('debe establecer autoRenew en true', () => {
+      const m = makeActiveMembership();
+      m.cancel();
+      expect(m.autoRenew).toBe(false);
+      m.reactivate();
+      expect(m.autoRenew).toBe(true);
+    });
+
+    it('debe lanzar error si autoRenew ya es true', () => {
+      const m = makeActiveMembership();
+      expect(() => m.reactivate()).toThrow(AppError);
+      expect(() => m.reactivate()).toThrow(/ya está activa/);
+    });
+
+    it('debe lanzar error si la membresía no está activa', () => {
+      const m = makeActiveMembership({ status: 'expired' });
+      expect(() => m.reactivate()).toThrow(AppError);
+      expect(() => m.reactivate()).toThrow(/no está activa/);
     });
   });
 
@@ -163,6 +195,40 @@ describe('Membership entity', () => {
       const m = makeActiveMembership();
       m.expire();
       expect(m.status).toBe('expired');
+    });
+  });
+
+  describe('create (pending)', () => {
+    it('debe crear membresía con status pending', () => {
+      const m = Membership.create({ userId: 'u1', createdBy: 'client', status: 'pending' });
+      expect(m.status).toBe('pending');
+      expect(m.isPending).toBe(true);
+      expect(m.isExpired).toBe(false);
+      expect(m.autoRenew).toBe(false);
+    });
+  });
+
+  describe('approve', () => {
+    it('debe activar membresía pendiente y registrar quién aprobó', () => {
+      const m = Membership.create({ userId: 'u1', createdBy: 'client', status: 'pending' });
+      m.approve('admin-1');
+      expect(m.status).toBe('active');
+      expect(m.approvedBy).toBe('admin-1');
+      expect(m.approvedAt).toBeDefined();
+      expect(m.endDate.getTime()).toBeGreaterThan(m.startDate.getTime());
+    });
+
+    it('debe lanzar error si la membresía no está pendiente', () => {
+      const m = Membership.create({ userId: 'u1', createdBy: 'client' });
+      expect(() => m.approve('admin-1')).toThrow(AppError);
+    });
+  });
+
+  describe('redeemCoupon (pending)', () => {
+    it('debe lanzar error si la membresía está pendiente', () => {
+      const m = Membership.create({ userId: 'u1', createdBy: 'client', status: 'pending' });
+      expect(() => m.redeemCoupon()).toThrow(AppError);
+      expect(() => m.redeemCoupon()).toThrow(/pendiente/);
     });
   });
 

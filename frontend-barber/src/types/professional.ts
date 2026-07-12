@@ -64,7 +64,10 @@ export type ProfessionalUpdatePayload = {
   maxAdvanceDays?: number;
 };
 
+export type SlotsReason = 'day-off' | 'already-past' | 'fully-booked';
+
 export type SlotsResponse = {
   date: string;
   slots: string[];
+  reason?: SlotsReason;
 };

@@ -30,6 +30,7 @@ export type Config = {
   mpWebhookSecret: string | undefined;
   mpPublicKey: string | undefined;
   mpNotificationUrl: string | undefined;
+  mpTestBuyerEmail: string | undefined;
   membershipPriceUyu: number;
   rateLimit: {
     login: { max: number; windowMs: number };
@@ -109,6 +110,7 @@ export function loadConfig(): Config {
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
     mpPublicKey: process.env.MP_PUBLIC_KEY || undefined,
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
+    mpTestBuyerEmail: process.env.MP_TEST_BUYER_EMAIL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },

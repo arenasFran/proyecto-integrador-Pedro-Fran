@@ -4,6 +4,7 @@ import AppointmentModel from './models/appointment.model';
 import { PaymentModel } from './models/payment.model';
 import { OrderModel } from './models/order.model';
 import { parseLocalDate, parseLocalDateRange } from '../../../common/dateUtils';
+import { Client } from './models/client.model';
 
 const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
   Object.keys(VALID_TRANSITIONS).map(s => [s.toLowerCase(), s])
@@ -45,11 +46,24 @@ export type ClienteListEntry = {
   clientLastname: string;
   clientPhone?: string;
   clientEmail?: string;
+  clientPhotoUrl: string | null;
   kind: 'Registrado' | 'NoRegistrado';
+  registeredAt: string;
   totalVisits: number;
   totalSpent: number;
-  firstVisit: string;
-  lastVisit: string;
+  firstVisit: string | null;
+  lastVisit: string | null;
+  membershipStatus: 'active' | null;
+};
+
+export type NuevoClienteEntry = {
+  clientId: string;
+  name: string;
+  lastname: string;
+  phone?: string;
+  email?: string;
+  kind: 'Registrado' | 'NoRegistrado';
+  registeredAt: string;
 };
 
 export type ClientAppointmentEntry = {
@@ -80,6 +94,20 @@ const DATE_FORMATS: Record<string, string> = {
 };
 
 const DATE_CONVERSION_STAGE = { $addFields: { dateObj: { $toDate: '$date' } } };
+
+// El ObjectId embebe el instante de creación del documento: es la fecha de
+// registro del cliente (alta de cuenta o primera carga como anónimo).
+const REGISTERED_AT_STAGE = { $addFields: { registeredAt: { $toDate: '$_id' } } };
+
+// 'hasta' puede llegar como día pelado (YYYY-MM-DD); para comparar contra
+// timestamps de registro hay que extenderlo al fin del día.
+function endOfDayDate(hasta: string): Date {
+  const date = new Date(hasta);
+  if (!hasta.includes('T')) {
+    date.setUTCHours(23, 59, 59, 999);
+  }
+  return date;
+}
 
 export class MongoAnalyticsRepository {
   async getOverview(desde: string, hasta: string): Promise<OverviewResult> {
@@ -113,28 +141,19 @@ export class MongoAnalyticsRepository {
     const facetResult = await AppointmentModel.aggregate(facetPipeline);
     const data = facetResult[0] || { totalReservas: [], duracionTotalMinutos: [], ingresosTotales: [], ingresosPendientes: [], estadisticasPorEstado: [] };
 
-    const registeredPipeline = [
-      { $match: { clientId: { $exists: true } } } as mongoose.PipelineStage,
-      { $group: { _id: '$clientId', primerTurno: { $min: '$date' } } },
-      { $match: { primerTurno: { $gte: desde, $lte: hasta } } },
+    const nuevosClientesPipeline = [
+      REGISTERED_AT_STAGE,
+      { $match: { registeredAt: { $gte: desdeDate, $lte: endOfDayDate(hasta) } } },
       { $count: 'total' },
-    ];
-
-    const unregisteredPipeline = [
-      { $match: { clientId: { $exists: false }, clientPhone: { $exists: true, $ne: null } } } as mongoose.PipelineStage,
-      { $group: { _id: '$clientPhone', primerTurno: { $min: '$date' } } },
-      { $match: { primerTurno: { $gte: desde, $lte: hasta } } },
-      { $count: 'total' },
-    ];
+    ] as mongoose.PipelineStage[];
 
     const productRevenuePipeline = (statusFilter: string) => [
       { $match: { type: 'product_order', status: statusFilter, createdAt: { $gte: desdeDate, $lte: hastaDate } } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ] as mongoose.PipelineStage[];
 
-    const [registrados, noRegistrados, productRevenue, productPending] = await Promise.all([
-      AppointmentModel.aggregate(registeredPipeline),
-      AppointmentModel.aggregate(unregisteredPipeline),
+    const [nuevosClientes, productRevenue, productPending] = await Promise.all([
+      Client.aggregate(nuevosClientesPipeline),
       PaymentModel.aggregate(productRevenuePipeline('approved')),
       PaymentModel.aggregate(productRevenuePipeline('pending')),
     ]);
@@ -168,7 +187,7 @@ export class MongoAnalyticsRepository {
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
       ingresosTotales: ((data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0) + (productRevenue[0]?.total ?? 0),
       ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (productPending[0]?.total ?? 0),
-      nuevosClientes: (registrados[0]?.total ?? 0) + (noRegistrados[0]?.total ?? 0),
+      nuevosClientes: nuevosClientes[0]?.total ?? 0,
       estadisticasPorEstado,
       totalOrders,
       cancelledOrders: cancelledOrdersEcom,
@@ -377,6 +396,28 @@ export class MongoAnalyticsRepository {
     return result[0] ?? { totalClientes: 0, recurrentes: 0, tasaRetorno: 0, nuevos: 0 };
   }
 
+  async getNuevosClientes(desde: string, hasta: string): Promise<NuevoClienteEntry[]> {
+    const pipeline = [
+      REGISTERED_AT_STAGE,
+      { $match: { registeredAt: { $gte: new Date(desde), $lte: endOfDayDate(hasta) } } },
+      { $sort: { registeredAt: -1 } },
+      {
+        $project: {
+          _id: 0,
+          clientId: { $toString: '$_id' },
+          name: 1,
+          lastname: 1,
+          phone: 1,
+          email: { $ifNull: ['$email', '$contactEmail'] },
+          kind: { $ifNull: ['$kind', 'NoRegistrado'] },
+          registeredAt: { $dateToString: { date: '$registeredAt' } },
+        },
+      },
+    ] as mongoose.PipelineStage[];
+
+    return Client.aggregate(pipeline);
+  }
+
   async getIngresosPorServicio(desde: string, hasta: string): Promise<{ serviceId: string; serviceName: string; cantidad: number; ingresos: number }[]> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
@@ -439,68 +480,84 @@ export class MongoAnalyticsRepository {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
-      DATE_CONVERSION_STAGE,
+      REGISTERED_AT_STAGE,
+      // El listado es el padrón de clientes existentes al fin del rango;
+      // el rango [desde, hasta] solo acota las estadísticas de actividad.
+      { $match: { registeredAt: { $lte: endOfDayDate(hasta) } } },
       {
-        $match: {
-          dateObj: { $gte: desdeDate, $lte: hastaDate },
-          status: { $in: STATUS_CATEGORIES.countsAsActivity },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $ne: [{ $type: '$clientId' }, 'missing'] },
-              { $concat: ['reg_', { $toString: '$clientId' }] },
-              { $cond: [{ $ne: [{ $type: '$clientPhone' }, 'missing'] }, { $concat: ['anon_', '$clientPhone'] }, 'anon_unknown'] },
-            ],
-          },
-          originalClientId: { $first: '$clientId' },
-          clientName: { $first: '$clientName' },
-          clientLastname: { $first: '$clientLastname' },
-          clientPhone: { $first: '$clientPhone' },
-          clientEmail: { $first: '$clientEmail' },
-          totalVisits: { $sum: 1 },
-          totalSpent: {
-            $sum: {
-              $cond: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, '$servicePrice', 0],
-            },
-          },
-          firstVisit: { $min: '$date' },
-          lastVisit: { $max: '$date' },
-        },
-      },
-      {
+        // Turnos del período: por clientId (los anónimos nuevos también lo
+        // guardan) o, para turnos anónimos legacy sin clientId, por teléfono.
         $lookup: {
-          from: 'clients',
-          localField: 'originalClientId',
-          foreignField: '_id',
-          as: 'registeredInfo',
+          from: 'appointments',
+          let: { cid: '$_id', phone: '$phone' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    { $eq: ['$clientId', '$$cid'] },
+                    {
+                      $and: [
+                        { $eq: [{ $type: '$clientId' }, 'missing'] },
+                        { $ne: ['$$phone', null] },
+                        { $eq: ['$clientPhone', '$$phone'] },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            DATE_CONVERSION_STAGE,
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $gte: ['$dateObj', desdeDate] },
+                    { $lte: ['$dateObj', hastaDate] },
+                    { $in: ['$status', STATUS_CATEGORIES.countsAsActivity] },
+                  ],
+                },
+              },
+            },
+            { $project: { _id: 0, date: 1, status: 1, servicePrice: 1 } },
+          ],
+          as: 'turnos',
         },
       },
       {
         $lookup: {
           from: 'orders',
-          let: { clientOid: '$originalClientId' },
+          let: { clientOid: '$_id' },
           pipeline: [
-            { $match: { $expr: { $eq: [{ $toObjectId: '$userId' }, '$$clientOid'] }, status: { $in: ['paid', 'delivered'] } } },
+            { $match: { $expr: { $eq: ['$userId', { $toString: '$$clientOid' }] }, status: { $in: ['paid', 'delivered'] } } },
             { $group: { _id: null, total: { $sum: '$total' } } },
           ],
           as: 'orderSpending',
         },
       },
       {
+        $lookup: {
+          from: 'memberships',
+          let: { uid: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$userId', '$$uid'] },
+                    { $eq: ['$status', 'active'] },
+                    { $gte: ['$endDate', new Date()] },
+                  ],
+                },
+              },
+            },
+            { $limit: 1 },
+          ],
+          as: 'membership',
+        },
+      },
+      {
         $addFields: {
-          clientEmail: {
-            $cond: [
-              { $gt: [{ $size: '$registeredInfo' }, 0] },
-              { $ifNull: [{ $arrayElemAt: ['$registeredInfo.email', 0] }, '$clientEmail'] },
-              '$clientEmail',
-            ],
-          },
-          kind: {
-            $cond: [{ $ne: ['$originalClientId', null] }, 'Registrado', 'NoRegistrado'],
-          },
           totalSpent: {
             $add: [
               '$totalSpent',
@@ -512,40 +569,66 @@ export class MongoAnalyticsRepository {
       {
         $project: {
           _id: 0,
-          key: '$_id',
-          clientId: {
-            $cond: [
-              { $ne: [{ $type: '$originalClientId' }, 'missing'] },
-              { $toString: '$originalClientId' },
-              null,
+          key: {
+            $concat: [
+              { $cond: [{ $eq: ['$kind', 'Registrado'] }, 'reg_', 'anon_'] },
+              { $toString: '$_id' },
             ],
           },
-          clientName: 1,
-          clientLastname: 1,
-          clientPhone: 1,
-          clientEmail: 1,
-          kind: 1,
-          totalVisits: 1,
-          totalSpent: 1,
-          firstVisit: 1,
-          lastVisit: 1,
+          clientId: { $toString: '$_id' },
+          clientName: '$name',
+          clientLastname: '$lastname',
+          clientPhone: '$phone',
+          clientEmail: { $ifNull: ['$email', '$contactEmail'] },
+          clientPhotoUrl: { $ifNull: ['$photoUrl', null] },
+          kind: { $ifNull: ['$kind', 'NoRegistrado'] },
+          registeredAt: { $dateToString: { date: '$registeredAt' } },
+          totalVisits: { $size: '$turnos' },
+          totalSpent: {
+            $sum: {
+              $map: {
+                input: '$turnos',
+                as: 't',
+                in: { $cond: [{ $in: ['$$t.status', STATUS_CATEGORIES.countsAsRevenue] }, '$$t.servicePrice', 0] },
+              },
+            },
+          },
+          firstVisit: { $ifNull: [{ $min: '$turnos.date' }, null] },
+          lastVisit: { $ifNull: [{ $max: '$turnos.date' }, null] },
+          membershipStatus: {
+            $cond: [{ $gt: [{ $size: '$membership' }, 0] }, 'active', null],
+          },
         },
       },
-      { $sort: { lastVisit: -1 } },
+      { $sort: { lastVisit: -1, registeredAt: -1 } },
     ] as mongoose.PipelineStage[];
 
-    return AppointmentModel.aggregate(pipeline);
+    return Client.aggregate(pipeline);
   }
 
   async getClientAppointments(clientKey: string): Promise<ClientAppointmentEntry[]> {
     const matchStage: Record<string, unknown> = {};
+    const OBJECT_ID = /^[a-fA-F0-9]{24}$/;
 
     if (clientKey.startsWith('reg_')) {
       const oid = new mongoose.Types.ObjectId(clientKey.slice(4));
       matchStage.clientId = oid;
     } else if (clientKey.startsWith('anon_')) {
-      matchStage.clientPhone = clientKey.slice(5);
-      matchStage.clientId = { $exists: false };
+      const raw = clientKey.slice(5);
+      if (OBJECT_ID.test(raw)) {
+        // Clave nueva: _id de la ficha anónima. Sus turnos nuevos referencian
+        // el clientId; los legacy solo tienen el teléfono.
+        const oid = new mongoose.Types.ObjectId(raw);
+        const ficha = await Client.findById(oid).lean();
+        matchStage.$or = [
+          { clientId: oid },
+          ...(ficha?.phone ? [{ clientId: { $exists: false }, clientPhone: ficha.phone }] : []),
+        ];
+      } else {
+        // Clave legacy por teléfono.
+        matchStage.clientPhone = raw;
+        matchStage.clientId = { $exists: false };
+      }
     } else {
       return [];
     }

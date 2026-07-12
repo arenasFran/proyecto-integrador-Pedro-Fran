@@ -1,8 +1,52 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
-import { AnimatedContainer, Button } from '../../../components/common';
+import { motion } from 'framer-motion';
+import { FiXCircle, FiX, FiClock } from 'react-icons/fi';
+import { Button } from '../../../components/common';
 import { useGetPaymentByIdQuery } from '../../../services/paymentApi';
+
+const drawCheckmark = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: {
+    pathLength: 1,
+    opacity: 1,
+    transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] },
+  },
+};
+
+const typeLabels: Record<string, string> = {
+  appointment: 'Turno',
+  membership: 'Membresía',
+  product_order: 'Orden de compra',
+};
+
+const detailVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: 0.35 + i * 0.08, duration: 0.4, ease: 'easeOut' },
+  }),
+};
+
+function formatAmount(amount: number): string {
+  return `$${amount.toLocaleString('es-UY')}`;
+}
+
+function formatDate(dateStr: string): string {
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('es-UY', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return dateStr;
+  }
+}
 
 export default function PaymentResultPage() {
   const [searchParams] = useSearchParams();
@@ -11,10 +55,10 @@ export default function PaymentResultPage() {
   const paymentId = searchParams.get('payment_id');
   const externalRef = searchParams.get('external_reference');
   const [paymentType, setPaymentType] = useState<string>('unknown');
+  const [showCheckmark, setShowCheckmark] = useState(false);
 
   const { data: paymentData } = useGetPaymentByIdQuery(externalRef || '', {
     skip: !externalRef,
-    pollingInterval: status === 'pending' ? 3000 : 0,
   });
 
   useEffect(() => {
@@ -23,92 +67,175 @@ export default function PaymentResultPage() {
     }
   }, [paymentData]);
 
-  const getTitle = () => {
-    switch (status) {
-      case 'success': return '¡Pago aprobado!';
-      case 'failure': return 'Pago rechazado';
-      case 'pending': return 'Pago pendiente';
-      default: return 'Resultado del pago';
-    }
-  };
-
-  const getMessage = () => {
-    const typeLabel = paymentType === 'appointment' ? 'turno'
-      : paymentType === 'membership' ? 'membresía'
-      : paymentType === 'product_order' ? 'orden'
-      : 'pago';
-
-    switch (status) {
-      case 'success':
-        return paymentType === 'membership'
-          ? 'Tu membresía ya está activa. Disfrutá de tus beneficios.'
-          : `Tu ${typeLabel} fue confirmado exitosamente.`;
-      case 'failure':
-        return `El ${typeLabel} no pudo procesarse. Intentá de nuevo con otro medio de pago.`;
-      case 'pending':
-        return `Estamos procesando tu ${typeLabel}. Te notificaremos cuando se confirme.`;
-      default:
-        return 'No se pudo determinar el estado del pago.';
-    }
-  };
-
-  const getRedirectPath = () => {
-    if (status === 'success') {
-      switch (paymentType) {
-        case 'appointment': return '/mis-turnos';
-        case 'membership': return '/mi-membresia';
-        case 'product_order': return '/mis-ordenes';
-        default: return '/';
-      }
-    }
-    switch (paymentType) {
-      case 'appointment': return '/reservar';
-      case 'membership': return '/mi-membresia';
-      case 'product_order': return '/tienda';
-      default: return '/';
-    }
-  };
-
-  const getIcon = () => {
-    switch (status) {
-      case 'success': return <FiCheckCircle className="text-[#22C55E] text-5xl" />;
-      case 'failure': return <FiXCircle className="text-red-400 text-5xl" />;
-      case 'pending': return <FiClock className="text-yellow-400 text-5xl" />;
-      default: return <FiXCircle className="text-[#8A8A8A] text-5xl" />;
-    }
-  };
-
   useEffect(() => {
     if (status === 'success') {
-      const timer = setTimeout(() => {
-        navigate(getRedirectPath());
-      }, 3000);
-      return () => clearTimeout(timer);
+      const t = setTimeout(() => setShowCheckmark(true), 100);
+      return () => clearTimeout(t);
     }
-  }, [status, paymentType]);
+  }, [status]);
+
+  if (status === 'pending') {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-8 text-center"
+        >
+          <div className="flex justify-center mb-6">
+            <FiClock className="text-yellow-400 text-5xl animate-pulse" />
+          </div>
+          <h1 className="text-[22px] font-bold text-white mb-2">Pago pendiente</h1>
+          <p className="text-[14px] text-[#8A8A8A] mb-8">
+            Estamos procesando tu {typeLabels[paymentType] || 'pago'}. Te notificaremos cuando se confirme.
+          </p>
+          <Button onClick={() => navigate('/')}>Volver al inicio</Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (status === 'failure') {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-8 text-center"
+        >
+          <div className="flex justify-center mb-6">
+            <FiXCircle className="text-red-400 text-5xl" />
+          </div>
+          <h1 className="text-[22px] font-bold text-white mb-2">Pago rechazado</h1>
+          <p className="text-[14px] text-[#8A8A8A] mb-8">
+            El {typeLabels[paymentType] || 'pago'} no pudo procesarse. Intentá de nuevo con otro medio de pago.
+          </p>
+          <Button onClick={() => navigate('/tienda')}>Volver a la tienda</Button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const payment = paymentData?.payment;
+  const details: { label: string; value: string }[] = [
+    { label: 'Tipo', value: typeLabels[paymentType] || 'Pago' },
+    ...(payment?.amount ? [{ label: 'Monto', value: formatAmount(payment.amount) }] : []),
+    ...(payment?.createdAt ? [{ label: 'Fecha', value: formatDate(payment.createdAt) }] : []),
+    ...(payment?.mpPaymentId ? [{ label: 'ID MercadoPago', value: payment.mpPaymentId }] : []),
+  ];
 
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
-      <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-8 text-center">
-        <div className="flex justify-center mb-6">
-          {getIcon()}
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4 relative overflow-hidden">
+      {/* background glow */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 0.06 }}
+        transition={{ delay: 0.2, duration: 0.8 }}
+        className="absolute w-[300px] h-[300px] rounded-full bg-[#22C55E] blur-[120px] pointer-events-none"
+      />
+
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.92 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        className="w-full max-w-md rounded-[24px] border border-[#1F1F1F] bg-[#121212] p-8 relative"
+      >
+        {/* close button */}
+        <button
+          onClick={() => navigate('/')}
+          className="absolute top-4 right-4 text-[#555] hover:text-white transition-colors duration-150 p-1 rounded-full hover:bg-[#1F1F1F]"
+          aria-label="Cerrar"
+        >
+          <FiX className="text-[20px]" />
+        </button>
+
+        {/* checkmark */}
+        <div className="flex justify-center mb-4 mt-2">
+          <motion.svg
+            width="80"
+            height="80"
+            viewBox="0 0 80 80"
+            fill="none"
+            initial={{ scale: 0 }}
+            animate={{ scale: showCheckmark ? 1 : 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.15 }}
+          >
+            {/* circle background */}
+            <motion.circle
+              cx="40" cy="40" r="37"
+              fill="#0A0E0A"
+              stroke="#22C55E"
+              strokeWidth="3"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: 'easeOut' }}
+            />
+            {/* checkmark */}
+            <motion.path
+              d="M24 40.5L35 52L55 29"
+              stroke="#22C55E"
+              strokeWidth="4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+              variants={drawCheckmark}
+              initial="hidden"
+              animate={showCheckmark ? 'visible' : 'hidden'}
+            />
+          </motion.svg>
         </div>
 
-        <h1 className="text-[22px] font-bold text-white mb-2">{getTitle()}</h1>
-        <p className="text-[14px] text-[#8A8A8A] mb-8">{getMessage()}</p>
+        {/* title */}
+        <motion.h1
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.3 }}
+          className="text-[24px] font-bold text-white text-center mb-1"
+        >
+          ¡Pago confirmado!
+        </motion.h1>
 
-        <div className="flex flex-col gap-3">
-          <Button onClick={() => navigate(getRedirectPath())}>
-            {status === 'success' ? 'Continuar' : 'Volver'}
-          </Button>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55, duration: 0.3 }}
+          className="text-[14px] text-[#8A8A8A] text-center mb-8"
+        >
+          Tu {typeLabels[paymentType] || 'pago'} fue procesado exitosamente.
+        </motion.p>
 
-          {status === 'success' && (
-            <p className="text-[12px] text-[#555]">
-              Serás redirigido automáticamente en 3 segundos...
-            </p>
-          )}
-        </div>
-      </AnimatedContainer>
+        {/* details */}
+        {details.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5, duration: 0.3 }}
+            className="rounded-[16px] border border-[#1F1F1F] bg-[#0A0A0A] p-5 mb-8"
+          >
+            <div className="space-y-3">
+              {details.map((d, i) => (
+                <motion.div
+                  key={d.label}
+                  custom={i}
+                  variants={detailVariants}
+                  initial="hidden"
+                  animate="visible"
+                  className="flex justify-between items-center"
+                >
+                  <span className="text-[13px] text-[#666]">{d.label}</span>
+                  <span className="text-[13px] text-white font-medium truncate ml-4">{d.value}</span>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        <Button onClick={() => navigate('/')} className="w-full">
+          Volver al inicio
+        </Button>
+      </motion.div>
     </div>
   );
 }

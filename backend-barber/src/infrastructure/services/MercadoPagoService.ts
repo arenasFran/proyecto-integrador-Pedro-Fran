@@ -30,6 +30,8 @@ export class MercadoPagoService implements IPaymentService {
     this.ensureConfigured();
     const preference = new Preference(this.config);
 
+    const isHttpsSuccess = params.backUrls.success.startsWith('https://');
+
     const body = {
       items: params.items.map((item) => ({
         id: item.id ?? '',
@@ -48,7 +50,9 @@ export class MercadoPagoService implements IPaymentService {
         failure: params.backUrls.failure,
         pending: params.backUrls.pending,
       },
+      ...(isHttpsSuccess ? { auto_return: 'approved' } : {}),
       notification_url: params.notificationUrl,
+      ...(params.expirationDateTo ? { expires: true, expiration_date_to: params.expirationDateTo } : {}),
     };
 
     console.log('[MP-DEBUG] ===== CREANDO PREFERENCIA =====');
@@ -99,7 +103,7 @@ export class MercadoPagoService implements IPaymentService {
       if (error?.response) {
         console.error('[MP-DEBUG] error.response:', JSON.stringify(error.response));
       }
-      throw error;
+      throw new Error(error?.message || error?.cause || 'Error creando preferencia en MercadoPago');
     }
   }
 
@@ -199,7 +203,7 @@ export class MercadoPagoService implements IPaymentService {
       if (error?.response) {
         console.error('[MP-DEBUG] error.response:', JSON.stringify(error.response));
       }
-      throw error;
+      throw new Error(error?.message || error?.cause || 'Error creando preapproval en MercadoPago');
     }
   }
 

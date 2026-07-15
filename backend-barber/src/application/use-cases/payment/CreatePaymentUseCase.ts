@@ -39,6 +39,10 @@ export class CreatePaymentUseCase {
 
     const saved = await this.paymentRepository.save(payment);
 
+    const idempotencyKey = crypto.createHash('sha256').update(`${saved.id}:${dto.type}`).digest('hex');
+
+    const expirationDate = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
     const preference = await this.mercadoPagoService.createPreference({
       items: dto.items,
       externalReference: saved.id,
@@ -49,11 +53,12 @@ export class CreatePaymentUseCase {
         pending: `${frontendUrl}/payment/result?status=pending`,
       },
       payerEmail: dto.payerEmail,
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey,
+      expirationDateTo: expirationDate,
     });
 
     saved.assignPreference(preference.preferenceId);
-    await this.paymentRepository.save(saved);
+    await this.paymentRepository.updateMpPreferenceId(saved.id, preference.preferenceId);
 
     return {
       preferenceId: preference.preferenceId,

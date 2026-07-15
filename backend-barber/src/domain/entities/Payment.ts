@@ -78,6 +78,33 @@ export class Payment {
     this.props.updatedAt = new Date();
   }
 
+  refund(mpPaymentId: string): void {
+    if (this.props.status === 'refunded') {
+      return;
+    }
+    this.props.status = 'refunded';
+    this.props.mpPaymentId = mpPaymentId;
+    this.props.updatedAt = new Date();
+  }
+
+  chargeBack(mpPaymentId: string): void {
+    if (this.props.status === 'charge_back') {
+      return;
+    }
+    this.props.status = 'charge_back';
+    this.props.mpPaymentId = mpPaymentId;
+    this.props.updatedAt = new Date();
+  }
+
+  inMediation(mpPaymentId: string): void {
+    if (this.props.status === 'in_mediation') {
+      return;
+    }
+    this.props.status = 'in_mediation';
+    this.props.mpPaymentId = mpPaymentId;
+    this.props.updatedAt = new Date();
+  }
+
   assignPreference(mpPreferenceId: string): void {
     this.props.mpPreferenceId = mpPreferenceId;
     this.props.updatedAt = new Date();

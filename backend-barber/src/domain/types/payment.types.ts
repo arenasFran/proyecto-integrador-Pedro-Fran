@@ -1,6 +1,6 @@
 export type PaymentType = 'appointment' | 'membership' | 'product_order';
 
-export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+export type PaymentStatus = 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' | 'charge_back' | 'in_mediation';
 
 export type PaymentData = {
   id: string;

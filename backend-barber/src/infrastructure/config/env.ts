@@ -133,6 +133,43 @@ export function validateEnv(): Config {
   try {
     const config = loadConfig();
     console.log('Variables de entorno validadas correctamente.');
+
+    if (config.mpAccessToken) {
+      const isTestToken = config.mpAccessToken.startsWith('TEST-');
+      const isProdToken = config.mpAccessToken.startsWith('APP_USR-');
+      if (isProdToken && config.mpNotificationUrl && config.mpNotificationUrl.includes('localhost')) {
+        console.warn('[MP-CREDENTIALS] ATENCION: Usando token PRODUCTIVO (APP_USR-) con notification_url local. Los webhooks no funcionaran en produccion.');
+      }
+      if (isTestToken) {
+        console.log('[MP-CREDENTIALS] Usando credenciales de TEST (sandbox). OK para desarrollo.');
+      } else if (isProdToken) {
+        console.log('[MP-CREDENTIALS] Usando credenciales PRODUCTIVAS (APP_USR-).');
+      } else {
+        console.warn('[MP-CREDENTIALS] El token no tiene prefijo TEST- ni APP_USR-. Verifica que sea valido.');
+      }
+    } else {
+      console.warn('[MP-CREDENTIALS] MP_ACCESS_TOKEN no configurado. MercadoPago no estara disponible.');
+    }
+
+    if (config.mpWebhookSecret) {
+      console.log('[MP-CREDENTIALS] MP_WEBHOOK_SECRET configurado. HMAC habilitado.');
+    } else {
+      console.warn('[MP-CREDENTIALS] MP_WEBHOOK_SECRET no configurado. La validacion HMAC del webhook fallara siempre.');
+    }
+
+    if (config.mpPublicKey) {
+      console.log('[MP-CREDENTIALS] MP_PUBLIC_KEY configurado.');
+    }
+
+    if (config.mpNotificationUrl) {
+      const isLocal = /localhost|127\.0\.0\.1|192\.168\./.test(config.mpNotificationUrl);
+      if (isLocal) {
+        console.warn('[MP-CREDENTIALS] MP_NOTIFICATION_URL apunta a ' + config.mpNotificationUrl + ' (local). Para recibir webhooks de MP usa ngrok o similar.');
+      } else {
+        console.log('[MP-CREDENTIALS] MP_NOTIFICATION_URL: ' + config.mpNotificationUrl);
+      }
+    }
+
     return config;
   } catch (error) {
     if (error instanceof Error) {

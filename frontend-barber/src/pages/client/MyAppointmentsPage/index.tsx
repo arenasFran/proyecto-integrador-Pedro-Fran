@@ -314,13 +314,13 @@ export const MyAppointmentsPage: React.FC = () => {
       )}
 
       {rescheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 px-4 py-6">
+          <AnimatedContainer animation="fadeIn" className="mx-auto w-full max-w-md md:max-w-2xl rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
               {rescheduleTarget.serviceName} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
             </p>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-6">
               <div>
                 <p className="text-[13px] font-medium text-[#8A8A8A] mb-1">Nueva fecha</p>
                 <Calendar
@@ -330,24 +330,26 @@ export const MyAppointmentsPage: React.FC = () => {
                   schedule={barbers.find((b) => b.id === rescheduleBarberId)?.schedule}
                 />
               </div>
-              <TimeSlotGrid
-                slots={rescheduleSlots}
-                selectedTime={rescheduleTime}
-                selectedDate={rescheduleDate}
-                isLoading={isLoadingSlots}
-                error={slotsError}
-                reason={slotsReason}
-                onSelect={setRescheduleTime}
-              />
-              <Select
-                label="Barbero"
-                value={rescheduleBarberId}
-                onChange={handleRescheduleBarberChange}
-                options={[
-                  { value: '', label: 'Seleccionar barbero' },
-                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
-                ]}
-              />
+              <div className="flex flex-col gap-4">
+                <TimeSlotGrid
+                  slots={rescheduleSlots}
+                  selectedTime={rescheduleTime}
+                  selectedDate={rescheduleDate}
+                  isLoading={isLoadingSlots}
+                  error={slotsError}
+                  reason={slotsReason}
+                  onSelect={setRescheduleTime}
+                />
+                <Select
+                  label="Barbero"
+                  value={rescheduleBarberId}
+                  onChange={handleRescheduleBarberChange}
+                  options={[
+                    { value: '', label: 'Seleccionar barbero' },
+                    ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                  ]}
+                />
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>

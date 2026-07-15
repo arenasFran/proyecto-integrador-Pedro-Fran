@@ -5,6 +5,7 @@ export type CreatePreferenceParams = {
   notificationUrl?: string;
   payerEmail?: string;
   idempotencyKey?: string;
+  expirationDateTo?: string;
 };
 
 export type CreatePreferenceResult = {

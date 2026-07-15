@@ -74,6 +74,12 @@ export class MongoPaymentRepository {
     });
   }
 
+  async updateMpPreferenceId(id: string, mpPreferenceId: string): Promise<void> {
+    await PaymentModel.findByIdAndUpdate(id, {
+      $set: { mpPreferenceId, updatedAt: new Date() },
+    });
+  }
+
   async cancelPendingByAppointments(cutoff: Date): Promise<number> {
     const result = await PaymentModel.updateMany(
       {

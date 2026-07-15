@@ -22,12 +22,24 @@ export class ProcessWebhookUseCase {
     private readonly userRepository?: IUserRepository
   ) {}
 
-  async execute(rawBody: unknown, xSignature: string, xRequestId: string): Promise<void> {
-    const notification = rawBody as { type?: string; topic?: string; action?: string; data?: { id?: string } };
+  async execute(rawBody: unknown, xSignature: string, xRequestId: string, dataIdFromQuery: string): Promise<void> {
+    const notifications = Array.isArray(rawBody) ? rawBody : [rawBody];
+
+    for (const raw of notifications) {
+      await this.processNotification(raw as { type?: string; topic?: string; action?: string; data?: { id?: string } }, xSignature, xRequestId, dataIdFromQuery);
+    }
+  }
+
+  private async processNotification(
+    notification: { type?: string; topic?: string; action?: string; data?: { id?: string } },
+    xSignature: string,
+    xRequestId: string,
+    dataIdFromQuery: string
+  ): Promise<void> {
 
     if (!notification || !notification.data?.id) {
       console.log('[MP-DEBUG-WEBHOOK] Webhook recibido SIN data.id — no se puede procesar');
-      console.log('[MP-DEBUG-WEBHOOK] body raw:', JSON.stringify(rawBody));
+      console.log('[MP-DEBUG-WEBHOOK] body raw:', JSON.stringify(notification));
       return;
     }
 
@@ -47,15 +59,14 @@ export class ProcessWebhookUseCase {
 
     console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', notification.data.id);
 
-    const dataId = notification.data.id;
     const valid = this.mercadoPagoService.validateWebhookSignature({
       xSignature,
       xRequestId,
-      dataId,
+      dataId: dataIdFromQuery,
     });
     console.log('[MP-DEBUG-WEBHOOK] HMAC validation result:', valid);
     if (!valid) {
-      console.error('[MP-DEBUG-WEBHOOK] Firma HMAC inválida — xSignature:', xSignature, 'xRequestId:', xRequestId, 'dataId:', dataId);
+      console.error('[MP-DEBUG-WEBHOOK] Firma HMAC inválida — xSignature:', xSignature, 'xRequestId:', xRequestId, 'dataIdFromQuery:', dataIdFromQuery);
       throw new Error('Firma HMAC inválida en el webhook de MercadoPago.');
     }
 
@@ -106,19 +117,29 @@ export class ProcessWebhookUseCase {
         await this.handleCancelled(payment);
         break;
       case 'refunded':
-        payment.approve(mpPaymentId);
+        payment.refund(mpPaymentId);
         await this.paymentRepository.save(payment);
         await this.handleRefunded(payment, mpStatusDetail, paymentMethod);
         break;
       case 'charge_back':
-        payment.approve(mpPaymentId);
+        payment.chargeBack(mpPaymentId);
         await this.paymentRepository.save(payment);
         await this.handleChargeBack(payment, mpStatusDetail, paymentMethod);
         break;
       case 'in_mediation':
-        payment.approve(mpPaymentId);
+        payment.inMediation(mpPaymentId);
         await this.paymentRepository.save(payment);
         await this.handleInMediation(payment, mpStatusDetail, paymentMethod);
+        break;
+      case 'in_process':
+        console.log(`[MP-WEBHOOK] Pago ${mpPaymentId} en proceso (in_process) — status_detail: ${mpStatusDetail}. Esperando resolución.`);
+        break;
+      case 'pending':
+        if (mpStatusDetail === 'pending_waiting_payment' || mpStatusDetail === 'pending_waiting_transfer') {
+          console.log(`[MP-WEBHOOK] Pago ${mpPaymentId} pendiente de pago offline — status_detail: ${mpStatusDetail}`);
+        } else {
+          console.log(`[MP-WEBHOOK] Pago ${mpPaymentId} en estado pending — status_detail: ${mpStatusDetail}`);
+        }
         break;
       default:
         break;
@@ -205,9 +226,9 @@ export class ProcessWebhookUseCase {
         productDiscount: 10,
         mpPreapprovalId: preapprovalId,
         nextBillingDate: nextDate,
-      });
-      await this.membershipRepository.create(membership);
-    }
+            });
+            await this.membershipRepository.create(membership);
+          }
   }
 
   private async handleSubscriptionPayment(mpPayment: {
@@ -260,7 +281,7 @@ export class ProcessWebhookUseCase {
               couponsTotal: 4,
               productDiscount: 10,
             });
-            await this.membershipRepository.create(membership);
+      await this.membershipRepository.create(membership);
           }
         }
         break;

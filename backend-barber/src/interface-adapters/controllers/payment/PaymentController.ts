@@ -9,27 +9,26 @@ export class PaymentController {
     private readonly paymentRepository: MongoPaymentRepository
   ) {}
 
-  handleWebhook = async (req: Request, res: Response) => {
-    try {
-      console.log('[MP-DEBUG-WEBHOOK] ===== WEBHOOK RECIBIDO =====');
-      console.log('[MP-DEBUG-WEBHOOK] headers:', JSON.stringify({
-        'x-signature': req.headers['x-signature'],
-        'x-request-id': req.headers['x-request-id'],
-        'content-type': req.headers['content-type'],
-        'user-agent': req.headers['user-agent'],
-      }));
-      console.log('[MP-DEBUG-WEBHOOK] body completo:', JSON.stringify(req.body, null, 2));
+  handleWebhook = (req: Request, res: Response) => {
+    const xSignature = (req.headers['x-signature'] as string) || '';
+    const xRequestId = (req.headers['x-request-id'] as string) || '';
+    const dataIdFromQuery = (req.query['data.id'] as string) || '';
 
-      const xSignature = (req.headers['x-signature'] as string) || '';
-      const xRequestId = (req.headers['x-request-id'] as string) || '';
+    console.log('[MP-DEBUG-WEBHOOK] ===== WEBHOOK RECIBIDO =====');
+    console.log('[MP-DEBUG-WEBHOOK] headers:', JSON.stringify({
+      'x-signature': req.headers['x-signature'],
+      'x-request-id': req.headers['x-request-id'],
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+    }));
+    console.log('[MP-DEBUG-WEBHOOK] query data.id:', dataIdFromQuery);
+    console.log('[MP-DEBUG-WEBHOOK] body completo:', JSON.stringify(req.body, null, 2));
 
-      await this.processWebhook.execute(req.body, xSignature, xRequestId);
+    res.status(200).json({ message: 'OK' });
 
-      return sendSuccess(res, { message: 'OK' }, 200);
-    } catch (error) {
-      console.error('[PaymentWebhook] Error:', error);
-      return sendError(res, error, 'Error al procesar webhook');
-    }
+    this.processWebhook.execute(req.body, xSignature, xRequestId, dataIdFromQuery).catch((error) => {
+      console.error('[PaymentWebhook] Error en procesamiento asíncrono:', error);
+    });
   };
 
   getByPreferenceId = async (req: Request, res: Response) => {

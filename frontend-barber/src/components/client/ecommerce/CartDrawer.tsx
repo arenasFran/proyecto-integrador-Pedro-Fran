@@ -14,7 +14,7 @@ import {
   syncWithProducts,
 } from '../../../store/slices/cartSlice';
 import CartItem from '../../product/CartItem';
-import { Button } from '../../common';
+import { Button, Spinner } from '../../common';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import { useGetProductsQuery } from '../../../services/productApi';
@@ -25,7 +25,7 @@ export const CartDrawer = () => {
   const { items, isOpen } = useAppSelector((state) => state.cart);
   const total = useAppSelector(selectCartTotal);
   const count = useAppSelector(selectCartCount);
-  const [createOrder] = useCreateOrderMutation();
+  const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
 
   const { data: allProductsData } = useGetProductsQuery({});
 
@@ -123,6 +123,7 @@ export const CartDrawer = () => {
                         className="flex-1 text-[12px]"
                         onClick={() => handleCheckout('online')}
                         icon={FiCreditCard}
+                        loading={isCreatingOrder}
                       >
                         Pagar online
                       </Button>
@@ -131,6 +132,7 @@ export const CartDrawer = () => {
                         variant="outline"
                         onClick={() => handleCheckout('local')}
                         icon={FiMapPin}
+                        loading={isCreatingOrder}
                       >
                         Pago al levantar
                       </Button>

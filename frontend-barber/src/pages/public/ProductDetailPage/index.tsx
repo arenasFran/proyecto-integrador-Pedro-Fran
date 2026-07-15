@@ -10,7 +10,7 @@ import { Button } from '../../../components/common';
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [createOrder] = useCreateOrderMutation();
+  const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [preferenceId, setPreferenceId] = useState('');
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
@@ -90,6 +90,7 @@ export default function ProductDetailPage() {
                 className="w-full"
                 icon={FiCreditCard}
                 onClick={() => handleBuyNowPayment('online')}
+                loading={isCreatingOrder}
               >
                 Pagar online con MercadoPago
               </Button>
@@ -98,6 +99,7 @@ export default function ProductDetailPage() {
                 variant="outline"
                 icon={FiMapPin}
                 onClick={() => handleBuyNowPayment('local')}
+                loading={isCreatingOrder}
               >
                 Pago al levantar en el local
               </Button>

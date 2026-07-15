@@ -29,7 +29,7 @@ export default function ShopPage() {
   });
   const { data: categoriesData } = useGetCategoriesQuery();
 
-  const [createOrder] = useCreateOrderMutation();
+  const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
 
   const categories = categoriesData?.categories ?? [];
   const products = productsData?.products ?? [];
@@ -103,6 +103,7 @@ export default function ShopPage() {
                 className="w-full"
                 icon={FiCreditCard}
                 onClick={() => handleBuyNowPayment('online')}
+                loading={isCreatingOrder}
               >
                 Pagar online con MercadoPago
               </Button>
@@ -111,6 +112,7 @@ export default function ShopPage() {
                 variant="outline"
                 icon={FiMapPin}
                 onClick={() => handleBuyNowPayment('local')}
+                loading={isCreatingOrder}
               >
                 Pago al levantar en el local
               </Button>

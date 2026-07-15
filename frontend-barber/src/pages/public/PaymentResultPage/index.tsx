@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiXCircle, FiX, FiClock } from 'react-icons/fi';
+import { StatusScreen } from '@mercadopago/sdk-react';
 import { Button } from '../../../components/common';
 import { useGetPaymentByIdQuery } from '../../../services/paymentApi';
 
@@ -52,7 +53,7 @@ export default function PaymentResultPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const status = searchParams.get('status');
-  const paymentId = searchParams.get('payment_id');
+  const mpPaymentId = searchParams.get('payment_id');
   const externalRef = searchParams.get('external_reference');
   const [paymentType, setPaymentType] = useState<string>('unknown');
   const [showCheckmark, setShowCheckmark] = useState(false);
@@ -73,6 +74,19 @@ export default function PaymentResultPage() {
       return () => clearTimeout(t);
     }
   }, [status]);
+
+  if (mpPaymentId && (status === 'success' || status === 'failure' || status === 'pending')) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
+          <StatusScreen initialization={{ paymentId: mpPaymentId }} />
+          <div className="mt-6 text-center">
+            <Button onClick={() => navigate('/')} variant="ghost">Volver al inicio</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (status === 'pending') {
     return (

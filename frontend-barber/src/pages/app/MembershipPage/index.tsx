@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiRefreshCw, FiDollarSign } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
-import { AnimatedContainer, Spinner, Button, ConfirmModal } from '../../../components/common';
+import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
 import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation, useCancelMembershipMutation, useReactivateMembershipMutation, useInitiateMembershipPaymentMutation, useRequestLocalPaymentMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
@@ -17,6 +17,8 @@ export default function MembershipPage() {
   const [reactivateMembership, { isLoading: isReactivating }] = useReactivateMembershipMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
   const [requestLocal, { isLoading: isRequestingLocal }] = useRequestLocalPaymentMutation();
+
+  const { showToast } = useToast();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalAction, setModalAction] = useState<'cancel' | 'reactivate' | null>(null);
@@ -46,7 +48,10 @@ export default function MembershipPage() {
       const user = JSON.parse(atob(token.split('.')[1]));
       const result = await createSubscription({ userId: user.id, email: user.email }).unwrap();
       if (result.initPoint) {
-        window.open(result.initPoint, '_blank', 'noopener,noreferrer');
+        const popup = window.open(result.initPoint, '_blank', 'noopener,noreferrer');
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          showToast('El navegador bloqueó la ventana de pago. Permití ventanas emergentes e intentá de nuevo.', 'error');
+        }
       }
     } catch {
       showToast('Error al crear la suscripción. Intentá de nuevo.', 'error');
@@ -57,8 +62,12 @@ export default function MembershipPage() {
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
       const result = await initiatePayment({ userId: user.id }).unwrap();
-      if (result.initPoint) {
-        window.open(result.initPoint, '_blank', 'noopener,noreferrer');
+      const url = import.meta.env.DEV ? (result.sandboxInitPoint || result.initPoint) : result.initPoint;
+      if (url) {
+        const popup = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+          showToast('El navegador bloqueó la ventana de pago. Permití ventanas emergentes e intentá de nuevo.', 'error');
+        }
       }
     } catch {
       showToast('Error al procesar el pago. Intentá de nuevo.', 'error');

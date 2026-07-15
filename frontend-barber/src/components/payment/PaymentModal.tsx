@@ -1,15 +1,6 @@
-import { useEffect, useRef, memo } from 'react';
+import { useState } from 'react';
 import { Wallet } from '@mercadopago/sdk-react';
 import { AnimatedContainer, Button } from '../common';
-
-const WalletBrick = memo(function WalletBrick({ preferenceId, onError }: { preferenceId: string; onError: () => void }) {
-  return (
-    <Wallet
-      initialization={{ preferenceId, redirectMode: 'blank' }}
-      onError={onError}
-    />
-  );
-});
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -18,29 +9,9 @@ interface PaymentModalProps {
   title?: string;
 }
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-
 export default function PaymentModal({ isOpen, preferenceId, onClose, title }: PaymentModalProps) {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    if (!isOpen || !preferenceId) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${BASE_URL}/api/payments/by-preference/${preferenceId}`);
-        const json = await res.json();
-        if (json?.payment?.status === 'approved') {
-          onCloseRef.current();
-        }
-      } catch {
-        // ignore network errors
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isOpen, preferenceId]);
+  const [error, setError] = useState<string | null>(null);
+  const [walletReady, setWalletReady] = useState(false);
 
   if (!isOpen || !preferenceId) return null;
 
@@ -57,20 +28,44 @@ export default function PaymentModal({ isOpen, preferenceId, onClose, title }: P
           </button>
         </div>
 
-        <p className="text-[13px] text-[#8A8A8A] mb-6">
-          Hacé clic en el botón de Mercado Pago para completar el pago de forma segura.
-        </p>
+        {error ? (
+          <div className="text-center mb-6">
+            <p className="text-[13px] text-red-400 mb-4">{error}</p>
+            <Button onClick={() => window.open(`https://www.mercadopago.com.uy/checkout/v1/redirect?pref_id=${preferenceId}`, '_blank')} className="w-full mb-2">
+              Abrir enlace de pago manual
+            </Button>
+            <Button variant="ghost" onClick={() => setError(null)} className="w-full">
+              Reintentar
+            </Button>
+          </div>
+        ) : (
+          <>
+            <p className="text-[13px] text-[#8A8A8A] mb-6">
+              Hacé clic en el botón de Mercado Pago para completar el pago de forma segura.
+            </p>
 
-        <Wallet
-          initialization={{ preferenceId, redirectMode: 'blank' }}
-          onError={onClose}
-        />
+            {!walletReady && (
+              <div className="flex items-center justify-center py-4">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009EE3] border-t-transparent" />
+                <span className="ml-2 text-[13px] text-[#8A8A8A]">Cargando medio de pago...</span>
+              </div>
+            )}
 
-        <div className="mt-4">
-          <Button variant="ghost" onClick={onClose} className="w-full">
-            Cancelar
-          </Button>
-        </div>
+            <div className={walletReady ? '' : 'opacity-0 absolute pointer-events-none'}>
+              <Wallet
+                initialization={{ preferenceId, redirectMode: 'blank' }}
+                onReady={() => setWalletReady(true)}
+                onError={() => setError('No se pudo abrir la ventana de pago. Verificá que tu navegador no esté bloqueando ventanas emergentes.')}
+              />
+            </div>
+
+            <div className="mt-4">
+              <Button variant="ghost" onClick={onClose} className="w-full">
+                Cancelar
+              </Button>
+            </div>
+          </>
+        )}
       </AnimatedContainer>
     </div>
   );

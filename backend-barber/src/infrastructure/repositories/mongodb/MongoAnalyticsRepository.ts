@@ -155,10 +155,21 @@ export class MongoAnalyticsRepository {
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ] as mongoose.PipelineStage[];
 
-    const [nuevosClientes, commerceAndMembershipRevenue, commerceAndMembershipPending, membresiasActivasResult, clientesUnicosResult] = await Promise.all([
+    const membershipPendingPipeline = [
+      { $match: { type: 'membership', status: 'pending', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ] as mongoose.PipelineStage[];
+
+    const ordersPendingPipeline = [
+      { $match: { status: 'pending', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$total' } } },
+    ] as mongoose.PipelineStage[];
+
+    const [nuevosClientes, commerceAndMembershipRevenue, membershipPending, ordersPending, membresiasActivasResult, clientesUnicosResult] = await Promise.all([
       Client.aggregate(nuevosClientesPipeline),
       PaymentModel.aggregate(paymentRevenuePipeline('approved')),
-      PaymentModel.aggregate(paymentRevenuePipeline('pending')),
+      PaymentModel.aggregate(membershipPendingPipeline),
+      OrderModel.aggregate(ordersPendingPipeline),
       MembershipModel.aggregate([
         { $match: { status: 'active', endDate: { $gte: new Date() } } },
         { $count: 'total' },
@@ -199,7 +210,7 @@ export class MongoAnalyticsRepository {
       totalReservas: (data.totalReservas as Array<{ count: number }>)[0]?.count ?? 0,
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
       ingresosTotales: ((data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0) + (commerceAndMembershipRevenue[0]?.total ?? 0),
-      ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (commerceAndMembershipPending[0]?.total ?? 0),
+      ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (membershipPending[0]?.total ?? 0) + (ordersPending[0]?.total ?? 0),
       nuevosClientes: nuevosClientes[0]?.total ?? 0,
       membresiasActivas: (membresiasActivasResult as Array<{ total: number }>)[0]?.total ?? 0,
       clientesUnicos: (clientesUnicosResult as Array<{ unique: number }>)[0]?.unique ?? 0,

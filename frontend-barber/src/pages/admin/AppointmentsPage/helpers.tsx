@@ -1,4 +1,5 @@
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
+import { formatDateTime } from '../../../utils/formatDate';
 
 export const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -44,8 +45,7 @@ export function originBadge(cb?: CreatedBy) {
 }
 
 export function formatTimestamp(ts: string) {
-  const d = new Date(ts);
-  return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return formatDateTime(ts);
 }
 
 export function extractError(err: unknown): string {

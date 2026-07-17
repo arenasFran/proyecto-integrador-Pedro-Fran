@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fi';
 import { BarberAvatar, Modal, Button } from '../../../components/common';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
-import { formatDate } from '../../../utils/formatDate';
+import { formatDate, formatDateTime } from '../../../utils/formatDate';
 import PaymentTransactionDetail from '../../../components/payment/PaymentTransactionDetail';
 import { useGetPaymentByReferenceQuery } from '../../../services/paymentApi';
 
@@ -54,12 +54,7 @@ function formatTime(time: string) {
 }
 
 function formatTimestamp(ts: string) {
-  try {
-    const d = new Date(ts);
-    return d.toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-  } catch {
-    return ts;
-  }
+  return formatDateTime(ts);
 }
 
 function originBadge(cb?: CreatedBy) {

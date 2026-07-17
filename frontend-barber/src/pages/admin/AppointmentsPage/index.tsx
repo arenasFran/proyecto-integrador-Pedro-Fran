@@ -228,7 +228,7 @@ export const AdminAppointmentsPage: React.FC = () => {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Fecha</span>
-                        <span className="text-white">{appointment.date}</span>
+                        <span className="text-white">{formatDate(appointment.date)}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#8A8A8A]">Horario</span>

@@ -409,6 +409,18 @@ export class ProcessWebhookUseCase {
         order.cancel();
         await this.orderRepository.save(order);
       }
+    } else if (payment.type === 'appointment') {
+      const appointment = await this.appointmentRepository.findById(payment.referenceId);
+      if (appointment && appointment.status !== 'Cancelado') {
+        await this.appointmentRepository.updateStatus(payment.referenceId, {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Pago rechazado',
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+        });
+      }
     }
     await this.sendPaymentNotification(payment, 'rechazado');
   }
@@ -419,6 +431,18 @@ export class ProcessWebhookUseCase {
       if (order && order.status === 'pending') {
         order.cancel('system');
         await this.orderRepository.save(order);
+      }
+    } else if (payment.type === 'appointment') {
+      const appointment = await this.appointmentRepository.findById(payment.referenceId);
+      if (appointment && appointment.status !== 'Cancelado') {
+        await this.appointmentRepository.updateStatus(payment.referenceId, {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Pago cancelado',
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+        });
       }
     }
     await this.sendPaymentNotification(payment, 'cancelado');
@@ -445,6 +469,18 @@ export class ProcessWebhookUseCase {
           }).catch(() => {});
         }
       }
+    } else if (payment.type === 'appointment') {
+      const appointment = await this.appointmentRepository.findById(payment.referenceId);
+      if (appointment && appointment.status !== 'Cancelado') {
+        await this.appointmentRepository.updateStatus(payment.referenceId, {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Pago reembolsado',
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+        });
+      }
     }
     await this.sendPaymentNotification(payment, 'reembolsado');
   }
@@ -457,8 +493,20 @@ export class ProcessWebhookUseCase {
         order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
         await this.orderRepository.save(order);
       }
+    } else if (payment.type === 'appointment') {
+      const appointment = await this.appointmentRepository.findById(payment.referenceId);
+      if (appointment && appointment.status !== 'Cancelado') {
+        await this.appointmentRepository.updateStatus(payment.referenceId, {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Contracargo',
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+        });
+      }
     }
-    console.log(`[MP-WEBHOOK] Chargeback detectado para payment ${payment.id} - orden ${payment.referenceId}`);
+    console.log(`[MP-WEBHOOK] Chargeback detectado para payment ${payment.id} - referencia ${payment.referenceId}`);
   }
 
   private async handleInMediation(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
@@ -470,7 +518,7 @@ export class ProcessWebhookUseCase {
         await this.orderRepository.save(order);
       }
     }
-    console.log(`[MP-WEBHOOK] Mediación iniciada para payment ${payment.id} - orden ${payment.referenceId}`);
+    console.log(`[MP-WEBHOOK] Mediación iniciada para payment ${payment.id} - referencia ${payment.referenceId}`);
   }
 
   private async getUserEmail(userId: string): Promise<string | null> {

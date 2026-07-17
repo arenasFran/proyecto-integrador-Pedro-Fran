@@ -108,6 +108,22 @@ export class MongoPaymentRepository {
     return result.modifiedCount;
   }
 
+  async cancelOrphanPendingPayments(cutoff: Date): Promise<number> {
+    const result = await PaymentModel.updateMany(
+      {
+        status: 'pending',
+        createdAt: { $lt: cutoff },
+      },
+      {
+        $set: {
+          status: 'cancelled',
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.modifiedCount;
+  }
+
   async findAll(filter?: { type?: string; status?: string; page?: number; limit?: number }): Promise<{ data: Payment[]; total: number; page: number; totalPages: number; limit: number }> {
     const query: Record<string, unknown> = {};
     if (filter?.type) query.type = filter.type;

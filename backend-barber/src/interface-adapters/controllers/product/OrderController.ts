@@ -9,6 +9,7 @@ import { IUserRepository } from '../../../application/ports/IUserRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { Order } from '../../../domain/entities/Order';
+import { Payment } from '../../../domain/entities/Payment';
 
 export class OrderController {
   constructor(
@@ -207,6 +208,21 @@ export class OrderController {
           } catch (err) {
             console.error('[OrderController] Error al actualizar Payment:', err);
           }
+        }
+      }
+
+      if ((status === 'paid' || status === 'delivered') && this.paymentRepository && !order.paymentId) {
+        try {
+          const paymentDoc = Payment.create({
+            type: 'product_order',
+            referenceId: order.id,
+            amount: order.total,
+            userId: order.userId,
+          });
+          paymentDoc.approve('admin_manual');
+          await this.paymentRepository.save(paymentDoc);
+        } catch (err) {
+          console.error('[OrderController] Error creating PaymentModel for manual order:', err);
         }
       }
 

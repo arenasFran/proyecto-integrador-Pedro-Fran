@@ -476,17 +476,27 @@ export class MongoAnalyticsRepository {
     return services;
   }
 
-  async getClientesList(desde: string, hasta: string): Promise<ClienteListEntry[]> {
+  async getClientesList(desde: string, hasta: string, search?: string): Promise<ClienteListEntry[]> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    const matchStage: Record<string, unknown> = { registeredAt: { $lte: endOfDayDate(hasta) } };
+
+    if (search && search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = { $regex: escaped, $options: 'i' };
+      matchStage.$or = [
+        { name: regex },
+        { lastname: regex },
+        { email: regex },
+        { contactEmail: regex },
+        { phone: regex },
+      ];
+    }
 
     const pipeline = [
       REGISTERED_AT_STAGE,
-      // El listado es el padrón de clientes existentes al fin del rango;
-      // el rango [desde, hasta] solo acota las estadísticas de actividad.
-      { $match: { registeredAt: { $lte: endOfDayDate(hasta) } } },
+      { $match: matchStage },
       {
-        // Turnos del período: por clientId (los anónimos nuevos también lo
-        // guardan) o, para turnos anónimos legacy sin clientId, por teléfono.
         $lookup: {
           from: 'appointments',
           let: { cid: '$_id', phone: '$phone' },

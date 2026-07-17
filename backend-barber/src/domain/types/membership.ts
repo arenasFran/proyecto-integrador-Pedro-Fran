@@ -1,6 +1,10 @@
-export type MembershipStatus = 'active' | 'expired' | 'cancelled' | 'pending';
+export type MembershipStatus = 'active' | 'expired' | 'pending';
 
 export type MembershipSource = 'client' | 'admin';
+
+export type PaymentMethod = 'mercadopago' | 'local' | null;
+
+export type BillingCycle = 'monthly' | 'onetime' | null;
 
 export type MembershipData = {
   id: string;
@@ -12,11 +16,13 @@ export type MembershipData = {
   couponsTotal: number;
   couponsUsed: number;
   productDiscount: number;
-  autoRenew: boolean;
+  durationDays: number;
+  billingCycle: BillingCycle;
   createdBy: MembershipSource;
   adminId?: string;
   mpPreapprovalId?: string;
-  nextBillingDate?: Date;
+  paymentMethod: PaymentMethod;
+  paymentId?: string;
   approvedBy?: string;
   approvedAt?: Date;
   createdAt: Date;

@@ -10,12 +10,14 @@ export interface IMembershipDocument extends Document {
   couponsTotal: number;
   couponsUsed: number;
   productDiscount: number;
-  autoRenew: boolean;
+  durationDays: number;
+  billingCycle: 'monthly' | 'onetime' | null;
   createdBy: MembershipSource;
   adminId?: mongoose.Types.ObjectId;
   mpPreapprovalId?: string;
-  nextBillingDate?: Date;
-  approvedBy?: mongoose.Types.ObjectId;
+  paymentMethod: 'mercadopago' | 'local' | null;
+  paymentId?: string;
+  approvedBy?: string;
   approvedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -31,7 +33,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     },
     status: {
       type: String,
-      enum: ['active', 'expired', 'cancelled', 'pending'],
+      enum: ['active', 'expired', 'pending'],
       default: 'active',
     },
     price: { type: Number, required: true, default: 0 },
@@ -40,7 +42,12 @@ const membershipSchema = new Schema<IMembershipDocument>(
     couponsTotal: { type: Number, required: true, default: 4 },
     couponsUsed: { type: Number, required: true, default: 0 },
     productDiscount: { type: Number, required: true, default: 10 },
-    autoRenew: { type: Boolean, default: true },
+    durationDays: { type: Number, required: true, default: 30 },
+    billingCycle: {
+      type: String,
+      enum: ['monthly', 'onetime', null],
+      default: null,
+    },
     createdBy: {
       type: String,
       enum: ['client', 'admin'],
@@ -54,8 +61,13 @@ const membershipSchema = new Schema<IMembershipDocument>(
       type: String,
       required: false,
     },
-    nextBillingDate: {
-      type: Date,
+    paymentMethod: {
+      type: String,
+      enum: ['mercadopago', 'local', null],
+      default: null,
+    },
+    paymentId: {
+      type: String,
       required: false,
     },
     approvedBy: {

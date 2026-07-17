@@ -30,5 +30,12 @@ export const createReportsRouter = (deps: {
     deps.reportsController.exportProductsCsv,
   );
 
+  router.get(
+    '/memberships/csv',
+    deps.authenticate,
+    authorize('Admin'),
+    deps.reportsController.exportMembershipsCsv,
+  );
+
   return router;
 };

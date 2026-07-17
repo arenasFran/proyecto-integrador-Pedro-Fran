@@ -126,9 +126,18 @@ export class MercadoPagoService implements IPaymentService {
         statusDetail: response.status_detail!,
         transactionAmount: response.transaction_amount!,
         paymentMethodId: response.payment_method_id!,
+        paymentTypeId: response.payment_type_id,
         payerEmail: response.payer?.email,
         externalReference: response.external_reference,
         preapprovalId: response.preapproval_id,
+        installments: (response as any).installments,
+        cardLastFourDigits: (response as any).card?.last_four_digits,
+        cardIssuerId: (response as any).issuer_id,
+        dateApproved: (response as any).date_approved,
+        operationType: (response as any).operation_type,
+        feeAmount: (response as any).fee_details?.[0]?.amount,
+        netReceivedAmount: (response as any).transaction_details?.net_received_amount,
+        totalPaidAmount: (response as any).transaction_details?.total_paid_amount,
       };
     } catch {
       return null;

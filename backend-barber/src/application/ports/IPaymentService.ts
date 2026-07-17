@@ -20,9 +20,18 @@ export type GetPaymentResult = {
   statusDetail: string;
   transactionAmount: number;
   paymentMethodId: string;
+  paymentTypeId?: string;
   payerEmail?: string;
   externalReference?: string;
   preapprovalId?: string;
+  installments?: number;
+  cardLastFourDigits?: string;
+  cardIssuerId?: string;
+  dateApproved?: string;
+  operationType?: string;
+  feeAmount?: number;
+  netReceivedAmount?: number;
+  totalPaidAmount?: number;
 };
 
 export type ValidateWebhookParams = {

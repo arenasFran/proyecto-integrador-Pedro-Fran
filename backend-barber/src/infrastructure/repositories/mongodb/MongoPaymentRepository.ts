@@ -47,6 +47,17 @@ export class MongoPaymentRepository {
           status: data.status,
           mpPaymentId: data.mpPaymentId,
           mpPreferenceId: data.mpPreferenceId,
+          mpStatusDetail: data.mpStatusDetail,
+          mpPaymentMethodId: data.mpPaymentMethodId,
+          mpPaymentTypeId: data.mpPaymentTypeId,
+          mpInstallments: data.mpInstallments,
+          mpTotalPaidAmount: data.mpTotalPaidAmount,
+          mpNetReceivedAmount: data.mpNetReceivedAmount,
+          mpFeeAmount: data.mpFeeAmount,
+          mpCardLastFourDigits: data.mpCardLastFourDigits,
+          mpCardIssuerId: data.mpCardIssuerId,
+          mpDateApproved: data.mpDateApproved,
+          mpOperationType: data.mpOperationType,
           updatedAt: new Date(),
         },
       }, session ? { session } : {});
@@ -97,6 +108,29 @@ export class MongoPaymentRepository {
     return result.modifiedCount;
   }
 
+  async findAll(filter?: { type?: string; status?: string; page?: number; limit?: number }): Promise<{ data: Payment[]; total: number; page: number; totalPages: number; limit: number }> {
+    const query: Record<string, unknown> = {};
+    if (filter?.type) query.type = filter.type;
+    if (filter?.status) query.status = filter.status;
+
+    const page = filter?.page ?? 1;
+    const limit = filter?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const [docs, total] = await Promise.all([
+      PaymentModel.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      PaymentModel.countDocuments(query),
+    ]);
+
+    return {
+      data: docs.map((d) => this.toDomain(d)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
+      limit,
+    };
+  }
+
   private toDomain(doc: IPaymentDocument): Payment {
     return Payment.restore({
       id: doc._id.toString(),
@@ -110,6 +144,17 @@ export class MongoPaymentRepository {
       userId: doc.userId.toString(),
       createdAt: doc.createdAt,
       updatedAt: doc.updatedAt,
+      mpStatusDetail: doc.mpStatusDetail ?? undefined,
+      mpPaymentMethodId: doc.mpPaymentMethodId ?? undefined,
+      mpPaymentTypeId: doc.mpPaymentTypeId ?? undefined,
+      mpInstallments: doc.mpInstallments ?? undefined,
+      mpTotalPaidAmount: doc.mpTotalPaidAmount ?? undefined,
+      mpNetReceivedAmount: doc.mpNetReceivedAmount ?? undefined,
+      mpFeeAmount: doc.mpFeeAmount ?? undefined,
+      mpCardLastFourDigits: doc.mpCardLastFourDigits ?? undefined,
+      mpCardIssuerId: doc.mpCardIssuerId ?? undefined,
+      mpDateApproved: doc.mpDateApproved ?? undefined,
+      mpOperationType: doc.mpOperationType ?? undefined,
     });
   }
 }

@@ -14,4 +14,15 @@ export type PaymentData = {
   userId: string;
   createdAt: Date;
   updatedAt: Date;
+  mpStatusDetail?: string;
+  mpPaymentMethodId?: string;
+  mpPaymentTypeId?: string;
+  mpInstallments?: number;
+  mpTotalPaidAmount?: number;
+  mpNetReceivedAmount?: number;
+  mpFeeAmount?: number;
+  mpCardLastFourDigits?: string;
+  mpCardIssuerId?: string;
+  mpDateApproved?: Date;
+  mpOperationType?: string;
 };

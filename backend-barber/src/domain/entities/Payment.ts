@@ -48,6 +48,17 @@ export class Payment {
   get userId(): string { return this.props.userId; }
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
   get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
+  get mpStatusDetail(): string | undefined { return this.props.mpStatusDetail; }
+  get mpPaymentMethodId(): string | undefined { return this.props.mpPaymentMethodId; }
+  get mpPaymentTypeId(): string | undefined { return this.props.mpPaymentTypeId; }
+  get mpInstallments(): number | undefined { return this.props.mpInstallments; }
+  get mpTotalPaidAmount(): number | undefined { return this.props.mpTotalPaidAmount; }
+  get mpNetReceivedAmount(): number | undefined { return this.props.mpNetReceivedAmount; }
+  get mpFeeAmount(): number | undefined { return this.props.mpFeeAmount; }
+  get mpCardLastFourDigits(): string | undefined { return this.props.mpCardLastFourDigits; }
+  get mpCardIssuerId(): string | undefined { return this.props.mpCardIssuerId; }
+  get mpDateApproved(): Date | undefined { return this.props.mpDateApproved; }
+  get mpOperationType(): string | undefined { return this.props.mpOperationType; }
 
   toPrimitives(): PaymentProps {
     return { ...this.props };
@@ -59,6 +70,33 @@ export class Payment {
     }
     this.props.status = 'approved';
     this.props.mpPaymentId = mpPaymentId;
+    this.props.updatedAt = new Date();
+  }
+
+  enrich(metadata: {
+    mpStatusDetail?: string;
+    mpPaymentMethodId?: string;
+    mpPaymentTypeId?: string;
+    mpInstallments?: number;
+    mpTotalPaidAmount?: number;
+    mpNetReceivedAmount?: number;
+    mpFeeAmount?: number;
+    mpCardLastFourDigits?: string;
+    mpCardIssuerId?: string;
+    mpDateApproved?: Date;
+    mpOperationType?: string;
+  }): void {
+    if (metadata.mpStatusDetail) this.props.mpStatusDetail = metadata.mpStatusDetail;
+    if (metadata.mpPaymentMethodId) this.props.mpPaymentMethodId = metadata.mpPaymentMethodId;
+    if (metadata.mpPaymentTypeId) this.props.mpPaymentTypeId = metadata.mpPaymentTypeId;
+    if (metadata.mpInstallments != null) this.props.mpInstallments = metadata.mpInstallments;
+    if (metadata.mpTotalPaidAmount != null) this.props.mpTotalPaidAmount = metadata.mpTotalPaidAmount;
+    if (metadata.mpNetReceivedAmount != null) this.props.mpNetReceivedAmount = metadata.mpNetReceivedAmount;
+    if (metadata.mpFeeAmount != null) this.props.mpFeeAmount = metadata.mpFeeAmount;
+    if (metadata.mpCardLastFourDigits) this.props.mpCardLastFourDigits = metadata.mpCardLastFourDigits;
+    if (metadata.mpCardIssuerId) this.props.mpCardIssuerId = metadata.mpCardIssuerId;
+    if (metadata.mpDateApproved) this.props.mpDateApproved = metadata.mpDateApproved;
+    if (metadata.mpOperationType) this.props.mpOperationType = metadata.mpOperationType;
     this.props.updatedAt = new Date();
   }
 

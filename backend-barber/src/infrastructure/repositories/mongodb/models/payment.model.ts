@@ -12,6 +12,17 @@ export interface IPaymentDocument extends Document {
   userId: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  mpStatusDetail?: string;
+  mpPaymentMethodId?: string;
+  mpPaymentTypeId?: string;
+  mpInstallments?: number;
+  mpTotalPaidAmount?: number;
+  mpNetReceivedAmount?: number;
+  mpFeeAmount?: number;
+  mpCardLastFourDigits?: string;
+  mpCardIssuerId?: string;
+  mpDateApproved?: Date;
+  mpOperationType?: string;
 }
 
 const paymentSchema = new Schema<IPaymentDocument>(
@@ -27,7 +38,7 @@ const paymentSchema = new Schema<IPaymentDocument>(
     },
     status: {
       type: String,
-      enum: ['pending', 'approved', 'rejected', 'cancelled'],
+      enum: ['pending', 'approved', 'rejected', 'cancelled', 'refunded', 'charge_back', 'in_mediation'],
       default: 'pending',
     },
     mpPaymentId: {
@@ -52,6 +63,17 @@ const paymentSchema = new Schema<IPaymentDocument>(
       required: true,
       index: true,
     },
+    mpStatusDetail: { type: String, required: false },
+    mpPaymentMethodId: { type: String, required: false },
+    mpPaymentTypeId: { type: String, required: false },
+    mpInstallments: { type: Number, required: false },
+    mpTotalPaidAmount: { type: Number, required: false },
+    mpNetReceivedAmount: { type: Number, required: false },
+    mpFeeAmount: { type: Number, required: false },
+    mpCardLastFourDigits: { type: String, required: false },
+    mpCardIssuerId: { type: String, required: false },
+    mpDateApproved: { type: Date, required: false },
+    mpOperationType: { type: String, required: false },
   },
   { timestamps: true }
 );

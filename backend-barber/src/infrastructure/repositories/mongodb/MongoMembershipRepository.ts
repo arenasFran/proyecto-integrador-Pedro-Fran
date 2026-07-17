@@ -89,7 +89,7 @@ export class MongoMembershipRepository {
     return docs.map((d) => this.toDomain(d));
   }
 
-  async create(membership: Membership, session?: mongoose.ClientSession): Promise<Membership> {
+  async save(membership: Membership, session?: mongoose.ClientSession): Promise<Membership> {
     const data = membership.toPrimitives();
 
     if (data.id) {
@@ -98,10 +98,10 @@ export class MongoMembershipRepository {
           status: data.status,
           couponsUsed: data.couponsUsed,
           endDate: data.endDate,
-          nextBillingDate: data.nextBillingDate,
           approvedBy: data.approvedBy,
           approvedAt: data.approvedAt,
-          autoRenew: data.autoRenew,
+          paymentMethod: data.paymentMethod,
+          paymentId: data.paymentId,
           updatedAt: new Date(),
         },
       }, session ? { session } : {});
@@ -116,10 +116,13 @@ export class MongoMembershipRepository {
       couponsTotal: data.couponsTotal,
       couponsUsed: data.couponsUsed,
       productDiscount: data.productDiscount,
+      durationDays: data.durationDays,
+      billingCycle: data.billingCycle,
       createdBy: data.createdBy,
       adminId: data.adminId ? new mongoose.Types.ObjectId(data.adminId) : undefined,
       mpPreapprovalId: data.mpPreapprovalId,
-      nextBillingDate: data.nextBillingDate,
+      paymentMethod: data.paymentMethod,
+      paymentId: data.paymentId,
       approvedBy: data.approvedBy,
       approvedAt: data.approvedAt,
     }], session ? { session } : {});
@@ -133,10 +136,6 @@ export class MongoMembershipRepository {
     });
   }
 
-  // Update atómico: solo toca couponsUsed (clampeado en [0, ∞)), nunca status/endDate/autoRenew.
-  // Evita el lost-update que produciría reescribir la entidad completa con save().
-  // Para delta > 0 (canje), el filtro $expr rechaza el update si ya no quedan cupones,
-  // en vez de dejar que couponsUsed supere couponsTotal por una carrera entre dos canjes concurrentes.
   async incrementCouponsUsed(id: string, delta: number, session?: mongoose.ClientSession): Promise<Membership | null> {
     const filter: Record<string, unknown> = { _id: id };
     if (delta > 0) {
@@ -150,21 +149,12 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  // Update atómico: solo toca autoRenew, nunca couponsUsed/status/endDate.
-  async updateAutoRenew(id: string, autoRenew: boolean, session?: mongoose.ClientSession): Promise<Membership | null> {
-    const doc = await MembershipModel.findByIdAndUpdate(
-      id,
-      { $set: { autoRenew, updatedAt: new Date() } },
-      { returnDocument: 'after', session }
-    );
-    return doc ? this.toDomain(doc) : null;
-  }
-
   async hasActiveMembership(userId: string): Promise<boolean> {
+    const now = new Date();
     const count = await MembershipModel.countDocuments({
       userId: new mongoose.Types.ObjectId(userId),
-      status: { $in: ['active', 'pending'] },
-      endDate: { $gte: new Date() },
+      status: 'active',
+      endDate: { $gte: now },
     });
     return count > 0;
   }
@@ -190,47 +180,89 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  async expireExpiredMemberships(): Promise<{ expired: number; renewed: number }> {
-    const expiredDocs = await MembershipModel.find({
-      status: 'active',
-      endDate: { $lt: new Date() },
-    }).lean();
-
-    const operations = expiredDocs.map((doc) => {
-      const autoRenew = (doc as any).autoRenew ?? true;
-
-      if (autoRenew) {
-        const newEndDate = new Date();
-        newEndDate.setDate(newEndDate.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
-        return {
-          renewed: true,
-          op: {
-            updateOne: {
-              filter: { _id: doc._id },
-              update: { $set: { endDate: newEndDate, couponsUsed: 0 } },
-            },
-          },
-        };
+  async expireExpiredMemberships(): Promise<number> {
+    const result = await MembershipModel.updateMany(
+      {
+        status: 'active',
+        endDate: { $lt: new Date() },
+      },
+      {
+        $set: { status: 'expired' as const, updatedAt: new Date() },
       }
+    );
+    return result.modifiedCount;
+  }
 
-      return {
-        renewed: false,
-        op: {
-          updateOne: {
-            filter: { _id: doc._id },
-            update: { $set: { status: 'expired' as const } },
-          },
+  async findPendingAll(): Promise<Membership[]> {
+    const docs = await MembershipModel.find({ status: 'pending' }).sort({ createdAt: -1 }).lean();
+    return docs.map((d) => this.toDomain(d as IMembershipDocument));
+  }
+
+  async findExpiringSoon(days: number): Promise<Membership[]> {
+    const now = new Date();
+    const threshold = new Date(now);
+    threshold.setDate(threshold.getDate() + days);
+    const docs = await MembershipModel.find({
+      status: 'active',
+      endDate: { $gte: now, $lte: threshold },
+    }).sort({ endDate: 1 }).lean();
+    return docs.map((d) => this.toDomain(d as IMembershipDocument));
+  }
+
+  async findAnyByUser(userId: string): Promise<Membership | null> {
+    const doc = await MembershipModel.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+    }).sort({ createdAt: -1 });
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async findAllEntityView(filter?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Membership[]; total: number; page: number; totalPages: number; limit: number }> {
+    const matchStage: Record<string, unknown> = {};
+    if (filter?.status) matchStage.status = filter.status;
+
+    const pipeline: mongoose.PipelineStage[] = [
+      { $sort: { createdAt: -1 } } as mongoose.PipelineStage,
+      {
+        $group: {
+          _id: '$userId',
+          doc: { $first: '$$ROOT' },
         },
-      };
-    });
+      } as mongoose.PipelineStage,
+      { $replaceRoot: { newRoot: '$doc' } } as mongoose.PipelineStage,
+    ];
 
-    if (operations.length > 0) {
-      await MembershipModel.bulkWrite(operations.map((o) => o.op));
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage } as mongoose.PipelineStage);
     }
 
+    const countPipeline = [...pipeline, { $count: 'total' } as mongoose.PipelineStage];
+
+    const page = filter?.page ?? 1;
+    const limit = filter?.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const paginatedPipeline = [
+      ...pipeline,
+      ...(filter?.search
+        ? [] // search handled externally
+        : []),
+      { $skip: skip } as mongoose.PipelineStage,
+      { $limit: limit } as mongoose.PipelineStage,
+    ];
+
+    const [docs, countResult] = await Promise.all([
+      MembershipModel.aggregate(paginatedPipeline),
+      MembershipModel.aggregate(countPipeline),
+    ]);
+
+    const total = (countResult[0] as any)?.total ?? 0;
+
     return {
-      renewed: operations.filter((o) => o.renewed).length,
-      expired: operations.filter((o) => !o.renewed).length,
+      data: docs.map((d) => this.toDomain(d as IMembershipDocument)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
+      limit,
     };
   }
 
@@ -245,11 +277,13 @@ export class MongoMembershipRepository {
       couponsTotal: doc.couponsTotal,
       couponsUsed: doc.couponsUsed,
       productDiscount: doc.productDiscount,
-      autoRenew: (doc as any).autoRenew ?? true,
+      durationDays: (doc as any).durationDays ?? 30,
+      billingCycle: (doc as any).billingCycle ?? null,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
       mpPreapprovalId: doc.mpPreapprovalId ?? undefined,
-      nextBillingDate: doc.nextBillingDate ?? undefined,
+      paymentMethod: (doc as any).paymentMethod ?? null,
+      paymentId: (doc as any).paymentId ?? undefined,
       approvedBy: doc.approvedBy?.toString(),
       approvedAt: doc.approvedAt ?? undefined,
       createdAt: doc.createdAt,

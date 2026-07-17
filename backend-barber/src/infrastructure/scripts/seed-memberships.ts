@@ -157,13 +157,13 @@ async function seed() {
     client: mongoose.Document;
     couponsUsed: number;
     label: string;
-    status: 'active' | 'expired' | 'cancelled';
+    status: 'active' | 'expired';
   }> = [
     { client: clientA, couponsUsed: 0, status: 'active', label: 'Cliente A — 4 cupones disponibles' },
     { client: clientB, couponsUsed: 2, status: 'active', label: 'Cliente B — 2 cupones usados, 2 restantes' },
     { client: clientD, couponsUsed: 0, status: 'expired', label: 'Cliente D — membresía expirada' },
     { client: clientE, couponsUsed: 4, status: 'expired', label: 'Cliente E — cupones agotados (4/4), expirada' },
-    { client: clientF, couponsUsed: 0, status: 'cancelled', label: 'Cliente F — membresía cancelada' },
+    { client: clientF, couponsUsed: 0, status: 'expired', label: 'Cliente F — membresía expirada' },
     { client: clientG, couponsUsed: 0, status: 'active', label: 'Cliente G — 4 cupones disponibles' },
   ];
 

@@ -16,7 +16,7 @@ import {
 
 const membershipLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 500,
   message: { error: 'Demasiadas solicitudes. Esperá 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -24,7 +24,7 @@ const membershipLimiter = rateLimit({
 
 const membershipMutationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   message: { error: 'Demasiadas solicitudes. Esperá 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,

@@ -111,11 +111,11 @@ export function loadConfig(): Config {
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
     rateLimit: {
-      login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },
-      register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 10), windowMs: 15 * 60 * 1000 },
-      reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 3), windowMs: 15 * 60 * 1000 },
-      twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 5), windowMs: 15 * 60 * 1000 },
-      google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 5), windowMs: 15 * 60 * 1000 },
+      login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
+      register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },
+      reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 20), windowMs: 15 * 60 * 1000 },
+      twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 30), windowMs: 15 * 60 * 1000 },
+      google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 20), windowMs: 15 * 60 * 1000 },
     },
   };
 }

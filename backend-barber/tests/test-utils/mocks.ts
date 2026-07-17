@@ -67,14 +67,24 @@ export const makeMockMembershipRepository = () => ({
   findByUser: jest.fn(),
   findById: jest.fn(),
   findAll: jest.fn(),
+  findAllEntityView: jest.fn(),
   findByPreapprovalId: jest.fn(),
+  findAnyByUser: jest.fn(),
+  findPendingAll: jest.fn(),
+  findExpiringSoon: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
   incrementCouponsUsed: jest.fn(),
-  updateAutoRenew: jest.fn(),
   hasActiveMembership: jest.fn(),
   approvePending: jest.fn(),
   expireExpiredMemberships: jest.fn(),
+});
+
+export const makeMockMembershipTransactionRepository = () => ({
+  create: jest.fn(),
+  findByMembershipId: jest.fn(),
+  findByUser: jest.fn(),
+  findAll: jest.fn(),
 });
 
 export const makeMockHashService = () => ({

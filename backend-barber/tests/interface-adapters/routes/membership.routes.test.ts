@@ -1,16 +1,14 @@
 import request from 'supertest';
 import express from 'express';
 
-// Los limiters de membership.routes.ts son de módulo (contador compartido entre tests).
-// Estos tests no verifican rate limiting, así que se neutraliza para que no interfiera.
 jest.mock('express-rate-limit', () => () => (_req: express.Request, _res: express.Response, next: express.NextFunction) => next());
 
 import { createMembershipRouter } from '../../../src/interface-adapters/routes/membership.routes';
 import { MembershipController } from '../../../src/interface-adapters/controllers/membership/MembershipController';
 import { Membership } from '../../../src/domain/entities/Membership';
-import { makeMockMembershipRepository, makeMockUserRepository } from '../../test-utils/mocks';
+import { makeMockMembershipRepository, makeMockUserRepository, makeMockMembershipTransactionRepository } from '../../test-utils/mocks';
 
-describe('Membership routes — cancel / reactivate', () => {
+describe('Membership routes', () => {
   let app: express.Application;
   let staffApp: express.Application;
   let empleadoApp: express.Application;
@@ -40,21 +38,23 @@ describe('Membership routes — cancel / reactivate', () => {
     couponsTotal: 4,
     couponsUsed: 0,
     productDiscount: 10,
-    autoRenew: true,
+    durationDays: 30,
+    billingCycle: null as any,
     createdBy: 'client' as const,
+    paymentMethod: null as any,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
   const activeMembership = () => Membership.restore({ ...baseProps, status: 'active' });
-  const cancelledMembership = () => Membership.restore({ ...baseProps, status: 'active', autoRenew: false });
   const expiredMembership = () => Membership.restore({ ...baseProps, status: 'expired' });
-  const expiredCancelledMembership = () => Membership.restore({ ...baseProps, status: 'expired', autoRenew: false });
+  const pendingMembership = () => Membership.restore({ ...baseProps, status: 'pending' });
 
   beforeEach(() => {
     membershipRepo = makeMockMembershipRepository();
     const userRepo = makeMockUserRepository();
-    const controller = new MembershipController(membershipRepo as any, userRepo as any);
+    const transactionRepo = makeMockMembershipTransactionRepository();
+    const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any);
 
     app = express();
     app.use(express.json());
@@ -111,64 +111,6 @@ describe('Membership routes — cancel / reactivate', () => {
     });
   });
 
-  describe('POST /api/memberships/:id/cancel', () => {
-    it('debe cancelar la renovación automática exitosamente', async () => {
-      const mem = activeMembership();
-      membershipRepo.findById.mockResolvedValue(mem);
-      membershipRepo.updateAutoRenew.mockResolvedValue(cancelledMembership());
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/cancel');
-
-      expect(response.status).toBe(200);
-      expect(response.body.autoRenew).toBe(false);
-      expect(response.body.status).toBe('active');
-    });
-
-    it('debe retornar 404 si la membresía no existe', async () => {
-      membershipRepo.findById.mockResolvedValue(null);
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/cancel');
-
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({ error: 'Membresía no encontrada.' });
-    });
-
-    it('debe retornar 403 si el usuario no es el dueño', async () => {
-      const mem = activeMembership();
-      jest.spyOn(mem, 'userId', 'get').mockReturnValue('other-user');
-      membershipRepo.findById.mockResolvedValue(mem);
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/cancel');
-
-      expect(response.status).toBe(403);
-      expect(response.body).toEqual({ error: 'No tenés permisos para cancelar esta membresía.' });
-    });
-
-    it('debe retornar 400 si la membresía no está activa', async () => {
-      membershipRepo.findById.mockResolvedValue(expiredMembership());
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/cancel');
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'La membresía no está activa.' });
-    });
-
-    it('debe retornar 400 si autoRenew ya es false (doble cancelación)', async () => {
-      const mem = cancelledMembership();
-      membershipRepo.findById.mockResolvedValue(mem);
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/cancel');
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'La renovación automática ya está desactivada.' });
-    });
-  });
-
   describe('POST /api/memberships/redeem', () => {
     const redeemBody = { userId: '507f1f77bcf86cd799439099' };
 
@@ -217,59 +159,56 @@ describe('Membership routes — cancel / reactivate', () => {
     });
   });
 
-  describe('POST /api/memberships/:id/reactivate', () => {
-    it('debe reactivar la renovación automática exitosamente', async () => {
-      const mem = cancelledMembership();
-      membershipRepo.findById.mockResolvedValue(mem);
-      membershipRepo.updateAutoRenew.mockResolvedValue(activeMembership());
-
+  describe('POST /api/memberships — create (solo staff)', () => {
+    it('debe retornar 403 si no es Admin ni Empleado', async () => {
       const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/reactivate');
-
-      expect(response.status).toBe(200);
-      expect(response.body.autoRenew).toBe(true);
-    });
-
-    it('debe retornar 404 si la membresía no existe', async () => {
-      membershipRepo.findById.mockResolvedValue(null);
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/reactivate');
-
-      expect(response.status).toBe(404);
-      expect(response.body).toEqual({ error: 'Membresía no encontrada.' });
-    });
-
-    it('debe retornar 403 si el usuario no es el dueño', async () => {
-      const mem = cancelledMembership();
-      jest.spyOn(mem, 'userId', 'get').mockReturnValue('other-user');
-      membershipRepo.findById.mockResolvedValue(mem);
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/reactivate');
+        .post('/api/memberships')
+        .send({ userId: '507f1f77bcf86cd799439099' });
 
       expect(response.status).toBe(403);
-      expect(response.body).toEqual({ error: 'No tenés permisos para reactivar esta membresía.' });
     });
 
-    it('debe retornar 400 si autoRenew ya es true', async () => {
+    it('debe crear membresía para Admin', async () => {
+      const fakeUser = { id: 'user-1', email: 'user@test.com', name: 'Test', lastname: 'User' };
+      const userRepo = makeMockUserRepository();
+      userRepo.findById.mockResolvedValue(fakeUser);
+      membershipRepo = makeMockMembershipRepository();
+      membershipRepo.hasActiveMembership.mockResolvedValue(false);
+      membershipRepo.save.mockResolvedValue(activeMembership());
+
+      const transactionRepo = makeMockMembershipTransactionRepository();
+      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any);
+      const staffAppLocal = express();
+      staffAppLocal.use(express.json());
+      staffAppLocal.use('/api/memberships', createMembershipRouter({ membershipController: controller, authenticate: authenticateStaff as any }));
+
+      const response = await request(staffAppLocal)
+        .post('/api/memberships')
+        .send({ userId: 'user-1', paymentMethod: 'local' });
+
+      expect(response.status).toBe(201);
+    });
+  });
+
+  describe('POST /api/memberships/:id/approve', () => {
+    it('debe aprobar membresía pendiente', async () => {
+      membershipRepo.findById.mockResolvedValue(pendingMembership());
+      membershipRepo.approvePending.mockResolvedValue(activeMembership());
+
+      const response = await request(staffApp)
+        .post('/api/memberships/507f1f77bcf86cd799439011/approve');
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('active');
+    });
+
+    it('debe retornar 400 si no está pendiente', async () => {
       membershipRepo.findById.mockResolvedValue(activeMembership());
 
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/reactivate');
+      const response = await request(staffApp)
+        .post('/api/memberships/507f1f77bcf86cd799439011/approve');
 
       expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'La renovación automática ya está activa.' });
-    });
-
-    it('debe retornar 400 si la membresía no está activa', async () => {
-      membershipRepo.findById.mockResolvedValue(expiredCancelledMembership());
-
-      const response = await request(app)
-        .post('/api/memberships/507f1f77bcf86cd799439011/reactivate');
-
-      expect(response.status).toBe(400);
-      expect(response.body).toEqual({ error: 'La membresía no está activa.' });
     });
   });
 });

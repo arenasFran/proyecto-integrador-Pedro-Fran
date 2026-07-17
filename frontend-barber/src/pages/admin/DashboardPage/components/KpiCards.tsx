@@ -375,11 +375,11 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                     {appointments.map((a) => (
                       <div key={a.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-4 hover:border-[#4ade80]/20 transition-all cursor-pointer" onClick={() => setDetailAppointment(a)}>
                         <div className="flex items-start gap-3">
-                          <Avatar name={a.clientName} lastname={a.clientLastname} />
+                          <Avatar name={a.clientName} lastname={a.clientLastname} photoUrl={a.clientPhotoUrl} />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1.5">
                               <p className="text-[14px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
-                              {a.clientId ? <ClientBadge kind="Registrado" /> : <ClientBadge kind="NoRegistrado" />}
+                              {a.clientKind ? <ClientBadge kind={a.clientKind} /> : (a.clientId ? <ClientBadge kind="Registrado" /> : <ClientBadge kind="NoRegistrado" />)}
                               <span className="text-[10px] font-medium text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">Pago pendiente</span>
                             </div>
                             <div className="flex items-center gap-2 text-[12px] text-[#8A8A8A] flex-wrap">

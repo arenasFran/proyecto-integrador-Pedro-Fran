@@ -9,6 +9,8 @@ import api from '../../services/api';
 
 interface SidebarProps {
   onQuickCreate?: () => void;
+  mobileOpen?: boolean;
+  onToggleMobile?: () => void;
 }
 
 const adminNavItems = [
@@ -43,10 +45,9 @@ const userNavItems = [
   { to: '/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
-export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate }) => {
+export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen = false, onToggleMobile }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -82,7 +83,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate }) => {
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/60 lg:hidden"
-          onClick={() => setMobileOpen(false)}
+          onClick={onToggleMobile}
         />
       )}
 
@@ -104,7 +105,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate }) => {
             <span className="text-[15px] font-bold text-white">Barbería SA</span>
           </button>
           <button
-            onClick={() => setMobileOpen(false)}
+            onClick={onToggleMobile}
             className="text-[#8A8A8A] hover:text-white lg:hidden"
           >
             <FiX size={20} />
@@ -117,7 +118,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate }) => {
               <NavLink
                 key={item.to}
                 to={item.to}
-                onClick={() => setMobileOpen(false)}
+                onClick={() => onToggleMobile?.()}
                 className={({ isActive }) =>
                   `flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-[14px] font-[400] transition-colors ${
                     isActive

@@ -320,7 +320,9 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
     { client: getClient('clienteB@test.com'), barberIndex: 0, dayName: 'tuesday', serviceIndex: 1, status: 'Cancelado', paymentMethod: 'memberPass', paymentStatus: 'Pendiente', isPast: true, cancelReason: 'Imprevisto personal' },
     { client: getClient('clienteC@test.com'), barberIndex: 1, dayName: 'friday', serviceIndex: 2, status: 'Cancelado', paymentMethod: 'local', paymentStatus: 'Pendiente', isPast: true, cancelReason: 'Canceló por mensaje' },
     { client: getClient('clienteC@test.com'), barberIndex: 0, dayName: 'saturday', serviceIndex: 1, status: 'Confirmado', paymentMethod: 'local', paymentStatus: 'Pendiente', isPast: false },
-    { client: getClient('clienteD@test.com'), barberIndex: 0, dayName: 'tuesday', serviceIndex: 2, status: 'Confirmado', paymentMethod: 'local', paymentStatus: 'Pendiente', isPast: false },
+    { client: getClient('clienteD@test.com'), barberIndex: 0, dayName: 'tuesday', serviceIndex: 2, status: 'Completado', paymentMethod: 'online', paymentStatus: 'Pagado', isPast: true },
+    { client: getClient('clienteE@test.com'), barberIndex: 1, dayName: 'friday', serviceIndex: 0, status: 'Completado', paymentMethod: 'online', paymentStatus: 'Pagado', isPast: true },
+    { client: getClient('clienteF@test.com'), barberIndex: 0, dayName: 'tuesday', serviceIndex: 2, status: 'Confirmado', paymentMethod: 'local', paymentStatus: 'Pendiente', isPast: false },
     { client: getClient('clienteE@test.com'), barberIndex: 0, dayName: 'thursday', serviceIndex: 3, status: 'Confirmado', paymentMethod: 'local', paymentStatus: 'Pendiente', isPast: false },
     { client: getClient('clienteF@test.com'), barberIndex: 1, dayName: 'monday', serviceIndex: 1, status: 'Confirmado', paymentMethod: 'local', paymentStatus: 'Pendiente', isPast: false },
     { client: getClient('clienteG@test.com'), barberIndex: 1, dayName: 'wednesday', serviceIndex: 0, status: 'Confirmado', paymentMethod: 'memberPass', paymentStatus: 'Pagado', isPast: false },
@@ -369,7 +371,36 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
       baseFields.status = seed.status;
     }
 
-    await AppointmentModel.create(baseFields);
+    const createdApt = await AppointmentModel.create(baseFields);
+
+    if (seed.paymentMethod === 'online' && seed.paymentStatus === 'Pagado') {
+      const servicePrice = svc.price;
+      const feeRate = 0.0609;
+      const fee = Math.round(servicePrice * feeRate * 100) / 100;
+      const net = Math.round((servicePrice - fee) * 100) / 100;
+      await PaymentModel.create({
+        type: 'appointment',
+        referenceId: createdApt._id.toString(),
+        status: 'approved',
+        mpPaymentId: `${200000000000 + appointmentCount}`,
+        amount: servicePrice,
+        currency: 'UYU',
+        userId: seed.client._id,
+        mpStatusDetail: 'accredited',
+        mpPaymentMethodId: appointmentCount % 2 === 0 ? 'visa' : 'master',
+        mpPaymentTypeId: 'credit_card',
+        mpInstallments: 1,
+        mpTotalPaidAmount: servicePrice,
+        mpNetReceivedAmount: net,
+        mpFeeAmount: fee,
+        mpCardLastFourDigits: appointmentCount % 2 === 0 ? '3704' : '0604',
+        mpCardIssuerId: appointmentCount % 2 === 0 ? '1081' : '1082',
+        mpDateApproved: new Date(),
+        mpOperationType: 'regular_payment',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    }
 
     const incCoupon = seed.paymentMethod === 'memberPass' && seed.status !== 'Cancelado';
     if (incCoupon) {
@@ -383,6 +414,58 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
   }
 
   console.log(`[Seed] ${appointmentCount} turnos con membresía creados`);
+
+  // Crear turnos online fijos con pagos MP para testeo del panel admin
+  const barberCarlos = barbers[0];
+  const barberMartin = barbers[1];
+  if (barberCarlos && barberMartin) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const pastTue = new Date(today); pastTue.setDate(today.getDate() - ((today.getDay() + 5) % 7));
+    const pastFri = new Date(today); pastFri.setDate(today.getDate() - ((today.getDay() + 2) % 7));
+    const dateStr = (d: Date) => d.toISOString().split('T')[0];
+
+    const onlineSeeds = [
+      { barber: barberCarlos, client: getClient('clienteD@test.com'), date: dateStr(pastTue), startTime: '15:00', endTime: '15:30', service: SEED_SERVICES[2], price: 250 },
+      { barber: barberMartin, client: getClient('clienteE@test.com'), date: dateStr(pastFri), startTime: '11:00', endTime: '11:30', service: SEED_SERVICES[0], price: 490 },
+    ];
+
+    let onlineAptCount = 0;
+    for (const s of onlineSeeds) {
+      if (!s.client) continue;
+      const existing = await AppointmentModel.findOne({ barberId: s.barber._id, date: s.date, startTime: s.startTime });
+      if (existing) continue;
+      const apt = await AppointmentModel.create({
+        barberId: s.barber._id, clientId: s.client._id,
+        clientName: s.client.name, clientLastname: s.client.lastname,
+        clientPhone: s.client.phone, clientEmail: s.client.email,
+        serviceId: s.service.id, serviceName: s.service.name, servicePrice: s.price,
+        serviceDuration: 30, date: s.date,
+        startTime: s.startTime, endTime: s.endTime,
+        status: 'Completado', paymentStatus: 'Pagado', paymentMethod: 'online',
+        createdBy: { type: 'registered', userId: s.client._id.toString() },
+        statusHistory: [{ status: 'Completado', timestamp: new Date(), actor: 'system' }],
+      });
+
+      const feeRate = 0.0609;
+      const fee = Math.round(s.price * feeRate * 100) / 100;
+      const net = Math.round((s.price - fee) * 100) / 100;
+      await PaymentModel.create({
+        type: 'appointment', referenceId: apt._id.toString(), status: 'approved',
+        mpPaymentId: `${200000000000 + onlineAptCount}`, amount: s.price, currency: 'UYU',
+        userId: s.client._id, mpStatusDetail: 'accredited',
+        mpPaymentMethodId: onlineAptCount % 2 === 0 ? 'visa' : 'master',
+        mpPaymentTypeId: 'credit_card', mpInstallments: 1,
+        mpTotalPaidAmount: s.price, mpNetReceivedAmount: net, mpFeeAmount: fee,
+        mpCardLastFourDigits: onlineAptCount % 2 === 0 ? '3704' : '0604',
+        mpCardIssuerId: onlineAptCount % 2 === 0 ? '1081' : '1082',
+        mpDateApproved: new Date(), mpOperationType: 'regular_payment',
+        createdAt: new Date(), updatedAt: new Date(),
+      });
+      onlineAptCount++;
+    }
+    if (onlineAptCount > 0) console.log(`[Seed] ${onlineAptCount} turnos online con pago MP creados`);
+  }
+
   return { clientDocs, barbers };
 }
 
@@ -697,9 +780,35 @@ async function seedOrdersAndPayments(productIds: mongoose.Types.ObjectId[], clie
     });
 
     if (seed.paymentStatus) {
+      const paymentMethods = [
+        { id: 'master', type: 'credit_card', lastFour: '0604', issuer: '1082' },
+        { id: 'visa', type: 'credit_card', lastFour: '3704', issuer: '1081' },
+        { id: 'master', type: 'debit_card', lastFour: '3304', issuer: '1082' },
+      ];
+      const pm = paymentMethods[orderCount % paymentMethods.length];
+      const feeRate = 0.0609;
+      const fee = Math.round(total * feeRate * 100) / 100;
+      const net = Math.round((total - fee) * 100) / 100;
+
       await PaymentModel.create({
-        type: 'product_order', referenceId: order._id.toString(), status: seed.paymentStatus,
-        amount: total, currency: 'UYU', userId: client._id,
+        type: 'product_order',
+        referenceId: order._id.toString(),
+        status: seed.paymentStatus,
+        mpPaymentId: `${100000000000 + orderCount}`,
+        amount: total,
+        currency: 'UYU',
+        userId: client._id,
+        mpStatusDetail: seed.paymentStatus === 'approved' ? 'accredited' : 'refunded',
+        mpPaymentMethodId: pm.id,
+        mpPaymentTypeId: pm.type,
+        mpInstallments: orderCount % 3 === 0 ? 3 : 1,
+        mpTotalPaidAmount: total,
+        mpNetReceivedAmount: net,
+        mpFeeAmount: fee,
+        mpCardLastFourDigits: pm.lastFour,
+        mpCardIssuerId: pm.issuer,
+        mpDateApproved: new Date(Date.now() - seed.daysAgo * 24 * 60 * 60 * 1000),
+        mpOperationType: 'regular_payment',
         createdAt, updatedAt: createdAt,
       });
     }

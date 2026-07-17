@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiCalendar } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiCalendar, FiExternalLink } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
+import { useGetAllOrdersQuery } from '../../../../services/orderApi';
+import { useGetPendingMembershipsQuery } from '../../../../services/membershipApi';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData } from '../../../../types/analytics';
-import type { Appointment } from '../../../../types/booking';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -303,73 +304,204 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
 }
 
 function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
-  const { data: appointments = [], isLoading, isFetching } = useGetAppointmentsQuery(
-    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente' },
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'turnos' | 'ordenes' | 'membresias'>('turnos');
+
+  const { data: appointments = [], isLoading: apptsLoading } = useGetAppointmentsQuery(
+    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50 },
     { skip: !isOpen || !desde || !hasta },
   );
+  const { data: ordersData, isLoading: ordersLoading } = useGetAllOrdersQuery(
+    { status: 'pending', desde, hasta, limit: 50 },
+    { skip: !isOpen || !desde || !hasta },
+  );
+  const { data: pendingMemberships, isLoading: memLoading } = useGetPendingMembershipsQuery(undefined, { skip: !isOpen });
 
-  const statusBadge = (status: Appointment['status']) => {
-    const styles: Record<string, { bg: string; text: string }> = {
-      Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400' },
-      Completado: { bg: 'bg-green-500/10', text: 'text-green-400' },
-      Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400' },
-      NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
-    };
-    const s = styles[status] ?? styles.Confirmado;
-    return <span className={`text-[10px] font-medium ${s.bg} ${s.text} rounded-full px-2 py-0.5`}>{status}</span>;
-  };
+  const pendingOrders = ordersData?.orders ?? [];
+  const memberships = pendingMemberships?.data ?? [];
 
-  const paymentBadge = (paymentStatus: Appointment['paymentStatus']) => {
-    const styles: Record<string, { bg: string; text: string }> = {
-      Pendiente: { bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
-      Pagado: { bg: 'bg-green-500/10', text: 'text-green-400' },
-      Cancelado: { bg: 'bg-red-500/10', text: 'text-red-400' },
-    };
-    const s = styles[paymentStatus] ?? styles.Pendiente;
-    return <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${s.bg} ${s.text}`}>{paymentStatus}</span>;
-  };
+  const totalTurnos = appointments.reduce((s, a) => s + a.servicePrice, 0);
+  const totalOrdenes = pendingOrders.reduce((s, o) => s + o.total, 0);
+  const totalMemb = memberships.reduce((s, m) => s + m.price, 0);
+  const totalPending = totalTurnos + totalOrdenes + totalMemb;
+
+  const formatDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
+  const isLoading = apptsLoading || ordersLoading || memLoading;
+
+  const tabs = [
+    { key: 'turnos' as const, label: 'Turnos', count: appointments.length, amount: totalTurnos, color: '#4ade80', icon: FiScissors },
+    { key: 'ordenes' as const, label: 'Órdenes', count: pendingOrders.length, amount: totalOrdenes, color: '#FF5C00', icon: FiShoppingCart },
+    { key: 'membresias' as const, label: 'Membresías', count: memberships.length, amount: totalMemb, color: '#c084fc', icon: FiAward },
+  ];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Turnos con pago pendiente" size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="Ingresos pendientes" size="xl">
+      <div className="flex items-center gap-2 flex-wrap -mt-1 mb-4">
+        <div className="rounded-[8px] bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 flex items-center gap-1.5">
+          <FiCalendar size={13} className="text-yellow-400 shrink-0" />
+          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{formatDate(desde)}</span>
+          <span className="text-[10px] text-[#555]">→</span>
+          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{formatDate(hasta)}</span>
+        </div>
+      </div>
+
       {isLoading ? (
-        <div className="flex items-center justify-center py-12"><Spinner size="lg" /></div>
-      ) : appointments.length === 0 ? (
-        <p className="text-[14px] text-[#8A8A8A] text-center py-8">No hay turnos con pago pendiente.</p>
+        <div className="flex justify-center py-12"><Spinner size="lg" /></div>
       ) : (
-        <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1">
-          {appointments.map((a) => (
-            <div key={a.id} className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 hover:border-[#FF5C00]/30 transition-colors">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
-                  <div className="flex items-center gap-3 text-[12px] text-[#8A8A8A] mt-1">
-                    <span>{a.date}</span>
-                    <span>{a.startTime} - {a.endTime}</span>
-                    <span>{a.serviceName}</span>
-                  </div>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-3 gap-3">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setActiveTab(t.key)}
+                className={`rounded-[12px] border p-3 flex flex-col gap-1.5 text-left transition-all ${
+                  activeTab === t.key ? 'border-[#333] bg-[#1A1A1A]' : 'border-[#282828] bg-[#121212] hover:border-[#333]'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <t.icon size={14} style={{ color: t.color }} />
+                  <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">{t.label}</span>
                 </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-[#6A6A6A] uppercase tracking-wider">Turno</span>
-                    {statusBadge(a.status)}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-[#6A6A6A] uppercase tracking-wider">Pago</span>
-                    {paymentBadge(a.paymentStatus)}
-                  </div>
+                <div className="flex items-end justify-between">
+                  <span className="text-[22px] font-bold text-white">{formatCurrency(t.amount)}</span>
+                  <span className="text-[11px] text-[#6A6A6A]">{t.count} pend.</span>
                 </div>
-              </div>
-              <div className="text-[12px] text-[#8A8A8A]">
-                <span className="text-green-400 font-medium">${a.servicePrice.toLocaleString('es-UY')}</span>
-                <span className="mx-2">·</span>
-                <span>{a.barberName ?? 'Sin barbero'}</span>
-              </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total pendiente</span>
+              <span className="text-[18px] font-bold text-yellow-400">{formatCurrency(totalPending)}</span>
             </div>
-          ))}
-          {isFetching && (
-            <div className="flex justify-center py-2">
-              <div className="w-4 h-4 border-2 border-[#FF5C00] border-t-transparent rounded-full animate-spin" />
+
+            <div className="flex gap-1 mb-3">
+              {tabs.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`flex-1 rounded-[8px] py-2 text-[12px] font-medium transition-colors ${
+                    activeTab === t.key
+                      ? 'bg-[#1A1A1A] text-white'
+                      : 'text-[#6A6A6A] hover:text-white hover:bg-[#1A1A1A]'
+                  }`}
+                >
+                  {t.label} ({t.count})
+                </button>
+              ))}
             </div>
+
+            <div className="max-h-[40vh] overflow-y-auto pr-1">
+              {activeTab === 'turnos' && (
+                appointments.length === 0 ? (
+                  <p className="text-[13px] text-[#6A6A6A] text-center py-6">No hay turnos con pago pendiente en este periodo.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {appointments.map((a) => (
+                      <div key={a.id} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#4ade80]/20 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
+                            <div className="flex items-center gap-2 text-[11px] text-[#8A8A8A] mt-0.5 flex-wrap">
+                              <span>{formatDate(a.date)} {a.startTime}</span>
+                              <span>·</span>
+                              <span>{a.serviceName}</span>
+                              <span>·</span>
+                              <span>{a.barberName ?? 'Sin barbero'}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[14px] font-bold text-yellow-400">${a.servicePrice.toLocaleString('es-UY')}</span>
+                            <button
+                              onClick={() => { onClose(); navigate(`/admin/turnos?dateFrom=${desde}&dateTo=${hasta}`); }}
+                              className="text-[#555] hover:text-[#4ade80] transition-colors"
+                              title="Ver turnos"
+                            >
+                              <FiExternalLink size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {activeTab === 'ordenes' && (
+                pendingOrders.length === 0 ? (
+                  <p className="text-[13px] text-[#6A6A6A] text-center py-6">No hay órdenes pendientes de pago en este periodo.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {pendingOrders.map((o) => (
+                      <div key={o.id} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#FF5C00]/20 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-white truncate">
+                              Orden #{typeof o.id === 'string' ? o.id.slice(-6) : ''}
+                            </p>
+                            <div className="flex items-center gap-2 text-[11px] text-[#8A8A8A] mt-0.5 flex-wrap">
+                              <span>{o.items?.length ?? 0} producto(s)</span>
+                              <span>·</span>
+                              <span>{o.createdAt ? formatDate(o.createdAt.slice(0, 10)) : ''}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[14px] font-bold text-yellow-400">${o.total.toLocaleString('es-UY')}</span>
+                            <button
+                              onClick={() => { onClose(); navigate(`/admin/ordenes?status=pending&dateFrom=${desde}&dateTo=${hasta}`); }}
+                              className="text-[#555] hover:text-[#FF5C00] transition-colors"
+                              title="Ver órdenes"
+                            >
+                              <FiExternalLink size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+
+              {activeTab === 'membresias' && (
+                memberships.length === 0 ? (
+                  <p className="text-[13px] text-[#6A6A6A] text-center py-6">No hay membresías pendientes de pago.</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {memberships.map((m) => (
+                      <div key={m.id} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#c084fc]/20 transition-colors">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-medium text-white truncate">
+                              {m.user?.name ? `${m.user.name} ${m.user.lastname ?? ''}` : m.user?.email ?? 'Usuario'}
+                            </p>
+                            <div className="flex items-center gap-2 text-[11px] text-[#8A8A8A] mt-0.5">
+                              <span className="text-purple-400 font-medium">Membresía mensual</span>
+                              <span>·</span>
+                              <span>{m.createdAt ? formatDate(m.createdAt.slice(0, 10)) : ''}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[14px] font-bold text-yellow-400">${m.price.toLocaleString('es-UY')}</span>
+                            <button
+                              onClick={() => { onClose(); navigate('/admin/membresias'); }}
+                              className="text-[#555] hover:text-[#c084fc] transition-colors"
+                              title="Ver membresías"
+                            >
+                              <FiExternalLink size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+
+          {totalPending === 0 && !isLoading && (
+            <p className="text-[13px] text-[#8A8A8A] text-center py-2">No hay ingresos pendientes en este periodo.</p>
           )}
         </div>
       )}

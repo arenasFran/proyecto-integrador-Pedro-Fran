@@ -33,9 +33,9 @@ const startServer = async () => {
     if (running) return;
     running = true;
     try {
-      const result = await membershipRepo.expireExpiredMemberships();
-      if (result.expired > 0 || result.renewed > 0) {
-        console.log(`[MembershipExpiration] ${result.expired} expirada(s), ${result.renewed} renovada(s)`);
+      const expired = await membershipRepo.expireExpiredMemberships();
+      if (expired > 0) {
+        console.log(`[MembershipExpiration] ${expired} expirada(s)`);
       }
     } catch (err) {
       console.error('[MembershipExpiration] Error al procesar membresías:', err);

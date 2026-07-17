@@ -1,4 +1,5 @@
 import type { Payment } from '../../types/payment';
+import { formatDateTime } from '../../utils/formatDate';
 
 const methodLabel: Record<string, string> = {
   master: 'Mastercard',
@@ -29,12 +30,7 @@ function formatAmount(n: number): string {
 }
 
 function formatDateStr(s: string): string {
-  try {
-    return new Date(s).toLocaleDateString('es-UY', {
-      day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    });
-  } catch { return s; }
+  return formatDateTime(s);
 }
 
 interface PaymentTransactionDetailProps {

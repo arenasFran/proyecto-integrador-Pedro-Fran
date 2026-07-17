@@ -101,12 +101,12 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Desglose de ingresos`} size="lg">
-      <div className="flex items-center gap-3 -mt-1 mb-4">
-        <div className="rounded-[8px] bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 flex items-center gap-2">
-          <FiCalendar size={13} className="text-[#FF5C00]" />
-          <span className="text-[12px] text-[#8A8A8A]">{desde}</span>
+      <div className="flex items-center gap-2 flex-wrap -mt-1 mb-4">
+        <div className="rounded-[8px] bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 flex items-center gap-1.5">
+          <FiCalendar size={13} className="text-[#FF5C00] shrink-0" />
+          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{desde}</span>
           <span className="text-[10px] text-[#555]">→</span>
-          <span className="text-[12px] text-[#8A8A8A]">{hasta}</span>
+          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{hasta}</span>
         </div>
         {periodLabel && (
           <span className="text-[11px] text-[#6A6A6A] font-medium bg-[#1A1A1A] border border-[#333] rounded-full px-2.5 py-1">{periodLabel}</span>
@@ -117,9 +117,9 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
       ) : (
         <div className="flex flex-col gap-4">
 
-          <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 w-fit">
+          <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 w-full sm:w-fit">
             <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
-            <div className="flex items-center gap-4 mt-2">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-2">
               <div className="w-[120px] h-[120px] shrink-0 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -163,14 +163,14 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
           {entries.length > 0 && (
             <CollapsibleSection title="Detalle por barbero (turnos)" icon={FiScissors} color="#4ade80" open={showBarbers} onToggle={() => setShowBarbers(!showBarbers)}>
               <div className="flex flex-col gap-1.5">
-                <div className="grid grid-cols-[1fr_80px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                <div className="grid grid-cols-[1fr_55px_75px] sm:grid-cols-[1fr_80px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
                   <span>Barbero</span>
                   <span className="text-center">Turnos</span>
                   <span className="text-right">Ingresos</span>
                 </div>
                 {entries.map((entry) => (
-                  <div key={entry.barberId} className="grid grid-cols-[1fr_80px_100px] items-center text-[12px] py-1">
-                    <span className="text-white font-medium">{entry.nombre}</span>
+                  <div key={entry.barberId} className="grid grid-cols-[1fr_55px_75px] sm:grid-cols-[1fr_80px_100px] items-center text-[11px] sm:text-[12px] py-1">
+                    <span className="text-white font-medium truncate">{entry.nombre}</span>
                     <span className="text-[#8A8A8A] text-center">{entry.cantidad}</span>
                     <span className="text-green-400 font-medium text-right">{formatCurrency(entry.ingresos)}</span>
                   </div>
@@ -182,13 +182,13 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
           <CollapsibleSection title="Detalle de productos" icon={FiShoppingCart} color="#FF5C00" open={showProducts} onToggle={() => setShowProducts(!showProducts)}>
             {productPerformance && productPerformance.length > 0 ? (
               <div className="flex flex-col gap-1.5">
-                <div className="grid grid-cols-[1fr_70px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                <div className="grid grid-cols-[1fr_50px_75px] sm:grid-cols-[1fr_70px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
                   <span>Producto</span>
-                  <span className="text-center">Vendidos</span>
+                  <span className="text-center">Vend.</span>
                   <span className="text-right">Ingresos</span>
                 </div>
                 {productPerformance.slice(0, 15).map((p) => (
-                  <div key={p.productId} className="grid grid-cols-[1fr_70px_100px] items-center text-[12px] py-1">
+                  <div key={p.productId} className="grid grid-cols-[1fr_50px_75px] sm:grid-cols-[1fr_70px_100px] items-center text-[11px] sm:text-[12px] py-1">
                     <span className="text-white truncate">{p.name}</span>
                     <span className="text-[#8A8A8A] text-center">{p.totalSold}</span>
                     <span className="text-[#FF5C00] font-medium text-right">{formatCurrency(p.totalRevenue)}</span>
@@ -203,14 +203,14 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
           <CollapsibleSection title="Detalle de membresias" icon={FiAward} color="#c084fc" open={showMemberships} onToggle={() => setShowMemberships(!showMemberships)}>
             {membershipRevenue && membershipRevenue.length > 0 ? (
               <div className="flex flex-col gap-1.5">
-                <div className="grid grid-cols-[1fr_80px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                <div className="grid grid-cols-[1fr_50px_75px] sm:grid-cols-[1fr_80px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
                   <span>Mes</span>
-                  <span className="text-center">Cantidad</span>
+                  <span className="text-center">Cant.</span>
                   <span className="text-right">Ingresos</span>
                 </div>
                 {membershipRevenue.map((m) => (
-                  <div key={m.periodo} className="grid grid-cols-[1fr_80px_100px] items-center text-[12px] py-1">
-                    <span className="text-white">{m.periodo}</span>
+                  <div key={m.periodo} className="grid grid-cols-[1fr_50px_75px] sm:grid-cols-[1fr_80px_100px] items-center text-[11px] sm:text-[12px] py-1">
+                    <span className="text-white truncate">{m.periodo}</span>
                     <span className="text-[#8A8A8A] text-center">{m.cantidadReservas}</span>
                     <span className="text-purple-400 font-medium text-right">{formatCurrency(m.ganancias)}</span>
                   </div>

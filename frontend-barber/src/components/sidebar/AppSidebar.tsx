@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { FiAward, FiBarChart2, FiCalendar, FiList, FiLogOut, FiPackage, FiPlus, FiScissors, FiShoppingBag, FiUser, FiUserCheck, FiUsers, FiX } from 'react-icons/fi';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiAward, FiBarChart2, FiCalendar, FiList, FiLogOut, FiPlus, FiScissors, FiUser, FiUserCheck, FiUsers, FiX, FiPackage, FiShoppingBag } from 'react-icons/fi';
+import api, { getAccessToken } from '../../services/api';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
 import { logout } from '../../store/slices/authSlice';
-import { getAccessToken } from '../../services/api';
 import { getTokenUser } from '../../utils/token';
-import api from '../../services/api';
 
 interface SidebarProps {
   onQuickCreate?: () => void;
@@ -77,6 +76,8 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
   const navItems = kind === 'Admin' ? adminNavItems : kind === 'Empleado' ? employeeNavItems : userNavItems;
   const isStaff = kind === 'Admin' || kind === 'Empleado';
   const sidebarWidth = 'w-52';
+
+  
 
   return (
     <>

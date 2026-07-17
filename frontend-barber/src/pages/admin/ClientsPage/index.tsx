@@ -1,8 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiDollarSign, FiInfo, FiSearch, FiTrendingUp, FiUser, FiUserCheck } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiUserCheck, FiUser, FiCalendar, FiDollarSign, FiTrendingUp, FiAward, FiChevronLeft, FiChevronRight, FiInfo } from 'react-icons/fi';
-import { Spinner } from '../../../components/common/Spinner';
+import { AnimatedContainer } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 
 const PAGE_SIZE = 20;
@@ -104,7 +105,13 @@ export default function ClientsPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center py-16"><Spinner size="lg" /></div>
+        <AnimatedContainer animation="fadeInUp" className="rounded-[12px] border border-[#282828] bg-[#121212] p-6">
+          <div className="flex flex-col gap-3">
+            {[1,2,3,4].map((i) => (
+              <div key={i} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-4 animate-pulse" />
+            ))}
+          </div>
+        </AnimatedContainer>
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <FiUserCheck size={48} className="mx-auto text-[#282828] mb-3" />

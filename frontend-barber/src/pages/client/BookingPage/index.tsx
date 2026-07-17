@@ -1,36 +1,36 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FiMenu, FiScissors } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { FiScissors, FiMenu } from 'react-icons/fi';
-import { AnimatedContainer, AppFooter } from '../../../components/common';
-import PaymentModal from '../../../components/payment/PaymentModal';
-import { AppHeader } from '../../../components/common/AppHeader';
-import { AppSidebar } from '../../../components/sidebar/AppSidebar';
 import { PublicHeader } from '../../../components/client/PublicHeader';
 import {
-  AccordionStep,
-  ClientDataOverlay,
-  BarberSelectionStep,
-  ServiceSelectionStep,
-  DateTimeStep,
+    AccordionStep,
+    BarberSelectionStep,
+    ClientDataOverlay,
+    DateTimeStep,
+    ServiceSelectionStep,
 } from '../../../components/client/booking';
+import { AnimatedContainer, AppFooter } from '../../../components/common';
+import { AppHeader } from '../../../components/common/AppHeader';
+import PaymentModal from '../../../components/payment/PaymentModal';
+import { AppSidebar } from '../../../components/sidebar/AppSidebar';
+import { useGetMyMembershipQuery } from '../../../services/membershipApi';
+import { useGetServicesQuery } from '../../../services/service.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
-  fetchPublicBarbers,
-  setServices,
-  setSelectedBarber,
-  setSelectedService,
-  setSelectedDate,
-  setSelectedTime,
-  setPaymentMethod,
-  setClientData,
-  setCurrentStep,
-  submitAppointment,
-  resetBooking,
+    fetchPublicBarbers,
+    resetBooking,
+    setClientData,
+    setCurrentStep,
+    setPaymentMethod,
+    setSelectedBarber,
+    setSelectedDate,
+    setSelectedService,
+    setSelectedTime,
+    setServices,
+    submitAppointment,
 } from '../../../store/slices/bookingSlice';
-import { useGetServicesQuery } from '../../../services/service.api';
-import { useGetMyMembershipQuery } from '../../../services/membershipApi';
+import type { BarberPublic, BookingStep, PaymentMethod } from '../../../types/booking';
 import { formatDate } from '../../../utils/formatDate';
-import type { BookingStep, BarberPublic, PaymentMethod } from '../../../types/booking';
 
 const getTodayString = (): string => {
   const d = new Date();
@@ -327,7 +327,7 @@ export const BookingPage: React.FC = () => {
         >
           <FiMenu size={20} />
         </button>
-        <div className="transition-all duration-300 ease-in-out lg:ml-60">
+        <div className="transition-all duration-300 ease-in-out lg:ml-52">
           <AppHeader />
           <main className="p-4 sm:p-6 lg:p-8 pt-14 lg:pt-8">
             {bookingContent}

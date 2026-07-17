@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
-import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
 import api from '../../../services/api';
-import { DayCard } from './DayCard';
-import { DayDetailModal } from './DayDetailModal';
-import { BlockModal } from './BlockModal';
-import { QuickCreateModal } from './QuickCreateModal';
+import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
+import type { Appointment, BarberBlock } from '../../../types/booking';
 import { AppointmentActionModals } from '../AppointmentsPage/AppointmentActionModals';
 import { useAppointmentActions } from '../AppointmentsPage/useAppointmentActions';
-import type { Appointment, BarberBlock } from '../../../types/booking';
+import { BlockModal } from './BlockModal';
+import { DayCard } from './DayCard';
+import { DayDetailModal } from './DayDetailModal';
+import { QuickCreateModal } from './QuickCreateModal';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAY_ABBR = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
@@ -142,6 +142,11 @@ export const CalendarPage: React.FC = () => {
     setSelectedDate(null);
   }, []);
 
+  const goToday = useCallback(() => {
+    setStartDate(getMonday(startOfDay(new Date())));
+    setSelectedDate(null);
+  }, []);
+
   const columns = useMemo<DayColumn[]>(
     () =>
       days.map((d) => ({
@@ -193,6 +198,12 @@ export const CalendarPage: React.FC = () => {
                   aria-label="Anterior"
                 >
                   <FiChevronLeft className="text-base" />
+                </button>
+                <button
+                  onClick={goToday}
+                  className="hidden sm:inline-flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors"
+                >
+                  Hoy
                 </button>
                 <span className="text-[14px] font-medium text-white whitespace-nowrap">
                   {formatDateRange(days)}

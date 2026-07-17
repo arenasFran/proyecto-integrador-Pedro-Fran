@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { FiEdit3, FiEye, FiEyeOff, FiPlus, FiScissors, FiTrash2, FiRefreshCw } from 'react-icons/fi';
-import { AnimatedContainer, Button } from '../../../components/common';
+import { FiEdit3, FiEye, FiEyeOff, FiPlus, FiRefreshCw, FiScissors, FiTrash2 } from 'react-icons/fi';
+import { AnimatedContainer, Button, ConfirmModal } from '../../../components/common';
 import {
-  useGetServicesAdminQuery,
-  useCreateServiceMutation,
-  useUpdateServiceMutation,
-  useDeleteServiceMutation,
-  useRestoreServiceMutation,
+    useCreateServiceMutation,
+    useDeleteServiceMutation,
+    useGetServicesAdminQuery,
+    useRestoreServiceMutation,
+    useUpdateServiceMutation,
 } from '../../../services/service.api';
 import type { Service, ServiceStatus } from '../../../types/booking';
-import ServiceFormModal from './components/ServiceFormModal';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
+import ServiceFormModal from './components/ServiceFormModal';
 
 type ServiceForm = {
   name: string;
@@ -54,6 +54,7 @@ export const ServicesPage: React.FC = () => {
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof ServiceForm, string>>>({});
   const [pageError, setPageError] = useState<string | null>(null);
   const [confirmDeleteService, setConfirmDeleteService] = useState<Service | null>(null);
+  const [confirmToggleService, setConfirmToggleService] = useState<Service | null>(null);
 
   const isMutating = isCreating || isUpdating || isDeleting || isRestoring;
 
@@ -146,14 +147,22 @@ export const ServicesPage: React.FC = () => {
     }
   };
 
-  const handleToggleStatus = async (service: Service) => {
+  const handleToggleStatus = (service: Service) => {
+    if (isDeleting || isUpdating || isRestoring) return;
+    setConfirmToggleService(service);
+  };
+
+  const handleConfirmToggle = async () => {
+    if (!confirmToggleService) return;
     if (isDeleting || isUpdating || isRestoring) return;
     setPageError(null);
     try {
-      const newStatus: ServiceStatus = service.status === 'active' ? 'inactive' : 'active';
-      await updateService({ id: service.id, data: { status: newStatus } }).unwrap();
+      const newStatus: ServiceStatus = confirmToggleService.status === 'active' ? 'inactive' : 'active';
+      await updateService({ id: confirmToggleService.id, data: { status: newStatus } }).unwrap();
+      setConfirmToggleService(null);
     } catch (err: unknown) {
       setPageError(getApiErrorMessage(err, 'Error al actualizar el servicio'));
+      setConfirmToggleService(null);
     }
   };
 
@@ -454,6 +463,18 @@ export const ServicesPage: React.FC = () => {
         isDeleting={isDeleting}
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmDeleteService(null)}
+      />
+
+      <ConfirmModal
+        isOpen={!!confirmToggleService}
+        onClose={() => setConfirmToggleService(null)}
+        onConfirm={handleConfirmToggle}
+        title="Cambiar estado"
+        message={`¿Estás seguro que querés ${confirmToggleService?.status === 'active' ? 'desactivar' : 'activar'} el servicio "${confirmToggleService?.name || ''}"?`}
+        confirmText={confirmToggleService?.status === 'active' ? 'Desactivar' : 'Activar'}
+        cancelText="Cancelar"
+        variant="danger"
+        loading={isUpdating}
       />
     </div>
   );

@@ -64,6 +64,12 @@ export const LoginPage: React.FC = () => {
 
   const location = useLocation();
   const toastHandled = useRef(false);
+  const returnUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    returnUrlRef.current = q.get('returnUrl');
+  }, [location.search]);
 
   useEffect(() => {
     const state = location.state as { toast?: string; toastType?: 'success' | 'error' } | null;
@@ -140,7 +146,8 @@ export const LoginPage: React.FC = () => {
           // Profile fetch failed — navigate anyway
         }
         const role = getTokenKind(result.token);
-        navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
+        const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+        navigate(target, { replace: true });
       }
     } catch (err: unknown) {
       const message = getErrorMessage(err, 'Error al iniciar sesión con Google');
@@ -240,7 +247,8 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
+      const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+      navigate(target, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al verificar el código'), 'error');
     }
@@ -297,7 +305,8 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
+      const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+      navigate(target, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al completar el perfil'), 'error');
     }

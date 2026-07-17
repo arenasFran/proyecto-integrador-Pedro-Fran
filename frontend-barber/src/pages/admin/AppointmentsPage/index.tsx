@@ -1,27 +1,28 @@
-import React from 'react';
 import { motion } from 'framer-motion';
+import React from 'react';
 import {
-  FiCalendar,
-  FiCheck,
-  FiChevronDown,
-  FiChevronRight,
-  FiChevronUp,
-  FiClock,
-  FiDownload,
-  FiInfo,
-  FiScissors,
-  FiSettings,
-  FiX,
-  FiXCircle,
+    FiCalendar,
+    FiCheck,
+    FiChevronDown,
+    FiChevronRight,
+    FiChevronUp,
+    FiClock,
+    FiDownload,
+    FiInfo,
+    FiScissors,
+    FiSettings,
+    FiX,
+    FiXCircle,
 } from 'react-icons/fi';
 import { AnimatedContainer, Input, Pagination, Select, Spinner, StatsCards } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { detectPreset } from '../../../components/common/dateRangeUtils';
+import appointmentService from '../../../services/appointment.service';
 import { formatDate } from '../../../utils/formatDate';
 import { AppointmentActionModals } from './AppointmentActionModals';
 import { AppointmentActionsMenu } from './AppointmentActionsMenu';
+import { exportCSV, formatTimeRange, formatTimestamp, methodLabel, originBadge, paymentBadge, statusLabel, statusStyles } from './helpers';
 import { useAdminAppointments } from './useAdminAppointments';
-import { statusStyles, methodLabel, statusLabel, formatTimeRange, paymentBadge, originBadge, formatTimestamp, exportCSV } from './helpers';
 
 export const AdminAppointmentsPage: React.FC = () => {
   const adminAppointments = useAdminAppointments();
@@ -154,7 +155,19 @@ export const AdminAppointmentsPage: React.FC = () => {
               containerClass="w-full sm:w-[200px]"
             />
             <button
-              onClick={() => exportCSV(appointments)}
+              onClick={async () => {
+                try {
+                  const paramsForList: Record<string, any> = { ...adminAppointments.queryParams };
+                  delete paramsForList.page;
+                  delete paramsForList.limit;
+                  const resp = await appointmentService.list(paramsForList);
+                  const all = resp.appointments ?? [];
+                  exportCSV(all);
+                } catch {
+                  // fallback to exporting current page
+                  exportCSV(appointments);
+                }
+              }}
               className="flex h-[40px] self-end items-center gap-1.5 rounded-[10px] border border-[#282828] px-3 text-[12px] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/50 transition-colors"
               title="Exportar a CSV"
             >

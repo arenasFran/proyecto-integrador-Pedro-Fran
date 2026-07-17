@@ -1,34 +1,47 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { FiCreditCard, FiMapPin, FiX } from 'react-icons/fi';
-import ProductDetail from '../../../components/product/ProductDetail';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Button, useToast } from '../../../components/common';
 import PaymentModal from '../../../components/payment/PaymentModal';
+import ProductDetail from '../../../components/product/ProductDetail';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
-import { Button } from '../../../components/common';
+import { useGetProductByIdQuery } from '../../../services/productApi';
+import { useAppDispatch } from '../../../store/hooks';
+import { addItem, openCart } from '../../../store/slices/cartSlice';
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [preferenceId, setPreferenceId] = useState('');
   const [showPaymentChoice, setShowPaymentChoice] = useState(false);
   const [pendingProductId, setPendingProductId] = useState('');
+  const { data: productData } = useGetProductByIdQuery(id ?? '', { skip: !id });
+  const { showToast } = useToast();
 
   const handleBack = () => navigate('/tienda');
 
-  const handleAddToCart = async (_productId: string) => {
-    navigate('/tienda');
+  const handleAddToCart = async () => {
+    const product = productData?.product;
+    if (!product) {
+      navigate('/tienda');
+      return;
+    }
+    dispatch(addItem({ product }));
+    dispatch(openCart());
+    showToast('Producto agregado al carrito');
   };
 
-  const handleBuyNow = (productId: string) => {
+  const handleBuyNow = (productId?: string) => {
     const token = getAccessToken();
     if (!token) {
       navigate('/login?returnUrl=/tienda');
       return;
     }
-    setPendingProductId(productId);
+    setPendingProductId(productId ?? '');
     setShowPaymentChoice(true);
   };
 

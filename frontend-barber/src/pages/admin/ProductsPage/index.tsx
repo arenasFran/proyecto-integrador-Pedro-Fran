@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { FiEdit3, FiEye, FiEyeOff, FiPackage, FiPlus, FiTrash2 } from 'react-icons/fi';
-import { AnimatedContainer, Button, Spinner, useToast } from '../../../components/common';
-import { useGetProductsQuery, useCreateProductMutation, useUpdateProductMutation, useDeleteProductMutation } from '../../../services/productApi';
-import type { Product, ProductStatus, CreateProductPayload } from '../../../types/product';
+import { AnimatedContainer, Button, ConfirmModal, Spinner, useToast } from '../../../components/common';
+import { useCreateProductMutation, useDeleteProductMutation, useGetProductsQuery, useUpdateProductMutation } from '../../../services/productApi';
+import type { CreateProductPayload, Product, ProductStatus } from '../../../types/product';
 import ProductFormModal from './components/ProductFormModal';
 
 const statusLabel: Record<ProductStatus, string> = {
@@ -35,6 +35,10 @@ export const ProductsPage: React.FC = () => {
   const formDraftRef = useRef<CreateProductPayload | null>(null);
 
   const products = data?.products ?? [];
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const openCreate = () => {
     setEditingProduct(null);
@@ -93,12 +97,23 @@ export const ProductsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (product: Product) => {
+  const handleDelete = (product: Product) => {
+    setProductToDelete(product);
+    setConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return;
+    setIsDeleting(true);
     try {
-      await deleteProduct(product.id).unwrap();
+      await deleteProduct(productToDelete.id).unwrap();
       showToast('Producto eliminado con éxito');
     } catch {
       showToast('Error al eliminar producto', 'error');
+    } finally {
+      setIsDeleting(false);
+      setProductToDelete(null);
+      setConfirmOpen(false);
     }
   };
 
@@ -228,6 +243,18 @@ export const ProductsPage: React.FC = () => {
           isSaving={isCreating || isUpdating}
         />
       )}
+
+      <ConfirmModal
+        isOpen={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={confirmDelete}
+        title="Eliminar producto"
+        message={`¿Estás seguro que querés eliminar "${productToDelete?.name || ''}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={isDeleting}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { axiosBaseQuery } from './baseQuery';
 import type { Appointment, ClientSearchResult, CreateAppointmentPayload } from '../types/booking';
 import type { PaginatedAppointmentsResponse } from './appointment.service';
+import { axiosBaseQuery } from './baseQuery';
 
 type QueryParams = {
   barberId?: string;
@@ -70,6 +70,15 @@ export const appointmentApi = createApi({
         params,
       }),
       transformResponse: (response: PaginatedAppointmentsResponse) => response,
+      providesTags: ['Appointments'],
+    }),
+
+    getAppointmentsSummary: builder.query<{ total: number; countsByStatus: Record<string, number> }, Omit<QueryParams, 'page' | 'limit'>>({
+      query: (params) => ({
+        url: '/api/appointments/summary',
+        params,
+      }),
+      transformResponse: (response: { total: number; countsByStatus: Record<string, number> }) => response,
       providesTags: ['Appointments'],
     }),
 
@@ -155,6 +164,7 @@ export const {
   useCreateAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,
+  useGetAppointmentsSummaryQuery,
   useGetAppointmentByIdQuery,
   useCancelAppointmentMutation,
   useUpdateAppointmentStatusMutation,

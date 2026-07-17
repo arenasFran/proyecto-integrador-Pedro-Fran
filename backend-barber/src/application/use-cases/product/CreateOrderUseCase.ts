@@ -1,7 +1,9 @@
 import { Order } from '../../../domain/entities/Order';
+import { Payment } from '../../../domain/entities/Payment';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
+import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
 import { AppError } from '../../../domain/errors/AppError';
 
@@ -24,7 +26,8 @@ export class CreateOrderUseCase {
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly membershipRepository: MongoMembershipRepository,
-    private readonly createPaymentUseCase: CreatePaymentUseCase
+    private readonly createPaymentUseCase: CreatePaymentUseCase,
+    private readonly paymentRepository?: MongoPaymentRepository
   ) {}
 
   async execute(dto: CreateOrderDTO): Promise<CreateOrderResult> {
@@ -78,6 +81,19 @@ export class CreateOrderUseCase {
     if (paymentMethod === 'local') {
       for (const item of resolvedItems) {
         await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+      }
+      if (this.paymentRepository) {
+        try {
+          const paymentDoc = Payment.create({
+            type: 'product_order',
+            referenceId: saved.id,
+            amount: saved.total,
+            userId: dto.userId,
+          });
+          await this.paymentRepository.save(paymentDoc);
+        } catch (err) {
+          console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
+        }
       }
       return { orderId: saved.id };
     }

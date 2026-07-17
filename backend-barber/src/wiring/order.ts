@@ -20,7 +20,7 @@ export const buildOrderRouter = () => {
 
   const createPaymentUseCase = new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
 
-  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase);
+  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase, paymentRepository);
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
 
   const emailService = new NodemailerEmailService();

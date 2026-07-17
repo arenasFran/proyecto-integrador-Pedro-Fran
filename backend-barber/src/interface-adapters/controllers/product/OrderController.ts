@@ -211,18 +211,24 @@ export class OrderController {
         }
       }
 
-      if ((status === 'paid' || status === 'delivered') && this.paymentRepository && !order.paymentId) {
+      if ((status === 'paid' || status === 'delivered') && this.paymentRepository) {
         try {
-          const paymentDoc = Payment.create({
-            type: 'product_order',
-            referenceId: order.id,
-            amount: order.total,
-            userId: order.userId,
-          });
-          paymentDoc.approve('admin_manual');
-          await this.paymentRepository.save(paymentDoc);
+          const existingPayment = await this.paymentRepository.findByReference(order.id, 'product_order');
+          if (existingPayment && existingPayment.status === 'pending') {
+            existingPayment.approve('admin_manual');
+            await this.paymentRepository.save(existingPayment);
+          } else if (!existingPayment && !order.paymentId) {
+            const paymentDoc = Payment.create({
+              type: 'product_order',
+              referenceId: order.id,
+              amount: order.total,
+              userId: order.userId,
+            });
+            paymentDoc.approve('admin_manual');
+            await this.paymentRepository.save(paymentDoc);
+          }
         } catch (err) {
-          console.error('[OrderController] Error creating PaymentModel for manual order:', err);
+          console.error('[OrderController] Error updating PaymentModel:', err);
         }
       }
 
@@ -324,6 +330,32 @@ export class OrderController {
       if (targetStatus === 'paid' || targetStatus === 'delivered') {
         for (const item of resolvedItems) {
           await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+        }
+        if (this.paymentRepository) {
+          try {
+            const paymentDoc = Payment.create({
+              type: 'product_order',
+              referenceId: saved.id,
+              amount: saved.total,
+              userId: orderUserId,
+            });
+            paymentDoc.approve('admin_manual');
+            await this.paymentRepository.save(paymentDoc);
+          } catch (err) {
+            console.error('[OrderController] Error creating PaymentModel for manual order:', err);
+          }
+        }
+      } else if (this.paymentRepository) {
+        try {
+          const paymentDoc = Payment.create({
+            type: 'product_order',
+            referenceId: saved.id,
+            amount: saved.total,
+            userId: orderUserId,
+          });
+          await this.paymentRepository.save(paymentDoc);
+        } catch (err) {
+          console.error('[OrderController] Error creating PaymentModel for manual order:', err);
         }
       }
 

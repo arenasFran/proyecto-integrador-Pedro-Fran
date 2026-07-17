@@ -4,7 +4,7 @@ import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRig
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery, useGetOverviewQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
 import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
@@ -23,6 +23,7 @@ interface KpiCardsProps {
   error: string | null;
   desde: string;
   hasta: string;
+  onRefresh: () => void;
 }
 
 function formatCurrency(value: number): string {
@@ -257,7 +258,7 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
   );
 }
 
-function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
+function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; onRefresh: () => void }) {
   const [activeTab, setActiveTab] = useState<'turnos' | 'ordenes' | 'membresias'>('turnos');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
@@ -273,9 +274,6 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
     { skip: !isOpen || !desde || !hasta },
   );
   const { data: pendingMemberships, isLoading: memLoading } = useGetPendingMembershipsQuery(undefined, { skip: !isOpen });
-  const { refetch: refetchOverview } = useGetOverviewQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-
-  const refetchAll = () => { refetchAll(); refetchAll(); refetchAll(); refetchOverview(); };
 
   const [markAsPaid] = useMarkAsPaidMutation();
   const [cancelAppt] = useCancelAppointmentMutation();
@@ -406,9 +404,9 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); markAsPaid({ id: a.id }).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
-                                    <button onClick={() => { closeMenu(); updateStatus({ id: a.id, status: 'NoShow' }).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
-                                    <button onClick={() => { closeMenu(); cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                    <button onClick={() => { closeMenu(); markAsPaid({ id: a.id }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                    <button onClick={() => { closeMenu(); updateStatus({ id: a.id, status: 'NoShow' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
+                                    <button onClick={() => { closeMenu(); cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
                                     <button onClick={() => { closeMenu(); sendReminder({ id: a.id }); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiBell size={13} />Recordatorio</button>
                                   </div>
                                 </>
@@ -455,9 +453,9 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'paid' }).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'delivered' }).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'paid' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'delivered' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
+                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
                                   </div>
                                 </>
                               )}
@@ -501,7 +499,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); approveMembership(m.id).then(() => refetchAll()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
+                                    <button onClick={() => { closeMenu(); approveMembership(m.id).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
                                     <button onClick={() => { closeMenu(); cancelAppt({ id: m.id, reason: 'Membresía rechazada' }).catch(() => {}); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Rechazar</button>
                                   </div>
                                 </>
@@ -527,7 +525,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
         <AppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} />
       )}
       {detailOrder && (
-        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusChange={(id, status) => { updateOrderStatus({ id, status }).then(() => { refetchAll(); setDetailOrder(null); }); }} />
+        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusChange={(id, status) => { updateOrderStatus({ id, status }).then(() => { onRefresh(); setDetailOrder(null); }); }} />
       )}
       {detailMembership && (
         <Modal isOpen={!!detailMembership} onClose={() => setDetailMembership(null)} title="Membresía pendiente" size="sm">
@@ -550,7 +548,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
               </div>
             </div>
             <button
-              onClick={() => { approveMembership(detailMembership.id).then(() => { refetchAll(); setDetailMembership(null); }); }}
+              onClick={() => { approveMembership(detailMembership.id).then(() => { onRefresh(); setDetailMembership(null); }); }}
               className="w-full rounded-[10px] bg-[#c084fc] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#a855f7] transition-colors"
             >
               Aprobar membresía
@@ -575,7 +573,7 @@ const CARDS_CONFIG = [
   { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true, tooltip: 'Órdenes con estado pendiente de pago' },
 ];
 
-export default function KpiCards({ data, loading, error, desde, hasta }: KpiCardsProps) {
+export default function KpiCards({ data, loading, error, desde, hasta, onRefresh }: KpiCardsProps) {
   const navigate = useNavigate();
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
@@ -716,7 +714,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
         })}
       </div>
       <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
-      <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} />
+      <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
       <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
     </>
   );

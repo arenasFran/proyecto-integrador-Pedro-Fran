@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const [hasta, setHasta] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
 
-  const { data: overview, isLoading, error: rtkError } = useGetOverviewQuery(
+  const { data: overview, isLoading, error: rtkError, refetch: refetchOverview } = useGetOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
@@ -120,7 +120,7 @@ export default function DashboardPage() {
                 <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
               </AnimatedContainer>
               <AnimatedContainer animation="fadeInUp" delay={0.2}>
-                <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} />
+                <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} onRefresh={refetchOverview} />
               </AnimatedContainer>
               <AnimatedContainer animation="fadeInUp" delay={0.3}>
                 <StatusBreakdown

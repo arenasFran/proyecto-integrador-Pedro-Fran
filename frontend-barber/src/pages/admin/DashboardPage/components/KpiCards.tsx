@@ -147,8 +147,8 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
                 {segments.map((seg) => (
                   <div key={seg.label} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: seg.hex }} />
-                    <span className="text-[11px] text-[#8A8A8A] flex-1">{seg.label}</span>
-                    <span className="text-[12px] text-white font-medium">{formatCurrency(seg.value)}</span>
+                    <span className="text-[11px] text-[#8A8A8A] w-[80px] shrink-0">{seg.label}</span>
+                    <span className="text-[12px] text-white font-medium w-[80px] text-right">{formatCurrency(seg.value)}</span>
                     <span className="text-[11px] text-[#6A6A6A] w-9 text-right">{seg.pct}%</span>
                   </div>
                 ))}

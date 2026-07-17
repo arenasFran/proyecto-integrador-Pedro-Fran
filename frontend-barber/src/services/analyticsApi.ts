@@ -115,6 +115,13 @@ export const analyticsApi = createApi({
         params,
       }),
     }),
+
+    getMembershipRevenue: builder.query<ReservasGananciasEntry[], { preset?: string; desde?: string; hasta?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/memberships/revenue',
+        params,
+      }),
+    }),
   }),
 });
 
@@ -150,4 +157,5 @@ export const {
   useGetClientAppointmentsQuery,
   useGetEcommerceOverviewQuery,
   useGetProductPerformanceQuery,
+  useGetMembershipRevenueQuery,
 } = analyticsApi;

@@ -7,6 +7,7 @@ import { RegisteredClient } from '../repositories/mongodb/models/client.model';
 import ServiceModel from '../repositories/mongodb/models/service.model';
 import AppointmentModel from '../repositories/mongodb/models/appointment.model';
 import { MembershipModel } from '../repositories/mongodb/models/membership.model';
+import { MembershipTransactionModel } from '../repositories/mongodb/models/membership-transaction.model';
 import { PaymentModel } from '../repositories/mongodb/models/payment.model';
 import { ProductModel } from '../repositories/mongodb/models/product.model';
 import { OrderModel } from '../repositories/mongodb/models/order.model';
@@ -245,11 +246,62 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
     const doc = await MembershipModel.create({
       userId: clientId, status: m.expired ? 'expired' : 'active',
       startDate: now, endDate, couponsTotal: 4, couponsUsed: m.couponsUsed,
-      productDiscount: 10, createdBy: 'admin',
+      productDiscount: 10, durationDays: 30, createdBy: 'admin',
+      paymentMethod: 'local', price: 399,
     });
     membershipDocs.push(doc);
     console.log(`[Seed] Membresía: ${m.label}`);
   }
+
+  // Membership transaction history for rich payment history view
+  const memTxSeeds: Array<{ clientEmail: string; amount: number; paymentMethod: 'mercadopago' | 'local'; daysAgo?: number; admin?: boolean }> = [
+    { clientEmail: 'clienteA@test.com', amount: 399, paymentMethod: 'local', daysAgo: 0, admin: true },
+    { clientEmail: 'clienteA@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 30 },
+    { clientEmail: 'clienteA@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 60 },
+    { clientEmail: 'clienteA@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 90 },
+    { clientEmail: 'clienteB@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 0 },
+    { clientEmail: 'clienteB@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 30 },
+    { clientEmail: 'clienteB@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 60 },
+    { clientEmail: 'clienteD@test.com', amount: 399, paymentMethod: 'local', daysAgo: 90, admin: true },
+    { clientEmail: 'clienteD@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 60 },
+    { clientEmail: 'clienteE@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 30 },
+    { clientEmail: 'clienteE@test.com', amount: 399, paymentMethod: 'local', daysAgo: 60, admin: true },
+    { clientEmail: 'clienteE@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 90 },
+    { clientEmail: 'clienteG@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 0 },
+    { clientEmail: 'clienteG@test.com', amount: 399, paymentMethod: 'mercadopago', daysAgo: 30 },
+    { clientEmail: 'clienteG@test.com', amount: 399, paymentMethod: 'local', daysAgo: 60, admin: true },
+  ];
+
+  let txCount = 0;
+  for (const tx of memTxSeeds) {
+    const client = getClient(tx.clientEmail);
+    if (!client) continue;
+    const mem = membershipDocs.find((m: any) => m.userId.toString() === client._id.toString());
+    if (!mem) continue;
+
+    const txDate = new Date(Date.now() - (tx.daysAgo ?? 0) * 24 * 60 * 60 * 1000);
+    const startOfDay = new Date(txDate); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(txDate); endOfDay.setHours(23, 59, 59, 999);
+
+    const existingTx = await MembershipTransactionModel.findOne({
+      membershipId: mem._id,
+      amount: tx.amount,
+      paymentMethod: tx.paymentMethod,
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
+    if (existingTx) continue;
+    await (MembershipTransactionModel as any).create({
+      userId: client._id,
+      membershipId: mem._id,
+      amount: tx.amount,
+      paymentMethod: tx.paymentMethod,
+      createdBy: tx.admin ? 'admin' : 'client',
+      createdAt: txDate,
+      updatedAt: txDate,
+    });
+    txCount++;
+  }
+  console.log(`[Seed] ${txCount} transacciones de membresía creadas`);
 
   // Appointments with membership
   const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -586,6 +638,15 @@ async function seedProducts(): Promise<mongoose.Types.ObjectId[]> {
 
 async function seedOrdersAndPayments(productIds: mongoose.Types.ObjectId[], clientDocs: any[]): Promise<void> {
   const productData = await ProductModel.find({ _id: { $in: productIds } }).lean();
+  const productMap = new Map<string, any>();
+  for (const p of productData) {
+    productMap.set((p as any)._id.toString(), p);
+  }
+
+  const getProduct = (index: number) => {
+    const id = productIds[index]?.toString();
+    return id ? productMap.get(id) : null;
+  };
 
   const orderSeeds: Array<{
     clientEmail: string; productIndices: number[]; quantities: number[]; status: string; daysAgo: number; paymentStatus?: string;
@@ -598,16 +659,30 @@ async function seedOrdersAndPayments(productIds: mongoose.Types.ObjectId[], clie
     { clientEmail: 'clienteF@test.com', productIndices: [2, 5], quantities: [2, 1], status: 'cancelled', daysAgo: 7 },
     { clientEmail: 'clienteB@test.com', productIndices: [7, 11], quantities: [1, 2], status: 'delivered', daysAgo: 20, paymentStatus: 'approved' },
     { clientEmail: 'clienteG@test.com', productIndices: [0, 1, 2], quantities: [1, 1, 1], status: 'paid', daysAgo: 2, paymentStatus: 'approved' },
+    { clientEmail: 'clienteA@test.com', productIndices: [3, 5], quantities: [2, 1], status: 'refunded', daysAgo: 40, paymentStatus: 'approved' },
+    { clientEmail: 'clienteA@test.com', productIndices: [7], quantities: [1], status: 'disputed', daysAgo: 12, paymentStatus: 'approved' },
+    { clientEmail: 'clienteB@test.com', productIndices: [0, 4, 9], quantities: [1, 1, 1], status: 'paid', daysAgo: 25, paymentStatus: 'approved' },
+    { clientEmail: 'clienteB@test.com', productIndices: [6, 8], quantities: [2, 1], status: 'cancelled', daysAgo: 18 },
+    { clientEmail: 'clienteC@test.com', productIndices: [3, 7, 10], quantities: [1, 2, 1], status: 'delivered', daysAgo: 35, paymentStatus: 'approved' },
+    { clientEmail: 'clienteC@test.com', productIndices: [0, 2, 4], quantities: [1, 1, 2], status: 'paid', daysAgo: 8, paymentStatus: 'approved' },
+    { clientEmail: 'clienteD@test.com', productIndices: [8, 9], quantities: [1, 1], status: 'paid', daysAgo: 22, paymentStatus: 'approved' },
+    { clientEmail: 'clienteD@test.com', productIndices: [1, 5], quantities: [2, 1], status: 'refunded', daysAgo: 50, paymentStatus: 'approved' },
+    { clientEmail: 'clienteE@test.com', productIndices: [0, 6, 11], quantities: [1, 2, 1], status: 'delivered', daysAgo: 28, paymentStatus: 'approved' },
+    { clientEmail: 'clienteE@test.com', productIndices: [2], quantities: [4], status: 'paid', daysAgo: 6, paymentStatus: 'approved' },
+    { clientEmail: 'clienteF@test.com', productIndices: [3, 7], quantities: [1, 1], status: 'paid', daysAgo: 14, paymentStatus: 'approved' },
+    { clientEmail: 'clienteF@test.com', productIndices: [9, 10], quantities: [1, 2], status: 'cancelled', daysAgo: 45 },
+    { clientEmail: 'clienteG@test.com', productIndices: [4, 5, 6], quantities: [1, 1, 1], status: 'delivered', daysAgo: 16, paymentStatus: 'approved' },
+    { clientEmail: 'clienteG@test.com', productIndices: [8], quantities: [3], status: 'pending', daysAgo: 0 },
   ];
 
   let orderCount = 0;
   for (const seed of orderSeeds) {
-    const client = clientDocs.find((c: any) => c.email === seed.clientEmail);
-    if (!client) continue;
+    const client = clientDocs.find((c: any) => (c.email || '').toLowerCase() === seed.clientEmail.toLowerCase());
+      if (!client) continue;
 
     const items: { productId: string; name: string; price: number; quantity: number }[] = [];
     for (let i = 0; i < seed.productIndices.length; i++) {
-      const prod = productData[seed.productIndices[i]];
+      const prod = getProduct(seed.productIndices[i]);
       if (prod) {
         items.push({ productId: (prod as any)._id.toString(), name: prod.name, price: prod.price, quantity: seed.quantities[i] || 1 });
       }

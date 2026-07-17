@@ -247,10 +247,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               {isPending && (
                 <>
                   <Button size="sm" onClick={() => onStatusChange?.(order.id, 'paid')} loading={isUpdating}>
-                    <FiDollarSign className="mr-1" size={14} /> Pagar
+                    <FiDollarSign className="mr-1" size={14} /> Cobrar
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => onStatusChange?.(order.id, 'delivered')} loading={isUpdating}>
-                    <FiTruck className="mr-1" size={14} /> Pagar y entregar
+                    <FiTruck className="mr-1" size={14} /> Cobrar y entregar
                   </Button>
                 </>
               )}

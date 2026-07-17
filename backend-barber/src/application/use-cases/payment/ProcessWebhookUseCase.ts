@@ -101,35 +101,55 @@ export class ProcessWebhookUseCase {
     const mpStatusDetail = mpPayment.statusDetail;
     const paymentMethod = mpPayment.paymentMethodId;
 
+    const enrichmentData = {
+      mpStatusDetail: mpPayment.statusDetail,
+      mpPaymentMethodId: mpPayment.paymentMethodId,
+      mpPaymentTypeId: mpPayment.paymentTypeId,
+      mpInstallments: mpPayment.installments,
+      mpTotalPaidAmount: mpPayment.totalPaidAmount,
+      mpNetReceivedAmount: mpPayment.netReceivedAmount,
+      mpFeeAmount: mpPayment.feeAmount,
+      mpCardLastFourDigits: mpPayment.cardLastFourDigits,
+      mpCardIssuerId: mpPayment.cardIssuerId,
+      mpDateApproved: mpPayment.dateApproved ? new Date(mpPayment.dateApproved) : undefined,
+      mpOperationType: mpPayment.operationType,
+    };
+
     switch (mpPayment.status) {
       case 'approved':
         payment.approve(mpPaymentId);
+        payment.enrich(enrichmentData);
         await this.paymentRepository.save(payment);
         await this.handleApproved(payment, mpStatusDetail, paymentMethod);
         break;
       case 'rejected':
         payment.reject();
+        payment.enrich({ mpStatusDetail: mpPayment.statusDetail, mpPaymentMethodId: mpPayment.paymentMethodId });
         await this.paymentRepository.save(payment);
         await this.handleRejected(payment);
         break;
       case 'cancelled':
       case 'by_collector':
         payment.cancel();
+        payment.enrich({ mpStatusDetail: mpPayment.statusDetail });
         await this.paymentRepository.save(payment);
         await this.handleCancelled(payment);
         break;
       case 'refunded':
         payment.refund(mpPaymentId);
+        payment.enrich(enrichmentData);
         await this.paymentRepository.save(payment);
         await this.handleRefunded(payment, mpStatusDetail, paymentMethod);
         break;
       case 'charge_back':
         payment.chargeBack(mpPaymentId);
+        payment.enrich(enrichmentData);
         await this.paymentRepository.save(payment);
         await this.handleChargeBack(payment, mpStatusDetail, paymentMethod);
         break;
       case 'in_mediation':
         payment.inMediation(mpPaymentId);
+        payment.enrich(enrichmentData);
         await this.paymentRepository.save(payment);
         await this.handleInMediation(payment, mpStatusDetail, paymentMethod);
         break;

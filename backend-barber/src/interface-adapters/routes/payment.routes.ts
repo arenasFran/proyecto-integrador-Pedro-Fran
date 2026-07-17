@@ -31,6 +31,18 @@ export const createPaymentRouter = (deps: {
   );
 
   router.get(
+    '/by-reference/:referenceId',
+    deps.authenticate,
+    deps.paymentController.getByReference
+  );
+
+  router.get(
+    '/',
+    deps.authenticate,
+    deps.paymentController.getAll
+  );
+
+  router.get(
     '/:id',
     deps.authenticate,
     validate({ params: paymentIdParamSchema }),

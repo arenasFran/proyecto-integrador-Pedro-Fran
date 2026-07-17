@@ -9,6 +9,8 @@ import { formatDateTime } from '../../utils/formatDate';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { Modal, Button } from '../common';
 import { ProductDetailModal } from './ProductDetailModal';
+import PaymentTransactionDetail from '../payment/PaymentTransactionDetail';
+import { useGetPaymentByReferenceQuery } from '../../services/paymentApi';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
   pending: { label: 'Pendiente', bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: <FiClock size={12} /> },
@@ -73,6 +75,11 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({ products: true });
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [detailItem, setDetailItem] = useState<OrderItem | null>(null);
+
+  const { data: paymentData } = useGetPaymentByReferenceQuery(
+    { referenceId: order?.id || '', type: 'product_order' },
+    { skip: !order?.id }
+  );
 
   if (!order) return null;
 
@@ -166,7 +173,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
           </div>
 
           {/* Mercado Pago */}
-          {(order.mpPaymentId || order.mpStatusDetail) && (
+          {(order.mpPaymentId || order.mpStatusDetail || paymentData?.payment) && (
             <div className="border-t border-[#282828] pt-4">
               <button
                 onClick={() => toggleSection('payment')}
@@ -178,23 +185,23 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 {expandedSections['payment'] ? <FiChevronUp size={14} className="ml-auto" /> : <FiChevronDown size={14} className="ml-auto" />}
               </button>
               {expandedSections['payment'] && (
-                <div className="mt-3 space-y-2 text-[13px]">
-                  {order.mpPaymentId && (
-                    <div className="flex gap-2">
-                      <span className="text-[#6A6A6A] w-28 shrink-0">ID Pago MP:</span>
-                      <span className="text-[#8A8A8A] font-mono break-all">{order.mpPaymentId}</span>
-                    </div>
-                  )}
-                  {order.mpStatusDetail && (
-                    <div className="flex gap-2">
-                      <span className="text-[#6A6A6A] w-28 shrink-0">Estado MP:</span>
-                      <span className="text-[#8A8A8A]">{getMpStatusLabel(order.mpStatusDetail)}</span>
-                    </div>
-                  )}
-                  {order.paymentId && (
-                    <div className="flex gap-2">
-                      <span className="text-[#6A6A6A] w-28 shrink-0">ID Pago Local:</span>
-                      <span className="text-[#8A8A8A] font-mono break-all">{order.paymentId}</span>
+                <div className="mt-3">
+                  {paymentData?.payment ? (
+                    <PaymentTransactionDetail payment={paymentData.payment} />
+                  ) : (
+                    <div className="space-y-2 text-[13px]">
+                      {order.mpPaymentId && (
+                        <div className="flex gap-2">
+                          <span className="text-[#6A6A6A] w-28 shrink-0">ID Pago MP:</span>
+                          <span className="text-[#8A8A8A] font-mono break-all">{order.mpPaymentId}</span>
+                        </div>
+                      )}
+                      {order.mpStatusDetail && (
+                        <div className="flex gap-2">
+                          <span className="text-[#6A6A6A] w-28 shrink-0">Estado MP:</span>
+                          <span className="text-[#8A8A8A]">{getMpStatusLabel(order.mpStatusDetail)}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -19,6 +19,8 @@ import {
 import { BarberAvatar, Modal, Button } from '../../../components/common';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
 import { formatDate } from '../../../utils/formatDate';
+import PaymentTransactionDetail from '../../../components/payment/PaymentTransactionDetail';
+import { useGetPaymentByReferenceQuery } from '../../../services/paymentApi';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -136,6 +138,11 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   onCreateAppointment,
 }) => {
   const navigate = useNavigate();
+
+  const { data: paymentData } = useGetPaymentByReferenceQuery(
+    { referenceId: appointment?.id || '', type: 'appointment' },
+    { skip: !appointment?.id || appointment?.paymentMethod !== 'online' }
+  );
 
   if (!appointment) return null;
 
@@ -259,6 +266,11 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
               <InfoRow icon={FiDollarSign}>{paymentBadge(appointment.paymentStatus)}</InfoRow>
               <InfoRow icon={FiCreditCard}>{methodLabel[appointment.paymentMethod] ?? appointment.paymentMethod}</InfoRow>
             </div>
+            {paymentData?.payment && (
+              <div className="mt-3">
+                <PaymentTransactionDetail payment={paymentData.payment} />
+              </div>
+            )}
           </div>
         </div>
 

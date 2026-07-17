@@ -71,23 +71,11 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
         <div className="flex justify-center py-8"><Spinner size="lg" /></div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-3 gap-3">
-            {segments.map((seg) => (
-              <div key={seg.label} className="rounded-[12px] bg-[#121212] border border-[#282828] p-3 flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <seg.icon className="text-[15px]" style={{ color: seg.color.replace('bg-', '') }} />
-                  <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">{seg.label}</span>
-                </div>
-                <span className="text-[20px] font-bold text-white">{formatCurrency(seg.value)}</span>
-                <span className="text-[10px] text-[#6A6A6A]">{seg.pct}% del total</span>
-              </div>
-            ))}
-          </div>
 
           <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4">
             <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
             <div className="flex items-center gap-6 mt-2">
-              <div className="w-[140px] h-[140px] shrink-0">
+              <div className="w-[140px] h-[140px] shrink-0 relative">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -106,8 +94,8 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="text-center -mt-[100px] relative z-10 pointer-events-none">
-                  <span className="text-[18px] font-bold text-white">{formatCurrency(totalCombined)}</span>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-[15px] font-bold text-white">{formatCurrency(totalCombined)}</span>
                 </div>
               </div>
               <div className="flex-1 flex flex-col gap-2">

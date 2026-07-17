@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData } from '../../../../types/analytics';
@@ -22,15 +22,19 @@ function formatCurrency(value: number): string {
 }
 
 function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; ecommerceData?: { totalRevenue: number; totalOrders: number; averageTicket: number } | null }) {
+  const [showBarbers, setShowBarbers] = useState(false);
+  const [showProducts, setShowProducts] = useState(false);
+  const [showMemberships, setShowMemberships] = useState(false);
+
   const { data: distData, isLoading: distLoading } = useGetDistribucionQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
   const { data: membershipRevenue } = useGetMembershipRevenueQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-  const entries = distData?.byBarber ?? [];
+  const { data: productPerformance } = useGetProductPerformanceQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
 
+  const entries = distData?.byBarber ?? [];
   const totalAppointments = entries.reduce((s, e) => s + e.ingresos, 0);
   const totalProducts = ecommerceData?.totalRevenue ?? 0;
   const totalMemberships = membershipRevenue?.reduce((s, e) => s + e.ganancias, 0) ?? 0;
   const totalCombined = totalAppointments + totalProducts + totalMemberships;
-
   const isLoading = distLoading;
 
   const segments = [
@@ -39,15 +43,34 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
     { label: 'Membresias', value: totalMemberships, color: 'bg-purple-400', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
   ];
 
+  const CollapsibleSection = ({ title, icon: Icon, color: sectionColor, open, onToggle, children }: { title: string; icon: React.ComponentType<{ className?: string; color?: string }>; color: string; open: boolean; onToggle: () => void; children: React.ReactNode }) => (
+    <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#242424] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="text-[14px]" color={sectionColor} />
+          <span className="text-[12px] text-[#8A8A8A] uppercase tracking-wider">{title}</span>
+        </div>
+        {open ? <FiChevronDown className="text-[#6A6A6A]" /> : <FiChevronRight className="text-[#6A6A6A]" />}
+      </button>
+      {open && <div className="px-4 pb-3">{children}</div>}
+    </div>
+  );
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Desglose de ingresos" size="md">
+    <Modal isOpen={isOpen} onClose={onClose} title={`Desglose de ingresos`} size="lg">
+      <p className="text-[11px] text-[#6A6A6A] -mt-2 mb-4">
+        {desde} → {hasta}
+      </p>
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="lg" /></div>
       ) : (
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-3 gap-3">
             {segments.map((seg) => (
-              <div key={seg.label} className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-3 flex flex-col gap-2">
+              <div key={seg.label} className="rounded-[12px] bg-[#121212] border border-[#282828] p-3 flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <seg.icon className="text-[15px]" style={{ color: seg.color.replace('bg-', '') }} />
                   <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">{seg.label}</span>
@@ -60,18 +83,13 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
 
           <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Proporcion de ingresos</span>
-              <span className="text-[11px] font-bold text-white">{formatCurrency(totalCombined)}</span>
+              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
+              <span className="text-[15px] font-bold text-white">{formatCurrency(totalCombined)}</span>
             </div>
             <div className="h-3 w-full bg-[#0A0A0A] rounded-full overflow-hidden flex">
               {segments.map((seg) =>
                 seg.pct > 0 ? (
-                  <div
-                    key={seg.label}
-                    className={`h-full ${seg.color} transition-all duration-500`}
-                    style={{ width: `${seg.pct}%` }}
-                    title={`${seg.label}: ${formatCurrency(seg.value)} (${seg.pct}%)`}
-                  />
+                  <div key={seg.label} className={`h-full ${seg.color} transition-all duration-500`} style={{ width: `${seg.pct}%` }} />
                 ) : null
               )}
             </div>
@@ -85,29 +103,65 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
             </div>
           </div>
 
-          {entries.length > 0 && (
-            <div>
-              <div className="flex items-center justify-between text-[11px] text-[#6A6A6A] uppercase tracking-wider px-1 pb-2 border-b border-[#282828]">
-                <span>Barbero</span>
-                <span>Turnos</span>
-                <span>Ingresos</span>
-                <span className="w-12 text-right">%</span>
-              </div>
-              {entries.map((entry) => (
-                <div key={entry.barberId} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] px-3 py-2.5 text-[13px]">
-                  <span className="text-white font-medium">{entry.nombre}</span>
-                  <span className="text-[#8A8A8A]">{entry.cantidad}</span>
-                  <span className="text-green-400 font-medium">{formatCurrency(entry.ingresos)}</span>
-                  <span className="text-[#6A6A6A] w-12 text-right text-[11px]">
-                    {totalAppointments > 0 ? Math.round((entry.ingresos / totalAppointments) * 100) : 0}%
-                  </span>
-                </div>
-              ))}
-            </div>
+          {totalCombined === 0 && (
+            <p className="text-[13px] text-[#8A8A8A] text-center py-2">Sin ingresos en este periodo.</p>
           )}
 
-          {totalCombined === 0 && (
-            <p className="text-[13px] text-[#8A8A8A] text-center py-4">Sin ingresos en este periodo.</p>
+          {entries.length > 0 && (
+            <CollapsibleSection title="Detalle por barbero (turnos)" icon={FiScissors} color="#4ade80" open={showBarbers} onToggle={() => setShowBarbers(!showBarbers)}>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                  <span>Barbero</span>
+                  <span>Turnos</span>
+                  <span>Ingresos</span>
+                </div>
+                {entries.map((entry) => (
+                  <div key={entry.barberId} className="flex items-center justify-between text-[12px] py-1">
+                    <span className="text-white font-medium">{entry.nombre}</span>
+                    <span className="text-[#8A8A8A]">{entry.cantidad}</span>
+                    <span className="text-green-400 font-medium">{formatCurrency(entry.ingresos)}</span>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {productPerformance && productPerformance.length > 0 && (
+            <CollapsibleSection title="Detalle de productos" icon={FiShoppingCart} color="#FF5C00" open={showProducts} onToggle={() => setShowProducts(!showProducts)}>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                  <span>Producto</span>
+                  <span>Vendidos</span>
+                  <span>Ingresos</span>
+                </div>
+                {productPerformance.slice(0, 15).map((p) => (
+                  <div key={p.productId} className="flex items-center justify-between text-[12px] py-1">
+                    <span className="text-white truncate flex-1 mr-2">{p.name}</span>
+                    <span className="text-[#8A8A8A] w-14 text-right">{p.totalSold}</span>
+                    <span className="text-[#FF5C00] font-medium w-24 text-right">{formatCurrency(p.totalRevenue)}</span>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
+          )}
+
+          {membershipRevenue && membershipRevenue.length > 0 && (
+            <CollapsibleSection title="Detalle de membresias" icon={FiAward} color="#c084fc" open={showMemberships} onToggle={() => setShowMemberships(!showMemberships)}>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                  <span>Mes</span>
+                  <span>Cantidad</span>
+                  <span>Ingresos</span>
+                </div>
+                {membershipRevenue.map((m) => (
+                  <div key={m.periodo} className="flex items-center justify-between text-[12px] py-1">
+                    <span className="text-white">{m.periodo}</span>
+                    <span className="text-[#8A8A8A]">{m.cantidadReservas}</span>
+                    <span className="text-purple-400 font-medium">{formatCurrency(m.ganancias)}</span>
+                  </div>
+                ))}
+              </div>
+            </CollapsibleSection>
           )}
         </div>
       )}
@@ -117,7 +171,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
 
 const kindBadge = (kind: string) => {
   if (kind === 'Registrado') return <span className="text-[10px] font-medium bg-purple-500/10 text-purple-400 rounded-full px-2 py-0.5">Registrado</span>;
-  return <span className="text-[10px] font-medium bg-gray-500/10 text-gray-400 rounded-full px-2 py-0.5">Anónimo</span>;
+  return <span className="text-[10px] font-medium bg-gray-500/10 text-gray-400 rounded-full px-2 py-0.5">Anonimo</span>;
 };
 
 function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; navigate: (path: string) => void }) {

@@ -792,14 +792,14 @@ async function seedOrdersAndPayments(productIds: mongoose.Types.ObjectId[], clie
     { clientEmail: 'clienteB@test.com', productIndices: [4, 6], quantities: [1, 1], status: 'paid', daysAgo: 10, paymentStatus: 'approved' },
     { clientEmail: 'clienteC@test.com', productIndices: [1], quantities: [3], status: 'paid', daysAgo: 3, paymentStatus: 'approved' },
     { clientEmail: 'clienteA@test.com', productIndices: [8, 9], quantities: [1, 1], status: 'delivered', daysAgo: 15, paymentStatus: 'approved' },
-    { clientEmail: 'clienteE@test.com', productIndices: [10], quantities: [1], status: 'pending', daysAgo: 0 },
-    { clientEmail: 'clienteF@test.com', productIndices: [2, 5], quantities: [2, 1], status: 'cancelled', daysAgo: 7 },
+    { clientEmail: 'clienteE@test.com', productIndices: [10], quantities: [1], status: 'pending', daysAgo: 0, paymentStatus: 'pending' },
+    { clientEmail: 'clienteF@test.com', productIndices: [2, 5], quantities: [2, 1], status: 'cancelled', daysAgo: 7, paymentStatus: 'cancelled' },
     { clientEmail: 'clienteB@test.com', productIndices: [7, 11], quantities: [1, 2], status: 'delivered', daysAgo: 20, paymentStatus: 'approved' },
     { clientEmail: 'clienteG@test.com', productIndices: [0, 1, 2], quantities: [1, 1, 1], status: 'paid', daysAgo: 2, paymentStatus: 'approved' },
     { clientEmail: 'clienteA@test.com', productIndices: [3, 5], quantities: [2, 1], status: 'refunded', daysAgo: 40, paymentStatus: 'approved' },
     { clientEmail: 'clienteA@test.com', productIndices: [7], quantities: [1], status: 'disputed', daysAgo: 12, paymentStatus: 'approved' },
     { clientEmail: 'clienteB@test.com', productIndices: [0, 4, 9], quantities: [1, 1, 1], status: 'paid', daysAgo: 25, paymentStatus: 'approved' },
-    { clientEmail: 'clienteB@test.com', productIndices: [6, 8], quantities: [2, 1], status: 'cancelled', daysAgo: 18 },
+    { clientEmail: 'clienteB@test.com', productIndices: [6, 8], quantities: [2, 1], status: 'cancelled', daysAgo: 18, paymentStatus: 'cancelled' },
     { clientEmail: 'clienteC@test.com', productIndices: [3, 7, 10], quantities: [1, 2, 1], status: 'delivered', daysAgo: 35, paymentStatus: 'approved' },
     { clientEmail: 'clienteC@test.com', productIndices: [0, 2, 4], quantities: [1, 1, 2], status: 'paid', daysAgo: 8, paymentStatus: 'approved' },
     { clientEmail: 'clienteD@test.com', productIndices: [8, 9], quantities: [1, 1], status: 'paid', daysAgo: 22, paymentStatus: 'approved' },
@@ -807,9 +807,9 @@ async function seedOrdersAndPayments(productIds: mongoose.Types.ObjectId[], clie
     { clientEmail: 'clienteE@test.com', productIndices: [0, 6, 11], quantities: [1, 2, 1], status: 'delivered', daysAgo: 28, paymentStatus: 'approved' },
     { clientEmail: 'clienteE@test.com', productIndices: [2], quantities: [4], status: 'paid', daysAgo: 6, paymentStatus: 'approved' },
     { clientEmail: 'clienteF@test.com', productIndices: [3, 7], quantities: [1, 1], status: 'paid', daysAgo: 14, paymentStatus: 'approved' },
-    { clientEmail: 'clienteF@test.com', productIndices: [9, 10], quantities: [1, 2], status: 'cancelled', daysAgo: 45 },
+    { clientEmail: 'clienteF@test.com', productIndices: [9, 10], quantities: [1, 2], status: 'cancelled', daysAgo: 45, paymentStatus: 'cancelled' },
     { clientEmail: 'clienteG@test.com', productIndices: [4, 5, 6], quantities: [1, 1, 1], status: 'delivered', daysAgo: 16, paymentStatus: 'approved' },
-    { clientEmail: 'clienteG@test.com', productIndices: [8], quantities: [3], status: 'pending', daysAgo: 0 },
+    { clientEmail: 'clienteG@test.com', productIndices: [8], quantities: [3], status: 'pending', daysAgo: 0, paymentStatus: 'pending' },
   ];
 
   let orderCount = 0;
@@ -844,25 +844,26 @@ async function seedOrdersAndPayments(productIds: mongoose.Types.ObjectId[], clie
       const fee = Math.round(total * feeRate * 100) / 100;
       const net = Math.round((total - fee) * 100) / 100;
 
+      const isApproved = seed.paymentStatus === 'approved';
       await PaymentModel.create({
         type: 'product_order',
         referenceId: order._id.toString(),
         status: seed.paymentStatus,
-        mpPaymentId: `${100000000000 + orderCount}`,
+        mpPaymentId: isApproved ? `${100000000000 + orderCount}` : undefined,
         amount: total,
         currency: 'UYU',
         userId: client._id,
-        mpStatusDetail: seed.paymentStatus === 'approved' ? 'accredited' : 'refunded',
-        mpPaymentMethodId: pm.id,
-        mpPaymentTypeId: pm.type,
-        mpInstallments: orderCount % 3 === 0 ? 3 : 1,
-        mpTotalPaidAmount: total,
-        mpNetReceivedAmount: net,
-        mpFeeAmount: fee,
-        mpCardLastFourDigits: pm.lastFour,
-        mpCardIssuerId: pm.issuer,
-        mpDateApproved: new Date(Date.now() - seed.daysAgo * 24 * 60 * 60 * 1000),
-        mpOperationType: 'regular_payment',
+        mpStatusDetail: seed.paymentStatus === 'approved' ? 'accredited' : seed.paymentStatus === 'cancelled' ? 'cancelled' : 'pending_waiting_payment',
+        mpPaymentMethodId: isApproved ? pm.id : undefined,
+        mpPaymentTypeId: isApproved ? pm.type : undefined,
+        mpInstallments: isApproved ? (orderCount % 3 === 0 ? 3 : 1) : undefined,
+        mpTotalPaidAmount: isApproved ? total : undefined,
+        mpNetReceivedAmount: isApproved ? net : undefined,
+        mpFeeAmount: isApproved ? fee : undefined,
+        mpCardLastFourDigits: isApproved ? pm.lastFour : undefined,
+        mpCardIssuerId: isApproved ? pm.issuer : undefined,
+        mpDateApproved: isApproved ? new Date(Date.now() - seed.daysAgo * 24 * 60 * 60 * 1000) : undefined,
+        mpOperationType: isApproved ? 'regular_payment' : undefined,
         createdAt, updatedAt: createdAt,
       });
     }

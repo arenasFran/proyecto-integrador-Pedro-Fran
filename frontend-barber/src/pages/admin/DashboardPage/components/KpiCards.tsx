@@ -1,16 +1,21 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
-import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation } from '../../../../services/appointmentApi';
+import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
 import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData } from '../../../../types/analytics';
+import type { Order } from '../../../../types/order';
+import type { MembershipWithUser } from '../../../../types/membership';
+import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
+import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
+import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -254,7 +259,10 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
 
 function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
   const [activeTab, setActiveTab] = useState<'turnos' | 'ordenes' | 'membresias'>('turnos');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const [detailMembership, setDetailMembership] = useState<MembershipWithUser | null>(null);
 
   const { data: appointments = [], isLoading: apptsLoading, refetch: refetchAppts } = useGetAppointmentsQuery(
     { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50 },
@@ -268,6 +276,8 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
 
   const [markAsPaid] = useMarkAsPaidMutation();
   const [cancelAppt] = useCancelAppointmentMutation();
+  const [updateStatus] = useUpdateAppointmentStatusMutation();
+  const [sendReminder] = useSendReminderMutation();
   const [updateOrderStatus] = useUpdateOrderStatusMutation();
   const [approveMembership] = useApprovePendingMembershipMutation();
 
@@ -282,12 +292,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
   const formatDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
   const isLoading = apptsLoading || ordersLoading || memLoading;
 
-  const handleAction = async (action: () => Promise<unknown>, id: string) => {
-    setActionLoading(id);
-    try { await action(); }
-    catch { /* error handled by RTK Query */ }
-    finally { setActionLoading(null); }
-  };
+  const closeMenu = () => setOpenMenuId(null);
 
   const tabs = [
     { key: 'turnos' as const, label: 'Turnos', count: appointments.length, amount: totalTurnos, color: '#4ade80', icon: FiScissors },
@@ -351,7 +356,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                 ) : (
                   <div className="flex flex-col gap-2">
                     {appointments.map((a) => (
-                      <div key={a.id} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#4ade80]/20 transition-colors">
+                      <div key={a.id} className="relative rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#4ade80]/20 transition-colors cursor-pointer" onClick={() => setDetailAppointment(a)}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-[13px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
@@ -363,22 +368,27 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                               <span>{a.barberName ?? 'Sin barbero'}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0">
                             <span className="text-[14px] font-bold text-[#FF5C00]">${a.servicePrice.toLocaleString('es-UY')}</span>
-                            <button
-                              onClick={() => handleAction(() => markAsPaid({ id: a.id }).then(() => refetchAppts()), a.id)}
-                              disabled={actionLoading === a.id}
-                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-[#4ade80] bg-[#242424] hover:bg-[#4ade80]/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
-                            >
-                              {actionLoading === a.id ? '...' : 'Cobrar'}
-                            </button>
-                            <button
-                              onClick={() => handleAction(() => cancelAppt({ id: a.id, reason: 'Pago pendiente cancelado por admin' }).then(() => refetchAppts()), a.id)}
-                              disabled={actionLoading === a.id}
-                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-red-400 bg-[#242424] hover:bg-red-500/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
-                            >
-                              Cancelar
-                            </button>
+                            <div className="relative" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setOpenMenuId(openMenuId === a.id ? null : a.id)}
+                                className="p-1.5 rounded-[6px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
+                              >
+                                <FiMoreVertical size={15} />
+                              </button>
+                              {openMenuId === a.id && (
+                                <>
+                                  <div className="fixed inset-0 z-10" onClick={closeMenu} />
+                                  <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
+                                    <button onClick={() => { closeMenu(); markAsPaid({ id: a.id }).then(() => refetchAppts()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                    <button onClick={() => { closeMenu(); updateStatus({ id: a.id, status: 'NoShow' }).then(() => refetchAppts()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
+                                    <button onClick={() => { closeMenu(); cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).then(() => refetchAppts()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                    <button onClick={() => { closeMenu(); sendReminder({ id: a.id }); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiBell size={13} />Recordatorio</button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -393,7 +403,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                 ) : (
                   <div className="flex flex-col gap-2">
                     {pendingOrders.map((o) => (
-                      <div key={o.id} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#FF5C00]/20 transition-colors">
+                      <div key={o.id} className="relative rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#FF5C00]/20 transition-colors cursor-pointer" onClick={() => setDetailOrder(o)}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-[13px] font-medium text-white truncate">
@@ -405,22 +415,26 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                               <span>{o.createdAt ? formatDate(o.createdAt.slice(0, 10)) : ''}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0">
                             <span className="text-[14px] font-bold text-[#FF5C00]">${o.total.toLocaleString('es-UY')}</span>
-                            <button
-                              onClick={() => handleAction(() => updateOrderStatus({ id: o.id, status: 'paid' }).then(() => refetchOrders()), o.id)}
-                              disabled={actionLoading === o.id}
-                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-[#FF5C00] bg-[#242424] hover:bg-[#FF5C00]/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
-                            >
-                              {actionLoading === o.id ? '...' : 'Cobrar'}
-                            </button>
-                            <button
-                              onClick={() => handleAction(() => updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => refetchOrders()), o.id)}
-                              disabled={actionLoading === o.id}
-                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-red-400 bg-[#242424] hover:bg-red-500/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
-                            >
-                              Cancelar
-                            </button>
+                            <div className="relative" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setOpenMenuId(openMenuId === o.id ? null : o.id)}
+                                className="p-1.5 rounded-[6px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
+                              >
+                                <FiMoreVertical size={15} />
+                              </button>
+                              {openMenuId === o.id && (
+                                <>
+                                  <div className="fixed inset-0 z-10" onClick={closeMenu} />
+                                  <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
+                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'paid' }).then(() => refetchOrders()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'delivered' }).then(() => refetchOrders()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiShoppingCart size={13} />Entregar</button>
+                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => refetchOrders()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -435,7 +449,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                 ) : (
                   <div className="flex flex-col gap-2">
                     {memberships.map((m) => (
-                      <div key={m.id} className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#c084fc]/20 transition-colors">
+                      <div key={m.id} className="relative rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#c084fc]/20 transition-colors cursor-pointer" onClick={() => setDetailMembership(m)}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-[13px] font-medium text-white truncate">
@@ -447,15 +461,25 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                               <span>{m.createdAt ? formatDate(m.createdAt.slice(0, 10)) : ''}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1 shrink-0">
                             <span className="text-[14px] font-bold text-[#FF5C00]">${m.price.toLocaleString('es-UY')}</span>
-                            <button
-                              onClick={() => handleAction(() => approveMembership(m.id).then(() => refetchMem()), m.id)}
-                              disabled={actionLoading === m.id}
-                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-[#c084fc] bg-[#242424] hover:bg-[#c084fc]/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
-                            >
-                              {actionLoading === m.id ? '...' : 'Aprobar'}
-                            </button>
+                            <div className="relative" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
+                                className="p-1.5 rounded-[6px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
+                              >
+                                <FiMoreVertical size={15} />
+                              </button>
+                              {openMenuId === m.id && (
+                                <>
+                                  <div className="fixed inset-0 z-10" onClick={closeMenu} />
+                                  <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
+                                    <button onClick={() => { closeMenu(); approveMembership(m.id).then(() => refetchMem()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
+                                    <button onClick={() => { closeMenu(); cancelAppt({ id: m.id, reason: 'Membresía rechazada' }).catch(() => {}); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Rechazar</button>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -470,6 +494,42 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
             <p className="text-[13px] text-[#8A8A8A] text-center py-2">No hay ingresos pendientes en este periodo.</p>
           )}
         </div>
+      )}
+
+      {detailAppointment && (
+        <AppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} />
+      )}
+      {detailOrder && (
+        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />
+      )}
+      {detailMembership && (
+        <Modal isOpen={!!detailMembership} onClose={() => setDetailMembership(null)} title="Membresía pendiente" size="sm">
+          <div className="flex flex-col gap-3">
+            <div className="rounded-[10px] bg-[#1A1A1A] p-3">
+              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Usuario</span>
+              <p className="text-[14px] text-white font-medium mt-1">
+                {detailMembership.user?.name ? `${detailMembership.user.name} ${detailMembership.user.lastname ?? ''}` : '—'}
+              </p>
+              <p className="text-[12px] text-[#8A8A8A]">{detailMembership.user?.email ?? 'Sin email'}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-[10px] bg-[#1A1A1A] p-3">
+                <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Precio</span>
+                <p className="text-[16px] text-[#FF5C00] font-bold mt-1">${detailMembership.price.toLocaleString('es-UY')}</p>
+              </div>
+              <div className="rounded-[10px] bg-[#1A1A1A] p-3">
+                <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Creada</span>
+                <p className="text-[14px] text-white font-medium mt-1">{detailMembership.createdAt ? formatDate(detailMembership.createdAt.slice(0, 10)) : '—'}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => { approveMembership(detailMembership.id).then(() => { refetchMem(); setDetailMembership(null); }); }}
+              className="w-full rounded-[10px] bg-[#c084fc] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#a855f7] transition-colors"
+            >
+              Aprobar membresía
+            </button>
+          </div>
+        </Modal>
       )}
     </Modal>
   );

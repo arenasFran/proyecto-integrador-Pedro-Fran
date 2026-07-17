@@ -292,7 +292,33 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
   const formatDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
   const isLoading = apptsLoading || ordersLoading || memLoading;
 
+  const getInitials = (name: string, lastname: string) => `${name.charAt(0)}${lastname.charAt(0)}`.toUpperCase();
+
   const closeMenu = () => setOpenMenuId(null);
+
+  const Avatar = ({ name, lastname }: { name: string; lastname: string }) => (
+    <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center shrink-0">
+      <span className="text-[12px] font-semibold text-[#8A8A8A]">{getInitials(name, lastname)}</span>
+    </div>
+  );
+
+  const ClientBadge = ({ kind }: { kind?: string }) => {
+    if (!kind || kind === 'NoRegistrado') return <span className="text-[10px] font-medium text-gray-400 bg-gray-500/10 rounded-full px-2 py-0.5">Anónimo</span>;
+    return <span className="text-[10px] font-medium text-purple-400 bg-purple-500/10 rounded-full px-2 py-0.5">Registrado</span>;
+  };
+
+  const PaymentStatusBadge = () => <span className="text-[10px] font-medium text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">Pendiente</span>;
+
+  const OrderStatusBadge = ({ status }: { status: string }) => {
+    const cfg: Record<string, { label: string; cls: string }> = {
+      pending: { label: 'Pendiente', cls: 'text-yellow-400 bg-yellow-500/10' },
+      paid: { label: 'Pagado', cls: 'text-green-400 bg-green-500/10' },
+      delivered: { label: 'Entregado', cls: 'text-blue-400 bg-blue-500/10' },
+      cancelled: { label: 'Cancelado', cls: 'text-red-400 bg-red-500/10' },
+    };
+    const c = cfg[status] ?? cfg.pending;
+    return <span className={`text-[10px] font-medium ${c.cls} rounded-full px-2 py-0.5`}>{c.label}</span>;
+  };
 
   const tabs = [
     { key: 'turnos' as const, label: 'Turnos', count: appointments.length, amount: totalTurnos, color: '#4ade80', icon: FiScissors },
@@ -356,11 +382,16 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                 ) : (
                   <div className="flex flex-col gap-2">
                     {appointments.map((a) => (
-                      <div key={a.id} className="relative rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#4ade80]/20 transition-colors cursor-pointer" onClick={() => setDetailAppointment(a)}>
-                        <div className="flex items-start justify-between gap-2">
+                      <div key={a.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-4 hover:border-[#4ade80]/20 transition-all cursor-pointer" onClick={() => setDetailAppointment(a)}>
+                        <div className="flex items-start gap-3">
+                          <Avatar name={a.clientName} lastname={a.clientLastname} />
                           <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
-                            <div className="flex items-center gap-2 text-[11px] text-[#8A8A8A] mt-0.5 flex-wrap">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <p className="text-[14px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
+                              {a.clientId ? <ClientBadge kind="Registrado" /> : <ClientBadge kind="NoRegistrado" />}
+                              <PaymentStatusBadge />
+                            </div>
+                            <div className="flex items-center gap-2 text-[12px] text-[#8A8A8A] flex-wrap">
                               <span>{formatDate(a.date)} {a.startTime}</span>
                               <span>·</span>
                               <span>{a.serviceName}</span>
@@ -373,7 +404,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === a.id ? null : a.id)}
-                                className="p-1.5 rounded-[6px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
+                                className="p-1.5 rounded-[12px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
                               >
                                 <FiMoreVertical size={15} />
                               </button>
@@ -403,13 +434,16 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                 ) : (
                   <div className="flex flex-col gap-2">
                     {pendingOrders.map((o) => (
-                      <div key={o.id} className="relative rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-3 hover:border-[#FF5C00]/20 transition-colors cursor-pointer" onClick={() => setDetailOrder(o)}>
-                        <div className="flex items-start justify-between gap-2">
+                      <div key={o.id} className="rounded-[16px] border border-[#282828] bg-[#121212] p-4 hover:border-[#FF5C00]/20 transition-all cursor-pointer" onClick={() => setDetailOrder(o)}>
+                        <div className="flex items-start gap-3">
+                          <Avatar name={o.userName?.split(' ')[0] ?? 'O'} lastname={o.userName?.split(' ')[1] ?? '#'} />
                           <div className="min-w-0 flex-1">
-                            <p className="text-[13px] font-medium text-white truncate">
-                              Orden #{typeof o.id === 'string' ? o.id.slice(-6) : ''}
-                            </p>
-                            <div className="flex items-center gap-2 text-[11px] text-[#8A8A8A] mt-0.5 flex-wrap">
+                            <div className="flex items-center gap-2 mb-1.5">
+                              <p className="text-[14px] font-medium text-white truncate">{o.userName ?? `Orden #${typeof o.id === 'string' ? o.id.slice(-6) : ''}`}</p>
+                              <OrderStatusBadge status={o.status} />
+                              <PaymentStatusBadge />
+                            </div>
+                            <div className="flex items-center gap-2 text-[12px] text-[#8A8A8A] flex-wrap">
                               <span>{o.items?.length ?? 0} producto(s)</span>
                               <span>·</span>
                               <span>{o.createdAt ? formatDate(o.createdAt.slice(0, 10)) : ''}</span>
@@ -420,14 +454,14 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === o.id ? null : o.id)}
-                                className="p-1.5 rounded-[6px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
+                                className="p-1.5 rounded-[12px] hover:bg-[#242424] text-[#6A6A6A] hover:text-white transition-colors"
                               >
                                 <FiMoreVertical size={15} />
                               </button>
                               {openMenuId === o.id && (
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
-                                  <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
+                                  <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
                                     <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'paid' }).then(() => refetchOrders()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
                                     <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'delivered' }).then(() => refetchOrders()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
                                     <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => refetchOrders()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
@@ -64,9 +64,14 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Desglose de ingresos`} size="lg">
-      <p className="text-[11px] text-[#6A6A6A] -mt-2 mb-4">
-        {desde} → {hasta}
-      </p>
+      <div className="flex items-center gap-2 -mt-1 mb-4">
+        <div className="rounded-[8px] bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 flex items-center gap-2">
+          <FiCalendar size={13} className="text-[#FF5C00]" />
+          <span className="text-[12px] text-[#8A8A8A]">{desde}</span>
+          <span className="text-[10px] text-[#555]">→</span>
+          <span className="text-[12px] text-[#8A8A8A]">{hasta}</span>
+        </div>
+      </div>
       {isLoading ? (
         <div className="flex justify-center py-8"><Spinner size="lg" /></div>
       ) : (

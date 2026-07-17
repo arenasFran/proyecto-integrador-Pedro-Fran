@@ -8,6 +8,7 @@ import { PaymentController } from '../interface-adapters/controllers/payment/Pay
 import { createPaymentRouter } from '../interface-adapters/routes/payment.routes';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
+import { MongoMembershipTransactionRepository } from '../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
 import { MongoOrderRepository } from '../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
@@ -42,6 +43,7 @@ export const buildPaymentRouter = () => {
   const { paymentRepository, mercadoPagoService } = buildPaymentDependencies();
   const appointmentRepository = new MongoAppointmentRepository();
   const membershipRepository = new MongoMembershipRepository();
+  const transactionRepository = new MongoMembershipTransactionRepository();
   const orderRepository = new MongoOrderRepository();
   const productRepository = new MongoProductRepository();
   const emailService = new NodemailerEmailService();
@@ -52,6 +54,7 @@ export const buildPaymentRouter = () => {
     paymentRepository,
     appointmentRepository,
     membershipRepository,
+    transactionRepository,
     orderRepository,
     productRepository,
     mercadoPagoService,

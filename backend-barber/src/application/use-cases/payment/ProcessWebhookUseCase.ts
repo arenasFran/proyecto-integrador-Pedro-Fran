@@ -2,6 +2,7 @@ import { Payment } from '../../../domain/entities/Payment';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
+import { MongoMembershipTransactionRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { IPaymentService } from '../../ports/IPaymentService';
@@ -15,6 +16,7 @@ export class ProcessWebhookUseCase {
     private readonly paymentRepository: MongoPaymentRepository,
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
+    private readonly transactionRepository: MongoMembershipTransactionRepository,
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly mercadoPagoService: IPaymentService,
@@ -212,23 +214,54 @@ export class ProcessWebhookUseCase {
       return;
     }
 
-    const existing = await this.membershipRepository.findActiveByUser(userId);
-    if (!existing) {
-      const config = getConfig();
-      const nextDate = new Date();
-      nextDate.setMonth(nextDate.getMonth() + 1);
+    const existingActive = await this.membershipRepository.findActiveByUser(userId);
+    if (existingActive) {
+      return;
+    }
 
-      const membership = Membership.create({
+    const config = getConfig();
+    const price = config.membershipPriceUyu;
+
+    const pending = await this.membershipRepository.findPendingByUser(userId);
+    if (pending) {
+      pending.approve('system');
+      await this.membershipRepository.save(pending);
+      await this.transactionRepository.create({
+        userId,
+        membershipId: pending.id,
+        amount: price,
+        paymentMethod: 'mercadopago',
+        mpPaymentId: preapprovalId,
+        createdBy: 'client',
+      });
+      return;
+    }
+
+    const existingExpired = await this.membershipRepository.findAnyByUser(userId);
+    let membership: Membership;
+    if (existingExpired && existingExpired.status === 'expired') {
+      existingExpired.reactivate(price, 'mercadopago');
+      existingExpired.toPrimitives();
+      membership = existingExpired;
+    } else {
+      membership = Membership.create({
         userId,
         createdBy: 'client',
-        price: config.membershipPriceUyu,
-        couponsTotal: 4,
-        productDiscount: 10,
+        price,
         mpPreapprovalId: preapprovalId,
-        nextBillingDate: nextDate,
-            });
-            await this.membershipRepository.create(membership);
-          }
+        status: 'active',
+        paymentMethod: 'mercadopago',
+      });
+    }
+    const saved = await this.membershipRepository.save(membership);
+    await this.transactionRepository.create({
+      userId,
+      membershipId: saved.id,
+      amount: price,
+      paymentMethod: 'mercadopago',
+      mpPaymentId: preapprovalId,
+      createdBy: 'client',
+    });
   }
 
   private async handleSubscriptionPayment(mpPayment: {
@@ -243,14 +276,25 @@ export class ProcessWebhookUseCase {
 
     const membership = await this.membershipRepository.findByPreapprovalId(mpPayment.preapprovalId);
     if (!membership) {
+      console.log(`[MP-WEBHOOK] Pago de suscripción ${mpPayment.id} sin membresía asociada al preapproval ${mpPayment.preapprovalId} — ignorando (posible condición de carrera o membresía cancelada).`);
       return;
     }
 
-    const nextDate = new Date();
-    nextDate.setMonth(nextDate.getMonth() + 1);
+    if (membership.status === 'expired') {
+      console.log(`[MP-WEBHOOK] Pago de suscripción ${mpPayment.id} para membresía expirada ${membership.id} — ignorando.`);
+      return;
+    }
 
-    membership.renew(nextDate);
-    await this.membershipRepository.create(membership);
+    membership.renew();
+    const saved = await this.membershipRepository.save(membership);
+    await this.transactionRepository.create({
+      userId: saved.userId,
+      membershipId: saved.id,
+      amount: saved.price,
+      paymentMethod: 'mercadopago',
+      mpPaymentId: mpPayment.id,
+      createdBy: 'client',
+    });
   }
 
   private async handleApproved(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
@@ -267,22 +311,39 @@ export class ProcessWebhookUseCase {
         break;
       }
       case 'membership': {
-        const existing = await this.membershipRepository.findActiveByUser(payment.userId);
-        if (!existing) {
-          const pending = await this.membershipRepository.findPendingByUser(payment.userId);
-          if (pending) {
-            pending.approve('system');
-            await this.membershipRepository.create(pending);
-          } else {
-            const config = getConfig();
-            const membership = Membership.create({
-              userId: payment.userId,
-              createdBy: 'client',
-              couponsTotal: 4,
-              productDiscount: 10,
-            });
-      await this.membershipRepository.create(membership);
-          }
+        const pending = await this.membershipRepository.findPendingByUser(payment.userId);
+        if (pending) {
+          pending.approve('system');
+          const savedPending = await this.membershipRepository.save(pending);
+          await this.transactionRepository.create({
+            userId: payment.userId,
+            membershipId: savedPending.id,
+            amount: payment.amount,
+            paymentMethod: 'mercadopago',
+            mpPaymentId: payment.mpPaymentId,
+            createdBy: 'client',
+          });
+          return;
+        }
+
+        const existingExpired = await this.membershipRepository.findAnyByUser(payment.userId);
+        if (existingExpired && existingExpired.status === 'expired') {
+          existingExpired.reactivate(payment.amount, 'mercadopago');
+          const saved = await this.membershipRepository.save(existingExpired);
+          await this.transactionRepository.create({
+            userId: payment.userId,
+            membershipId: saved.id,
+            amount: payment.amount,
+            paymentMethod: 'mercadopago',
+            mpPaymentId: payment.mpPaymentId,
+            createdBy: 'client',
+          });
+          return;
+        }
+
+        const existingActive = await this.membershipRepository.findActiveByUser(payment.userId);
+        if (!existingActive) {
+          console.log(`[MP-WEBHOOK] Pago ${payment.id} tipo membership aprobado pero no existe membresía pending, expired ni activa para usuario ${payment.userId} — no se crea membresía.`);
         }
         break;
       }

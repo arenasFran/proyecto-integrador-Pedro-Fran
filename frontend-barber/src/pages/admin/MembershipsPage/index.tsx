@@ -13,6 +13,7 @@ import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 import { CreateMembershipModal } from './components/CreateMembershipModal';
 import type { MembershipStatus, MembershipWithUser } from '../../../types/membership';
+import { formatDate } from '../../../utils/formatDate';
 
 const STATUS_FILTERS = [
   { value: '', label: 'Todas' },
@@ -57,7 +58,6 @@ const statusBadge = (status: MembershipStatus) => {
   );
 };
 
-const formatDate = (d: string) => new Date(d).toLocaleDateString('es-UY', { day: '2-digit', month: '2-digit', year: 'numeric' });
 const formatFullDate = (d: string) => new Date(d).toLocaleDateString('es-UY', { day: 'numeric', month: 'long', year: 'numeric' });
 
 export default function MembershipsPage() {

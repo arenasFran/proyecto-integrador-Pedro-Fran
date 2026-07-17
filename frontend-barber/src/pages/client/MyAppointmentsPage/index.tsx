@@ -289,7 +289,7 @@ export const MyAppointmentsPage: React.FC = () => {
           <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Cancelar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {cancelTarget.serviceName} &mdash; {cancelTarget.date} a las {formatTime(cancelTarget.startTime)}
+              {cancelTarget.serviceName} &mdash; {formatDate(cancelTarget.date)} a las {formatTime(cancelTarget.startTime)}
             </p>
             <Input
               label="Motivo (opcional)"
@@ -318,7 +318,7 @@ export const MyAppointmentsPage: React.FC = () => {
           <AnimatedContainer animation="fadeIn" className="mx-auto w-full max-w-md md:max-w-2xl rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {rescheduleTarget.serviceName} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
+              {rescheduleTarget.serviceName} &mdash; actual: {formatDate(rescheduleTarget.date)} {formatTime(rescheduleTarget.startTime)}
             </p>
             <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-6">
               <div>

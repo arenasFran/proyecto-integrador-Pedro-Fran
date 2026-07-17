@@ -305,7 +305,7 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
 
   let mpCount = 0;
   for (const tx of memTxSeeds) {
-    if (tx.paymentMethod !== 'mercadopago') continue;
+    if (tx.amount <= 0) continue;
     const client = getClient(tx.clientEmail);
     if (!client) continue;
     const mem = membershipDocs.find((m: any) => m.userId.toString() === client._id.toString());
@@ -323,27 +323,36 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
     });
     if (existing) continue;
 
-    const mpPaymentId = `${200000000000 + mpCount}`;
-    const fee = Math.round(tx.amount * 0.0609 * 100) / 100;
-    await PaymentModel.create({
+    const isMp = tx.paymentMethod === 'mercadopago';
+    const paymentData: Record<string, unknown> = {
       type: 'membership',
       referenceId: mem._id.toString(),
       status: 'approved',
-      mpPaymentId,
       amount: tx.amount,
       currency: 'UYU',
       userId: client._id,
       mpStatusDetail: 'accredited',
-      mpPaymentMethodId: 'master',
-      mpPaymentTypeId: 'credit_card',
-      mpInstallments: 1,
-      mpTotalPaidAmount: tx.amount,
-      mpNetReceivedAmount: Math.round((tx.amount - fee) * 100) / 100,
-      mpFeeAmount: fee,
-      mpDateApproved: txDate,
-      mpOperationType: 'regular_payment',
       createdAt: txDate, updatedAt: txDate,
-    });
+    };
+
+    if (isMp) {
+      const fee = Math.round(tx.amount * 0.0609 * 100) / 100;
+      Object.assign(paymentData, {
+        mpPaymentId: `${200000000000 + mpCount}`,
+        mpPaymentMethodId: 'master',
+        mpPaymentTypeId: 'credit_card',
+        mpInstallments: 1,
+        mpTotalPaidAmount: tx.amount,
+        mpNetReceivedAmount: Math.round((tx.amount - fee) * 100) / 100,
+        mpFeeAmount: fee,
+        mpDateApproved: txDate,
+        mpOperationType: 'regular_payment',
+      });
+    } else {
+      paymentData.mpPaymentId = 'admin_manual';
+    }
+
+    await PaymentModel.create(paymentData);
     mpCount++;
   }
   console.log(`[Seed] ${mpCount} pagos de membresía (PaymentModel) creados`);

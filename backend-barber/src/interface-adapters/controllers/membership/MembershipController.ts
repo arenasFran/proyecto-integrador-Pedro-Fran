@@ -4,6 +4,7 @@ import { MongoMembershipTransactionRepository } from '../../../infrastructure/re
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { Membership } from '../../../domain/entities/Membership';
+import { Payment } from '../../../domain/entities/Payment';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
@@ -108,6 +109,21 @@ export class MembershipController {
         createdBy: 'admin',
         adminId: req.user!._id,
       });
+
+      if (finalPrice > 0 && this.paymentRepository) {
+        try {
+          const paymentDoc = Payment.create({
+            type: 'membership',
+            referenceId: saved.id,
+            amount: finalPrice,
+            userId,
+          });
+          paymentDoc.approve('admin_manual');
+          await this.paymentRepository.save(paymentDoc);
+        } catch (err) {
+          console.error('[MembershipController] Error creating PaymentModel for manual membership:', err);
+        }
+      }
 
       return sendSuccess(res, saved.toPrimitives(), 201);
     } catch (error) {

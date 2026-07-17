@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiCalendar, FiExternalLink } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiCalendar } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
-import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
-import { useGetAllOrdersQuery } from '../../../../services/orderApi';
-import { useGetPendingMembershipsQuery } from '../../../../services/membershipApi';
+import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation } from '../../../../services/appointmentApi';
+import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
+import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData } from '../../../../types/analytics';
 
@@ -304,18 +304,23 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
 }
 
 function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'turnos' | 'ordenes' | 'membresias'>('turnos');
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const { data: appointments = [], isLoading: apptsLoading } = useGetAppointmentsQuery(
+  const { data: appointments = [], isLoading: apptsLoading, refetch: refetchAppts } = useGetAppointmentsQuery(
     { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50 },
     { skip: !isOpen || !desde || !hasta },
   );
-  const { data: ordersData, isLoading: ordersLoading } = useGetAllOrdersQuery(
+  const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetAllOrdersQuery(
     { status: 'pending', desde, hasta, limit: 50 },
     { skip: !isOpen || !desde || !hasta },
   );
-  const { data: pendingMemberships, isLoading: memLoading } = useGetPendingMembershipsQuery(undefined, { skip: !isOpen });
+  const { data: pendingMemberships, isLoading: memLoading, refetch: refetchMem } = useGetPendingMembershipsQuery(undefined, { skip: !isOpen });
+
+  const [markAsPaid] = useMarkAsPaidMutation();
+  const [cancelAppt] = useCancelAppointmentMutation();
+  const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  const [approveMembership] = useApprovePendingMembershipMutation();
 
   const pendingOrders = ordersData?.orders ?? [];
   const memberships = pendingMemberships?.data ?? [];
@@ -328,6 +333,13 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
   const formatDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
   const isLoading = apptsLoading || ordersLoading || memLoading;
 
+  const handleAction = async (action: () => Promise<unknown>, id: string) => {
+    setActionLoading(id);
+    try { await action(); }
+    catch { /* error handled by RTK Query */ }
+    finally { setActionLoading(null); }
+  };
+
   const tabs = [
     { key: 'turnos' as const, label: 'Turnos', count: appointments.length, amount: totalTurnos, color: '#4ade80', icon: FiScissors },
     { key: 'ordenes' as const, label: 'Órdenes', count: pendingOrders.length, amount: totalOrdenes, color: '#FF5C00', icon: FiShoppingCart },
@@ -338,7 +350,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
     <Modal isOpen={isOpen} onClose={onClose} title="Ingresos pendientes" size="xl">
       <div className="flex items-center gap-2 flex-wrap -mt-1 mb-4">
         <div className="rounded-[8px] bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 flex items-center gap-1.5">
-          <FiCalendar size={13} className="text-yellow-400 shrink-0" />
+          <FiCalendar size={13} className="text-[#FF5C00] shrink-0" />
           <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{formatDate(desde)}</span>
           <span className="text-[10px] text-[#555]">→</span>
           <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{formatDate(hasta)}</span>
@@ -373,7 +385,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
           <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4">
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total pendiente</span>
-              <span className="text-[18px] font-bold text-yellow-400">{formatCurrency(totalPending)}</span>
+              <span className="text-[18px] font-bold text-[#FF5C00]">{formatCurrency(totalPending)}</span>
             </div>
 
             <div className="flex gap-1 mb-3">
@@ -382,9 +394,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                   key={t.key}
                   onClick={() => setActiveTab(t.key)}
                   className={`flex-1 rounded-[8px] py-2 text-[12px] font-medium transition-colors ${
-                    activeTab === t.key
-                      ? 'bg-[#1A1A1A] text-white'
-                      : 'text-[#6A6A6A] hover:text-white hover:bg-[#1A1A1A]'
+                    activeTab === t.key ? 'bg-[#1A1A1A] text-white' : 'text-[#6A6A6A] hover:text-white hover:bg-[#1A1A1A]'
                   }`}
                 >
                   {t.label} ({t.count})
@@ -411,14 +421,21 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                               <span>{a.barberName ?? 'Sin barbero'}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[14px] font-bold text-yellow-400">${a.servicePrice.toLocaleString('es-UY')}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[14px] font-bold text-[#FF5C00]">${a.servicePrice.toLocaleString('es-UY')}</span>
                             <button
-                              onClick={() => { onClose(); navigate(`/admin/turnos?dateFrom=${desde}&dateTo=${hasta}`); }}
-                              className="text-[#555] hover:text-[#4ade80] transition-colors"
-                              title="Ver turnos"
+                              onClick={() => handleAction(() => markAsPaid({ id: a.id }).then(() => refetchAppts()), a.id)}
+                              disabled={actionLoading === a.id}
+                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-[#4ade80] bg-[#242424] hover:bg-[#4ade80]/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
                             >
-                              <FiExternalLink size={14} />
+                              {actionLoading === a.id ? '...' : 'Cobrar'}
+                            </button>
+                            <button
+                              onClick={() => handleAction(() => cancelAppt({ id: a.id, reason: 'Pago pendiente cancelado por admin' }).then(() => refetchAppts()), a.id)}
+                              disabled={actionLoading === a.id}
+                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-red-400 bg-[#242424] hover:bg-red-500/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
+                            >
+                              Cancelar
                             </button>
                           </div>
                         </div>
@@ -446,14 +463,21 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                               <span>{o.createdAt ? formatDate(o.createdAt.slice(0, 10)) : ''}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[14px] font-bold text-yellow-400">${o.total.toLocaleString('es-UY')}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[14px] font-bold text-[#FF5C00]">${o.total.toLocaleString('es-UY')}</span>
                             <button
-                              onClick={() => { onClose(); navigate(`/admin/ordenes?status=pending&dateFrom=${desde}&dateTo=${hasta}`); }}
-                              className="text-[#555] hover:text-[#FF5C00] transition-colors"
-                              title="Ver órdenes"
+                              onClick={() => handleAction(() => updateOrderStatus({ id: o.id, status: 'paid' }).then(() => refetchOrders()), o.id)}
+                              disabled={actionLoading === o.id}
+                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-[#FF5C00] bg-[#242424] hover:bg-[#FF5C00]/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
                             >
-                              <FiExternalLink size={14} />
+                              {actionLoading === o.id ? '...' : 'Cobrar'}
+                            </button>
+                            <button
+                              onClick={() => handleAction(() => updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => refetchOrders()), o.id)}
+                              disabled={actionLoading === o.id}
+                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-red-400 bg-[#242424] hover:bg-red-500/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
+                            >
+                              Cancelar
                             </button>
                           </div>
                         </div>
@@ -481,14 +505,14 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                               <span>{m.createdAt ? formatDate(m.createdAt.slice(0, 10)) : ''}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-[14px] font-bold text-yellow-400">${m.price.toLocaleString('es-UY')}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[14px] font-bold text-[#FF5C00]">${m.price.toLocaleString('es-UY')}</span>
                             <button
-                              onClick={() => { onClose(); navigate('/admin/membresias'); }}
-                              className="text-[#555] hover:text-[#c084fc] transition-colors"
-                              title="Ver membresías"
+                              onClick={() => handleAction(() => approveMembership(m.id).then(() => refetchMem()), m.id)}
+                              disabled={actionLoading === m.id}
+                              className="text-[10px] font-medium text-[#8A8A8A] hover:text-[#c084fc] bg-[#242424] hover:bg-[#c084fc]/10 px-2 py-1 rounded-[6px] transition-colors disabled:opacity-50"
                             >
-                              <FiExternalLink size={14} />
+                              {actionLoading === m.id ? '...' : 'Aprobar'}
                             </button>
                           </div>
                         </div>

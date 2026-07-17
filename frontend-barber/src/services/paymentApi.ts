@@ -14,10 +14,19 @@ export const paymentApi = createApi({
     getPaymentByPreferenceId: builder.query<{ payment: Payment | null }, string>({
       query: (preferenceId) => ({ url: `/api/payments/by-preference/${preferenceId}` }),
     }),
+    getPaymentByReference: builder.query<{ payment: Payment | null }, { referenceId: string; type: string }>({
+      query: ({ referenceId, type }) => ({ url: `/api/payments/by-reference/${referenceId}`, params: { type } }),
+    }),
+    getAllPayments: builder.query<{ data: Payment[]; total: number; page: number; totalPages: number; limit: number }, { type?: string; status?: string; page?: number; limit?: number }>({
+      query: (params) => ({ url: '/api/payments', params }),
+      providesTags: ['Payment'],
+    }),
   }),
 });
 
 export const {
   useGetPaymentByIdQuery,
   useGetPaymentByPreferenceIdQuery,
+  useGetPaymentByReferenceQuery,
+  useGetAllPaymentsQuery,
 } = paymentApi;

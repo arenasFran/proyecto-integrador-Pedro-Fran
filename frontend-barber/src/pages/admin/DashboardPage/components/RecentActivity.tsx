@@ -2,6 +2,7 @@ import { FiShoppingCart, FiCalendar, FiDollarSign } from 'react-icons/fi';
 import { useGetAllOrdersQuery } from '../../../../services/orderApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import { Spinner } from '../../../../components/common/Spinner';
+import { formatDate } from '../../../../utils/formatDate';
 
 function formatCurrency(value: number): string {
   return '$' + value.toLocaleString('es-UY');
@@ -76,7 +77,7 @@ export default function RecentActivity() {
       id: `apt-${apt.id}`,
       type: 'appointment',
       title: `${apt.clientName} ${apt.clientLastname ?? ''}`,
-      subtitle: `${apt.serviceName} - ${apt.date} ${apt.startTime}`,
+      subtitle: `${apt.serviceName} - ${formatDate(apt.date)} ${apt.startTime}`,
       time: timeAgo(apt.createdAt || apt.date),
       icon: FiCalendar,
       color: '#2196F3',

@@ -5,6 +5,7 @@ import { FiXCircle, FiX, FiClock } from 'react-icons/fi';
 import { StatusScreen } from '@mercadopago/sdk-react';
 import { Button } from '../../../components/common';
 import { useGetPaymentByIdQuery } from '../../../services/paymentApi';
+import { formatDateTime } from '../../../utils/formatDate';
 
 const drawCheckmark = {
   hidden: { pathLength: 0, opacity: 0 },
@@ -35,18 +36,7 @@ function formatAmount(amount: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('es-UY', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
+  return formatDateTime(dateStr);
 }
 
 export default function PaymentResultPage() {

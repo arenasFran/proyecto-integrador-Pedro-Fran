@@ -99,14 +99,19 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
     </div>
   );
 
+  const formatDisplayDate = (iso: string) => {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Desglose de ingresos`} size="lg">
       <div className="flex items-center gap-2 flex-wrap -mt-1 mb-4">
         <div className="rounded-[8px] bg-[#1A1A1A] border border-[#282828] px-3 py-1.5 flex items-center gap-1.5">
           <FiCalendar size={13} className="text-[#FF5C00] shrink-0" />
-          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{desde}</span>
+          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{formatDisplayDate(desde)}</span>
           <span className="text-[10px] text-[#555]">→</span>
-          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{hasta}</span>
+          <span className="text-[11px] sm:text-[12px] text-[#8A8A8A]">{formatDisplayDate(hasta)}</span>
         </div>
         {periodLabel && (
           <span className="text-[11px] text-[#6A6A6A] font-medium bg-[#1A1A1A] border border-[#333] rounded-full px-2.5 py-1">{periodLabel}</span>

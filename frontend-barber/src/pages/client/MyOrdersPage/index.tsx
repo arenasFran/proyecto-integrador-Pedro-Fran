@@ -1,6 +1,6 @@
 import React from 'react';
 import { FiCalendar, FiShoppingBag, FiRefreshCw, FiPackage } from 'react-icons/fi';
-import { AnimatedContainer, Spinner } from '../../../components/common';
+import { AnimatedContainer } from '../../../components/common';
 import { useGetMyOrdersQuery } from '../../../services/orderApi';
 import { formatDate } from '../../../utils/formatDate';
 import type { OrderStatus } from '../../../types/order';

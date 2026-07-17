@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
-import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 import PaymentModal from '../../../components/payment/PaymentModal';
@@ -12,7 +12,6 @@ export default function MembershipPage() {
   const kind = getTokenKind(token);
 
   const { data, isLoading } = useGetMyMembershipQuery();
-  const [createSubscription, { isLoading: isCreatingSub }] = useCreateSubscriptionMutation();
   const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelSubscriptionMutation();
   const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();

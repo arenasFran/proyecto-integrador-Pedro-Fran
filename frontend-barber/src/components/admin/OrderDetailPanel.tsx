@@ -297,7 +297,7 @@ export const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({
         </div>
       </div>
 
-      <ProductDetailModal productId={detailProductId} onClose={() => setDetailProductId(null)} />
+      <ProductDetailModal item={order?.items.find((i) => i.productId === detailProductId) ?? null} onClose={() => setDetailProductId(null)} />
     </>
   );
 };

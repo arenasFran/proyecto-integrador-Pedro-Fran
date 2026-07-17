@@ -29,7 +29,7 @@ export default function RecentActivity() {
   const isLoading = ordersLoading || apptsLoading;
 
   const orders = ordersData?.orders ?? [];
-  const appointments = appointmentsData?.appointments ?? [];
+  const appointments = appointmentsData ?? [];
 
   if (isLoading) {
     return (

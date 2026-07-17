@@ -6,8 +6,6 @@ import PaymentModal from '../../../components/payment/PaymentModal';
 import { AppHeader } from '../../../components/common/AppHeader';
 import { AppSidebar } from '../../../components/sidebar/AppSidebar';
 import { PublicHeader } from '../../../components/client/PublicHeader';
-import { getAccessToken } from '../../../services/api';
-import { getTokenKind } from '../../../utils/token';
 import {
   AccordionStep,
   ClientDataOverlay,
@@ -91,9 +89,6 @@ export const BookingPage: React.FC = () => {
 
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
-  const [collapsed, setCollapsed] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const tokenKind = getTokenKind(getAccessToken());
   const allStepsComplete = areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime);
   const [prevComplete, setPrevComplete] = React.useState(false);
   if (allStepsComplete !== prevComplete) {
@@ -323,15 +318,9 @@ export const BookingPage: React.FC = () => {
   if (authUser) {
     return (
       <div className="min-h-screen bg-[#050505]">
-        <AppSidebar
-          collapsed={collapsed}
-          onToggle={() => setCollapsed(!collapsed)}
-          onCloseMobile={() => setSidebarOpen(false)}
-          mobileOpen={sidebarOpen}
-          kind={tokenKind}
-        />
-        <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
-          <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
+        <AppSidebar />
+        <div className="transition-all duration-300 ease-in-out lg:ml-60">
+          <AppHeader />
           <main className="p-4 sm:p-6 lg:p-8">
             {bookingContent}
           </main>

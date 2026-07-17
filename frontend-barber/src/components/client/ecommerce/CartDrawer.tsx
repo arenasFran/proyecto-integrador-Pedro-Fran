@@ -14,7 +14,7 @@ import {
   syncWithProducts,
 } from '../../../store/slices/cartSlice';
 import CartItem from '../../product/CartItem';
-import { Button, Spinner } from '../../common';
+import { Button } from '../../common';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import { useGetProductsQuery } from '../../../services/productApi';

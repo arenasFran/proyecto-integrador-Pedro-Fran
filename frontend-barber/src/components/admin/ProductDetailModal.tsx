@@ -1,4 +1,4 @@
-import { FiShoppingBag, FiPackage } from 'react-icons/fi';
+import { FiShoppingBag } from 'react-icons/fi';
 import { Modal } from '../common';
 import type { OrderItem } from '../../types/order';
 import { formatCurrency } from '../../utils/formatCurrency';

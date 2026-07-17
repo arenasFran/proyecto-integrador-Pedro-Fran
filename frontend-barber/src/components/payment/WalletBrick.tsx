@@ -10,7 +10,7 @@ interface WalletBrickProps {
 export default function WalletBrick({ preferenceId, onError, onReady }: WalletBrickProps) {
   const [brickError, setBrickError] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  const initialization = useMemo(() => ({ preferenceId, redirectMode: 'blank' }), [preferenceId]);
+  const initialization = useMemo(() => ({ preferenceId, redirectMode: 'blank' as const }), [preferenceId]);
 
   if (brickError) {
     const fallbackUrl = `https://www.mercadopago.com.uy/checkout/v1/redirect?pref_id=${preferenceId}`;

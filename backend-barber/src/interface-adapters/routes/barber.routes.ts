@@ -66,6 +66,13 @@ export const createBarberRouter = (deps: {
   );
 
   router.get(
+    '/:id/occupancy',
+    authorize('Admin', 'Empleado'),
+    validate({ params: barberIdParamSchema }),
+    deps.barberController.getOccupancy
+  );
+
+  router.get(
     '/:id',
     authorizeSelfOrKinds('id', 'Admin'),
     validate({ params: barberIdParamSchema }),

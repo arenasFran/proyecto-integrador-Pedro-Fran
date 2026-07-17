@@ -128,5 +128,12 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
     controller.getProductPerformanceHandler,
   );
 
+  router.get(
+    '/memberships/revenue',
+    authenticate,
+    authorize('Admin'),
+    controller.getMembershipRevenueHandler,
+  );
+
   return router;
 };

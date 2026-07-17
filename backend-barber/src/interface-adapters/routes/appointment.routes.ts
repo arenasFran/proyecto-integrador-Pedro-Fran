@@ -1,18 +1,18 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { AppointmentController } from '../controllers/appointment/AppointmentController';
-import { authorize, createAuthenticate, createOptionalAuth } from '../middlewares/auth.middleware';
+import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import {
-  anonymousQuerySchema,
-  appointmentIdParamSchema,
-  appointmentQuerySchema,
-  cancelAppointmentSchema,
-  createAppointmentSchema,
-  rescheduleAppointmentSchema,
-  updateAppointmentStatusSchema,
-  changeBarberSchema,
-  searchClientsQuerySchema,
+    anonymousQuerySchema,
+    appointmentIdParamSchema,
+    appointmentQuerySchema,
+    cancelAppointmentSchema,
+    changeBarberSchema,
+    createAppointmentSchema,
+    rescheduleAppointmentSchema,
+    searchClientsQuerySchema,
+    updateAppointmentStatusSchema,
 } from '../validators/appointment.validator';
 
 const anonymousLimiter = rateLimit({
@@ -55,6 +55,13 @@ export const createAppointmentRouter = (deps: {
     deps.authenticate,
     validate({ query: appointmentQuerySchema }),
     deps.appointmentController.getAll
+  );
+
+  router.get(
+    '/summary',
+    deps.authenticate,
+    validate({ query: appointmentQuerySchema }),
+    deps.appointmentController.getSummary
   );
 
   router.get(

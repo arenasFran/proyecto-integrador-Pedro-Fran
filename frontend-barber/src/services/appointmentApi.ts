@@ -76,6 +76,7 @@ export const appointmentApi = createApi({
     getAppointmentById: builder.query<Appointment, string>({
       query: (id) => ({
         url: `/api/appointments/${id}`,
+        params: { includeBarber: 'true', includeClient: 'true' },
       }),
       transformResponse: (response: { appointment: Appointment }) => response.appointment,
       providesTags: (_result, _error, id) => [{ type: 'Appointment', id }],

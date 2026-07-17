@@ -265,7 +265,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
   const [detailMembership, setDetailMembership] = useState<MembershipWithUser | null>(null);
 
   const { data: appointments = [], isLoading: apptsLoading, refetch: refetchAppts } = useGetAppointmentsQuery(
-    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50 },
+    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50, includeBarber: 'true', includeClient: 'true' },
     { skip: !isOpen || !desde || !hasta },
   );
   const { data: ordersData, isLoading: ordersLoading, refetch: refetchOrders } = useGetAllOrdersQuery(

@@ -149,7 +149,30 @@ export class AppointmentController {
       if (!isOwner && !isAdminOrBarber) {
         throw new AppError('No tenés permiso para ver este turno.', 403);
       }
-      return sendSuccess(res, { appointment: appointment.toPrimitives() }, 200);
+
+      let result = appointment.toPrimitives();
+
+      if (req.query.includeBarber === 'true') {
+        const barbers = await this.barberRepository.findAllBarbers();
+        const barberMap = new Map(barbers.map((b) => [b.id, { name: b.name, lastname: b.lastname, photoUrl: b.photoUrl }]));
+        const barber = barberMap.get(result.barberId);
+        if (barber) {
+          (result as any).barberName = `${barber.name} ${barber.lastname}`;
+          (result as any).barberPhotoUrl = barber.photoUrl ?? undefined;
+        }
+      }
+
+      if (req.query.includeClient === 'true' && result.clientId) {
+        const clients = await this.clientRepository.findByIds([result.clientId]);
+        const client = clients[0];
+        if (client) {
+          (result as any).clientPhotoUrl = client.photoUrl ?? undefined;
+          (result as any).clientKind = client.kind;
+          (result as any).clientRegisteredAt = client.registeredAt instanceof Date ? client.registeredAt.toISOString() : client.registeredAt;
+        }
+      }
+
+      return sendSuccess(res, { appointment: result }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener el turno');
     }

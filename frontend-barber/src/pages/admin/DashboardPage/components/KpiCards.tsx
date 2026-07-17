@@ -349,7 +349,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
               ))}
             </div>
 
-            <div className="max-h-[40vh] overflow-y-auto pr-1">
+            <div className="pr-1">
               {activeTab === 'turnos' && (
                 appointments.length === 0 ? (
                   <p className="text-[13px] text-[#6A6A6A] text-center py-6">No hay turnos con pago pendiente en este periodo.</p>

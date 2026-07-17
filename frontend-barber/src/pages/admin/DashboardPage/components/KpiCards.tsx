@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiRefreshCw, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetClientesRecurrentesQuery, useGetClientesListQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import { useGetProductsQuery } from '../../../../services/productApi';
-import type { OverviewData, ClienteData } from '../../../../types/analytics';
+import type { OverviewData } from '../../../../types/analytics';
 import type { Appointment } from '../../../../types/booking';
 
 interface KpiCardsProps {
@@ -218,14 +218,16 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
 }
 
 const CARDS_CONFIG = [
-  { key: 'reservas', label: 'Reservas', icon: FiUsers, format: (v: number) => String(v), clickable: true },
-  { key: 'ingresos', label: 'Ingresos totales', icon: FiDollarSign, format: (v: number) => formatCurrency(v), clickable: true },
-  { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true },
-  { key: 'tasaCancelacion', label: 'Tasa cancelación', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false },
-  { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true },
-  { key: 'retorno', label: 'Clientes recurrentes', icon: FiRefreshCw, format: (v: number) => `${v}%`, clickable: false },
-  { key: 'ordenes', label: 'Órdenes totales', icon: FiShoppingCart, format: (v: number) => String(v), clickable: true },
-  { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true },
+  { key: 'reservas', label: 'Reservas', icon: FiUsers, format: (v: number) => String(v), clickable: true, tooltip: 'Total de turnos agendados en el período (todos los estados)' },
+  { key: 'ingresos', label: 'Ingresos totales', icon: FiDollarSign, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos completados + pagos de productos y membresías aprobados' },
+  { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos con pago pendiente + órdenes y membresías pendientes de pago' },
+  { key: 'tasaCancelTurnos', label: 'Cancelación turnos', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false, tooltip: 'Porcentaje de turnos cancelados o no-show sobre el total de turnos' },
+  { key: 'tasaCancelOrdenes', label: 'Cancelación órdenes', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false, tooltip: 'Porcentaje de órdenes canceladas sobre el total de órdenes' },
+  { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true, tooltip: 'Clientes (registrados y anónimos) creados en el período' },
+  { key: 'membresias', label: 'Membresías activas', icon: FiAward, format: (v: number) => String(v), clickable: true, tooltip: 'Membresías actualmente activas (no vencidas)' },
+  { key: 'clientesUnicos', label: 'Clientes únicos', icon: FiUserCheck, format: (v: number) => String(v), clickable: false, tooltip: 'Clientes distintos con al menos un turno en el período' },
+  { key: 'ordenes', label: 'Órdenes totales', icon: FiShoppingCart, format: (v: number) => String(v), clickable: true, tooltip: 'Total de órdenes de ecommerce en el período' },
+  { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true, tooltip: 'Órdenes con estado pendiente de pago' },
 ];
 
 export default function KpiCards({ data, loading, error, desde, hasta }: KpiCardsProps) {
@@ -233,11 +235,6 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
-
-  const { data: retornoData } = useGetClientesRecurrentesQuery(
-    { desde, hasta },
-    { skip: !desde || !hasta },
-  );
 
   const { data: ecommerceData } = useGetEcommerceOverviewQuery(
     { desde, hasta },
@@ -257,28 +254,31 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
     );
   }
 
-  const totalCancelados = data
-    ? (data.estadisticasPorEstado.cancelado ?? 0) +
-      (data.estadisticasPorEstado.noshow ?? 0) +
-      (data.estadisticasPorEstado.cancelled_order ?? 0)
+  const totalCancelTurnos = data
+    ? (data.estadisticasPorEstado.cancelado ?? 0) + (data.estadisticasPorEstado.noshow ?? 0)
     : 0;
-  const totalParaTasa = data
-    ? data.totalReservas + (data.estadisticasPorEstado.total_orders ?? 0)
+  const tasaCancelTurnos = data && data.totalReservas > 0 ? Math.round((totalCancelTurnos / data.totalReservas) * 100) : 0;
+
+  const totalCancelOrdenes = data
+    ? (data.estadisticasPorEstado.cancelled_order ?? 0)
     : 0;
-  const tasaCancelacion = data && totalParaTasa > 0 ? Math.round((totalCancelados / totalParaTasa) * 100) : 0;
+  const totalOrdenes = data ? (data.estadisticasPorEstado.total_orders ?? 0) : 0;
+  const tasaCancelOrdenes = totalOrdenes > 0 ? Math.round((totalCancelOrdenes / totalOrdenes) * 100) : 0;
 
   const values = data
     ? [
         data.totalReservas,
         data.ingresosTotales,
         data.ingresosPendientes,
-        tasaCancelacion,
+        tasaCancelTurnos,
+        tasaCancelOrdenes,
         data.nuevosClientes,
-        retornoData?.tasaRetorno ?? null,
+        data.membresiasActivas ?? 0,
+        data.clientesUnicos ?? 0,
         ecommerceData?.totalOrders ?? 0,
         pendingOrders,
       ]
-    : [null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
@@ -328,6 +328,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
               <div
                 key={card.key}
                 className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3"
+                title={card.tooltip}
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>
@@ -350,6 +351,7 @@ export default function KpiCards({ data, loading, error, desde, hasta }: KpiCard
               key={card.key}
               onClick={() => handleCardClick(card.key)}
               className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3 text-left hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
+              title={card.tooltip}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>

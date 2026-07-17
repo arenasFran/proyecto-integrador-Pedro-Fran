@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors } from 'react-icons/fi';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery } from '../../../../services/analyticsApi';
+import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData } from '../../../../types/analytics';
@@ -22,12 +22,22 @@ function formatCurrency(value: number): string {
 }
 
 function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; ecommerceData?: { totalRevenue: number; totalOrders: number; averageTicket: number } | null }) {
-  const { data, isLoading } = useGetDistribucionQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-  const entries = data?.byBarber ?? [];
+  const { data: distData, isLoading: distLoading } = useGetDistribucionQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data: membershipRevenue } = useGetMembershipRevenueQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const entries = distData?.byBarber ?? [];
 
   const totalAppointments = entries.reduce((s, e) => s + e.ingresos, 0);
   const totalProducts = ecommerceData?.totalRevenue ?? 0;
-  const totalCombined = totalAppointments + totalProducts;
+  const totalMemberships = membershipRevenue?.reduce((s, e) => s + e.ganancias, 0) ?? 0;
+  const totalCombined = totalAppointments + totalProducts + totalMemberships;
+
+  const isLoading = distLoading;
+
+  const segments = [
+    { label: 'Turnos', value: totalAppointments, color: 'bg-green-400', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointments / totalCombined) * 100) : 0 },
+    { label: 'Productos', value: totalProducts, color: 'bg-[#FF5C00]', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
+    { label: 'Membresias', value: totalMemberships, color: 'bg-purple-400', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
+  ];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Desglose de ingresos" size="md">
@@ -35,35 +45,69 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
         <div className="flex justify-center py-8"><Spinner size="lg" /></div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
-              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Turnos</span>
-              <span className="text-[22px] font-bold text-green-400">{formatCurrency(totalAppointments)}</span>
+          <div className="grid grid-cols-3 gap-3">
+            {segments.map((seg) => (
+              <div key={seg.label} className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-3 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <seg.icon className="text-[15px]" style={{ color: seg.color.replace('bg-', '') }} />
+                  <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">{seg.label}</span>
+                </div>
+                <span className="text-[20px] font-bold text-white">{formatCurrency(seg.value)}</span>
+                <span className="text-[10px] text-[#6A6A6A]">{seg.pct}% del total</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Proporcion de ingresos</span>
+              <span className="text-[11px] font-bold text-white">{formatCurrency(totalCombined)}</span>
             </div>
-            <div className="rounded-[10px] bg-[#1A1A1A] p-3 flex flex-col gap-1">
-              <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Productos</span>
-              <span className="text-[22px] font-bold text-[#FF5C00]">{formatCurrency(totalProducts)}</span>
+            <div className="h-3 w-full bg-[#0A0A0A] rounded-full overflow-hidden flex">
+              {segments.map((seg) =>
+                seg.pct > 0 ? (
+                  <div
+                    key={seg.label}
+                    className={`h-full ${seg.color} transition-all duration-500`}
+                    style={{ width: `${seg.pct}%` }}
+                    title={`${seg.label}: ${formatCurrency(seg.value)} (${seg.pct}%)`}
+                  />
+                ) : null
+              )}
+            </div>
+            <div className="flex items-center gap-4 mt-2 flex-wrap">
+              {segments.map((seg) => (
+                <div key={seg.label} className="flex items-center gap-1.5">
+                  <div className={`w-2.5 h-2.5 rounded-sm ${seg.color}`} />
+                  <span className="text-[10px] text-[#8A8A8A]">{seg.label} {seg.pct}%</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="rounded-[10px] bg-[#242424] p-3 flex items-center justify-between">
-            <span className="text-[13px] font-bold text-white">Total combinado</span>
-            <span className="text-[18px] font-bold text-green-400">{formatCurrency(totalCombined)}</span>
-          </div>
+
           {entries.length > 0 && (
             <div>
-              <div className="flex items-center justify-between text-[12px] text-[#8A8A8A] uppercase tracking-wider px-1 pb-2 border-b border-[#282828]">
+              <div className="flex items-center justify-between text-[11px] text-[#6A6A6A] uppercase tracking-wider px-1 pb-2 border-b border-[#282828]">
                 <span>Barbero</span>
                 <span>Turnos</span>
                 <span>Ingresos</span>
+                <span className="w-12 text-right">%</span>
               </div>
               {entries.map((entry) => (
                 <div key={entry.barberId} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] px-3 py-2.5 text-[13px]">
                   <span className="text-white font-medium">{entry.nombre}</span>
                   <span className="text-[#8A8A8A]">{entry.cantidad}</span>
                   <span className="text-green-400 font-medium">{formatCurrency(entry.ingresos)}</span>
+                  <span className="text-[#6A6A6A] w-12 text-right text-[11px]">
+                    {totalAppointments > 0 ? Math.round((entry.ingresos / totalAppointments) * 100) : 0}%
+                  </span>
                 </div>
               ))}
             </div>
+          )}
+
+          {totalCombined === 0 && (
+            <p className="text-[13px] text-[#8A8A8A] text-center py-4">Sin ingresos en este periodo.</p>
           )}
         </div>
       )}

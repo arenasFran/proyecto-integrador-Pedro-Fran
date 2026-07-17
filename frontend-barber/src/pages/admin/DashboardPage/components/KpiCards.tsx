@@ -500,7 +500,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
         <AppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} />
       )}
       {detailOrder && (
-        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />
+        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusChange={(id, status) => { updateOrderStatus({ id, status }).then(() => { refetchOrders(); setDetailOrder(null); }); }} />
       )}
       {detailMembership && (
         <Modal isOpen={!!detailMembership} onClose={() => setDetailMembership(null)} title="Membresía pendiente" size="sm">

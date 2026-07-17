@@ -46,6 +46,7 @@ export const createMembershipRouter = (deps: {
     '/',
     membershipMutationLimiter,
     deps.authenticate,
+    authorize('Admin', 'Empleado'),
     validate({ body: createMembershipSchema }),
     deps.membershipController.create
   );
@@ -57,6 +58,30 @@ export const createMembershipRouter = (deps: {
     authorize('Admin'),
     validate({ query: queryMembershipsSchema }),
     deps.membershipController.getAll
+  );
+
+  router.get(
+    '/transactions',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.membershipController.getTransactions
+  );
+
+  router.get(
+    '/pending',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.membershipController.getPending
+  );
+
+  router.get(
+    '/expiring-soon',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.membershipController.getExpiringSoon
   );
 
   router.get(
@@ -107,31 +132,6 @@ export const createMembershipRouter = (deps: {
     authorize('Admin', 'Empleado'),
     validate({ body: redeemCouponSchema }),
     deps.membershipController.redeemCoupon
-  );
-
-  router.post(
-    '/:id/cancel',
-    membershipMutationLimiter,
-    deps.authenticate,
-    validate({ params: membershipIdParamSchema }),
-    deps.membershipController.cancel
-  );
-
-  router.post(
-    '/:id/reactivate',
-    membershipMutationLimiter,
-    deps.authenticate,
-    validate({ params: membershipIdParamSchema }),
-    deps.membershipController.reactivate
-  );
-
-  router.post(
-    '/request-local',
-    membershipMutationLimiter,
-    deps.authenticate,
-    authorize('Registrado'),
-    validate({ body: initiateMembershipPaymentSchema }),
-    deps.membershipController.requestLocal
   );
 
   router.post(

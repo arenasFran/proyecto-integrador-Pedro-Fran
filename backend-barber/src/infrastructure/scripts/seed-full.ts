@@ -303,6 +303,51 @@ async function seedClientsMembershipsAndAppointments(barbers: any[]): Promise<{ 
   }
   console.log(`[Seed] ${txCount} transacciones de membresía creadas`);
 
+  let mpCount = 0;
+  for (const tx of memTxSeeds) {
+    if (tx.paymentMethod !== 'mercadopago') continue;
+    const client = getClient(tx.clientEmail);
+    if (!client) continue;
+    const mem = membershipDocs.find((m: any) => m.userId.toString() === client._id.toString());
+    if (!mem) continue;
+
+    const txDate = new Date(Date.now() - (tx.daysAgo ?? 0) * 24 * 60 * 60 * 1000);
+    const startOfDay = new Date(txDate); startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(txDate); endOfDay.setHours(23, 59, 59, 999);
+
+    const existing = await PaymentModel.findOne({
+      type: 'membership',
+      referenceId: mem._id.toString(),
+      amount: tx.amount,
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
+    if (existing) continue;
+
+    const mpPaymentId = `${200000000000 + mpCount}`;
+    const fee = Math.round(tx.amount * 0.0609 * 100) / 100;
+    await PaymentModel.create({
+      type: 'membership',
+      referenceId: mem._id.toString(),
+      status: 'approved',
+      mpPaymentId,
+      amount: tx.amount,
+      currency: 'UYU',
+      userId: client._id,
+      mpStatusDetail: 'accredited',
+      mpPaymentMethodId: 'master',
+      mpPaymentTypeId: 'credit_card',
+      mpInstallments: 1,
+      mpTotalPaidAmount: tx.amount,
+      mpNetReceivedAmount: Math.round((tx.amount - fee) * 100) / 100,
+      mpFeeAmount: fee,
+      mpDateApproved: txDate,
+      mpOperationType: 'regular_payment',
+      createdAt: txDate, updatedAt: txDate,
+    });
+    mpCount++;
+  }
+  console.log(`[Seed] ${mpCount} pagos de membresía (PaymentModel) creados`);
+
   // Appointments with membership
   const now = new Date(); now.setHours(0, 0, 0, 0);
 

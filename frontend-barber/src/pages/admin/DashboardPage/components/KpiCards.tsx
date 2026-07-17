@@ -110,59 +110,63 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
           {entries.length > 0 && (
             <CollapsibleSection title="Detalle por barbero (turnos)" icon={FiScissors} color="#4ade80" open={showBarbers} onToggle={() => setShowBarbers(!showBarbers)}>
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                <div className="grid grid-cols-[1fr_80px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
                   <span>Barbero</span>
-                  <span>Turnos</span>
-                  <span>Ingresos</span>
+                  <span className="text-center">Turnos</span>
+                  <span className="text-right">Ingresos</span>
                 </div>
                 {entries.map((entry) => (
-                  <div key={entry.barberId} className="flex items-center justify-between text-[12px] py-1">
+                  <div key={entry.barberId} className="grid grid-cols-[1fr_80px_100px] items-center text-[12px] py-1">
                     <span className="text-white font-medium">{entry.nombre}</span>
-                    <span className="text-[#8A8A8A]">{entry.cantidad}</span>
-                    <span className="text-green-400 font-medium">{formatCurrency(entry.ingresos)}</span>
+                    <span className="text-[#8A8A8A] text-center">{entry.cantidad}</span>
+                    <span className="text-green-400 font-medium text-right">{formatCurrency(entry.ingresos)}</span>
                   </div>
                 ))}
               </div>
             </CollapsibleSection>
           )}
 
-          {productPerformance && productPerformance.length > 0 && (
-            <CollapsibleSection title="Detalle de productos" icon={FiShoppingCart} color="#FF5C00" open={showProducts} onToggle={() => setShowProducts(!showProducts)}>
+          <CollapsibleSection title="Detalle de productos" icon={FiShoppingCart} color="#FF5C00" open={showProducts} onToggle={() => setShowProducts(!showProducts)}>
+            {productPerformance && productPerformance.length > 0 ? (
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                <div className="grid grid-cols-[1fr_70px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
                   <span>Producto</span>
-                  <span>Vendidos</span>
-                  <span>Ingresos</span>
+                  <span className="text-center">Vendidos</span>
+                  <span className="text-right">Ingresos</span>
                 </div>
                 {productPerformance.slice(0, 15).map((p) => (
-                  <div key={p.productId} className="flex items-center justify-between text-[12px] py-1">
-                    <span className="text-white truncate flex-1 mr-2">{p.name}</span>
-                    <span className="text-[#8A8A8A] w-14 text-right">{p.totalSold}</span>
-                    <span className="text-[#FF5C00] font-medium w-24 text-right">{formatCurrency(p.totalRevenue)}</span>
+                  <div key={p.productId} className="grid grid-cols-[1fr_70px_100px] items-center text-[12px] py-1">
+                    <span className="text-white truncate">{p.name}</span>
+                    <span className="text-[#8A8A8A] text-center">{p.totalSold}</span>
+                    <span className="text-[#FF5C00] font-medium text-right">{formatCurrency(p.totalRevenue)}</span>
                   </div>
                 ))}
               </div>
-            </CollapsibleSection>
-          )}
+            ) : (
+              <p className="text-[12px] text-[#6A6A6A] py-2">Sin ventas de productos en este periodo.</p>
+            )}
+          </CollapsibleSection>
 
-          {membershipRevenue && membershipRevenue.length > 0 && (
-            <CollapsibleSection title="Detalle de membresias" icon={FiAward} color="#c084fc" open={showMemberships} onToggle={() => setShowMemberships(!showMemberships)}>
+          <CollapsibleSection title="Detalle de membresias" icon={FiAward} color="#c084fc" open={showMemberships} onToggle={() => setShowMemberships(!showMemberships)}>
+            {membershipRevenue && membershipRevenue.length > 0 ? (
               <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
+                <div className="grid grid-cols-[1fr_80px_100px] text-[10px] text-[#6A6A6A] uppercase tracking-wider pb-1.5 border-b border-[#282828]">
                   <span>Mes</span>
-                  <span>Cantidad</span>
-                  <span>Ingresos</span>
+                  <span className="text-center">Cantidad</span>
+                  <span className="text-right">Ingresos</span>
                 </div>
                 {membershipRevenue.map((m) => (
-                  <div key={m.periodo} className="flex items-center justify-between text-[12px] py-1">
+                  <div key={m.periodo} className="grid grid-cols-[1fr_80px_100px] items-center text-[12px] py-1">
                     <span className="text-white">{m.periodo}</span>
-                    <span className="text-[#8A8A8A]">{m.cantidadReservas}</span>
-                    <span className="text-purple-400 font-medium">{formatCurrency(m.ganancias)}</span>
+                    <span className="text-[#8A8A8A] text-center">{m.cantidadReservas}</span>
+                    <span className="text-purple-400 font-medium text-right">{formatCurrency(m.ganancias)}</span>
                   </div>
                 ))}
               </div>
-            </CollapsibleSection>
-          )}
+            ) : (
+              <p className="text-[12px] text-[#6A6A6A] py-2">Sin ingresos por membresias en este periodo.</p>
+            )}
+          </CollapsibleSection>
         </div>
       )}
     </Modal>

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight } from 'react-icons/fi';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
@@ -38,10 +39,12 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
   const isLoading = distLoading;
 
   const segments = [
-    { label: 'Turnos', value: totalAppointments, color: 'bg-green-400', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointments / totalCombined) * 100) : 0 },
-    { label: 'Productos', value: totalProducts, color: 'bg-[#FF5C00]', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
-    { label: 'Membresias', value: totalMemberships, color: 'bg-purple-400', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
+    { label: 'Turnos', value: totalAppointments, color: 'bg-green-400', hex: '#4ade80', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointments / totalCombined) * 100) : 0 },
+    { label: 'Productos', value: totalProducts, color: 'bg-[#FF5C00]', hex: '#FF5C00', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
+    { label: 'Membresias', value: totalMemberships, color: 'bg-purple-400', hex: '#c084fc', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
   ];
+
+  const donutData = segments.filter(s => s.value > 0).map(s => ({ name: s.label, value: s.value, hex: s.hex }));
 
   const CollapsibleSection = ({ title, icon: Icon, color: sectionColor, open, onToggle, children }: { title: string; icon: React.ComponentType<{ className?: string; color?: string }>; color: string; open: boolean; onToggle: () => void; children: React.ReactNode }) => (
     <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] overflow-hidden">
@@ -81,25 +84,42 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
             ))}
           </div>
 
-          <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
-              <span className="text-[15px] font-bold text-white">{formatCurrency(totalCombined)}</span>
-            </div>
-            <div className="h-3 w-full bg-[#0A0A0A] rounded-full overflow-hidden flex">
-              {segments.map((seg) =>
-                seg.pct > 0 ? (
-                  <div key={seg.label} className={`h-full ${seg.color} transition-all duration-500`} style={{ width: `${seg.pct}%` }} />
-                ) : null
-              )}
-            </div>
-            <div className="flex items-center gap-4 mt-2 flex-wrap">
-              {segments.map((seg) => (
-                <div key={seg.label} className="flex items-center gap-1.5">
-                  <div className={`w-2.5 h-2.5 rounded-sm ${seg.color}`} />
-                  <span className="text-[10px] text-[#8A8A8A]">{seg.label} {seg.pct}%</span>
+          <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4">
+            <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
+            <div className="flex items-center gap-6 mt-2">
+              <div className="w-[140px] h-[140px] shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={donutData.length > 0 ? donutData : [{ name: 'Sin datos', value: 1, hex: '#282828' }]}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={38}
+                      outerRadius={62}
+                      strokeWidth={0}
+                    >
+                      {(donutData.length > 0 ? donutData : [{ name: 'Sin datos', value: 1, hex: '#282828' }]).map((entry, index) => (
+                        <Cell key={index} fill={entry.hex} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="text-center -mt-[100px] relative z-10 pointer-events-none">
+                  <span className="text-[18px] font-bold text-white">{formatCurrency(totalCombined)}</span>
                 </div>
-              ))}
+              </div>
+              <div className="flex-1 flex flex-col gap-2">
+                {segments.map((seg) => (
+                  <div key={seg.label} className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: seg.hex }} />
+                    <span className="text-[11px] text-[#8A8A8A] flex-1">{seg.label}</span>
+                    <span className="text-[12px] text-white font-medium">{formatCurrency(seg.value)}</span>
+                    <span className="text-[11px] text-[#6A6A6A] w-9 text-right">{seg.pct}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

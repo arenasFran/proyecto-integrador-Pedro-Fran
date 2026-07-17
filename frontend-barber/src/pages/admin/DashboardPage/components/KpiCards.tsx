@@ -296,28 +296,19 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
 
   const closeMenu = () => setOpenMenuId(null);
 
-  const Avatar = ({ name, lastname }: { name: string; lastname: string }) => (
-    <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center shrink-0">
-      <span className="text-[12px] font-semibold text-[#8A8A8A]">{getInitials(name, lastname)}</span>
+  const Avatar = ({ name, lastname, photoUrl }: { name: string; lastname: string; photoUrl?: string | null }) => (
+    <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center shrink-0 overflow-hidden">
+      {photoUrl ? (
+        <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-[12px] font-semibold text-[#8A8A8A]">{getInitials(name, lastname)}</span>
+      )}
     </div>
   );
 
   const ClientBadge = ({ kind }: { kind?: string }) => {
     if (!kind || kind === 'NoRegistrado') return <span className="text-[10px] font-medium text-gray-400 bg-gray-500/10 rounded-full px-2 py-0.5">Anónimo</span>;
     return <span className="text-[10px] font-medium text-purple-400 bg-purple-500/10 rounded-full px-2 py-0.5">Registrado</span>;
-  };
-
-  const PaymentStatusBadge = () => <span className="text-[10px] font-medium text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">Pendiente</span>;
-
-  const OrderStatusBadge = ({ status }: { status: string }) => {
-    const cfg: Record<string, { label: string; cls: string }> = {
-      pending: { label: 'Pendiente', cls: 'text-yellow-400 bg-yellow-500/10' },
-      paid: { label: 'Pagado', cls: 'text-green-400 bg-green-500/10' },
-      delivered: { label: 'Entregado', cls: 'text-blue-400 bg-blue-500/10' },
-      cancelled: { label: 'Cancelado', cls: 'text-red-400 bg-red-500/10' },
-    };
-    const c = cfg[status] ?? cfg.pending;
-    return <span className={`text-[10px] font-medium ${c.cls} rounded-full px-2 py-0.5`}>{c.label}</span>;
   };
 
   const tabs = [
@@ -389,7 +380,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                             <div className="flex items-center gap-2 mb-1.5">
                               <p className="text-[14px] font-medium text-white truncate">{a.clientName} {a.clientLastname}</p>
                               {a.clientId ? <ClientBadge kind="Registrado" /> : <ClientBadge kind="NoRegistrado" />}
-                              <PaymentStatusBadge />
+                              <span className="text-[10px] font-medium text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">Pago pendiente</span>
                             </div>
                             <div className="flex items-center gap-2 text-[12px] text-[#8A8A8A] flex-wrap">
                               <span>{formatDate(a.date)} {a.startTime}</span>
@@ -440,8 +431,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-1.5">
                               <p className="text-[14px] font-medium text-white truncate">{o.userName ?? `Orden #${typeof o.id === 'string' ? o.id.slice(-6) : ''}`}</p>
-                              <OrderStatusBadge status={o.status} />
-                              <PaymentStatusBadge />
+                              <span className="text-[10px] font-medium text-yellow-400 bg-yellow-500/10 rounded-full px-2 py-0.5">Pago pendiente</span>
                             </div>
                             <div className="flex items-center gap-2 text-[12px] text-[#8A8A8A] flex-wrap">
                               <span>{o.items?.length ?? 0} producto(s)</span>

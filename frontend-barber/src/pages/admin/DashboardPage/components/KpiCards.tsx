@@ -47,7 +47,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
 
     const lastWeekStart = new Date(weekStart); lastWeekStart.setDate(weekStart.getDate() - 7);
     const lastWeekEnd = new Date(lastWeekStart); lastWeekEnd.setDate(lastWeekStart.getDate() + 6);
-    if (d.getTime() === lastWeekStart.getTime() && h.toDateString() === lastWeekEnd.toDateString()) return 'Sem. pasada';
+    if (d.getTime() === lastWeekStart.getTime() && h.toDateString() === lastWeekEnd.toDateString()) return 'Semana pasada';
 
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -59,7 +59,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
 
     if (diffDays <= 1) return '1 día';
     if (diffDays <= 7) return `${diffDays} días`;
-    if (diffDays <= 31) return `${Math.round(diffDays / 7)} sem.`;
+    if (diffDays <= 31) return `${Math.round(diffDays / 7)} semanas`;
     if (diffDays <= 365) return `${Math.round(diffDays / 30)} meses`;
     return '';
   })();
@@ -109,7 +109,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
           <span className="text-[12px] text-[#8A8A8A]">{hasta}</span>
         </div>
         {periodLabel && (
-          <span className="text-[11px] text-[#FF5C00] font-medium bg-[#FF5C00]/10 rounded-full px-2.5 py-1">{periodLabel}</span>
+          <span className="text-[11px] text-[#6A6A6A] font-medium bg-[#1A1A1A] border border-[#333] rounded-full px-2.5 py-1">{periodLabel}</span>
         )}
       </div>
       {isLoading ? (
@@ -117,7 +117,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
       ) : (
         <div className="flex flex-col gap-4">
 
-          <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4">
+          <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 w-fit">
             <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
             <div className="flex items-center gap-4 mt-2">
               <div className="w-[120px] h-[120px] shrink-0 relative">
@@ -143,7 +143,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
                   <span className="text-[13px] font-bold text-white">{formatCurrency(totalCombined)}</span>
                 </div>
               </div>
-              <div className="flex-1 flex flex-col gap-2">
+              <div className="flex flex-col gap-2">
                 {segments.map((seg) => (
                   <div key={seg.label} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: seg.hex }} />

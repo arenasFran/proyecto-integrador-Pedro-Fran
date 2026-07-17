@@ -337,6 +337,64 @@ export class MembershipController {
     }
   };
 
+  retryPayment = async (req: Request, res: Response) => {
+    try {
+      const { userId } = req.body;
+
+      if (req.user!._id !== userId && req.user!.kind !== 'Admin') {
+        throw new AppError('No podés reintentar el pago para otro usuario.', 403);
+      }
+
+      const user = await this.userRepo.findById(userId);
+      if (!user) {
+        throw new AppError('Usuario no encontrado.', 404);
+      }
+
+      const pending = await this.membershipRepo.findPendingByUser(userId);
+      if (!pending) {
+        throw new AppError('No tenés una membresía pendiente de pago.', 400);
+      }
+
+      if (pending.paymentMethod !== 'mercadopago') {
+        throw new AppError('Esta membresía no está asociada a un pago por MercadoPago.', 400);
+      }
+
+      if (!this.createPaymentUseCase) {
+        throw new AppError('MercadoPago no está configurado.', 500);
+      }
+
+      if (this.paymentRepository) {
+        const existingPayment = await this.paymentRepository.findByReference(pending.id, 'membership');
+        if (existingPayment && existingPayment.status === 'pending') {
+          existingPayment.cancel();
+          await this.paymentRepository.save(existingPayment);
+        }
+      }
+
+      const config = getConfig();
+      const membershipPrice = config.membershipPriceUyu;
+
+      const result = await this.createPaymentUseCase.execute({
+        type: 'membership',
+        referenceId: pending.id,
+        amount: membershipPrice,
+        userId,
+        items: [{ title: 'Membresía Mensual', quantity: 1, unitPrice: membershipPrice }],
+        payerEmail: req.user!.email,
+      });
+
+      return sendSuccess(res, {
+        preferenceId: result.preferenceId,
+        initPoint: result.initPoint,
+        sandboxInitPoint: result.sandboxInitPoint,
+        paymentId: result.paymentId,
+        membershipId: pending.id,
+      }, 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al reintentar pago de membresía');
+    }
+  };
+
   redeemCoupon = async (req: Request, res: Response) => {
     try {
       const { userId } = req.body;

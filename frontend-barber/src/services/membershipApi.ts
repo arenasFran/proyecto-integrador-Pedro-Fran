@@ -62,6 +62,10 @@ export const membershipApi = createApi({
       query: (data) => ({ url: '/api/memberships/initiate-payment', method: 'POST', data }),
     }),
 
+    retryMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
+      query: (data) => ({ url: '/api/memberships/retry-payment', method: 'POST', data }),
+    }),
+
     redeemCoupon: builder.mutation<{ remainingCoupons: number; couponsUsed: number }, { userId: string }>({
       query: (data) => ({ url: '/api/memberships/redeem', method: 'POST', data }),
       invalidatesTags: ['Membership'],
@@ -98,6 +102,7 @@ export const {
   useCreateSubscriptionMutation,
   useCancelSubscriptionMutation,
   useInitiateMembershipPaymentMutation,
+  useRetryMembershipPaymentMutation,
   useRedeemCouponMutation,
   useApprovePendingMembershipMutation,
   useGetTransactionsQuery,

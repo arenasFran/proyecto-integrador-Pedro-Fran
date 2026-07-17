@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign } from 'react-icons/fi';
+import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
-import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useCreateSubscriptionMutation, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
+import PaymentModal from '../../../components/payment/PaymentModal';
 
 export default function MembershipPage() {
   const token = getAccessToken();
@@ -13,10 +14,14 @@ export default function MembershipPage() {
   const { data, isLoading } = useGetMyMembershipQuery();
   const [createSubscription, { isLoading: isCreatingSub }] = useCreateSubscriptionMutation();
   const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelSubscriptionMutation();
+  const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
+  const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
 
   const { showToast } = useToast();
 
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [retryPreferenceId, setRetryPreferenceId] = useState('');
 
   if (!token) return <Navigate to="/login" replace />;
   if (kind === 'Admin' || kind === 'Empleado') return <Navigate to="/admin/membresias" replace />;
@@ -40,12 +45,10 @@ export default function MembershipPage() {
   const handlePurchaseOnline = async () => {
     try {
       const user = JSON.parse(atob(token.split('.')[1]));
-      const result = await createSubscription({ userId: user.id, email: user.email }).unwrap();
-      if (result.initPoint) {
-        const popup = window.open(result.initPoint, '_blank', 'noopener,noreferrer');
-        if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-          showToast('El navegador bloqueó la ventana de pago. Permití ventanas emergentes e intentá de nuevo.', 'error');
-        }
+      const result = await initiatePayment({ userId: user.id }).unwrap();
+      if (result.preferenceId) {
+        setRetryPreferenceId(result.preferenceId);
+        setPaymentModalOpen(true);
       }
     } catch {
       showToast('Error al crear la suscripción. Intentá de nuevo.', 'error');
@@ -60,6 +63,19 @@ export default function MembershipPage() {
       showToast('Suscripción cancelada correctamente', 'success');
     } catch {
       showToast('Error al cancelar la suscripción', 'error');
+    }
+  };
+
+  const handleRetryPayment = async () => {
+    try {
+      const user = JSON.parse(atob(token.split('.')[1]));
+      const result = await retryPayment({ userId: user.id }).unwrap();
+      if (result.preferenceId) {
+        setRetryPreferenceId(result.preferenceId);
+        setPaymentModalOpen(true);
+      }
+    } catch {
+      showToast('Error al reintentar el pago. Intentá de nuevo.', 'error');
     }
   };
 
@@ -243,6 +259,21 @@ export default function MembershipPage() {
                   </span>
                 </div>
               </div>
+
+              {pending.paymentMethod === 'mercadopago' && (
+                <div className="mt-6">
+                  <p className="text-[12px] text-[#8A8A8A] mb-3">
+                    ¿El pago anterior quedó pendiente? Volvé a intentarlo.
+                  </p>
+                  <Button
+                    onClick={handleRetryPayment}
+                    loading={isRetrying}
+                    icon={FiRefreshCw}
+                  >
+                    Reintentar pago
+                  </Button>
+                </div>
+              )}
             </div>
           </AnimatedContainer>
         ) : (
@@ -273,7 +304,7 @@ export default function MembershipPage() {
 
               <div className="flex justify-center max-w-lg mx-auto mb-8">
                 <Button
-                  loading={isCreatingSub}
+                  loading={isPaying}
                   onClick={handlePurchaseOnline}
                   icon={FiCreditCard}
                 >
@@ -314,6 +345,16 @@ export default function MembershipPage() {
           </AnimatedContainer>
         )}
       </div>
+
+      <PaymentModal
+        isOpen={paymentModalOpen}
+        preferenceId={retryPreferenceId}
+        onClose={() => {
+          setPaymentModalOpen(false);
+          setRetryPreferenceId('');
+        }}
+        title="Completar pago - Membresía"
+      />
 
       <ConfirmModal
         isOpen={cancelModalOpen}

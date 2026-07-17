@@ -126,6 +126,15 @@ export const createMembershipRouter = (deps: {
   );
 
   router.post(
+    '/retry-payment',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    validate({ body: initiateMembershipPaymentSchema }),
+    deps.membershipController.retryPayment
+  );
+
+  router.post(
     '/redeem',
     membershipMutationLimiter,
     deps.authenticate,

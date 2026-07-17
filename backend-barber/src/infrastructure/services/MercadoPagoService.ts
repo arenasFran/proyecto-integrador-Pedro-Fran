@@ -30,7 +30,7 @@ export class MercadoPagoService implements IPaymentService {
     this.ensureConfigured();
     const preference = new Preference(this.config);
 
-    const isHttpsSuccess = params.backUrls.success.startsWith('https://');
+    const isLocalhost = /localhost|127\.0\.0\.1|192\.168\./.test(params.backUrls.success);
 
     const body = {
       items: params.items.map((item) => ({
@@ -45,12 +45,14 @@ export class MercadoPagoService implements IPaymentService {
       external_reference: params.externalReference,
       statement_descriptor: 'Barbería',
       binary_mode: true,
-      back_urls: {
-        success: params.backUrls.success,
-        failure: params.backUrls.failure,
-        pending: params.backUrls.pending,
-      },
-      ...(isHttpsSuccess ? { auto_return: 'approved' } : {}),
+      ...(isLocalhost ? {} : {
+        back_urls: {
+          success: params.backUrls.success,
+          failure: params.backUrls.failure,
+          pending: params.backUrls.pending,
+        },
+        auto_return: 'approved',
+      }),
       notification_url: params.notificationUrl,
       ...(params.expirationDateTo ? { expires: true, expiration_date_to: params.expirationDateTo } : {}),
     };

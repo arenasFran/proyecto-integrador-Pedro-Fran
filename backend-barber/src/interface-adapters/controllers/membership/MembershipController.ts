@@ -75,6 +75,11 @@ export class MembershipController {
         throw new AppError('El usuario ya tiene una membresía activa.', 400);
       }
 
+      const existingPending = await this.membershipRepo.findPendingByUser(userId);
+      if (existingPending) {
+        throw new AppError('El usuario ya tiene una membresía pendiente de pago.', 400);
+      }
+
       const existing = await this.membershipRepo.findAnyByUser(userId);
       let membership: Membership;
 
@@ -238,15 +243,22 @@ export class MembershipController {
         throw new AppError('No tenés permiso para cancelar esta membresía.', 403);
       }
 
-      if (membership.mpPreapprovalId && this.mercadoPagoService) {
+      if (!membership.mpPreapprovalId) {
+        throw new AppError('Esta membresía no tiene una suscripción activa en MercadoPago.', 400);
+      }
+
+      if (this.mercadoPagoService) {
         try {
           await this.mercadoPagoService.cancelPreapproval(membership.mpPreapprovalId);
         } catch {
-          console.warn(`[Membership] No se pudo cancelar preapproval ${membership.mpPreapprovalId} en MP`);
+          throw new AppError(
+            'No se pudo cancelar la suscripción en MercadoPago. Reintentá en unos minutos.',
+            502
+          );
         }
       }
 
-      membership.expire();
+      membership.cancel();
       await this.membershipRepo.save(membership);
 
       return sendSuccess(res, { message: 'Suscripción cancelada exitosamente.' });

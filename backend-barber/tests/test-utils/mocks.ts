@@ -9,6 +9,8 @@ export const makeMockUserRepository = () => ({
   updateTwoFactor: jest.fn(),
   updateLastLogin: jest.fn(),
   updateUserSecurity: jest.fn(),
+  findEmailById: jest.fn().mockResolvedValue(null),
+  findRegisteredClients: jest.fn().mockResolvedValue([]),
 });
 
 export const makeMockTempLockRepository = () => ({
@@ -32,6 +34,8 @@ export const makeMockAppointmentRepository = () => ({
   update: jest.fn(),
   updateClientId: jest.fn(),
   updateStatus: jest.fn(),
+  getSummary: jest.fn().mockResolvedValue({ total: 0, completed: 0, cancelled: 0 }),
+  cancelPendingPaymentsOlderThan: jest.fn().mockResolvedValue(0),
 });
 
 export const makeMockTokenService = () => ({
@@ -149,6 +153,7 @@ export const makeMockPaymentRepository = () => ({
   findByReference: jest.fn(),
   findByUser: jest.fn(),
   save: jest.fn(),
+  updateMpPreferenceId: jest.fn().mockResolvedValue(undefined),
   cancelPendingByAppointments: jest.fn(),
 });
 

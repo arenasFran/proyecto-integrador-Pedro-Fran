@@ -11,9 +11,6 @@ export const paymentApi = createApi({
       query: (id) => ({ url: `/api/payments/${id}` }),
       providesTags: (_result, _error, id) => [{ type: 'Payment', id }],
     }),
-    getPaymentByPreferenceId: builder.query<{ payment: Payment | null }, string>({
-      query: (preferenceId) => ({ url: `/api/payments/by-preference/${preferenceId}` }),
-    }),
     getPaymentByReference: builder.query<{ payment: Payment | null }, { referenceId: string; type: string }>({
       query: ({ referenceId, type }) => ({ url: `/api/payments/by-reference/${referenceId}`, params: { type } }),
     }),
@@ -26,7 +23,6 @@ export const paymentApi = createApi({
 
 export const {
   useGetPaymentByIdQuery,
-  useGetPaymentByPreferenceIdQuery,
   useGetPaymentByReferenceQuery,
   useGetAllPaymentsQuery,
 } = paymentApi;

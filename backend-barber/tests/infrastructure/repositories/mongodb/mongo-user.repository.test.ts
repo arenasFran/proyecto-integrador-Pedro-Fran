@@ -133,7 +133,7 @@ describeIfMongo('MongoUserRepository', () => {
 
     await expect(
       repository.createRegisteredClient(makeNewUser({ email: 'duplicado@example.com', phone: '777777' }))
-    ).rejects.toMatchObject({ message: 'Email en uso.', statusCode: 409 });
+    ).rejects.toMatchObject({ message: 'El email ya está registrado.', statusCode: 409 });
   });
 
   it('debe lanzar 409 si el teléfono ya está en uso', async () => {
@@ -148,7 +148,7 @@ describeIfMongo('MongoUserRepository', () => {
 
     await expect(
       repository.createRegisteredClient(makeNewUser({ email: 'nuevo2@example.com', phone: '888888' }))
-    ).rejects.toMatchObject({ message: 'Teléfono en uso.', statusCode: 409 });
+    ).rejects.toMatchObject({ message: 'El número de teléfono ya está registrado.', statusCode: 409 });
   });
 
   it('debe registrar dos intentos concurrentes con el mismo email: uno gana, el otro recibe 409 (no un 500)', async () => {

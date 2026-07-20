@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Wallet } from '@mercadopago/sdk-react';
 import { AnimatedContainer, Button } from '../common';
 import PaymentSuccessModal from './PaymentSuccessModal';
+import { getAccessToken } from '../../services/api';
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -24,7 +25,12 @@ export default function PaymentModal({ isOpen, preferenceId, onClose, title }: P
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${BASE_URL}/api/payments/by-preference/${preferenceId}`);
+        const token = getAccessToken();
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+        const res = await fetch(`${BASE_URL}/api/payments/by-preference/${preferenceId}`, { headers });
         const json = await res.json();
         if (json?.payment?.status === 'approved') {
           setApprovedType(json.payment.type);

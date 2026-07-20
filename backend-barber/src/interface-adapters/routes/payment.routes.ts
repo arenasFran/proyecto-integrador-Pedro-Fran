@@ -16,6 +16,7 @@ const webhookLimiter = rateLimit({
 export const createPaymentRouter = (deps: {
   paymentController: PaymentController;
   authenticate: ReturnType<typeof createAuthenticate>;
+  optionalAuth: ReturnType<typeof import('../middlewares/auth.middleware').createOptionalAuth>;
 }) => {
   const router = Router();
 
@@ -27,6 +28,7 @@ export const createPaymentRouter = (deps: {
 
   router.get(
     '/by-preference/:preferenceId',
+    deps.optionalAuth,
     deps.paymentController.getByPreferenceId
   );
 

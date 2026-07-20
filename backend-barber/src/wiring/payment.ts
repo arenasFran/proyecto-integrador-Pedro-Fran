@@ -14,7 +14,7 @@ import { MongoProductRepository } from '../infrastructure/repositories/mongodb/M
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { buildTokenService } from './auth';
-import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
+import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
 
 export const buildPaymentRepository = () => new MongoPaymentRepository();
 
@@ -66,6 +66,7 @@ export const buildPaymentRouter = () => {
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);
+  const optionalAuth = createOptionalAuth(tokenService);
 
-  return createPaymentRouter({ paymentController, authenticate });
+  return createPaymentRouter({ paymentController, authenticate, optionalAuth });
 };

@@ -38,7 +38,31 @@ export class PaymentController {
       if (!payment) {
         return sendSuccess(res, { payment: null });
       }
-      return sendSuccess(res, { payment: payment.toPrimitives() });
+
+      const hasUser = !!req.user;
+      const hasRealUserId = payment.userId !== '' && !payment.userId.startsWith('manual_');
+
+      if (hasUser && payment.userId) {
+        const isOwner = payment.userId === req.user!._id;
+        const isAdmin = req.user!.kind === 'Admin';
+        if (!isOwner && !isAdmin) {
+          throw new AppError('No tenés permiso para ver este pago.', 403);
+        }
+      }
+
+      if (!hasUser && hasRealUserId) {
+        throw new AppError('Autenticación requerida.', 401);
+      }
+
+      return sendSuccess(res, {
+        payment: {
+          id: payment.id,
+          status: payment.status,
+          type: payment.type,
+          amount: payment.amount,
+          referenceId: payment.referenceId,
+        },
+      });
     } catch (error) {
       return sendError(res, error, 'Error al obtener el pago por preferencia');
     }

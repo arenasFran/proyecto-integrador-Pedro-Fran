@@ -28,7 +28,6 @@ export type Config = {
   cloudinaryApiSecret: string;
   mpAccessToken: string | undefined;
   mpWebhookSecret: string | undefined;
-  mpPublicKey: string | undefined;
   mpNotificationUrl: string | undefined;
   membershipPriceUyu: number;
   rateLimit: {
@@ -107,7 +106,6 @@ export function loadConfig(): Config {
     cloudinaryApiSecret: requireEnv('CLOUDINARY_API_SECRET'),
     mpAccessToken: process.env.MP_ACCESS_TOKEN || undefined,
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
-    mpPublicKey: process.env.MP_PUBLIC_KEY || undefined,
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
     rateLimit: {
@@ -155,10 +153,6 @@ export function validateEnv(): Config {
       console.log('[MP-CREDENTIALS] MP_WEBHOOK_SECRET configurado. HMAC habilitado.');
     } else {
       console.warn('[MP-CREDENTIALS] MP_WEBHOOK_SECRET no configurado. La validacion HMAC del webhook fallara siempre.');
-    }
-
-    if (config.mpPublicKey) {
-      console.log('[MP-CREDENTIALS] MP_PUBLIC_KEY configurado.');
     }
 
     if (config.mpNotificationUrl) {

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { FiUpload, FiX, FiCheck } from 'react-icons/fi';
 import { Spinner, useToast } from '../common';
-import { getAccessToken } from '../../services/api';
+import { api } from '../../services/api';
 
 interface ProductImageUploadProps {
   mainImageUrl: string;
@@ -23,18 +23,10 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
     try {
       const formData = new FormData();
       files.forEach((f) => formData.append('images', f));
-      const res = await fetch('/api/upload/product-images', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getAccessToken()}` },
-        body: formData,
-        credentials: 'include',
+      const res = await api.post('/api/upload/product-images', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-      if (!res.ok) {
-        showToast('Error al subir imágenes. Verificá el formato y tamaño.', 'error');
-        return [];
-      }
-      const json = await res.json();
-      return json.urls ?? [];
+      return res.data.urls ?? [];
     } catch (err) {
       showToast('Error de conexión al subir imágenes.', 'error');
       return [];

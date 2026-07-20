@@ -43,7 +43,7 @@ describe('appointmentApi', () => {
       const store = createStore();
       const result = await store.dispatch(appointmentApi.endpoints.getAppointmentById.initiate('apt-1'));
       expect(result.data).toEqual({ id: 'apt-1' });
-      expect(mockApi).toHaveBeenCalledWith({ url: '/api/appointments/apt-1', method: 'GET' });
+      expect(mockApi).toHaveBeenCalledWith({ url: '/api/appointments/apt-1', method: 'GET', data: undefined, params: { includeBarber: 'true', includeClient: 'true' } });
     });
 
     it('cancelAppointment envía PATCH con id y reason', async () => {

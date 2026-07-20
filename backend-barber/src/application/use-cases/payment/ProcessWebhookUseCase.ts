@@ -326,23 +326,45 @@ export class ProcessWebhookUseCase {
       }
       case 'product_order': {
         const order = await this.orderRepository.findById(payment.referenceId);
-        if (order && order.status === 'pending') {
-          order.pay(payment.id);
+        if (!order || order.status !== 'pending') break;
+
+        const stockResults: { productId: string; success: boolean }[] = [];
+        for (const item of order.items) {
+          const ok = await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+          stockResults.push({ productId: item.productId, success: ok });
+        }
+
+        const allOk = stockResults.every(r => r.success);
+
+        if (!allOk) {
+          for (const item of order.items) {
+            const result = stockResults.find(r => r.productId === item.productId);
+            if (result?.success) {
+              await this.productRepository.atomicIncreaseStock(item.productId, item.quantity);
+            }
+          }
+
+          order.markStockIssue();
           order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
           await this.orderRepository.save(order);
-          for (const item of order.items) {
-            await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
-          }
-          const userEmail = await this.getUserEmail(payment.userId);
-          if (userEmail && this.emailService) {
-            this.emailService.sendMail({
-              to: userEmail,
-              subject: 'Pago aprobado - Barbería SA',
-              html: `<p>Tu pago por la orden <strong>#${order.id}</strong> fue aprobado.</p>
+
+          console.error(`[STOCK-OVERSELL] Orden ${order.id} — pago aprobado pero stock insuficiente. Payment MP: ${payment.mpPaymentId}`);
+          return;
+        }
+
+        order.pay(payment.id);
+        order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
+        await this.orderRepository.save(order);
+
+        const userEmail = await this.getUserEmail(payment.userId);
+        if (userEmail && this.emailService) {
+          this.emailService.sendMail({
+            to: userEmail,
+            subject: 'Pago aprobado - Barbería SA',
+            html: `<p>Tu pago por la orden <strong>#${order.id}</strong> fue aprobado.</p>
 <p>Total: $${order.total}</p>
 <p>Gracias por tu compra.</p>`,
-            }).catch(() => {});
-          }
+          }).catch(() => {});
         }
         break;
       }

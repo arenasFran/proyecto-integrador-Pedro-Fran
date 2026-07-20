@@ -3,7 +3,6 @@ import { User } from '../../../domain/entities/User';
 import { AppError } from '../../../domain/errors/AppError';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
-import { IUserRepository } from '../../../application/ports/IUserRepository';
 
 export type TwoFactorUpdate = {
   codeHash?: string;
@@ -89,7 +88,7 @@ const userToRegisteredClientData = (user: User) => ({
   resetLockedUntil: user.resetLockedUntil ?? undefined,
 });
 
-export class MongoUserRepository implements IUserRepository {
+export class MongoUserRepository {
   async findEmailById(userId: string): Promise<string | null> {
     const client = await RegisteredClient.findById(userId).select('email').lean();
     if (client?.email) return client.email;

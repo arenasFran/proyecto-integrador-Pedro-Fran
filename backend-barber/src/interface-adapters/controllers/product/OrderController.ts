@@ -5,7 +5,7 @@ import { MongoOrderRepository } from '../../../infrastructure/repositories/mongo
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { IEmailService } from '../../../application/ports/IEmailService';
-import { IUserRepository } from '../../../application/ports/IUserRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { Order } from '../../../domain/entities/Order';
@@ -19,7 +19,7 @@ export class OrderController {
     private readonly productRepository: MongoProductRepository,
     private readonly paymentRepository?: MongoPaymentRepository,
     private readonly emailService?: IEmailService,
-    private readonly userRepository?: IUserRepository
+    private readonly userRepository?: MongoUserRepository
   ) {}
 
   create = async (req: Request, res: Response) => {

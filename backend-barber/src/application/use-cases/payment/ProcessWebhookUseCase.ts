@@ -7,7 +7,7 @@ import { MongoOrderRepository } from '../../../infrastructure/repositories/mongo
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { IPaymentService } from '../../ports/IPaymentService';
 import { IEmailService } from '../../ports/IEmailService';
-import { IUserRepository } from '../../ports/IUserRepository';
+import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { Membership } from '../../../domain/entities/Membership';
 import { getConfig } from '../../../infrastructure/config/env';
 
@@ -21,7 +21,7 @@ export class ProcessWebhookUseCase {
     private readonly productRepository: MongoProductRepository,
     private readonly mercadoPagoService: IPaymentService,
     private readonly emailService?: IEmailService,
-    private readonly userRepository?: IUserRepository
+    private readonly userRepository?: MongoUserRepository
   ) {}
 
   async execute(rawBody: unknown, xSignature: string, xRequestId: string, dataIdFromQuery: string): Promise<void> {

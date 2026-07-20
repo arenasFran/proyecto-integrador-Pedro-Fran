@@ -14,7 +14,7 @@ import {
   syncWithProducts,
 } from '../../../store/slices/cartSlice';
 import CartItem from '../../product/CartItem';
-import { Button } from '../../common';
+import { Button, useToast } from '../../common';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import { useGetProductsQuery } from '../../../services/productApi';
@@ -26,6 +26,7 @@ export const CartDrawer = () => {
   const total = useAppSelector(selectCartTotal);
   const count = useAppSelector(selectCartCount);
   const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
+  const { showToast } = useToast();
 
   const { data: allProductsData } = useGetProductsQuery({});
 
@@ -33,7 +34,7 @@ export const CartDrawer = () => {
     if (allProductsData?.products && items.length > 0) {
       dispatch(syncWithProducts(allProductsData.products));
     }
-  }, [allProductsData?.products, dispatch]);
+  }, [allProductsData?.products, items, dispatch]);
 
   const handleCheckout = async (paymentMethod: 'online' | 'local') => {
     const token = getAccessToken();
@@ -57,6 +58,7 @@ export const CartDrawer = () => {
         navigate('/mis-ordenes');
       }
     } catch {
+      showToast('Error al crear la orden. Verificá tu conexión e intentá de nuevo.', 'error');
     }
   };
 

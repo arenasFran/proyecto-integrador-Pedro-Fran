@@ -48,6 +48,22 @@ export class ProcessWebhookUseCase {
     const topic = notification.type || notification.topic;
     console.log('[MP-DEBUG-WEBHOOK] topic:', topic, '| action:', notification.action, '| data.id:', notification.data.id);
 
+    const secureTopics = ['payment', 'subscription_authorized_payment', 'preapproval',
+                           'subscription_preapproval', 'topic_chargebacks_wh'];
+
+    if (secureTopics.includes(topic || '')) {
+      const valid = this.mercadoPagoService.validateWebhookSignature({
+        xSignature,
+        xRequestId,
+        dataId: dataIdFromQuery,
+      });
+      console.log('[MP-DEBUG-WEBHOOK] HMAC validation result:', valid);
+      if (!valid) {
+        console.error('[MP-DEBUG-WEBHOOK] Firma HMAC inválida — xSignature:', xSignature, 'xRequestId:', xRequestId, 'dataIdFromQuery:', dataIdFromQuery);
+        throw new Error('Firma HMAC inválida en el webhook de MercadoPago.');
+      }
+    }
+
     if (topic === 'preapproval' || topic === 'subscription_preapproval') {
       console.log('[MP-DEBUG-WEBHOOK] Notificación de preapproval — data.id:', notification.data.id);
       await this.handlePreapprovalNotification(notification.data.id, xSignature, xRequestId);
@@ -60,17 +76,6 @@ export class ProcessWebhookUseCase {
     }
 
     console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', notification.data.id);
-
-    const valid = this.mercadoPagoService.validateWebhookSignature({
-      xSignature,
-      xRequestId,
-      dataId: dataIdFromQuery,
-    });
-    console.log('[MP-DEBUG-WEBHOOK] HMAC validation result:', valid);
-    if (!valid) {
-      console.error('[MP-DEBUG-WEBHOOK] Firma HMAC inválida — xSignature:', xSignature, 'xRequestId:', xRequestId, 'dataIdFromQuery:', dataIdFromQuery);
-      throw new Error('Firma HMAC inválida en el webhook de MercadoPago.');
-    }
 
     const mpPaymentId = notification.data.id;
 

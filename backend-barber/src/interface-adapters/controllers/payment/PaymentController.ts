@@ -3,6 +3,7 @@ import { ProcessWebhookUseCase } from '../../../application/use-cases/payment/Pr
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
+import { assertOwnershipOrAdmin } from '../../../common/ownership';
 export class PaymentController {
   constructor(
     private readonly processWebhook: ProcessWebhookUseCase,
@@ -76,11 +77,7 @@ export class PaymentController {
         throw new AppError('Pago no encontrado.', 404);
       }
 
-      const isOwner = payment.userId === req.user!._id;
-      const isAdmin = req.user!.kind === 'Admin';
-      if (!isOwner && !isAdmin) {
-        throw new AppError('No tenés permiso para ver este pago.', 403);
-      }
+      assertOwnershipOrAdmin(payment.userId, req.user!._id, req.user!.kind, 'pago');
 
       return sendSuccess(res, { payment: payment.toPrimitives() });
     } catch (error) {

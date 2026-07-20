@@ -1,5 +1,6 @@
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { AppError } from '../../../domain/errors/AppError';
+import { assertOwnershipOrAdmin } from '../../../common/ownership';
 import type { OrderProps } from '../../../domain/entities/Order';
 
 export class GetOrderUseCase {
@@ -13,11 +14,7 @@ export class GetOrderUseCase {
       throw new AppError('Orden no encontrada.', 404);
     }
 
-    const isOwner = order.userId === userId;
-    const isAdmin = userKind === 'Admin';
-    if (!isOwner && !isAdmin) {
-      throw new AppError('No tenés permiso para ver esta orden.', 403);
-    }
+    assertOwnershipOrAdmin(order.userId, userId, userKind, 'orden');
 
     return order.toPrimitives();
   }

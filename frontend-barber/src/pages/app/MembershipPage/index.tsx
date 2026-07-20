@@ -4,14 +4,14 @@ import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
 import { useGetMyMembershipQuery, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
-import { getTokenKind } from '../../../utils/token';
+import { getTokenKind, getTokenUser } from '../../../utils/token';
 import PaymentModal from '../../../components/payment/PaymentModal';
 
 export default function MembershipPage() {
   const token = getAccessToken();
   const kind = getTokenKind(token);
 
-  const { data, isLoading } = useGetMyMembershipQuery();
+  const { data, isLoading, refetch } = useGetMyMembershipQuery();
   const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelSubscriptionMutation();
   const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
@@ -43,7 +43,8 @@ export default function MembershipPage() {
 
   const handlePurchaseOnline = async () => {
     try {
-      const user = JSON.parse(atob(token.split('.')[1]));
+      const user = getTokenUser(token);
+      if (!user) { showToast('Sesión inválida', 'error'); return; }
       const result = await initiatePayment({ userId: user.id }).unwrap();
       if (result.preferenceId) {
         setRetryPreferenceId(result.preferenceId);
@@ -67,7 +68,8 @@ export default function MembershipPage() {
 
   const handleRetryPayment = async () => {
     try {
-      const user = JSON.parse(atob(token.split('.')[1]));
+      const user = getTokenUser(token);
+      if (!user) { showToast('Sesión inválida', 'error'); return; }
       const result = await retryPayment({ userId: user.id }).unwrap();
       if (result.preferenceId) {
         setRetryPreferenceId(result.preferenceId);
@@ -351,6 +353,7 @@ export default function MembershipPage() {
         onClose={() => {
           setPaymentModalOpen(false);
           setRetryPreferenceId('');
+          refetch();
         }}
         title="Completar pago - Membresía"
       />

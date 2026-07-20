@@ -8,6 +8,7 @@ import {
   makeMockOrderRepository,
   makeMockProductRepository,
   makeMockEmailService,
+  makeMockMembershipTransactionRepository,
 } from '../../../test-utils/mocks';
 
 jest.mock('../../../../src/infrastructure/config/env', () => ({
@@ -51,6 +52,7 @@ describe('ProcessWebhookUseCase', () => {
   let paymentService: ReturnType<typeof makeMockPaymentService>;
   let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
   let membershipRepository: ReturnType<typeof makeMockMembershipRepository>;
+  let transactionRepository: ReturnType<typeof makeMockMembershipTransactionRepository>;
   let orderRepository: ReturnType<typeof makeMockOrderRepository>;
   let productRepository: ReturnType<typeof makeMockProductRepository>;
   let emailService: ReturnType<typeof makeMockEmailService>;
@@ -61,14 +63,18 @@ describe('ProcessWebhookUseCase', () => {
     paymentService = makeMockPaymentService();
     appointmentRepository = makeMockAppointmentRepository();
     membershipRepository = makeMockMembershipRepository();
+    transactionRepository = makeMockMembershipTransactionRepository();
     orderRepository = makeMockOrderRepository();
     productRepository = makeMockProductRepository();
     emailService = makeMockEmailService();
+
+    membershipRepository.save.mockImplementation(async (m: any) => m);
 
     useCase = new ProcessWebhookUseCase(
       paymentRepository as any,
       appointmentRepository as any,
       membershipRepository as any,
+      transactionRepository as any,
       orderRepository as any,
       productRepository as any,
       paymentService as any,
@@ -78,12 +84,12 @@ describe('ProcessWebhookUseCase', () => {
 
   describe('validación de entrada', () => {
     it('debe ignorar si el body no tiene data.id', async () => {
-      await useCase.execute({ type: 'payment' }, 'x-sig', 'x-req');
+      await useCase.execute({ type: 'payment' }, 'x-sig', 'x-req', '');
       expect(paymentService.getPayment).not.toHaveBeenCalled();
     });
 
     it('debe ignorar si el body es null/undefined', async () => {
-      await useCase.execute(null as any, 'x-sig', 'x-req');
+      await useCase.execute(null as any, 'x-sig', 'x-req', '');
       expect(paymentService.getPayment).not.toHaveBeenCalled();
     });
   });
@@ -94,6 +100,7 @@ describe('ProcessWebhookUseCase', () => {
         { type: 'merchant_order', data: { id: '123' }, action: 'updated' },
         'x-sig',
         'x-req',
+        '',
       );
       expect(paymentService.getPayment).not.toHaveBeenCalled();
     });
@@ -110,7 +117,7 @@ describe('ProcessWebhookUseCase', () => {
       paymentService.validateWebhookSignature.mockReturnValue(false);
 
       await expect(
-        useCase.execute(preapprovalPayload, 'bad-sig', 'req-id'),
+        useCase.execute(preapprovalPayload, 'bad-sig', 'req-id', ''),
       ).rejects.toThrow('Firma HMAC inválida');
     });
 
@@ -118,7 +125,7 @@ describe('ProcessWebhookUseCase', () => {
       paymentService.validateWebhookSignature.mockReturnValue(true);
       paymentService.getPreapproval.mockResolvedValue(null as any);
 
-      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req');
+      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req', '');
       expect(membershipRepository.save).not.toHaveBeenCalled();
     });
 
@@ -131,7 +138,7 @@ describe('ProcessWebhookUseCase', () => {
         externalReference: 'user-1',
       });
 
-      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req');
+      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req', '');
       expect(membershipRepository.save).not.toHaveBeenCalled();
     });
 
@@ -145,7 +152,7 @@ describe('ProcessWebhookUseCase', () => {
       });
       membershipRepository.findActiveByUser.mockResolvedValue(null);
 
-      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req');
+      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req', '');
       expect(membershipRepository.save).toHaveBeenCalledTimes(1);
     });
 
@@ -159,7 +166,7 @@ describe('ProcessWebhookUseCase', () => {
       });
       membershipRepository.findActiveByUser.mockResolvedValue({ id: 'mem-1' } as any);
 
-      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req');
+      await useCase.execute(preapprovalPayload, 'x-sig', 'x-req', '');
       expect(membershipRepository.save).not.toHaveBeenCalled();
     });
   });
@@ -175,7 +182,7 @@ describe('ProcessWebhookUseCase', () => {
       paymentService.validateWebhookSignature.mockReturnValue(false);
 
       await expect(
-        useCase.execute(paymentPayload, 'bad-sig', 'req-id'),
+        useCase.execute(paymentPayload, 'bad-sig', 'req-id', ''),
       ).rejects.toThrow('Firma HMAC inválida');
     });
 
@@ -183,7 +190,7 @@ describe('ProcessWebhookUseCase', () => {
       paymentService.validateWebhookSignature.mockReturnValue(true);
       paymentService.getPayment.mockResolvedValue(null);
 
-      await useCase.execute(paymentPayload, 'good-sig', 'req-id');
+      await useCase.execute(paymentPayload, 'good-sig', 'req-id', '');
       expect(paymentService.getPayment).toHaveBeenCalledWith('123456');
     });
   });
@@ -197,6 +204,7 @@ describe('ProcessWebhookUseCase', () => {
         { type: 'payment', data: { id: '999' }, action: 'payment.updated' },
         'x-sig',
         'x-req',
+        '',
       );
       expect(paymentRepository.findByMpPaymentId).not.toHaveBeenCalled();
     });
@@ -217,6 +225,7 @@ describe('ProcessWebhookUseCase', () => {
         { type: 'payment', data: { id: '123' }, action: 'payment.updated' },
         'x-sig',
         'x-req',
+        '',
       );
 
       expect(membershipRepository.findByPreapprovalId).toHaveBeenCalledWith('preapp-1');
@@ -234,6 +243,7 @@ describe('ProcessWebhookUseCase', () => {
         { type: 'payment', data: { id: '123' }, action: 'payment.updated' },
         'x-sig',
         'x-req',
+        '',
       );
 
       expect(membershipRepository.save).not.toHaveBeenCalled();
@@ -262,7 +272,7 @@ describe('ProcessWebhookUseCase', () => {
         pay: jest.fn(),
       } as any);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
 
       expect(paymentRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'approved' }),
@@ -273,13 +283,19 @@ describe('ProcessWebhookUseCase', () => {
       );
     });
 
-    it('debe aprobar pago de tipo membership y crear membresía si no existe', async () => {
+    it('debe aprobar pago de tipo membership y aprobar membresía pendiente', async () => {
       const payment = makePayment({ type: 'membership' });
       paymentService.getPayment.mockResolvedValue(makeMpPayment({ status: 'approved' }));
       paymentRepository.findByMpPaymentId.mockResolvedValue(payment);
-      membershipRepository.findActiveByUser.mockResolvedValue(null);
+      membershipRepository.findPendingByUser = jest.fn().mockResolvedValue({
+        id: 'mem-1',
+        userId: 'user-1',
+        price: 500,
+        approve: jest.fn(),
+      } as any);
+      membershipRepository.save.mockResolvedValue({ id: 'mem-1', userId: 'user-1', price: 500 } as any);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
 
       expect(paymentRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'approved' }),
@@ -291,15 +307,17 @@ describe('ProcessWebhookUseCase', () => {
       const payment = makePayment({ type: 'product_order' });
       paymentService.getPayment.mockResolvedValue(makeMpPayment({ status: 'approved' }));
       paymentRepository.findByMpPaymentId.mockResolvedValue(payment);
+      productRepository.atomicDecreaseStock.mockResolvedValue(true);
       orderRepository.findById.mockResolvedValue({
         id: 'order-1',
         status: 'pending',
         items: [{ productId: 'prod-1', quantity: 2 }],
         total: 500,
         pay: jest.fn(),
+        updateMpMetadata: jest.fn(),
       } as any);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
 
       expect(paymentRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'approved' }),
@@ -318,7 +336,7 @@ describe('ProcessWebhookUseCase', () => {
         cancel: jest.fn(),
       } as any);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
 
       expect(payment.status).toBe('rejected');
       expect(paymentRepository.save).toHaveBeenCalledWith(
@@ -337,7 +355,7 @@ describe('ProcessWebhookUseCase', () => {
         cancel: jest.fn(),
       } as any);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
 
       expect(payment.status).toBe('cancelled');
       expect(paymentRepository.save).toHaveBeenCalledWith(
@@ -351,7 +369,7 @@ describe('ProcessWebhookUseCase', () => {
       paymentRepository.findByMpPaymentId.mockResolvedValue(null);
       paymentRepository.findById.mockResolvedValue(null);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
       expect(paymentRepository.save).not.toHaveBeenCalled();
     });
 
@@ -368,7 +386,7 @@ describe('ProcessWebhookUseCase', () => {
         pay: jest.fn(),
       } as any);
 
-      await useCase.execute(paymentPayload, 'x-sig', 'x-req');
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
       expect(paymentRepository.findById).toHaveBeenCalledWith('pay-1');
       expect(paymentRepository.save).toHaveBeenCalled();
     });

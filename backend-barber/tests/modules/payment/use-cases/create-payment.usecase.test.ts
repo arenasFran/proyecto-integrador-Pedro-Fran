@@ -50,7 +50,7 @@ describe('CreatePaymentUseCase', () => {
   it('debe crear un Payment con status pending y guardarlo', async () => {
     const result = await useCase.execute(dto);
 
-    expect(paymentRepository.save).toHaveBeenCalledTimes(2);
+    expect(paymentRepository.save).toHaveBeenCalledTimes(1);
     const firstSaved = (paymentRepository.save as jest.Mock).mock.calls[0][0];
     expect(firstSaved.status).toBe('pending');
     expect(firstSaved.type).toBe('membership');
@@ -80,9 +80,7 @@ describe('CreatePaymentUseCase', () => {
   it('debe asignar el mpPreferenceId al payment y guardarlo de nuevo', async () => {
     await useCase.execute(dto);
 
-    expect(paymentRepository.save).toHaveBeenCalledTimes(2);
-    const secondSaved = (paymentRepository.save as jest.Mock).mock.calls[1][0];
-    expect(secondSaved.mpPreferenceId).toBe('pref-123');
+    expect(paymentRepository.updateMpPreferenceId).toHaveBeenCalledWith('pay-generated-id', 'pref-123');
   });
 
   it('debe retornar preferenceId, initPoint, sandboxInitPoint y paymentId', async () => {

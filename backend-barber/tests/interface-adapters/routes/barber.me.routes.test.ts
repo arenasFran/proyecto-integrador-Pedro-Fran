@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import { createBarberRouter } from '../../../src/interface-adapters/routes/barber.routes';
-import { changePasswordLimiter } from '../../../src/interface-adapters/routes/user.routes';
+import { profileUpdateLimiter } from '../../../src/interface-adapters/routes/user.routes';
 import { BarberController } from '../../../src/interface-adapters/controllers/barber/BarberController';
 import { Barber, BarberProps, BarberSchedule } from '../../../src/domain/entities/Barber';
 import {
@@ -56,7 +56,7 @@ describe('Barber routes — PUT /api/barbers/me', () => {
   };
 
   beforeEach(() => {
-    changePasswordLimiter.resetKey('barber-1');
+    profileUpdateLimiter.resetKey('barber-1');
     barberRepository = makeMockBarberRepository();
     userRepository = makeMockUserRepository();
     passwordHasher = makeMockPasswordHasher();
@@ -141,12 +141,12 @@ describe('Barber routes — PUT /api/barbers/me', () => {
     expect(response.body.email).toBe('nuevo@example.com');
   });
 
-  it('debe aplicar el rate limit compartido con el cambio de contraseña tras 5 intentos', async () => {
+  it('debe aplicar el rate limit de actualización de perfil tras 30 intentos', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
     userRepository.findByEmail.mockResolvedValue(null);
     passwordHasher.compare.mockResolvedValue(false);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 30; i++) {
       await request(app)
         .put('/api/barbers/me')
         .send({ email: 'nuevo@example.com', currentPassword: 'wrong' });

@@ -193,6 +193,7 @@ export class ProcessWebhookUseCase {
 
     const existingActive = await this.membershipRepository.findActiveByUser(userId);
     if (existingActive) {
+      console.warn(`[MP-WEBHOOK] Preapproval ${preapprovalId} autorizada pero usuario ${userId} ya tiene membresía activa ${existingActive.id} — ignorando.`);
       return;
     }
 
@@ -257,8 +258,8 @@ export class ProcessWebhookUseCase {
       return;
     }
 
-    if (membership.status === 'expired') {
-      console.log(`[MP-WEBHOOK] Pago de suscripción ${mpPayment.id} para membresía expirada ${membership.id} — ignorando.`);
+    if (membership.status === 'expired' || membership.status === 'cancelled') {
+      console.log(`[MP-WEBHOOK] Pago de suscripción ${mpPayment.id} para membresía ${membership.status} ${membership.id} — ignorando.`);
       return;
     }
 

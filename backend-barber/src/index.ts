@@ -12,6 +12,8 @@ import { MongoPaymentRepository } from './infrastructure/repositories/mongodb/Mo
 import { MongoUserRepository } from './infrastructure/repositories/mongodb/MongoUserRepository';
 import { NodemailerEmailService } from './infrastructure/services/NodemailerEmailService';
 import { createJob } from './infrastructure/jobs/jobRunner';
+import { MercadoPagoService } from './infrastructure/services/MercadoPagoService';
+import { ReconcileMembershipsUseCase } from './application/use-cases/membership/ReconcileMembershipsUseCase';
 
 const startServer = async () => {
   await connectDB();
@@ -76,6 +78,13 @@ const startServer = async () => {
       console.log(`[OrphanPaymentCancel] ${cancelled} pago(s) huérfano(s) cancelado(s) por antigüedad > 24h`);
     }
   }, 60 * 60 * 1000);
+
+  createJob('reconcile-memberships', async () => {
+    const mpService = new MercadoPagoService(config.mpAccessToken, config.mpWebhookSecret);
+    const reconcileUseCase = new ReconcileMembershipsUseCase(membershipRepo, mpService);
+    const result = await reconcileUseCase.execute();
+    console.log(`[JOBS] Reconciliación: ${result.cancelled} preapprovals canceladas, ${result.alerts} alertas.`);
+  }, 6 * 60 * 60 * 1000);
 
   const { default: app } = await import('./app');
 

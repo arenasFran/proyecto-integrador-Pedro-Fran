@@ -43,6 +43,14 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
+  async findAllWithPreapprovalId(): Promise<Membership[]> {
+    const docs = await MembershipModel.find({
+      mpPreapprovalId: { $exists: true, $ne: null },
+      status: 'cancelled',
+    }).lean();
+    return docs.map((d) => this.toDomain(d as IMembershipDocument));
+  }
+
   async findAll(filter?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Membership[]; total: number; page: number; totalPages: number; limit: number }> {
     const query: Record<string, unknown> = {};
     if (filter?.status) query.status = filter.status;

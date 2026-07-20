@@ -1,4 +1,4 @@
-export type MembershipStatus = 'active' | 'expired' | 'pending';
+export type MembershipStatus = 'active' | 'expired' | 'pending' | 'cancelled';
 
 export type MembershipSource = 'client' | 'admin';
 

@@ -33,7 +33,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     },
     status: {
       type: String,
-      enum: ['active', 'expired', 'pending'],
+      enum: ['active', 'expired', 'pending', 'cancelled'],
       default: 'active',
     },
     price: { type: Number, required: true, default: 0 },
@@ -82,7 +82,10 @@ const membershipSchema = new Schema<IMembershipDocument>(
   { timestamps: true }
 );
 
-membershipSchema.index({ userId: 1, status: 1 });
+membershipSchema.index(
+  { userId: 1, status: 1 },
+  { unique: true, partialFilterExpression: { status: 'active' } }
+);
 membershipSchema.index({ mpPreapprovalId: 1 });
 
 export const MembershipModel = mongoose.model<IMembershipDocument>('Membership', membershipSchema);

@@ -142,7 +142,18 @@ export class Membership {
   }
 
   expire(): void {
+    if (this.props.status !== 'active') {
+      throw new AppError(`No se puede expirar una membresía en estado ${this.props.status}.`, 400);
+    }
     this.props.status = 'expired';
+    this.props.updatedAt = new Date();
+  }
+
+  cancel(): void {
+    if (this.props.status !== 'active') {
+      throw new AppError(`No se puede cancelar una membresía en estado ${this.props.status}.`, 400);
+    }
+    this.props.status = 'cancelled';
     this.props.updatedAt = new Date();
   }
 

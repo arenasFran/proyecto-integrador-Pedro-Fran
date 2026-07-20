@@ -70,14 +70,31 @@ export class ProcessWebhookUseCase {
       return;
     }
 
-    if (topic !== 'payment') {
-      console.log('[MP-DEBUG-WEBHOOK] Topic desconocido:', topic, '— ignorando');
+    if (topic === 'subscription_authorized_payment') {
+      await this.processPaymentNotification(notification.data.id);
       return;
     }
 
-    console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', notification.data.id);
+    if (topic === 'payment') {
+      await this.processPaymentNotification(notification.data.id);
+      return;
+    }
 
-    const mpPaymentId = notification.data.id;
+    if (topic === 'topic_chargebacks_wh') {
+      await this.handleChargebackNotification(notification.data.id);
+      return;
+    }
+
+    if (topic === 'topic_merchant_order_wh') {
+      console.log('[MP-WEBHOOK] Notificación de merchant_order — data.id:', notification.data.id);
+      return;
+    }
+
+    console.log('[MP-WEBHOOK] Topic desconocido:', topic, '— ignorando');
+  }
+
+  private async processPaymentNotification(mpPaymentId: string): Promise<void> {
+    console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', mpPaymentId);
 
     const mpPayment = await this.mercadoPagoService.getPayment(mpPaymentId);
     if (!mpPayment) {
@@ -169,6 +186,15 @@ export class ProcessWebhookUseCase {
         break;
       default:
         break;
+    }
+  }
+
+  private async handleChargebackNotification(chargebackId: string): Promise<void> {
+    console.warn(`[MP-WEBHOOK] Chargeback recibido: ${chargebackId} — consultando detalle...`);
+    try {
+      console.warn(`[MP-WEBHOOK] Chargeback ${chargebackId} requiere acción manual.`);
+    } catch (error) {
+      console.error('[MP-WEBHOOK] Error procesando chargeback:', error);
     }
   }
 

@@ -11,12 +11,7 @@ import { MongoAppointmentRepository } from './infrastructure/repositories/mongod
 import { MongoPaymentRepository } from './infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { MongoUserRepository } from './infrastructure/repositories/mongodb/MongoUserRepository';
 import { NodemailerEmailService } from './infrastructure/services/NodemailerEmailService';
-
-const EXPIRATION_CHECK_MS = 24 * 60 * 60 * 1000;
-const PENDING_PAYMENT_CHECK_MS = 5 * 60 * 1000;
-const PENDING_PAYMENT_TIMEOUT_MIN = 30;
-const ORPHAN_PAYMENT_CHECK_MS = 60 * 60 * 1000;
-const ORPHAN_PAYMENT_TIMEOUT_HOURS = 24;
+import { createJob } from './infrastructure/jobs/jobRunner';
 
 const startServer = async () => {
   await connectDB();
@@ -26,97 +21,61 @@ const startServer = async () => {
   const appointmentRepo = new MongoAppointmentRepository();
   const paymentRepo = new MongoPaymentRepository();
   const userRepo = new MongoUserRepository();
-  let running = false;
-  let pendingPaymentRunning = false;
-  let orphanPaymentRunning = false;
 
-  const expireJob = async () => {
-    if (running) return;
-    running = true;
-    try {
-      const expired = await membershipRepo.expireExpiredMemberships();
-      if (expired > 0) {
-        console.log(`[MembershipExpiration] ${expired} expirada(s)`);
-      }
+  createJob('expire-memberships', async () => {
+    const expired = await membershipRepo.expireExpiredMemberships();
+    if (expired > 0) {
+      console.log(`[MembershipExpiration] ${expired} expirada(s)`);
+    }
 
-      const expiringSoon = await membershipRepo.findExpiringSoon(3);
-      if (expiringSoon.length > 0) {
-        const emailService = new NodemailerEmailService();
-        const userIds = expiringSoon.map((m) => m.userId);
-        const userMap = await userRepo.findByIds(userIds);
+    const expiringSoon = await membershipRepo.findExpiringSoon(3);
+    if (expiringSoon.length > 0) {
+      const emailService = new NodemailerEmailService();
+      const userIds = expiringSoon.map((m) => m.userId);
+      const userMap = await userRepo.findByIds(userIds);
 
-        let notified = 0;
-        for (const membership of expiringSoon) {
-          const user = userMap.get(membership.userId);
-          const email = user?.email;
-          if (!email) continue;
+      let notified = 0;
+      for (const membership of expiringSoon) {
+        const user = userMap.get(membership.userId);
+        const email = user?.email;
+        if (!email) continue;
 
-          const daysLeft = Math.max(0, Math.ceil((membership.endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-          try {
-            await emailService.sendMail({
-              to: email,
-              subject: 'Tu membresía está por vencer - Barbería SA',
-              html: `<p>Hola ${user.name},</p>
+        const daysLeft = Math.max(0, Math.ceil((membership.endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+        try {
+          await emailService.sendMail({
+            to: email,
+            subject: 'Tu membresía está por vencer - Barbería SA',
+            html: `<p>Hola ${user.name},</p>
 <p>Tu membresía vence en <strong>${daysLeft} día(s)</strong> (${membership.endDate.toLocaleDateString('es-UY')}).</p>
 <p>Renovala para seguir disfrutando de los beneficios.</p>`,
-            });
-            notified++;
-          } catch {
-            // continue with next membership
-          }
-        }
-        if (notified > 0) {
-          console.log(`[MembershipExpiration] ${notified} notificaciones de expiración enviadas`);
+          });
+          notified++;
+        } catch {
+          // continue with next membership
         }
       }
-    } catch (err) {
-      console.error('[MembershipExpiration] Error al procesar membresías:', err);
-    } finally {
-      running = false;
-    }
-  };
-
-  const cancelPendingPaymentAppointments = async () => {
-    if (pendingPaymentRunning) return;
-    pendingPaymentRunning = true;
-    try {
-      const cutoff = new Date(Date.now() - PENDING_PAYMENT_TIMEOUT_MIN * 60 * 1000);
-      const cancelled = await appointmentRepo.cancelPendingPaymentsOlderThan(cutoff);
-      if (cancelled > 0) {
-        console.log(`[PendingPaymentCancel] ${cancelled} turno(s) cancelado(s) por pago pendiente > ${PENDING_PAYMENT_TIMEOUT_MIN} min`);
-        await paymentRepo.cancelPendingByAppointments(cutoff);
+      if (notified > 0) {
+        console.log(`[MembershipExpiration] ${notified} notificaciones de expiración enviadas`);
       }
-    } catch (err) {
-      console.error('[PendingPaymentCancel] Error:', err);
-    } finally {
-      pendingPaymentRunning = false;
     }
-  };
+  }, 24 * 60 * 60 * 1000);
 
-  const cancelOrphanPendingPayments = async () => {
-    if (orphanPaymentRunning) return;
-    orphanPaymentRunning = true;
-    try {
-      const cutoff = new Date(Date.now() - ORPHAN_PAYMENT_TIMEOUT_HOURS * 60 * 60 * 1000);
-      const cancelled = await paymentRepo.cancelOrphanPendingPayments(cutoff);
-      if (cancelled > 0) {
-        console.log(`[OrphanPaymentCancel] ${cancelled} pago(s) huérfano(s) cancelado(s) por antigüedad > ${ORPHAN_PAYMENT_TIMEOUT_HOURS}h`);
-      }
-    } catch (err) {
-      console.error('[OrphanPaymentCancel] Error:', err);
-    } finally {
-      orphanPaymentRunning = false;
+  createJob('cancel-pending-appointments', async () => {
+    const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+    const cancelled = await appointmentRepo.cancelPendingPaymentsOlderThan(cutoff);
+    if (cancelled > 0) {
+      console.log(`[PendingPaymentCancel] ${cancelled} turno(s) cancelado(s) por pago pendiente > 30 min`);
+      await paymentRepo.cancelPendingByAppointments(cutoff);
     }
-  };
+  }, 5 * 60 * 1000);
 
-  await expireJob();
-  setInterval(expireJob, EXPIRATION_CHECK_MS);
-
-  await cancelPendingPaymentAppointments();
-  setInterval(cancelPendingPaymentAppointments, PENDING_PAYMENT_CHECK_MS);
-
-  await cancelOrphanPendingPayments();
-  setInterval(cancelOrphanPendingPayments, ORPHAN_PAYMENT_CHECK_MS);
+  createJob('cancel-orphan-payments', async () => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const cancelled = await paymentRepo.cancelOrphanPendingPayments(cutoff);
+    if (cancelled > 0) {
+      console.log(`[OrphanPaymentCancel] ${cancelled} pago(s) huérfano(s) cancelado(s) por antigüedad > 24h`);
+    }
+  }, 60 * 60 * 1000);
 
   const { default: app } = await import('./app');
 

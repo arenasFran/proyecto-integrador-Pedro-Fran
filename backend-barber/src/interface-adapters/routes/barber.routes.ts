@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { BarberController } from '../controllers/barber/BarberController';
 import { authorize, authorizeSelfOrKinds } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
-import { changePasswordLimiter } from './user.routes';
+import { changePasswordLimiter, profileUpdateLimiter } from './user.routes';
 import {
   barberIdParamSchema,
   blockIdParamSchema,
@@ -44,7 +44,7 @@ export const createBarberRouter = (deps: {
   router.put(
     '/me',
     authorize('Empleado', 'Admin'),
-    changePasswordLimiter,
+    profileUpdateLimiter,
     validate({ body: updateBarberMeSchema }),
     deps.barberController.updateMe
   );

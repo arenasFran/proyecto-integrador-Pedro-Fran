@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { FiUpload, FiX, FiCheck } from 'react-icons/fi';
-import { Spinner } from '../common';
+import { Spinner, useToast } from '../common';
 import { getAccessToken } from '../../services/api';
 
 interface ProductImageUploadProps {
@@ -16,6 +16,7 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
   const mainInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const { showToast } = useToast();
 
   const uploadFiles = async (files: File[]): Promise<string[]> => {
     setUploading(true);
@@ -28,11 +29,14 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
         body: formData,
         credentials: 'include',
       });
-      if (!res.ok) return [];
+      if (!res.ok) {
+        showToast('Error al subir imágenes. Verificá el formato y tamaño.', 'error');
+        return [];
+      }
       const json = await res.json();
       return json.urls ?? [];
     } catch (err) {
-      console.error('[UPLOAD DEBUG] Error:', err);
+      showToast('Error de conexión al subir imágenes.', 'error');
       return [];
     } finally {
       setUploading(false);
@@ -40,6 +44,7 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
   };
 
   const handleMainSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (uploading) return;
     const file = e.target.files?.[0];
     if (!file || !ACCEPTED_TYPES.includes(file.type)) return;
     const urls = await uploadFiles([file]);
@@ -48,6 +53,7 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
   };
 
   const handleGallerySelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (uploading) return;
     const files = Array.from(e.target.files ?? []);
     const valid = files.filter((f) => ACCEPTED_TYPES.includes(f.type));
     const remaining = 4 - galleryUrls.length;

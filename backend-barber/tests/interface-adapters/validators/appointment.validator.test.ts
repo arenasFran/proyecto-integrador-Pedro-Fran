@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { createAppointmentSchema } from '../../../src/interface-adapters/validators/appointment.validator';
 
 const validPayload = {
-  barberId: 'barber-1',
+  barberId: '507f1f77bcf86cd799439011',
   serviceId: new mongoose.Types.ObjectId().toString(),
   date: '2099-01-01',
   startTime: '10:00',

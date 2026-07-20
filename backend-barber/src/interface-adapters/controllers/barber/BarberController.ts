@@ -421,5 +421,53 @@ export class BarberController {
       return sendError(res, error, 'Error al eliminar bloque');
     }
   };
+
+  getOccupancy = async (req: Request, res: Response) => {
+    try {
+      const id = String(req.params.id);
+      const date = String(req.query.date || '');
+
+      const barber = await this.barberRepository.findBarberById(id);
+      if (!barber) {
+        throw new AppError('Barbero no encontrado.', 404);
+      }
+
+      const appointments = await this.appointmentRepository.findByBarberAndDate(id, date);
+      const activeAppointments = appointments.filter((a) => a.status !== 'Cancelado');
+
+      const totalSlots = barber.schedule
+        ? Object.values(barber.schedule).reduce((sum, day) => {
+            if (!day || !day.startTime || !day.endTime) return sum;
+            const [sh, sm] = day.startTime.split(':').map(Number);
+            const [eh, em] = day.endTime.split(':').map(Number);
+            return sum + Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / barber.slotDuration);
+          }, 0)
+        : 0;
+
+      const blocks = await this.blockRepository.findByBarberAndDate(id, date);
+      const blockedSlots = blocks.reduce((sum, b) => {
+        const [sh, sm] = b.startTime.split(':').map(Number);
+        const [eh, em] = b.endTime.split(':').map(Number);
+        return sum + Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / barber.slotDuration);
+      }, 0);
+
+      const availableSlots = Math.max(0, totalSlots - blockedSlots);
+      const ocupacion = availableSlots > 0
+        ? Math.round((activeAppointments.length / availableSlots) * 100)
+        : 0;
+
+      return sendSuccess(res, {
+        barberId: id,
+        date,
+        totalSlots,
+        blockedSlots,
+        availableSlots,
+        appointmentsCount: activeAppointments.length,
+        ocupacion,
+      }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener ocupación');
+    }
+  };
 }
 

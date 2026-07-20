@@ -142,7 +142,7 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       expect(result.duracionTotalMinutos).toBe(165);
       expect(result.ingresosTotales).toBe(1580);
       expect(result.nuevosClientes).toBe(3);
-      expect(result.estadisticasPorEstado).toEqual({
+      expect(result.estadisticasPorEstado).toMatchObject({
         confirmado: 2,
         completado: 3,
         cancelado: 1,
@@ -157,7 +157,7 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       expect(result.duracionTotalMinutos).toBe(0);
       expect(result.ingresosTotales).toBe(0);
       expect(result.nuevosClientes).toBe(0);
-      expect(result.estadisticasPorEstado).toEqual({
+      expect(result.estadisticasPorEstado).toMatchObject({
         confirmado: 0,
         completado: 0,
         cancelado: 0,

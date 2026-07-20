@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "mercadopago": {
+      "type": "remote",
+      "url": "https://mcp.mercadopago.com/mcp",
+      "enabled": true,
+      "headers": {
+        "Authorization": "Bearer APP_USR-6182256402491286-070919-fd7e1e3e1bb3e2d55362919f97b3a976-3530227348"
+      }
+    }
+  }
+}

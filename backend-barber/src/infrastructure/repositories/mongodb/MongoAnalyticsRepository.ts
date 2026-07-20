@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 import { STATUS_CATEGORIES, VALID_TRANSITIONS } from '../../../domain/types/appointment';
 import AppointmentModel from './models/appointment.model';
+import { PaymentModel } from './models/payment.model';
+import { OrderModel } from './models/order.model';
+import { MembershipModel } from './models/membership.model';
+import { parseLocalDate, parseLocalDateRange } from '../../../common/dateUtils';
 import { Client } from './models/client.model';
 
 const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
@@ -13,7 +17,11 @@ export type OverviewResult = {
   ingresosTotales: number;
   ingresosPendientes: number;
   nuevosClientes: number;
+  membresiasActivas: number;
+  clientesUnicos: number;
   estadisticasPorEstado: Record<string, number>;
+  totalOrders: number;
+  cancelledOrders: number;
 };
 
 export type HeatmapEntry = {
@@ -106,8 +114,7 @@ function endOfDayDate(hasta: string): Date {
 
 export class MongoAnalyticsRepository {
   async getOverview(desde: string, hasta: string): Promise<OverviewResult> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const facetPipeline = [
       DATE_CONVERSION_STAGE,
@@ -120,7 +127,7 @@ export class MongoAnalyticsRepository {
             { $group: { _id: null, total: { $sum: '$serviceDuration' } } },
           ],
           ingresosTotales: [
-            { $match: { status: { $in: STATUS_CATEGORIES.countsAsRevenue } } },
+            { $match: { $or: [{ status: { $in: STATUS_CATEGORIES.countsAsRevenue } }, { paymentStatus: 'Pagado', status: 'Confirmado' }] } },
             { $group: { _id: null, total: { $sum: '$servicePrice' } } },
           ],
           ingresosPendientes: [
@@ -143,7 +150,37 @@ export class MongoAnalyticsRepository {
       { $count: 'total' },
     ] as mongoose.PipelineStage[];
 
-    const nuevosClientes = await Client.aggregate(nuevosClientesPipeline);
+    const paymentRevenuePipeline = (statusFilter: string) => [
+      { $match: { type: { $in: ['product_order', 'membership'] }, status: statusFilter, createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ] as mongoose.PipelineStage[];
+
+    const membershipPendingPipeline = [
+      { $match: { type: 'membership', status: 'pending', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ] as mongoose.PipelineStage[];
+
+    const ordersPendingPipeline = [
+      { $match: { status: 'pending', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$total' } } },
+    ] as mongoose.PipelineStage[];
+
+    const [nuevosClientes, commerceAndMembershipRevenue, membershipPending, ordersPending, membresiasActivasResult, clientesUnicosResult] = await Promise.all([
+      Client.aggregate(nuevosClientesPipeline),
+      PaymentModel.aggregate(paymentRevenuePipeline('approved')),
+      PaymentModel.aggregate(membershipPendingPipeline),
+      OrderModel.aggregate(ordersPendingPipeline),
+      MembershipModel.aggregate([
+        { $match: { status: 'active', endDate: { $gte: new Date() } } },
+        { $count: 'total' },
+      ] as mongoose.PipelineStage[]),
+      AppointmentModel.aggregate([
+        DATE_CONVERSION_STAGE,
+        { $match: { dateObj: { $gte: desdeDate, $lte: hastaDate }, status: { $in: STATUS_CATEGORIES.countsAsActivity } } },
+        { $group: { _id: { $ifNull: ['$clientId', '$clientPhone'] } } },
+        { $group: { _id: null, unique: { $sum: 1 } } },
+      ] as mongoose.PipelineStage[]),
+    ]);
 
     const estadisticasPorEstado: Record<string, number> = Object.fromEntries(
       Object.keys(VALID_TRANSITIONS).map((status) => [
@@ -152,13 +189,34 @@ export class MongoAnalyticsRepository {
       ])
     );
 
+    const ecommerceAgg = await OrderModel.aggregate([
+      { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      {
+        $facet: {
+          totalOrders: [{ $count: 'count' }],
+          cancelledCount: [{ $match: { status: 'cancelled' } }, { $count: 'count' }],
+        },
+      },
+    ]);
+
+    const ecommerceData = ecommerceAgg[0] || { totalOrders: [], cancelledCount: [] };
+    const totalOrders = (ecommerceData.totalOrders as Array<{ count: number }>)[0]?.count ?? 0;
+    const cancelledOrdersEcom = (ecommerceData.cancelledCount as Array<{ count: number }>)[0]?.count ?? 0;
+
+    estadisticasPorEstado['cancelled_order'] = cancelledOrdersEcom;
+    estadisticasPorEstado['total_orders'] = totalOrders;
+
     return {
       totalReservas: (data.totalReservas as Array<{ count: number }>)[0]?.count ?? 0,
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
-      ingresosTotales: (data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0,
-      ingresosPendientes: (data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0,
+      ingresosTotales: ((data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0) + (commerceAndMembershipRevenue[0]?.total ?? 0),
+      ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (membershipPending[0]?.total ?? 0) + (ordersPending[0]?.total ?? 0),
       nuevosClientes: nuevosClientes[0]?.total ?? 0,
+      membresiasActivas: (membresiasActivasResult as Array<{ total: number }>)[0]?.total ?? 0,
+      clientesUnicos: (clientesUnicosResult as Array<{ unique: number }>)[0]?.unique ?? 0,
       estadisticasPorEstado,
+      totalOrders,
+      cancelledOrders: cancelledOrdersEcom,
     };
   }
 
@@ -172,8 +230,8 @@ export class MongoAnalyticsRepository {
       gte = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
     } else {
       const year = param.year ?? new Date().getFullYear();
-      gte = new Date(`${year}-01-01`);
-      lte = new Date(`${year}-12-31`);
+      gte = parseLocalDate(`${year}-01-01`);
+      lte = parseLocalDate(`${year}-12-31`);
     }
 
     const pipeline = [
@@ -198,8 +256,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getDistribucion(desde: string, hasta: string): Promise<DistribucionEntry[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
       DATE_CONVERSION_STAGE,
@@ -216,7 +273,7 @@ export class MongoAnalyticsRepository {
           ingresos: {
             $sum: {
               $cond: [
-                { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
                 '$servicePrice',
                 0,
               ],
@@ -258,8 +315,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getHorasDistribution(desde: string, hasta: string, barberId?: string): Promise<{ hora: number; cantidad: number }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const matchStage: Record<string, unknown> = {
       dateObj: { $gte: desdeDate, $lte: hastaDate },
@@ -284,8 +340,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getDiasSemanaDistribution(desde: string, hasta: string, barberId?: string): Promise<{ dia: number; diaNombre: string; cantidad: number }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const matchStage: Record<string, unknown> = {
       dateObj: { $gte: desdeDate, $lte: hastaDate },
@@ -319,9 +374,10 @@ export class MongoAnalyticsRepository {
   }
 
   async getClientesRecurrentes(desde: string, hasta: string): Promise<{ totalClientes: number; recurrentes: number; tasaRetorno: number; nuevos: number }> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
     const pipeline = [
       DATE_CONVERSION_STAGE,
-      { $match: { dateObj: { $gte: new Date(desde), $lte: new Date(hasta) }, status: { $in: STATUS_CATEGORIES.countsAsActivity } } },
+      { $match: { dateObj: { $gte: desdeDate, $lte: hastaDate }, status: { $in: STATUS_CATEGORIES.countsAsActivity } } },
       {
         $group: {
           _id: { $ifNull: ['$clientId', '$clientPhone'] },
@@ -389,8 +445,7 @@ export class MongoAnalyticsRepository {
   }
 
   async getIngresosPorServicio(desde: string, hasta: string): Promise<{ serviceId: string; serviceName: string; cantidad: number; ingresos: number }[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
     const pipeline = [
       DATE_CONVERSION_STAGE,
@@ -407,7 +462,7 @@ export class MongoAnalyticsRepository {
           ingresos: {
             $sum: {
               $cond: [
-                { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
                 '$servicePrice',
                 0,
               ],
@@ -427,21 +482,61 @@ export class MongoAnalyticsRepository {
       { $sort: { ingresos: -1 } },
     ] as mongoose.PipelineStage[];
 
-    return AppointmentModel.aggregate(pipeline);
+    const [services, productTotal] = await Promise.all([
+      AppointmentModel.aggregate(pipeline),
+      PaymentModel.aggregate([
+        { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+      ] as mongoose.PipelineStage[]),
+    ]);
+
+    if (productTotal[0]?.total > 0) {
+      services.push({
+        serviceId: '__productos__',
+        serviceName: 'Productos',
+        cantidad: productTotal[0].count,
+        ingresos: productTotal[0].total,
+      });
+    }
+
+    const membershipAgg = await PaymentModel.aggregate([
+      { $match: { type: 'membership', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      { $group: { _id: null, total: { $sum: '$amount' }, count: { $sum: 1 } } },
+    ] as mongoose.PipelineStage[]);
+
+    if (membershipAgg[0]?.total > 0) {
+      services.push({
+        serviceId: '__memberships__',
+        serviceName: 'Membresías',
+        cantidad: membershipAgg[0].count,
+        ingresos: membershipAgg[0].total,
+      });
+    }
+
+    return services;
   }
 
-  async getClientesList(desde: string, hasta: string): Promise<ClienteListEntry[]> {
-    const desdeDate = new Date(desde);
-    const hastaDate = new Date(hasta);
+  async getClientesList(desde: string, hasta: string, search?: string): Promise<ClienteListEntry[]> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    const matchStage: Record<string, unknown> = { registeredAt: { $lte: endOfDayDate(hasta) } };
+
+    if (search && search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = { $regex: escaped, $options: 'i' };
+      matchStage.$or = [
+        { name: regex },
+        { lastname: regex },
+        { email: regex },
+        { contactEmail: regex },
+        { phone: regex },
+      ];
+    }
 
     const pipeline = [
       REGISTERED_AT_STAGE,
-      // El listado es el padrón de clientes existentes al fin del rango;
-      // el rango [desde, hasta] solo acota las estadísticas de actividad.
-      { $match: { registeredAt: { $lte: endOfDayDate(hasta) } } },
+      { $match: matchStage },
       {
-        // Turnos del período: por clientId (los anónimos nuevos también lo
-        // guardan) o, para turnos anónimos legacy sin clientId, por teléfono.
         $lookup: {
           from: 'appointments',
           let: { cid: '$_id', phone: '$phone' },
@@ -474,9 +569,20 @@ export class MongoAnalyticsRepository {
                 },
               },
             },
-            { $project: { _id: 0, date: 1, status: 1, servicePrice: 1 } },
+            { $project: { _id: 0, date: 1, status: 1, servicePrice: 1, paymentStatus: 1 } },
           ],
           as: 'turnos',
+        },
+      },
+      {
+        $lookup: {
+          from: 'orders',
+          let: { clientOid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$userId', { $toString: '$$clientOid' }] }, status: { $in: ['paid', 'delivered'] } } },
+            { $group: { _id: null, total: { $sum: '$total' } } },
+          ],
+          as: 'orderSpending',
         },
       },
       {
@@ -501,6 +607,17 @@ export class MongoAnalyticsRepository {
         },
       },
       {
+        $lookup: {
+          from: 'membershiptransactions',
+          let: { uid: '$_id' },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$userId', { $toString: '$$uid' }] } } },
+            { $group: { _id: null, total: { $sum: '$amount' } } },
+          ],
+          as: 'membershipSpending',
+        },
+      },
+      {
         $project: {
           _id: 0,
           key: {
@@ -519,13 +636,19 @@ export class MongoAnalyticsRepository {
           registeredAt: { $dateToString: { date: '$registeredAt' } },
           totalVisits: { $size: '$turnos' },
           totalSpent: {
-            $sum: {
-              $map: {
-                input: '$turnos',
-                as: 't',
-                in: { $cond: [{ $in: ['$$t.status', STATUS_CATEGORIES.countsAsRevenue] }, '$$t.servicePrice', 0] },
+            $add: [
+              {
+                $sum: {
+                  $map: {
+                    input: '$turnos',
+                    as: 't',
+                    in: { $cond: [{ $or: [{ $in: ['$$t.status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$$t.status', 'Confirmado'] }, { $eq: ['$$t.paymentStatus', 'Pagado'] }] }] }, '$$t.servicePrice', 0] },
+                  },
+                },
               },
-            },
+              { $ifNull: [{ $arrayElemAt: ['$orderSpending.total', 0] }, 0] },
+              { $ifNull: [{ $arrayElemAt: ['$membershipSpending.total', 0] }, 0] },
+            ],
           },
           firstVisit: { $ifNull: [{ $min: '$turnos.date' }, null] },
           lastVisit: { $ifNull: [{ $max: '$turnos.date' }, null] },
@@ -614,7 +737,7 @@ export class MongoAnalyticsRepository {
             ganancias: {
               $sum: {
                 $cond: [
-                  { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                  { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
                   '$servicePrice',
                   0,
                 ],
@@ -629,7 +752,7 @@ export class MongoAnalyticsRepository {
             ganancias: {
               $sum: {
                 $cond: [
-                  { $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] },
+                  { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
                   '$servicePrice',
                   0,
                 ],
@@ -646,6 +769,137 @@ export class MongoAnalyticsRepository {
       { $sort: { periodo: 1 } },
     ] as mongoose.PipelineStage[];
 
-    return AppointmentModel.aggregate(pipeline);
+    const paymentFormat = isSingleDay ? '%Y-%m-%d %H:%M' : dateFormat;
+    const [appointmentData, paymentData] = await Promise.all([
+      AppointmentModel.aggregate(pipeline),
+      PaymentModel.aggregate([
+        { $match: { type: { $in: ['product_order', 'membership'] }, status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: paymentFormat, date: '$createdAt' } },
+            ganancias: { $sum: '$amount' },
+          },
+        },
+        { $project: { _id: 0, periodo: '$_id', ganancias: 1 } },
+        { $sort: { periodo: 1 } },
+      ] as mongoose.PipelineStage[]),
+    ]);
+
+    const paymentMap = new Map(paymentData.map((p) => [p.periodo, p.ganancias]));
+    const appointmentPeriods = new Set(appointmentData.map((e) => e.periodo));
+
+    const merged: ReservasGananciasEntry[] = appointmentData.map((entry) => ({
+      ...entry,
+      ganancias: entry.ganancias + (paymentMap.get(entry.periodo) ?? 0),
+    }));
+
+    for (const p of paymentData) {
+      if (!appointmentPeriods.has(p.periodo)) {
+        merged.push({ periodo: p.periodo, cantidadReservas: 0, ganancias: p.ganancias });
+      }
+    }
+
+    merged.sort((a, b) => a.periodo.localeCompare(b.periodo));
+    return merged;
+  }
+
+  async getEcommerceOverview(desde: string, hasta: string): Promise<{
+    totalOrders: number;
+    totalRevenue: number;
+    averageTicket: number;
+    ordersByStatus: Record<string, number>;
+    paidOrders: number;
+    cancelledOrders: number;
+  }> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    const [ordersAgg, paymentsAgg] = await Promise.all([
+      OrderModel.aggregate([
+        { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        {
+          $facet: {
+            total: [{ $count: 'count' }],
+            byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
+          },
+        },
+      ]),
+      PaymentModel.aggregate([
+        { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+        { $group: { _id: null, total: { $sum: '$amount' }, avg: { $avg: '$amount' } } },
+      ]),
+    ]);
+
+    const ordersData = ordersAgg[0] || { total: [], byStatus: [] };
+    const totalOrders = ordersData.total[0]?.count ?? 0;
+    const byStatusArr: Array<{ _id: string; count: number }> = ordersData.byStatus || [];
+    const ordersByStatus: Record<string, number> = {};
+    for (const s of byStatusArr) {
+      ordersByStatus[s._id] = s.count;
+    }
+
+    const paymentTotal = paymentsAgg[0]?.total ?? 0;
+    const averageTicket = paymentsAgg[0]?.avg ? Math.round(paymentsAgg[0].avg) : 0;
+
+    return {
+      totalOrders,
+      totalRevenue: Math.round(paymentTotal),
+      averageTicket,
+      ordersByStatus,
+      paidOrders: ordersByStatus['paid'] ?? 0,
+      cancelledOrders: ordersByStatus['cancelled'] ?? 0,
+    };
+  }
+
+  async getProductPerformance(desde: string, hasta: string): Promise<{
+    productId: string;
+    name: string;
+    totalSold: number;
+    totalRevenue: number;
+    timesOrdered: number;
+  }[]> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    const pipeline = [
+      { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate }, status: { $in: ['paid', 'delivered'] } } },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: { productId: '$items.productId', name: '$items.name' },
+          totalSold: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
+          timesOrdered: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          productId: '$_id.productId',
+          name: '$_id.name',
+          totalSold: 1,
+          totalRevenue: 1,
+          timesOrdered: 1,
+        },
+      },
+      { $sort: { totalRevenue: -1 } },
+    ] as mongoose.PipelineStage[];
+
+    return OrderModel.aggregate(pipeline);
+  }
+
+  async getMembershipRevenue(desde: string, hasta: string): Promise<ReservasGananciasEntry[]> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    return PaymentModel.aggregate([
+      { $match: { type: 'membership', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+          ganancias: { $sum: '$amount' },
+          cantidadReservas: { $sum: 1 },
+        },
+      },
+      { $project: { _id: 0, periodo: '$_id', ganancias: 1, cantidadReservas: 1 } },
+      { $sort: { periodo: 1 } },
+    ] as mongoose.PipelineStage[]);
   }
 }

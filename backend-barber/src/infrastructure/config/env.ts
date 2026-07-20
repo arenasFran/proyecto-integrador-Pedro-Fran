@@ -26,6 +26,10 @@ export type Config = {
   cloudinaryCloudName: string;
   cloudinaryApiKey: string;
   cloudinaryApiSecret: string;
+  mpAccessToken: string | undefined;
+  mpWebhookSecret: string | undefined;
+  mpNotificationUrl: string | undefined;
+  membershipPriceUyu: number;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -100,12 +104,16 @@ export function loadConfig(): Config {
     cloudinaryCloudName: requireEnv('CLOUDINARY_CLOUD_NAME'),
     cloudinaryApiKey: requireEnv('CLOUDINARY_API_KEY'),
     cloudinaryApiSecret: requireEnv('CLOUDINARY_API_SECRET'),
+    mpAccessToken: process.env.MP_ACCESS_TOKEN || undefined,
+    mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
+    mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
+    membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
     rateLimit: {
-      login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 5), windowMs: 15 * 60 * 1000 },
-      register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 10), windowMs: 15 * 60 * 1000 },
-      reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 3), windowMs: 15 * 60 * 1000 },
-      twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 5), windowMs: 15 * 60 * 1000 },
-      google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 5), windowMs: 15 * 60 * 1000 },
+      login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
+      register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },
+      reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 20), windowMs: 15 * 60 * 1000 },
+      twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 30), windowMs: 15 * 60 * 1000 },
+      google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 20), windowMs: 15 * 60 * 1000 },
     },
   };
 }
@@ -123,6 +131,39 @@ export function validateEnv(): Config {
   try {
     const config = loadConfig();
     console.log('Variables de entorno validadas correctamente.');
+
+    if (config.mpAccessToken) {
+      const isTestToken = config.mpAccessToken.startsWith('TEST-');
+      const isProdToken = config.mpAccessToken.startsWith('APP_USR-');
+      if (isProdToken && config.mpNotificationUrl && config.mpNotificationUrl.includes('localhost')) {
+        console.warn('[MP-CREDENTIALS] ATENCION: Usando token PRODUCTIVO (APP_USR-) con notification_url local. Los webhooks no funcionaran en produccion.');
+      }
+      if (isTestToken) {
+        console.log('[MP-CREDENTIALS] Usando credenciales de TEST (sandbox). OK para desarrollo.');
+      } else if (isProdToken) {
+        console.log('[MP-CREDENTIALS] Usando credenciales PRODUCTIVAS (APP_USR-).');
+      } else {
+        console.warn('[MP-CREDENTIALS] El token no tiene prefijo TEST- ni APP_USR-. Verifica que sea valido.');
+      }
+    } else {
+      console.warn('[MP-CREDENTIALS] MP_ACCESS_TOKEN no configurado. MercadoPago no estara disponible.');
+    }
+
+    if (config.mpWebhookSecret) {
+      console.log('[MP-CREDENTIALS] MP_WEBHOOK_SECRET configurado. HMAC habilitado.');
+    } else {
+      console.warn('[MP-CREDENTIALS] MP_WEBHOOK_SECRET no configurado. La validacion HMAC del webhook fallara siempre.');
+    }
+
+    if (config.mpNotificationUrl) {
+      const isLocal = /localhost|127\.0\.0\.1|192\.168\./.test(config.mpNotificationUrl);
+      if (isLocal) {
+        console.warn('[MP-CREDENTIALS] MP_NOTIFICATION_URL apunta a ' + config.mpNotificationUrl + ' (local). Para recibir webhooks de MP usa ngrok o similar.');
+      } else {
+        console.log('[MP-CREDENTIALS] MP_NOTIFICATION_URL: ' + config.mpNotificationUrl);
+      }
+    }
+
     return config;
   } catch (error) {
     if (error instanceof Error) {

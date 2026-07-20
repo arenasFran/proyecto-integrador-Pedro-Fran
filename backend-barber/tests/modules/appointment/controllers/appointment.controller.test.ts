@@ -225,6 +225,7 @@ describe('AppointmentController', () => {
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };
+      (req as any).query = {};
       const res = createMockRes();
 
       await controller.getById(req, res);
@@ -238,6 +239,7 @@ describe('AppointmentController', () => {
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };
+      (req as any).query = {};
       const res = createMockRes();
 
       await controller.getById(req, res);
@@ -273,6 +275,7 @@ describe('AppointmentController', () => {
       const req = createMockReq();
       (req as any).user = { _id: 'client-1', kind: 'Registrado' };
       (req as any).params = { id: 'apt-1' };
+      (req as any).query = {};
       const res = createMockRes();
 
       await controller.getById(req, res);

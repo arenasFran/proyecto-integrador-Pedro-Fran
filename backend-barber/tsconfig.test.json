@@ -4,5 +4,6 @@
     "types": ["node", "jest"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "jest.setup.ts"]
+  "include": ["src", "tests", "jest.setup.ts"],
+  "files": ["src/interface-adapters/types/express.d.ts", "src/infrastructure/services/mercadopago.d.ts"]
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { FiBarChart2, FiCalendar, FiGrid, FiPieChart, FiClock, FiDollarSign } from 'react-icons/fi';
+import { FiBarChart2, FiCalendar, FiGrid, FiPieChart, FiClock, FiDollarSign, FiShoppingCart } from 'react-icons/fi';
 import { AnimatedContainer, Button, Spinner } from '../../../components/common';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
@@ -17,8 +17,10 @@ import HourDistributionChart from './components/HourDistributionChart';
 import DayOfWeekChart from './components/DayOfWeekChart';
 import BarberComparisonTable from './components/BarberComparisonTable';
 import RevenueByServiceChart from './components/RevenueByServiceChart';
+import EcommerceTab from './components/EcommerceTab';
+import RecentActivity from './components/RecentActivity';
 
-type TabKey = 'resumen' | 'tendencia' | 'distribucion' | 'horario' | 'servicios';
+type TabKey = 'resumen' | 'tendencia' | 'distribucion' | 'horario' | 'servicios' | 'ecommerce';
 
 const TABS: { key: TabKey; label: string; icon: React.ComponentType }[] = [
   { key: 'resumen', label: 'Resumen', icon: FiGrid },
@@ -26,6 +28,7 @@ const TABS: { key: TabKey; label: string; icon: React.ComponentType }[] = [
   { key: 'distribucion', label: 'Distribución', icon: FiPieChart },
   { key: 'horario', label: 'Horario', icon: FiClock },
   { key: 'servicios', label: 'Servicios', icon: FiDollarSign },
+  { key: 'ecommerce', label: 'Ecommerce', icon: FiShoppingCart },
 ];
 
 function renderHeader(showDateRange: boolean, onDateRangeChange: (d: string, h: string) => void) {
@@ -44,7 +47,7 @@ export default function DashboardPage() {
   const [hasta, setHasta] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
 
-  const { data: overview, isLoading, error: rtkError } = useGetOverviewQuery(
+  const { data: overview, isLoading, error: rtkError, refetch: refetchOverview } = useGetOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
@@ -117,7 +120,7 @@ export default function DashboardPage() {
                 <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
               </AnimatedContainer>
               <AnimatedContainer animation="fadeInUp" delay={0.2}>
-                <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} />
+                <KpiCards data={overview ?? null} loading={loading} error={error} desde={desde} hasta={hasta} onRefresh={refetchOverview} />
               </AnimatedContainer>
               <AnimatedContainer animation="fadeInUp" delay={0.3}>
                 <StatusBreakdown
@@ -127,6 +130,9 @@ export default function DashboardPage() {
                   desde={desde}
                   hasta={hasta}
                 />
+              </AnimatedContainer>
+              <AnimatedContainer animation="fadeInUp" delay={0.35}>
+                <RecentActivity />
               </AnimatedContainer>
             </>
           )}
@@ -170,6 +176,12 @@ export default function DashboardPage() {
           {activeTab === 'servicios' && (
             <AnimatedContainer animation="fadeInUp" delay={0.2}>
               <RevenueByServiceChart />
+            </AnimatedContainer>
+          )}
+
+          {activeTab === 'ecommerce' && (
+            <AnimatedContainer animation="fadeInUp" delay={0.2}>
+              <EcommerceTab desde={desde} hasta={hasta} />
             </AnimatedContainer>
           )}
         </>

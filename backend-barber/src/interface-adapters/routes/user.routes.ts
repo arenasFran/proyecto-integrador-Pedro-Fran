@@ -14,6 +14,15 @@ export const changePasswordLimiter = rateLimit({
   keyGenerator: (req) => req.user!._id,
 });
 
+export const profileUpdateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Demasiadas actualizaciones de perfil, esperá 15 minutos' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user!._id,
+});
+
 export const createUserRouter = (deps: {
   authenticate: express.RequestHandler;
   userController: UserController;
@@ -26,9 +35,16 @@ export const createUserRouter = (deps: {
     '/me',
     deps.authenticate,
     authorize('Registrado'),
-    changePasswordLimiter,
+    profileUpdateLimiter,
     validate({ body: updateUserSchema }),
     deps.userController.updateMe
+  );
+
+  router.get(
+    '/clients',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.userController.getClients
   );
 
   router.patch(

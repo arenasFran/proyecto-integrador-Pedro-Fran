@@ -2,6 +2,7 @@ import api from './api';
 import type { BarberPublic } from '../types/booking';
 import type {
   BarberSchedule,
+  OccupancyResponse,
   Professional,
   ProfessionalPayload,
   ProfessionalUpdatePayload,
@@ -109,6 +110,13 @@ export const professionalService = {
   getSlots: async (id: string, date: string, excludeAppointmentId?: string): Promise<SlotsResponse> => {
     const response = await api.get<SlotsResponse>(`/api/barbers/${id}/slots`, {
       params: excludeAppointmentId ? { date, excludeAppointmentId } : { date },
+    });
+    return response.data;
+  },
+
+  getOccupancy: async (id: string, date: string): Promise<OccupancyResponse> => {
+    const response = await api.get<OccupancyResponse>(`/api/barbers/${id}/occupancy`, {
+      params: { date },
     });
     return response.data;
   },

@@ -7,6 +7,7 @@ import { ToastProvider } from '../components/common';
 import authReducer from '../store/slices/authSlice';
 import barbersReducer from '../store/slices/barbersSlice';
 import { authApi } from '../services/authApi';
+import { paymentApi } from '../services/paymentApi';
 import type { RootState } from '../store';
 
 interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
@@ -20,9 +21,10 @@ function createTestStore(preloadedState?: Partial<RootState>) {
       auth: authReducer,
       barbers: barbersReducer,
       [authApi.reducerPath]: authApi.reducer,
+      [paymentApi.reducerPath]: paymentApi.reducer,
     } as any,
     middleware: (getDefaultMiddleware) =>
-      getDefaultMiddleware().concat(authApi.middleware),
+      getDefaultMiddleware().concat(authApi.middleware, paymentApi.middleware),
     preloadedState,
   });
 }

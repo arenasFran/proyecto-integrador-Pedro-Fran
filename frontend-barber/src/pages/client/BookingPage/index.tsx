@@ -1,37 +1,34 @@
-import React, { useEffect, useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useState } from 'react';
 import { FiScissors } from 'react-icons/fi';
-import { AnimatedContainer, AppFooter } from '../../../components/common';
-import { AppHeader } from '../../../components/common/AppHeader';
-import { AppSidebar } from '../../../components/sidebar/AppSidebar';
+import { useNavigate } from 'react-router-dom';
 import { PublicHeader } from '../../../components/client/PublicHeader';
-import { getAccessToken } from '../../../services/api';
-import { getTokenKind } from '../../../utils/token';
 import {
-  AccordionStep,
-  ClientDataOverlay,
-  BarberSelectionStep,
-  ServiceSelectionStep,
-  DateTimeStep,
+    AccordionStep,
+    BarberSelectionStep,
+    ClientDataOverlay,
+    DateTimeStep,
+    ServiceSelectionStep,
 } from '../../../components/client/booking';
+import { AnimatedContainer, AppFooter } from '../../../components/common';
+import PaymentModal from '../../../components/payment/PaymentModal';
+import { useGetMyMembershipQuery } from '../../../services/membershipApi';
+import { useGetServicesQuery } from '../../../services/service.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
-  fetchPublicBarbers,
-  setServices,
-  setSelectedBarber,
-  setSelectedService,
-  setSelectedDate,
-  setSelectedTime,
-  setPaymentMethod,
-  setClientData,
-  setCurrentStep,
-  submitAppointment,
-  resetBooking,
+    fetchPublicBarbers,
+    resetBooking,
+    setClientData,
+    setCurrentStep,
+    setPaymentMethod,
+    setSelectedBarber,
+    setSelectedDate,
+    setSelectedService,
+    setSelectedTime,
+    setServices,
+    submitAppointment,
 } from '../../../store/slices/bookingSlice';
-import { useGetServicesQuery } from '../../../services/service.api';
-import { useGetMyMembershipQuery } from '../../../services/membershipApi';
+import type { BarberPublic, BookingStep, PaymentMethod } from '../../../types/booking';
 import { formatDate } from '../../../utils/formatDate';
-import type { BookingStep, BarberPublic, PaymentMethod } from '../../../types/booking';
 
 const getTodayString = (): string => {
   const d = new Date();
@@ -90,9 +87,6 @@ export const BookingPage: React.FC = () => {
 
   const [anyBarber, setAnyBarber] = React.useState(false);
   const [showClientForm, setShowClientForm] = React.useState(false);
-  const [collapsed, setCollapsed] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const tokenKind = getTokenKind(getAccessToken());
   const allStepsComplete = areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime);
   const [prevComplete, setPrevComplete] = React.useState(false);
   if (allStepsComplete !== prevComplete) {
@@ -176,12 +170,24 @@ export const BookingPage: React.FC = () => {
   }, [dispatch]);
 
   const navigate = useNavigate();
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  const preferenceId = useAppSelector((state) => state.booking.async.preferenceId);
 
   useEffect(() => {
     if (submitSuccess) {
-      navigate('/mis-turnos');
+      if (preferenceId) {
+        setShowPaymentModal(true);
+      } else {
+        navigate('/mis-turnos');
+      }
     }
-  }, [submitSuccess, navigate]);
+  }, [submitSuccess, preferenceId, navigate]);
+
+  const handlePaymentClose = () => {
+    setShowPaymentModal(false);
+    navigate('/mis-turnos');
+  };
 
   const isStep3Complete = !!selectedDate && !!selectedTime;
 
@@ -298,27 +304,17 @@ export const BookingPage: React.FC = () => {
         onSubmit={handleSubmit}
         onClose={() => setShowClientForm(false)}
       />
+      <PaymentModal
+        isOpen={showPaymentModal}
+        preferenceId={preferenceId || ''}
+        onClose={handlePaymentClose}
+        title="Pagar turno"
+      />
     </>
   );
 
   if (authUser) {
-    return (
-      <div className="min-h-screen bg-[#050505]">
-        <AppSidebar
-          collapsed={collapsed}
-          onToggle={() => setCollapsed(!collapsed)}
-          onCloseMobile={() => setSidebarOpen(false)}
-          mobileOpen={sidebarOpen}
-          kind={tokenKind}
-        />
-        <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
-          <AppHeader onToggleSidebar={() => setSidebarOpen(true)} />
-          <main className="p-4 sm:p-6 lg:p-8">
-            {bookingContent}
-          </main>
-        </div>
-      </div>
-    );
+    return bookingContent;
   }
 
   return (

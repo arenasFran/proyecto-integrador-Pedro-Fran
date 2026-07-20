@@ -82,7 +82,7 @@ export const analyticsApi = createApi({
       query: () => ({ url: '/api/analytics/years' }),
     }),
 
-    getClientesList: builder.query<ClienteData[], { desde: string; hasta: string }>({
+    getClientesList: builder.query<ClienteData[], { desde: string; hasta: string; search?: string }>({
       query: (params) => ({
         url: '/api/analytics/clientes',
         params,
@@ -101,8 +101,46 @@ export const analyticsApi = createApi({
         url: `/api/analytics/clientes/${clientKey}/turnos`,
       }),
     }),
+
+    getEcommerceOverview: builder.query<EcommerceOverview, { preset?: string; desde?: string; hasta?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/ecommerce/overview',
+        params,
+      }),
+    }),
+
+    getProductPerformance: builder.query<ProductPerformanceEntry[], { preset?: string; desde?: string; hasta?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/ecommerce/products',
+        params,
+      }),
+    }),
+
+    getMembershipRevenue: builder.query<ReservasGananciasEntry[], { preset?: string; desde?: string; hasta?: string }>({
+      query: (params) => ({
+        url: '/api/analytics/memberships/revenue',
+        params,
+      }),
+    }),
   }),
 });
+
+export type EcommerceOverview = {
+  totalOrders: number;
+  totalRevenue: number;
+  averageTicket: number;
+  ordersByStatus: Record<string, number>;
+  paidOrders: number;
+  cancelledOrders: number;
+};
+
+export type ProductPerformanceEntry = {
+  productId: string;
+  name: string;
+  totalSold: number;
+  totalRevenue: number;
+  timesOrdered: number;
+};
 
 export const {
   useGetOverviewQuery,
@@ -117,4 +155,7 @@ export const {
   useGetClientesListQuery,
   useGetNuevosClientesQuery,
   useGetClientAppointmentsQuery,
+  useGetEcommerceOverviewQuery,
+  useGetProductPerformanceQuery,
+  useGetMembershipRevenueQuery,
 } = analyticsApi;

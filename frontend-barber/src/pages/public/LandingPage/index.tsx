@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiUser, FiPackage, FiShoppingBag, FiAward } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { AppFooter, Button } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -145,14 +145,35 @@ export const LandingPage: React.FC = () => {
                   </span>
                   <FiChevronDown className={`text-[#8A8A8A] text-sm transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
-                {dropdownOpen && (
+                  {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-lg">
+                    <button
+                      onClick={() => { setDropdownOpen(false); navigate('/tienda'); }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                    >
+                      <FiPackage className="text-[#FF5C00]" />
+                      Tienda
+                    </button>
                     <button
                       onClick={() => { setDropdownOpen(false); navigate('/mis-turnos'); }}
                       className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
                     >
                       <FiCalendar className="text-[#FF5C00]" />
                       Mis turnos
+                    </button>
+                    <button
+                      onClick={() => { setDropdownOpen(false); navigate('/mis-ordenes'); }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                    >
+                      <FiShoppingBag className="text-[#FF5C00]" />
+                      Mis órdenes
+                    </button>
+                    <button
+                      onClick={() => { setDropdownOpen(false); navigate('/mi-membresia'); }}
+                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                    >
+                      <FiAward className="text-[#FF5C00]" />
+                      Mi membresía
                     </button>
                     <div className="border-t border-[#282828]" />
                     <button
@@ -334,6 +355,41 @@ export const LandingPage: React.FC = () => {
           >
             También podés escribirnos si preferís coordinar por WhatsApp o Instagram.
           </button>
+        </motion.div>
+      </section>
+
+      {/* ─── TIENDA ─── */}
+      <section className="bg-[#050505] border-y border-[#282828] px-[5vw] py-28">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="max-w-xl mb-14"
+        >
+          <span className="text-[11px] uppercase tracking-widest text-[#FF5C00] inline-flex items-center gap-2">
+            <span className="w-4 h-px bg-[#FF5C00] inline-block" />
+            Productos
+          </span>
+          <h2 className="font-extrabold uppercase tracking-[-0.02em] text-[32px] sm:text-[52px] mt-4">
+            Tienda
+          </h2>
+          <p className="text-[#8A8A8A] mt-3 text-base leading-relaxed">
+            Productos de barbería y cuidado personal. Members reciben 10% de descuento.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-14 flex items-center gap-6 flex-wrap"
+        >
+          <Button onClick={() => navigate('/tienda')}>
+            Visitar tienda
+          </Button>
+          <p className="text-[#8A8A8A] text-sm max-w-[260px]">
+            Shampoos, ceras, peines y más. Todo lo que necesitás para el cuidado diario.
+          </p>
         </motion.div>
       </section>
 

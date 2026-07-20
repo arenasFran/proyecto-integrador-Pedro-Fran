@@ -4,7 +4,11 @@ export interface OverviewData {
   ingresosTotales: number;
   ingresosPendientes: number;
   nuevosClientes: number;
+  membresiasActivas: number;
+  clientesUnicos: number;
   estadisticasPorEstado: Record<string, number>;
+  totalOrders?: number;
+  cancelledOrders?: number;
 }
 
 export interface HeatmapEntry {

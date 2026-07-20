@@ -65,7 +65,7 @@ export default function HourDistributionChart() {
 
       <div className="flex items-center gap-2 mt-3 text-[12px] text-[#8A8A8A]">
         <span>Horas pico:</span>
-        {chartData
+        {[...chartData]
           .sort((a, b) => b.cantidad - a.cantidad)
           .filter(d => d.cantidad > 0)
           .slice(0, 3)

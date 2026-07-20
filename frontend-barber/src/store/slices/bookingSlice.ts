@@ -26,6 +26,7 @@ interface BookingAsyncState {
   confirmError: string | null;
   createdAppointment: Appointment | null;
   submitSuccess: boolean;
+  preferenceId?: string;
 }
 
 interface BookingFlowState {
@@ -128,9 +129,24 @@ export const submitAppointment = createAsyncThunk(
         tempLockId,
       };
       const response = await dispatch(appointmentApi.endpoints.createAppointment.initiate(payload)).unwrap();
+
+      if (response.preferenceId) {
+        return { ...response.appointment, preferenceId: response.preferenceId };
+      }
+
       return response.appointment;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Error al crear la reserva';
+      let message = 'Error al crear la reserva';
+      if (error && typeof error === 'object') {
+        const errObj = error as Record<string, unknown>;
+        if (typeof errObj.data === 'string') {
+          message = errObj.data;
+        } else if (typeof errObj.error === 'string') {
+          message = errObj.error;
+        } else if (typeof errObj.message === 'string') {
+          message = errObj.message;
+        }
+      }
       return rejectWithValue(message);
     } finally {
       if (tempLockId) {
@@ -206,6 +222,7 @@ const bookingSlice = createSlice({
       state.async.createdAppointment = null;
       state.async.isConfirming = false;
       state.async.confirmError = null;
+      state.async.preferenceId = undefined;
     },
   },
   extraReducers: (builder) => {
@@ -243,7 +260,13 @@ const bookingSlice = createSlice({
       .addCase(submitAppointment.fulfilled, (state, action) => {
         state.async.isConfirming = false;
         state.async.submitSuccess = true;
-        state.async.createdAppointment = action.payload;
+        if (action.payload && 'preferenceId' in action.payload) {
+          const payload = action.payload as Appointment & { preferenceId: string };
+          state.async.createdAppointment = payload;
+          state.async.preferenceId = payload.preferenceId;
+        } else {
+          state.async.createdAppointment = action.payload as Appointment;
+        }
       })
       .addCase(submitAppointment.rejected, (state, action) => {
         state.async.isConfirming = false;

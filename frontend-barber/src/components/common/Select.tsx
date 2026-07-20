@@ -13,9 +13,10 @@ interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   error?: string;
+  renderOption?: (option: SelectOption, isSelected: boolean) => React.ReactNode;
 }
 
-export function Select({ label, value, onChange, options, placeholder = 'Seleccionar...', error }: SelectProps) {
+export function Select({ label, value, onChange, options, placeholder = 'Seleccionar...', error, renderOption }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const generatedId = useId();
@@ -57,7 +58,7 @@ export function Select({ label, value, onChange, options, placeholder = 'Selecci
             bg-[#1A1A1A] focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20
             ${!selected && !value ? 'text-[#8A8A8A]' : ''}`}
         >
-          <span>{selected ? selected.label : placeholder}</span>
+          <span>{selected ? (renderOption ? renderOption(selected, true) : selected.label) : placeholder}</span>
           <FiChevronDown className={`text-sm text-[#8A8A8A] transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
 
@@ -83,7 +84,7 @@ export function Select({ label, value, onChange, options, placeholder = 'Selecci
                     : 'text-white hover:bg-[#282828]'
                   }`}
               >
-                {opt.label}
+                {renderOption ? renderOption(opt, value === opt.value) : opt.label}
               </li>
             ))}
           </ul>

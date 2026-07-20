@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { PublicFooter } from '../../../components/client/PublicFooter';
-import { getErrorMessage } from '../../../utils/errorMessages';
+import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
+import { authApi, useCompleteGoogleProfileMutation, useGoogleLoginMutation, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation } from '../../../services/authApi';
 import { useAppDispatch } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
-import { authApi, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation, useGoogleLoginMutation, useCompleteGoogleProfileMutation } from '../../../services/authApi';
 import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
+import { getErrorMessage } from '../../../utils/errorMessages';
 import { getTokenKind } from '../../../utils/token';
 
 const containerVariants = {
@@ -64,6 +64,12 @@ export const LoginPage: React.FC = () => {
 
   const location = useLocation();
   const toastHandled = useRef(false);
+  const returnUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search);
+    returnUrlRef.current = q.get('returnUrl');
+  }, [location.search]);
 
   useEffect(() => {
     const state = location.state as { toast?: string; toastType?: 'success' | 'error' } | null;
@@ -140,7 +146,8 @@ export const LoginPage: React.FC = () => {
           // Profile fetch failed — navigate anyway
         }
         const role = getTokenKind(result.token);
-        navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
+        const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+        navigate(target, { replace: true });
       }
     } catch (err: unknown) {
       const message = getErrorMessage(err, 'Error al iniciar sesión con Google');
@@ -240,7 +247,8 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
+      const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+      navigate(target, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al verificar el código'), 'error');
     }
@@ -297,7 +305,8 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      navigate(role === 'Admin' ? '/admin/dashboard' : '/mis-turnos', { replace: true });
+      const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+      navigate(target, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al completar el perfil'), 'error');
     }
@@ -312,7 +321,7 @@ export const LoginPage: React.FC = () => {
           animate="visible"
           className="w-full max-w-md"
         >
-          <motion.div variants={itemVariants} className="text-center mb-8">
+          <motion.div variants={itemVariants} className="text-center mb-6">
             <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-72 w-auto mx-auto mb-1" />
             <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
               Iniciar sesión

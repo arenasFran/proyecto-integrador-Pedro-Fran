@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { User } from '../../../domain/entities/User';
+import { AppError } from '../../../domain/errors/AppError';
 import { Barber } from './models/barber.model';
 import { RegisteredClient } from './models/client.model';
-import { AppError } from '../../../domain/errors/AppError';
 
 export type TwoFactorUpdate = {
   codeHash?: string;
@@ -89,11 +89,26 @@ const userToRegisteredClientData = (user: User) => ({
 });
 
 export class MongoUserRepository {
+  async findEmailById(userId: string): Promise<string | null> {
+    const client = await RegisteredClient.findById(userId).select('email').lean();
+    if (client?.email) return client.email;
+    const barber = await Barber.findById(userId).select('email').lean();
+    return barber?.email ?? null;
+  }
+
+  async findRegisteredClients(): Promise<User[]> {
+    const docs = await RegisteredClient.find({}).sort({ name: 1 }).lean();
+    return docs.map((doc) => userFromRegisteredClient(doc));
+  }
+
   async findByIds(ids: string[]): Promise<Map<string, User>> {
     const userMap = new Map<string, User>();
     if (ids.length === 0) return userMap;
 
-    const objectIds = ids.map(id => new mongoose.Types.ObjectId(id));
+    const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+    const validIds = ids.filter((id) => objectIdRegex.test(id));
+    if (validIds.length === 0) return userMap;
+    const objectIds = validIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const barbers = await Barber.find({ _id: { $in: objectIds } }).lean();
     for (const doc of barbers) {
@@ -159,13 +174,13 @@ export class MongoUserRepository {
       return userFromRegisteredClient(doc);
     } catch (error: any) {
       if (error?.code === 11000) {
-        if (error.keyPattern?.email) {
-          throw new AppError('Email en uso.', 409);
+        if (error?.keyPattern?.phone) {
+          throw new AppError('El número de teléfono ya está registrado.', 409);
         }
-        if (error.keyPattern?.phone) {
-          throw new AppError('Teléfono en uso.', 409);
+        if (error?.keyPattern?.email) {
+          throw new AppError('El email ya está registrado.', 409);
         }
-        throw new AppError('Ya existe un usuario con esos datos.', 409);
+        throw new AppError('El registro ya existe.', 409);
       }
       throw error;
     }

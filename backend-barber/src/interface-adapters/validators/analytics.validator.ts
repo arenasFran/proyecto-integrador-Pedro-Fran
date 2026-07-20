@@ -78,6 +78,7 @@ export const ingresosServicioQuerySchema = Joi.object({
 export const clientesListQuerySchema = Joi.object({
   desde: Joi.string().pattern(ISO_DATE).required(),
   hasta: Joi.string().pattern(ISO_DATE).required(),
+  search: Joi.string().allow('').max(100).optional(),
 }).custom(rangeValidation);
 
 export const nuevosClientesQuerySchema = Joi.object({

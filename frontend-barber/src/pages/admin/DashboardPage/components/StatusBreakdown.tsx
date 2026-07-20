@@ -32,7 +32,7 @@ export default function StatusBreakdown({ data, loading, error, desde, hasta }: 
 
   return (
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 h-full flex flex-col">
-      <h3 className="text-white text-base font-bold mb-4">Estados</h3>
+      <h3 className="text-white text-base font-bold mb-4">Estados de Turnos</h3>
       <div className="flex-1 flex flex-col justify-around">
         {entries.map(([key, { label, color, param }]) => {
           const count = estados[key] ?? 0;

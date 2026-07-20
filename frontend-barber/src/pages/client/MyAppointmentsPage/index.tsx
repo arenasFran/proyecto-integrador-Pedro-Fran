@@ -29,6 +29,12 @@ const paymentMethodLabels: Record<string, { label: string; bg: string; text: str
   online: { label: 'Pago online', bg: 'bg-cyan-500/10', text: 'text-cyan-400' },
 };
 
+const paymentStatusLabels: Record<string, { label: string; bg: string; text: string }> = {
+  Pendiente: { label: 'Pendiente', bg: 'bg-yellow-500/10', text: 'text-yellow-400' },
+  Pagado: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400' },
+  Cancelado: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400' },
+};
+
 export const MyAppointmentsPage: React.FC = () => {
   const navigate = useNavigate();
   const user = useAppSelector((state) => state.auth.user);
@@ -180,6 +186,11 @@ export const MyAppointmentsPage: React.FC = () => {
                                   {paymentMethodLabels[appointment.paymentMethod]?.label ?? appointment.paymentMethod}
                                 </span>
                               )}
+                              {appointment.paymentStatus && (
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${(paymentStatusLabels[appointment.paymentStatus]?.bg ?? 'bg-[#282828]')} ${(paymentStatusLabels[appointment.paymentStatus]?.text ?? 'text-[#8A8A8A]')}`}>
+                                  {paymentStatusLabels[appointment.paymentStatus]?.label ?? appointment.paymentStatus}
+                                </span>
+                              )}
                             </div>
                             <h3 className="text-[16px] font-semibold text-white">{appointment.serviceName}</h3>
                             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-[#8A8A8A]">
@@ -247,6 +258,11 @@ export const MyAppointmentsPage: React.FC = () => {
                                   {paymentMethodLabels[appointment.paymentMethod]?.label ?? appointment.paymentMethod}
                                 </span>
                               )}
+                              {appointment.paymentStatus && (
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${(paymentStatusLabels[appointment.paymentStatus]?.bg ?? 'bg-[#282828]')} ${(paymentStatusLabels[appointment.paymentStatus]?.text ?? 'text-[#8A8A8A]')}`}>
+                                  {paymentStatusLabels[appointment.paymentStatus]?.label ?? appointment.paymentStatus}
+                                </span>
+                              )}
                             </div>
                             <p className="text-[14px] font-medium text-white">{appointment.serviceName}</p>
                             <p className="text-[12px] text-[#8A8A8A] mt-0.5">
@@ -273,7 +289,7 @@ export const MyAppointmentsPage: React.FC = () => {
           <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Cancelar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {cancelTarget.serviceName} &mdash; {cancelTarget.date} a las {formatTime(cancelTarget.startTime)}
+              {cancelTarget.serviceName} &mdash; {formatDate(cancelTarget.date)} a las {formatTime(cancelTarget.startTime)}
             </p>
             <Input
               label="Motivo (opcional)"
@@ -298,13 +314,13 @@ export const MyAppointmentsPage: React.FC = () => {
       )}
 
       {rescheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 px-4 py-6">
+          <AnimatedContainer animation="fadeIn" className="mx-auto w-full max-w-md md:max-w-2xl rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
             <p className="text-[13px] text-[#8A8A8A] mb-4">
-              {rescheduleTarget.serviceName} &mdash; actual: {rescheduleTarget.date} {formatTime(rescheduleTarget.startTime)}
+              {rescheduleTarget.serviceName} &mdash; actual: {formatDate(rescheduleTarget.date)} {formatTime(rescheduleTarget.startTime)}
             </p>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 md:grid md:grid-cols-2 md:gap-6">
               <div>
                 <p className="text-[13px] font-medium text-[#8A8A8A] mb-1">Nueva fecha</p>
                 <Calendar
@@ -314,24 +330,26 @@ export const MyAppointmentsPage: React.FC = () => {
                   schedule={barbers.find((b) => b.id === rescheduleBarberId)?.schedule}
                 />
               </div>
-              <TimeSlotGrid
-                slots={rescheduleSlots}
-                selectedTime={rescheduleTime}
-                selectedDate={rescheduleDate}
-                isLoading={isLoadingSlots}
-                error={slotsError}
-                reason={slotsReason}
-                onSelect={setRescheduleTime}
-              />
-              <Select
-                label="Barbero"
-                value={rescheduleBarberId}
-                onChange={handleRescheduleBarberChange}
-                options={[
-                  { value: '', label: 'Seleccionar barbero' },
-                  ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
-                ]}
-              />
+              <div className="flex flex-col gap-4">
+                <TimeSlotGrid
+                  slots={rescheduleSlots}
+                  selectedTime={rescheduleTime}
+                  selectedDate={rescheduleDate}
+                  isLoading={isLoadingSlots}
+                  error={slotsError}
+                  reason={slotsReason}
+                  onSelect={setRescheduleTime}
+                />
+                <Select
+                  label="Barbero"
+                  value={rescheduleBarberId}
+                  onChange={handleRescheduleBarberChange}
+                  options={[
+                    { value: '', label: 'Seleccionar barbero' },
+                    ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
+                  ]}
+                />
+              </div>
             </div>
             <div className="flex gap-3 mt-6">
               <Button variant="secondary" onClick={() => setRescheduleTarget(null)}>

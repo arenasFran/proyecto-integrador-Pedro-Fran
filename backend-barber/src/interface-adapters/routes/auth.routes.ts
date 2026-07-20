@@ -34,6 +34,14 @@ export const createAuthRouter = (deps: {
     legacyHeaders: false,
   });
 
+  const twoFactorLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: { error: 'Demasiados intentos de verificación, esperá 15 minutos' },
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   router.post('/register', validate({ body: registerSchema }), deps.authController.register);
   router.post('/google', validate({ body: googleLoginSchema }), deps.authGoogleController.googleLogin);
   router.post(
@@ -60,6 +68,7 @@ export const createAuthRouter = (deps: {
   );
   router.post(
     '/2fa/verify',
+    twoFactorLimiter,
     validate({ body: twoFactorVerifySchema }),
     deps.twoFactorController.verifyTwoFactorCode
   );

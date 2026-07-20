@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
+import { initMercadoPago } from '@mercadopago/sdk-react';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
@@ -8,6 +9,7 @@ import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { AppSidebar } from './components/sidebar/AppSidebar';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
 import DashboardPage from './pages/admin/DashboardPage';
@@ -18,7 +20,10 @@ import ServicesPage from './pages/admin/ServicesPage';
 import ClientsPage from './pages/admin/ClientsPage';
 import ClientDetailPage from './pages/admin/ClientDetailPage';
 import MembershipsPage from './pages/admin/MembershipsPage';
+import ProductsPage from './pages/admin/ProductsPage';
+import OrdersPage from './pages/admin/OrdersPage';
 import MembershipPage from './pages/app/MembershipPage';
+import SubscriptionSuccess from './pages/app/MembershipPage/SubscriptionSuccess';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
@@ -27,6 +32,10 @@ import LandingPage from './pages/public/LandingPage';
 import LoginPage from './pages/public/LoginPage';
 import BookingPage from './pages/client/BookingPage';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
+import MyOrdersPage from './pages/client/MyOrdersPage';
+import ShopPage from './pages/public/ShopPage';
+import ProductDetailPage from './pages/public/ProductDetailPage';
+import PaymentResultPage from './pages/public/PaymentResultPage';
 import { getTokenKind, isTokenValid } from './utils/token';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
@@ -61,6 +70,8 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-UY' });
+
 function App() {
   return (
     <Provider store={store}>
@@ -74,7 +85,11 @@ function App() {
           <ErrorBoundary>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/reservar" element={<BookingPage />} />
+            <Route path="/reservar" element={<OptionalAppLayout><BookingPage /></OptionalAppLayout>} />
+            <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
+            <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
+            <Route path="/payment/result" element={<PaymentResultPage />} />
+            <Route path="/membership/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />
@@ -95,6 +110,8 @@ function App() {
               <Route path="clientes" element={<ClientsPage />} />
               <Route path="clientes/:clientKey" element={<ClientDetailPage />} />
               <Route path="membresias" element={<MembershipsPage />} />
+              <Route path="productos" element={<ProductsPage />} />
+              <Route path="ordenes" element={<OrdersPage />} />
               <Route index element={<Navigate to="dashboard" replace />} />
             </Route>
             <Route
@@ -105,6 +122,7 @@ function App() {
               }
             >
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
+              <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
@@ -159,6 +177,24 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
 
 function RegisterPageWrapper() {
   return <RegisterPage />;
+}
+
+function OptionalAppLayout({ children }: { children: React.ReactNode }) {
+  const loginToken = useAppSelector((state) => state.auth.loginToken);
+  const token = loginToken || getAccessToken();
+
+  if (!token) return <>{children}</>;
+
+  return (
+    <div className="min-h-screen bg-[#050505]">
+      <AppSidebar />
+      <div className="lg:ml-52">
+        <main>
+          {children}
+        </main>
+      </div>
+    </div>
+  );
 }
 
 export default App;

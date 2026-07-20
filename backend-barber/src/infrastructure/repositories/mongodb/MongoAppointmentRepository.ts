@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { Appointment, AppointmentProps } from '../../../domain/entities/Appointment';
-import { AppointmentStatus, PaymentStatus, PaymentMethod, StatusHistoryEntry } from '../../../domain/types/appointment';
 import { AppError } from '../../../domain/errors/AppError';
+import { AppointmentStatus, PaymentMethod, PaymentStatus, StatusHistoryEntry } from '../../../domain/types/appointment';
 import AppointmentModel from './models/appointment.model';
 
 export type AppointmentFilters = {
@@ -182,6 +182,89 @@ export class MongoAppointmentRepository {
     };
   }
 
+  async getSummary(filters: AppointmentFilters): Promise<{ total: number; byStatus: Record<string, number> }> {
+    const query: Record<string, unknown> = {};
+
+    if (filters.barberId) {
+      query.barberId = new mongoose.Types.ObjectId(filters.barberId);
+    }
+    if (filters.clientId) {
+      query.clientId = new mongoose.Types.ObjectId(filters.clientId);
+    }
+    if (filters.date) {
+      query.date = filters.date;
+    }
+    if (filters.status) {
+      query.status = filters.status;
+    }
+    if (filters.paymentMethod) {
+      query.paymentMethod = filters.paymentMethod;
+    }
+    if (filters.paymentStatus) {
+      query.paymentStatus = filters.paymentStatus;
+      if (filters.paymentStatus === 'Pendiente') {
+        if (filters.status) {
+          const statusQ = Array.isArray(query.status) ? query.status : [query.status as string];
+          query.status = { $in: statusQ, $nin: ['Cancelado', 'NoShow'] };
+        } else {
+          query.status = { $nin: ['Cancelado', 'NoShow'] };
+        }
+      }
+    }
+    if (filters.clientEmail || filters.clientPhone) {
+      const orConditions: Record<string, unknown>[] = [];
+      if (filters.clientEmail) orConditions.push({ clientEmail: filters.clientEmail });
+      if (filters.clientPhone) orConditions.push({ clientPhone: filters.clientPhone });
+      query.$or = orConditions;
+    }
+    if (filters.dateFrom || filters.dateTo) {
+      query.date = {};
+      if (filters.dateFrom) (query.date as Record<string, unknown>).$gte = filters.dateFrom;
+      if (filters.dateTo) (query.date as Record<string, unknown>).$lte = filters.dateTo;
+    }
+    if (filters.searchTerm) {
+      const tokens = filters.searchTerm.trim().split(/\s+/);
+      const tokenOrs: Record<string, unknown>[] = [];
+      for (const token of tokens) {
+        if (!token) continue;
+        const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const suffix = /\d$/.test(token) ? '(?!\\d)' : '';
+        const pattern = `\\b${escaped}${suffix}`;
+        const regex = { $regex: pattern, $options: 'i' };
+        tokenOrs.push({
+          $or: [
+            { clientName: regex },
+            { clientLastname: regex },
+            { clientEmail: regex },
+            { serviceName: regex },
+          ],
+        });
+      }
+      if (tokenOrs.length > 0) {
+        const andConds: Record<string, unknown>[] = [];
+        if (query.$or) {
+          andConds.push({ $or: query.$or as Record<string, unknown>[] });
+          delete query.$or;
+        }
+        query.$and = [...andConds, ...tokenOrs];
+      }
+    }
+
+    const pipeline: Record<string, unknown>[] = [{ $match: query }];
+    pipeline.push({ $group: { _id: '$status', count: { $sum: 1 } } });
+    pipeline.push({ $project: { status: '$_id', count: 1, _id: 0 } });
+
+    const agg = await (AppointmentModel.aggregate(pipeline as any) as any).allowDiskUse(true);
+    const byStatus: Record<string, number> = {};
+    let total = 0;
+    for (const row of agg) {
+      byStatus[row.status ?? 'unknown'] = row.count ?? 0;
+      total += row.count ?? 0;
+    }
+
+    return { total, byStatus };
+  }
+
   async findByBarberAndDate(barberId: string, date: string, session?: mongoose.ClientSession): Promise<Appointment[]> {
     const query = AppointmentModel.find({
       barberId: new mongoose.Types.ObjectId(barberId),
@@ -358,6 +441,35 @@ export class MongoAppointmentRepository {
 
     if (!doc) return null;
     return toAppointmentEntity(doc);
+  }
+
+  async cancelPendingPaymentsOlderThan(cutoff: Date): Promise<number> {
+    const now = new Date();
+    const result = await AppointmentModel.updateMany(
+      {
+        paymentMethod: 'online',
+        paymentStatus: 'Pendiente',
+        status: { $ne: 'Cancelado' },
+        createdAt: { $lt: cutoff },
+      },
+      {
+        $set: {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: 'Pago pendiente expirado',
+          cancelledAt: now,
+          cancelledBy: 'system',
+        },
+        $push: {
+          statusHistory: {
+            status: 'Cancelado',
+            timestamp: now,
+            actor: 'system',
+          },
+        },
+      }
+    );
+    return result.modifiedCount;
   }
 }
 

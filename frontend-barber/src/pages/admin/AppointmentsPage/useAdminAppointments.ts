@@ -1,6 +1,6 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useGetAppointmentsPaginatedQuery } from '../../../services/appointmentApi';
+import { useGetAppointmentsPaginatedQuery, useGetAppointmentsSummaryQuery } from '../../../services/appointmentApi';
 import { useAppointmentActions } from './useAppointmentActions';
 
 export function useAdminAppointments() {
@@ -74,18 +74,34 @@ export function useAdminAppointments() {
   const totalResults = paginatedData?.total ?? 0;
   const totalPages = paginatedData?.totalPages ?? 1;
 
+  const { data: summaryData } = useGetAppointmentsSummaryQuery((() => {
+    const q = { ...queryParams } as any;
+    delete q.page;
+    delete q.limit;
+    return q;
+  })());
+
+  const fullCounts = summaryData ? {
+    confirmed: summaryData.countsByStatus?.Confirmado ?? 0,
+    completed: summaryData.countsByStatus?.Completado ?? 0,
+    cancelled: summaryData.countsByStatus?.Cancelado ?? 0,
+  } : null;
+
   const stats = useMemo(() => {
     const total = totalResults;
+    if (fullCounts) return { total, confirmed: fullCounts.confirmed, completed: fullCounts.completed, cancelled: fullCounts.cancelled };
     const confirmed = appointments.filter((a) => a.status === 'Confirmado').length;
     const completed = appointments.filter((a) => a.status === 'Completado').length;
     const cancelled = appointments.filter((a) => a.status === 'Cancelado').length;
     return { total, confirmed, completed, cancelled };
-  }, [appointments, totalResults]);
+  }, [appointments, totalResults, fullCounts]);
 
   return {
     ...actions,
     // State
     appointments, totalResults, totalPages, isLoading,
+    // expose raw query params so callers can fetch full lists (export)
+    queryParams,
     searchParams, filterDateFrom, filterDateTo, filterBarberId,
     filterStatus, filterPaymentMethod, searchTerm, page, sortBy, sortDir,
     pageSize, showCustomize, expandedId,

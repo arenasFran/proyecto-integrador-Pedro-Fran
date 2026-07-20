@@ -11,6 +11,7 @@
     "test:watch": "jest --watch",
     "test:ci": "jest --runInBand",
     "test:coverage": "jest --coverage",
+    "seed:full": "ts-node src/infrastructure/scripts/seed-full.ts",
     "seed:analytics": "ts-node src/infrastructure/scripts/seed-analytics.ts cleanup && ts-node src/infrastructure/scripts/seed-analytics.ts",
     "seed:analytics:clean": "ts-node src/infrastructure/scripts/seed-analytics.ts cleanup"
   },
@@ -30,6 +31,7 @@
     "helmet": "^7.1.0",
     "joi": "^18.1.2",
     "jsonwebtoken": "^9.0.3",
+    "mercadopago": "^3.2.0",
     "mongoose": "^9.5.0",
     "multer": "^2.2.0",
     "nodemailer": "^6.9.4"

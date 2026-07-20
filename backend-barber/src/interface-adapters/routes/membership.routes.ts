@@ -8,13 +8,15 @@ import {
   createMembershipSchema,
   redeemCouponSchema,
   queryMembershipsSchema,
+  initiateMembershipPaymentSchema,
+  createSubscriptionSchema,
   membershipIdParamSchema,
   membershipUserIdParamSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 500,
   message: { error: 'Demasiadas solicitudes. Esperá 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -22,7 +24,7 @@ const membershipLimiter = rateLimit({
 
 const membershipMutationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   message: { error: 'Demasiadas solicitudes. Esperá 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -44,6 +46,7 @@ export const createMembershipRouter = (deps: {
     '/',
     membershipMutationLimiter,
     deps.authenticate,
+    authorize('Admin', 'Empleado'),
     validate({ body: createMembershipSchema }),
     deps.membershipController.create
   );
@@ -55,6 +58,30 @@ export const createMembershipRouter = (deps: {
     authorize('Admin'),
     validate({ query: queryMembershipsSchema }),
     deps.membershipController.getAll
+  );
+
+  router.get(
+    '/transactions',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.membershipController.getTransactions
+  );
+
+  router.get(
+    '/pending',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.membershipController.getPending
+  );
+
+  router.get(
+    '/expiring-soon',
+    membershipLimiter,
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    deps.membershipController.getExpiringSoon
   );
 
   router.get(
@@ -74,6 +101,40 @@ export const createMembershipRouter = (deps: {
   );
 
   router.post(
+    '/create-subscription',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    validate({ body: createSubscriptionSchema }),
+    deps.membershipController.createSubscription
+  );
+
+  router.post(
+    '/:id/cancel-subscription',
+    membershipMutationLimiter,
+    deps.authenticate,
+    deps.membershipController.cancelSubscription
+  );
+
+  router.post(
+    '/initiate-payment',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    validate({ body: initiateMembershipPaymentSchema }),
+    deps.membershipController.initiatePayment
+  );
+
+  router.post(
+    '/retry-payment',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    validate({ body: initiateMembershipPaymentSchema }),
+    deps.membershipController.retryPayment
+  );
+
+  router.post(
     '/redeem',
     membershipMutationLimiter,
     deps.authenticate,
@@ -83,19 +144,12 @@ export const createMembershipRouter = (deps: {
   );
 
   router.post(
-    '/:id/cancel',
+    '/:id/approve',
     membershipMutationLimiter,
     deps.authenticate,
+    authorize('Admin', 'Empleado'),
     validate({ params: membershipIdParamSchema }),
-    deps.membershipController.cancel
-  );
-
-  router.post(
-    '/:id/reactivate',
-    membershipMutationLimiter,
-    deps.authenticate,
-    validate({ params: membershipIdParamSchema }),
-    deps.membershipController.reactivate
+    deps.membershipController.approvePending
   );
 
   return router;

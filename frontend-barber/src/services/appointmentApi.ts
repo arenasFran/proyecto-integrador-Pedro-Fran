@@ -1,7 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
-import { axiosBaseQuery } from './baseQuery';
 import type { Appointment, ClientSearchResult, CreateAppointmentPayload } from '../types/booking';
 import type { PaginatedAppointmentsResponse } from './appointment.service';
+import { axiosBaseQuery } from './baseQuery';
 
 type QueryParams = {
   barberId?: string;
@@ -41,7 +41,7 @@ export const appointmentApi = createApi({
       }),
     }),
 
-    createAppointment: builder.mutation<{ message: string; appointment: Appointment }, CreateAppointmentPayload>({
+    createAppointment: builder.mutation<{ message: string; appointment: Appointment; preferenceId?: string; initPoint?: string }, CreateAppointmentPayload>({
       query: (data) => ({
         url: '/api/appointments',
         method: 'POST',
@@ -73,9 +73,19 @@ export const appointmentApi = createApi({
       providesTags: ['Appointments'],
     }),
 
+    getAppointmentsSummary: builder.query<{ total: number; countsByStatus: Record<string, number> }, Omit<QueryParams, 'page' | 'limit'>>({
+      query: (params) => ({
+        url: '/api/appointments/summary',
+        params,
+      }),
+      transformResponse: (response: { total: number; countsByStatus: Record<string, number> }) => response,
+      providesTags: ['Appointments'],
+    }),
+
     getAppointmentById: builder.query<Appointment, string>({
       query: (id) => ({
         url: `/api/appointments/${id}`,
+        params: { includeBarber: 'true', includeClient: 'true' },
       }),
       transformResponse: (response: { appointment: Appointment }) => response.appointment,
       providesTags: (_result, _error, id) => [{ type: 'Appointment', id }],
@@ -154,6 +164,7 @@ export const {
   useCreateAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,
+  useGetAppointmentsSummaryQuery,
   useGetAppointmentByIdQuery,
   useCancelAppointmentMutation,
   useUpdateAppointmentStatusMutation,

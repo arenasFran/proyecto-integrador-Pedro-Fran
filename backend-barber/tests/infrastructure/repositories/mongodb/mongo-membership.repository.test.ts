@@ -15,7 +15,6 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
   const createMembershipDoc = async (overrides: {
     status?: string;
     endDate: Date;
-    autoRenew?: boolean;
     couponsUsed?: number;
   }) => {
     return MembershipModel.create({
@@ -27,7 +26,6 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
       couponsUsed: overrides.couponsUsed ?? 0,
       productDiscount: 10,
       createdBy: 'client',
-      autoRenew: overrides.autoRenew ?? true,
     });
   };
 
@@ -39,34 +37,13 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
     await MembershipModel.deleteMany({ userId });
   });
 
-  it('debe renovar membresía vencida con autoRenew=true: extiende endDate +30d y resetea couponsUsed', async () => {
+  it('debe expirar membresía vencida (endDate < now): status pasa a expired', async () => {
     const yesterday = new Date(Date.now() - DAY_MS);
-    const doc = await createMembershipDoc({ endDate: yesterday, autoRenew: true, couponsUsed: 3 });
+    const doc = await createMembershipDoc({ endDate: yesterday, couponsUsed: 2 });
 
-    const result = await repository.expireExpiredMemberships();
+    const expired = await repository.expireExpiredMemberships();
 
-    expect(result.expired).toBe(0);
-    expect(result.renewed).toBe(1);
-
-    const updated = await MembershipModel.findById(doc._id);
-    expect(updated).not.toBeNull();
-    expect(updated!.status).toBe('active');
-    expect(updated!.couponsUsed).toBe(0);
-
-    const expectedEnd = new Date();
-    expectedEnd.setDate(expectedEnd.getDate() + MEMBERSHIP_DEFAULTS.durationDays);
-    const diffMs = updated!.endDate.getTime() - expectedEnd.getTime();
-    expect(Math.abs(diffMs)).toBeLessThan(1000);
-  });
-
-  it('debe expirar membresía vencida con autoRenew=false: status pasa a expired, couponsUsed intacto', async () => {
-    const yesterday = new Date(Date.now() - DAY_MS);
-    const doc = await createMembershipDoc({ endDate: yesterday, autoRenew: false, couponsUsed: 2 });
-
-    const result = await repository.expireExpiredMemberships();
-
-    expect(result.expired).toBe(1);
-    expect(result.renewed).toBe(0);
+    expect(expired).toBe(1);
 
     const updated = await MembershipModel.findById(doc._id);
     expect(updated).not.toBeNull();
@@ -74,48 +51,30 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
     expect(updated!.couponsUsed).toBe(2);
   });
 
-  it('no debe tocar membresías no vencidas (autoRenew=true)', async () => {
+  it('no debe tocar membresías no vencidas', async () => {
     const tomorrow = new Date(Date.now() + DAY_MS);
-    const doc = await createMembershipDoc({ endDate: tomorrow, autoRenew: true, couponsUsed: 1 });
+    const doc = await createMembershipDoc({ endDate: tomorrow, couponsUsed: 1 });
 
-    const result = await repository.expireExpiredMemberships();
+    const expired = await repository.expireExpiredMemberships();
 
-    expect(result.expired).toBe(0);
-    expect(result.renewed).toBe(0);
+    expect(expired).toBe(0);
 
     const updated = await MembershipModel.findById(doc._id);
     expect(updated!.status).toBe('active');
     expect(updated!.couponsUsed).toBe(1);
-    expect(updated!.endDate.getTime()).toBe(tomorrow.getTime());
   });
 
-  it('no debe tocar membresías no vencidas (autoRenew=false)', async () => {
-    const tomorrow = new Date(Date.now() + DAY_MS);
-    const doc = await createMembershipDoc({ endDate: tomorrow, autoRenew: false, couponsUsed: 1 });
-
-    const result = await repository.expireExpiredMemberships();
-
-    expect(result.expired).toBe(0);
-    expect(result.renewed).toBe(0);
-
-    const updated = await MembershipModel.findById(doc._id);
-    expect(updated!.status).toBe('active');
-    expect(updated!.autoRenew).toBe(false);
-    expect(updated!.couponsUsed).toBe(1);
-  });
-
-  it('debe manejar múltiples membresías vencidas mixtas correctamente', async () => {
+  it('debe manejar múltiples membresías vencidas', async () => {
     const yesterday = new Date(Date.now() - DAY_MS);
-    await createMembershipDoc({ endDate: yesterday, autoRenew: true, couponsUsed: 3 });
-    await createMembershipDoc({ endDate: yesterday, autoRenew: false, couponsUsed: 1 });
+    await createMembershipDoc({ endDate: yesterday, couponsUsed: 3 });
+    await createMembershipDoc({ endDate: yesterday, couponsUsed: 1 });
 
     const tomorrow = new Date(Date.now() + DAY_MS);
-    await createMembershipDoc({ endDate: tomorrow, autoRenew: true, couponsUsed: 0 });
+    await createMembershipDoc({ endDate: tomorrow, couponsUsed: 0 });
 
-    const result = await repository.expireExpiredMemberships();
+    const expired = await repository.expireExpiredMemberships();
 
-    expect(result.expired).toBe(1);
-    expect(result.renewed).toBe(1);
+    expect(expired).toBe(2);
   });
 });
 
@@ -123,7 +82,7 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
   let repository: MongoMembershipRepository;
   const userId = new mongoose.Types.ObjectId();
 
-  const createMembershipDoc = async (overrides: { couponsUsed?: number; autoRenew?: boolean } = {}) => {
+  const createMembershipDoc = async (overrides: { couponsUsed?: number } = {}) => {
     return MembershipModel.create({
       userId,
       status: 'active',
@@ -133,7 +92,6 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
       couponsUsed: overrides.couponsUsed ?? 0,
       productDiscount: 10,
       createdBy: 'client',
-      autoRenew: overrides.autoRenew ?? true,
     });
   };
 
@@ -145,7 +103,7 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
     await MembershipModel.deleteMany({ userId });
   });
 
-  it('debe aplicar dos incrementCouponsUsed concurrentes sin perder ninguno (a diferencia del viejo save() que sobreescribía todo)', async () => {
+  it('debe aplicar dos incrementCouponsUsed concurrentes sin perder ninguno', async () => {
     const doc = await createMembershipDoc({ couponsUsed: 0 });
 
     await Promise.all([
@@ -158,7 +116,7 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
   });
 
   it('incrementCouponsUsed no debe permitir superar couponsTotal (canje concurrente)', async () => {
-    const doc = await createMembershipDoc({ couponsUsed: 3 }); // couponsTotal: 4, queda 1 cupón
+    const doc = await createMembershipDoc({ couponsUsed: 3 });
 
     const [first, second] = await Promise.all([
       repository.incrementCouponsUsed(doc._id.toString(), 1),
@@ -174,7 +132,7 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
   });
 
   it('incrementCouponsUsed devuelve null si ya no quedan cupones disponibles', async () => {
-    const doc = await createMembershipDoc({ couponsUsed: 4 }); // couponsTotal: 4, sin cupones
+    const doc = await createMembershipDoc({ couponsUsed: 4 });
 
     const result = await repository.incrementCouponsUsed(doc._id.toString(), 1);
 
@@ -190,18 +148,5 @@ describeIfMongo('MongoMembershipRepository — updates atómicos (regresión de 
 
     const updated = await MembershipModel.findById(doc._id);
     expect(updated!.couponsUsed).toBe(0);
-  });
-
-  it('updateAutoRenew no debe tocar couponsUsed aunque haya cambiado por otra operación concurrente', async () => {
-    const doc = await createMembershipDoc({ couponsUsed: 2, autoRenew: true });
-
-    await Promise.all([
-      repository.incrementCouponsUsed(doc._id.toString(), 1),
-      repository.updateAutoRenew(doc._id.toString(), false),
-    ]);
-
-    const updated = await MembershipModel.findById(doc._id);
-    expect(updated!.couponsUsed).toBe(3);
-    expect(updated!.autoRenew).toBe(false);
   });
 });

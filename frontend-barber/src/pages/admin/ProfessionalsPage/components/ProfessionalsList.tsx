@@ -3,6 +3,7 @@ import { FiEdit3, FiTrash2, FiUser, FiPower } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import { BarberAvatar, Button, LoadingSkeleton } from '../../../../components/common';
 import type { Professional } from '../../../../types/professional';
+import { OccupancyBadge } from './OccupancyBadge';
 
 type ProfessionalsListProps = {
   professionals: Professional[];
@@ -109,6 +110,12 @@ export const ProfessionalsList: React.FC<ProfessionalsListProps> = ({
                   )}
                 </div>
               </div>
+
+              {professional.isActive && (
+                <div className="mt-3 pt-3 border-t border-[#282828]">
+                  <OccupancyBadge barberId={professional.id} />
+                </div>
+              )}
 
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button

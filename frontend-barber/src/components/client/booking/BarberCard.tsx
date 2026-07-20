@@ -1,8 +1,8 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { FiStar, FiCheck } from 'react-icons/fi';
-import { BarberAvatar } from '../../common/BarberAvatar';
+import React from 'react';
+import { FiCheck } from 'react-icons/fi';
 import type { BarberPublic } from '../../../types/booking';
+import { BarberAvatar } from '../../common/BarberAvatar';
 
 interface BarberCardProps {
   barber: BarberPublic;
@@ -10,20 +10,9 @@ interface BarberCardProps {
   onSelect: (barber: BarberPublic) => void;
 }
 
-const stableReviews = (id: string): number => {
-  const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return 20 + (hash % 60);
-};
-
-const stableRating = (id: string): string => {
-  const hash = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  const rating = 4.5 + (hash % 10) * 0.05;
-  return rating.toFixed(1);
-};
 
 export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSelect }) => {
-  const reviews = stableReviews(barber.id);
-  const rating = stableRating(barber.id);
+  // Removed synthetic reviews/rating — show only real data when available.
 
   return (
     <motion.button
@@ -57,11 +46,7 @@ export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSe
             <span className="block">{barber.name}</span>
             <span className="block">{barber.lastname}</span>
           </h3>
-          <div className="flex items-center justify-center gap-1 mt-0.5">
-            <FiStar className="w-2.5 h-2.5 text-[#FF5C00] fill-[#FF5C00]" />
-            <span className="text-[12px] font-medium text-white">{rating}</span>
-            <span className="text-[11px] text-[#8A8A8A]">({reviews})</span>
-          </div>
+          {/* Rating removed to avoid displaying synthetic data */}
         </div>
       </div>
     </motion.button>

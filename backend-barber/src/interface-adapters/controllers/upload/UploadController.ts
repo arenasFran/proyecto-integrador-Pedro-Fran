@@ -32,6 +32,23 @@ export class UploadController {
     }
   };
 
+  uploadProductImages = async (req: Request, res: Response) => {
+    try {
+      const files = req.files as Express.Multer.File[] | undefined;
+      if (!files || files.length === 0) {
+        throw new AppError('No se enviaron imágenes.', 400);
+      }
+
+      const urls = await Promise.all(
+        files.map((file) => this.cloudinary.uploadImage(file.buffer, 'products', true))
+      );
+
+      return sendSuccess(res, { urls }, 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al subir imágenes');
+    }
+  };
+
   private async canDeletePhoto(userId: string, userKind: string, photoUrl: string): Promise<boolean> {
     if (userKind === 'Admin') return true;
     const user = await this.userRepository.findById(userId);

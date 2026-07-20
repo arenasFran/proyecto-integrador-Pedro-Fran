@@ -9,6 +9,8 @@ export const makeMockUserRepository = () => ({
   updateTwoFactor: jest.fn(),
   updateLastLogin: jest.fn(),
   updateUserSecurity: jest.fn(),
+  findEmailById: jest.fn().mockResolvedValue(null),
+  findRegisteredClients: jest.fn().mockResolvedValue([]),
 });
 
 export const makeMockTempLockRepository = () => ({
@@ -32,6 +34,8 @@ export const makeMockAppointmentRepository = () => ({
   update: jest.fn(),
   updateClientId: jest.fn(),
   updateStatus: jest.fn(),
+  getSummary: jest.fn().mockResolvedValue({ total: 0, completed: 0, cancelled: 0 }),
+  cancelPendingPaymentsOlderThan: jest.fn().mockResolvedValue(0),
 });
 
 export const makeMockTokenService = () => ({
@@ -63,14 +67,28 @@ export const makeMockEmailService = () => ({
 
 export const makeMockMembershipRepository = () => ({
   findActiveByUser: jest.fn(),
+  findPendingByUser: jest.fn(),
   findByUser: jest.fn(),
   findById: jest.fn(),
   findAll: jest.fn(),
+  findAllEntityView: jest.fn(),
+  findByPreapprovalId: jest.fn(),
+  findAnyByUser: jest.fn(),
+  findPendingAll: jest.fn(),
+  findExpiringSoon: jest.fn(),
+  save: jest.fn(),
   create: jest.fn(),
   incrementCouponsUsed: jest.fn(),
-  updateAutoRenew: jest.fn(),
   hasActiveMembership: jest.fn(),
+  approvePending: jest.fn(),
   expireExpiredMemberships: jest.fn(),
+});
+
+export const makeMockMembershipTransactionRepository = () => ({
+  create: jest.fn(),
+  findByMembershipId: jest.fn(),
+  findByUser: jest.fn(),
+  findAll: jest.fn(),
 });
 
 export const makeMockHashService = () => ({
@@ -126,4 +144,44 @@ export const makeMockBarberBlockRepository = () => ({
 export const makeMockPasswordResetRepository = () => ({
   create: jest.fn(),
   verifyAndConsume: jest.fn(),
+});
+
+export const makeMockPaymentRepository = () => ({
+  findById: jest.fn(),
+  findByMpPreferenceId: jest.fn(),
+  findByMpPaymentId: jest.fn(),
+  findByReference: jest.fn(),
+  findByUser: jest.fn(),
+  save: jest.fn(),
+  updateMpPreferenceId: jest.fn().mockResolvedValue(undefined),
+  cancelPendingByAppointments: jest.fn(),
+});
+
+export const makeMockPaymentService = () => ({
+  createPreference: jest.fn(),
+  getPayment: jest.fn(),
+  validateWebhookSignature: jest.fn(),
+  createPreapproval: jest.fn(),
+  getPreapproval: jest.fn(),
+  cancelPreapproval: jest.fn(),
+});
+
+export const makeMockOrderRepository = () => ({
+  findById: jest.fn(),
+  findByUser: jest.fn(),
+  findByUserId: jest.fn(),
+  findAll: jest.fn(),
+  save: jest.fn(),
+  updateStatus: jest.fn(),
+});
+
+export const makeMockProductRepository = () => ({
+  findById: jest.fn(),
+  findByIds: jest.fn(),
+  findAll: jest.fn(),
+  findByCategory: jest.fn(),
+  create: jest.fn(),
+  update: jest.fn(),
+  softDelete: jest.fn(),
+  atomicDecreaseStock: jest.fn(),
 });

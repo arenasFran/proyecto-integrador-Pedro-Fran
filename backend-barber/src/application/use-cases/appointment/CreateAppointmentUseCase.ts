@@ -10,6 +10,7 @@ import { MongoBarberBlockRepository } from '../../../infrastructure/repositories
 import { IEmailService } from '../../ports/IEmailService';
 import { AppointmentProps } from '../../../domain/entities/Appointment';
 import { AppError } from '../../../domain/errors/AppError';
+import { CreatePaymentUseCase } from '../../use-cases/payment/CreatePaymentUseCase';
 import { Phone } from '../../../domain/value-objects/Phone';
 import { sendMailWithRetry } from '../shared/sendMailWithRetry';
 
@@ -26,6 +27,12 @@ type CreateAppointmentDTO = {
   paymentMethod?: 'local' | 'online' | 'memberPass';
   tempLockId?: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
+};
+
+type CreateAppointmentResult = {
+  message: string;
+  appointment: AppointmentProps;
+  preferenceId?: string;
 };
 import {
   toMinutes,
@@ -46,14 +53,14 @@ export class CreateAppointmentUseCase {
     private readonly emailService: IEmailService,
     private readonly tempLockRepository: MongoTempLockRepository,
     private readonly blockRepository: MongoBarberBlockRepository,
-    private readonly membershipRepository: MongoMembershipRepository
+    private readonly membershipRepository: MongoMembershipRepository,
+    private readonly createPaymentUseCase?: CreatePaymentUseCase
   ) {}
 
-  async execute(dto: CreateAppointmentDTO): Promise<{ message: string; appointment: AppointmentProps }> {
+  async execute(dto: CreateAppointmentDTO): Promise<CreateAppointmentResult> {
     if (dto.clientPhone) {
       dto.clientPhone = Phone.create(dto.clientPhone).getValue();
     }
-
     const nowInTz = getNowInTimezone();
 
     // RN01 — Fecha y hora no pueden estar en el pasado
@@ -206,7 +213,39 @@ export class CreateAppointmentUseCase {
       session.endSession();
     }
 
-    // RN17 — Notificar por email (asíncrono, no bloqueante)
+    if (paymentMethod === 'online' && this.createPaymentUseCase) {
+      try {
+        const paymentResult = await this.createPaymentUseCase.execute({
+          type: 'appointment',
+          referenceId: created!.id,
+          amount: service.price,
+          userId: dto.clientId || '',
+          items: [{ title: service.name, quantity: 1, unitPrice: service.price }],
+          payerEmail: dto.clientEmail,
+        });
+
+        this.sendCreationEmail(created!, barber.name, barber.lastname);
+
+        return {
+          message: 'Turno creado exitosamente. Redirigiendo al pago...',
+          appointment: created!.toPrimitives(),
+          preferenceId: paymentResult.preferenceId,
+        };
+      } catch (error) {
+        const errMsg = error instanceof Error ? error.message : 'Error desconocido';
+        console.error('[CreateAppointment] Error al crear preferencia de pago:', errMsg);
+        await this.appointmentRepository.updateStatus(created!.id, {
+          status: 'Cancelado',
+          paymentStatus: 'Cancelado',
+          cancelReason: `Error al procesar el pago online: ${errMsg}`,
+          cancelledAt: new Date(),
+          cancelledBy: 'system',
+          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+        });
+        throw new AppError(`Error al procesar el pago online: ${errMsg}`, 500);
+      }
+    }
+
     this.sendCreationEmail(created!, barber.name, barber.lastname);
 
     return {
@@ -230,6 +269,10 @@ export class CreateAppointmentUseCase {
   ): Promise<import('../../../domain/entities/Client').Client> {
     if (dto.clientEmail && dto.clientPhone) {
       const client = await this.clientRepository.findByBoth(dto.clientEmail, dto.clientPhone);
+      if (client) return client;
+    }
+    if (dto.clientPhone) {
+      const client = await this.clientRepository.findByPhone(dto.clientPhone);
       if (client) return client;
     }
     return this.clientRepository.createUnregistered({
@@ -270,6 +313,15 @@ export class CreateAppointmentUseCase {
     const clientEmail = appointment.clientEmail;
     if (!clientEmail) return;
 
+    let paymentHtml = '';
+    if (appointment.paymentMethod === 'online') {
+      paymentHtml = '<p>Estado de pago: Pendiente — completá el pago online desde la app.</p>';
+    } else if (appointment.paymentStatus === 'Pagado') {
+      paymentHtml = '<p>Estado de pago: Pagado</p>';
+    } else {
+      paymentHtml = '<p>Estado de pago: Pendiente — abonás en el local</p>';
+    }
+
     void sendMailWithRetry(
       this.emailService,
       {
@@ -278,7 +330,7 @@ export class CreateAppointmentUseCase {
         html: `<p>Tu turno con ${barberName} ${barberLastname} el ${appointment.date} a las ${appointment.startTime} fue agendado exitosamente.</p>
 <p>Servicio: ${appointment.serviceName}</p>
 <p>Precio: $${appointment.servicePrice}</p>
-<p>Estado de pago: ${appointment.paymentStatus === 'Pagado' ? 'Pagado' : 'Pendiente — abonás en el local'}</p>`,
+${paymentHtml}`,
       },
       'Error enviando email de creación'
     );

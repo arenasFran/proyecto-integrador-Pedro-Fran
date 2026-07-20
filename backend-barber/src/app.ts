@@ -4,19 +4,25 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
-import { buildBarberRouter, buildMembershipRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter } from "./wiring";
+import { buildBarberRouter, buildMembershipRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter, buildPaymentRouter, buildProductRouter, buildOrderRouter } from "./wiring";
+import { buildCartRouter } from "./wiring/cart";
+import { ReportsController } from "./interface-adapters/controllers/reports/ReportsController";
+import { createReportsRouter } from "./interface-adapters/routes/reports.routes";
 import { createAnalyticsRouter } from "./interface-adapters/routes/analytics.routes";
 import { createAuthenticate } from "./interface-adapters/middlewares/auth.middleware";
 import { buildTokenService } from "./wiring/auth";
 import { getConfig } from "./infrastructure/config/env";
+import { buildDebugRouter } from "./interface-adapters/routes/debug.routes";
 
 const app = express();
+app.set('trust proxy', 1);
 const config = getConfig();
 
 app.use(express.json());
 app.use(
   helmet({
     crossOriginOpenerPolicy: false,
+    contentSecurityPolicy: false,
   })
 );
 
@@ -90,6 +96,14 @@ app.use("/api/upload", buildUploadRouter());
 const analyticsAuth = createAuthenticate(tokenService);
 app.use("/api/analytics", createAnalyticsRouter(analyticsAuth));
 app.use("/api/memberships", buildMembershipRouter());
+app.use("/api/payments", buildPaymentRouter());
+app.use("/api/products", buildProductRouter());
+app.use("/api/orders", buildOrderRouter());
+app.use("/api/cart", buildCartRouter());
+const reportsController = new ReportsController();
+const reportsAuth = createAuthenticate(tokenService);
+app.use("/api/reports", createReportsRouter({ reportsController, authenticate: reportsAuth }));
+app.use("/api/debug", buildDebugRouter());
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });

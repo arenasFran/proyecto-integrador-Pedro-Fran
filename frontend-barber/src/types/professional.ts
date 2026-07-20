@@ -71,3 +71,13 @@ export type SlotsResponse = {
   slots: string[];
   reason?: SlotsReason;
 };
+
+export type OccupancyResponse = {
+  barberId: string;
+  date: string;
+  totalSlots: number;
+  blockedSlots: number;
+  availableSlots: number;
+  appointmentsCount: number;
+  ocupacion: number;
+};

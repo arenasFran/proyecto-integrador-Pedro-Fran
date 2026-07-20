@@ -17,6 +17,7 @@ import { createAuthenticate, createOptionalAuth } from '../interface-adapters/mi
 import { AppointmentController } from '../interface-adapters/controllers/appointment/AppointmentController';
 import { createAppointmentRouter } from '../interface-adapters/routes/appointment.routes';
 import { buildTokenService } from './auth';
+import { buildCreatePaymentUseCase } from './payment';
 
 export const buildAppointmentRouter = () => {
   const appointmentRepository = new MongoAppointmentRepository();
@@ -29,6 +30,7 @@ export const buildAppointmentRouter = () => {
   const emailService = new NodemailerEmailService();
 
   const membershipRepository = new MongoMembershipRepository();
+  const createPaymentUseCase = buildCreatePaymentUseCase();
 
   const createAppointment = new CreateAppointmentUseCase(
     appointmentRepository,
@@ -38,7 +40,8 @@ export const buildAppointmentRouter = () => {
     emailService,
     tempLockRepository,
     blockRepository,
-    membershipRepository
+    membershipRepository,
+    createPaymentUseCase
   );
   const cancelMinHoursBefore = Number(process.env.CANCEL_MIN_HOURS_BEFORE) || 2;
 

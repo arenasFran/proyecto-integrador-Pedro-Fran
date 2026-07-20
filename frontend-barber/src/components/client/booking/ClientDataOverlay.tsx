@@ -262,13 +262,17 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
 
                 <button
                   type="button"
-                  disabled
-                  className="flex items-center gap-3 rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-4 py-3 text-left text-[13px] text-[#555] opacity-50 cursor-not-allowed"
+                  onClick={() => onPaymentMethodChange('online')}
+                  className={`flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left text-[13px] transition-all ${
+                    paymentMethod === 'online'
+                      ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-white'
+                      : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:border-[#555]'
+                  }`}
                 >
                   <FiCreditCard className="shrink-0" size={16} />
                   <div>
                     <p className="font-medium">Pagar online</p>
-                    <p className="text-[11px] text-[#555]">Próximamente</p>
+                    <p className="text-[11px] text-[#6A6A6A]">Aboná con MercadoPago</p>
                   </div>
                 </button>
               </div>

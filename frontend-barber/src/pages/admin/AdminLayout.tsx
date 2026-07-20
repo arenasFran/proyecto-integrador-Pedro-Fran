@@ -1,31 +1,31 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import { AppHeader } from '../../components/common';
+import { FiMenu } from 'react-icons/fi';
 import { AppSidebar } from '../../components/sidebar/AppSidebar';
 import { QuickCreateModal } from './CalendarPage/QuickCreateModal';
-import { getAccessToken } from '../../services/api';
-import { getTokenKind } from '../../utils/token';
 
 export const AdminLayout: React.FC = () => {
-  const [collapsed, setCollapsed] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const token = getAccessToken();
-  const kind = getTokenKind(token);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#050505] overflow-x-hidden">
       <AppSidebar
-        collapsed={collapsed}
-        onToggle={() => setCollapsed(!collapsed)}
-        onCloseMobile={() => setSidebarOpen(false)}
-        mobileOpen={sidebarOpen}
-        kind={kind}
+        onQuickCreate={() => setShowQuickCreate(true)}
+        mobileOpen={mobileOpen}
+        onToggleMobile={() => setMobileOpen(!mobileOpen)}
       />
 
-      <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'lg:ml-16' : 'lg:ml-60'}`}>
-        <AppHeader onToggleSidebar={() => setSidebarOpen(true)} onQuickCreate={() => setShowQuickCreate(true)} />
-        <main className="p-4 sm:p-6 lg:p-8">
+      <button
+        onClick={() => setMobileOpen(true)}
+        className="fixed top-3 left-3 z-30 lg:hidden flex items-center justify-center w-10 h-10 rounded-[10px] bg-[#121212] border border-[#282828] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/30 transition-colors"
+        aria-label="Abrir menú"
+      >
+        <FiMenu size={20} />
+      </button>
+
+      <div className="lg:ml-52">
+        <main className="p-4 sm:p-6 lg:p-8 pt-14 lg:pt-8">
           <Outlet />
         </main>
       </div>

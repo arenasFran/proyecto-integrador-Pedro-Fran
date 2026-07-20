@@ -1,17 +1,17 @@
 import { Request, Response } from 'express';
-import { CreateAppointmentUseCase } from '../../../application/use-cases/appointment/CreateAppointmentUseCase';
 import { CancelAppointmentUseCase } from '../../../application/use-cases/appointment/CancelAppointmentUseCase';
-import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
-import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
-import { UpdatePaymentStatusUseCase } from '../../../application/use-cases/appointment/UpdatePaymentStatusUseCase';
-import { SendReminderUseCase } from '../../../application/use-cases/appointment/SendReminderUseCase';
 import { ChangeBarberUseCase } from '../../../application/use-cases/appointment/ChangeBarberUseCase';
+import { CreateAppointmentUseCase } from '../../../application/use-cases/appointment/CreateAppointmentUseCase';
+import { RescheduleAppointmentUseCase } from '../../../application/use-cases/appointment/RescheduleAppointmentUseCase';
+import { SendReminderUseCase } from '../../../application/use-cases/appointment/SendReminderUseCase';
+import { UpdateAppointmentStatusUseCase } from '../../../application/use-cases/appointment/UpdateAppointmentStatusUseCase';
+import { UpdatePaymentStatusUseCase } from '../../../application/use-cases/appointment/UpdatePaymentStatusUseCase';
+import { sendError, sendSuccess } from '../../../common/response';
+import { AppError } from '../../../domain/errors/AppError';
+import type { AppointmentStatus, PaymentStatus } from '../../../domain/types/appointment';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
-import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../domain/errors/AppError';
-import type { AppointmentStatus, PaymentStatus } from '../../../domain/types/appointment';
 
 export class AppointmentController {
   constructor(
@@ -137,6 +137,36 @@ export class AppointmentController {
     }
   };
 
+  getSummary = async (req: Request, res: Response) => {
+    try {
+      const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; paymentStatus?: PaymentStatus; searchTerm?: string } = {};
+
+      if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
+        if (req.query.barberId) query.barberId = req.query.barberId as string;
+        if (req.query.clientId) query.clientId = req.query.clientId as string;
+      } else {
+        query.clientId = req.user?._id;
+      }
+
+      if (req.query.date) query.date = req.query.date as string;
+      if (req.query.dateFrom) query.dateFrom = req.query.dateFrom as string;
+      if (req.query.dateTo) query.dateTo = req.query.dateTo as string;
+      if (req.query.status) query.status = req.query.status as AppointmentStatus;
+      if (req.query.paymentMethod) query.paymentMethod = req.query.paymentMethod as string;
+      if (req.query.paymentStatus) query.paymentStatus = req.query.paymentStatus as PaymentStatus;
+      if (req.query.searchTerm) query.searchTerm = req.query.searchTerm as string;
+
+      const result = await this.appointmentRepository.getSummary(query as any);
+
+      return sendSuccess(res, {
+        total: result.total,
+        countsByStatus: result.byStatus,
+      }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener resumen de turnos');
+    }
+  };
+
   getById = async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
@@ -149,7 +179,30 @@ export class AppointmentController {
       if (!isOwner && !isAdminOrBarber) {
         throw new AppError('No tenés permiso para ver este turno.', 403);
       }
-      return sendSuccess(res, { appointment: appointment.toPrimitives() }, 200);
+
+      let result = appointment.toPrimitives();
+
+      if (req.query.includeBarber === 'true') {
+        const barbers = await this.barberRepository.findAllBarbers();
+        const barberMap = new Map(barbers.map((b) => [b.id, { name: b.name, lastname: b.lastname, photoUrl: b.photoUrl }]));
+        const barber = barberMap.get(result.barberId);
+        if (barber) {
+          (result as any).barberName = `${barber.name} ${barber.lastname}`;
+          (result as any).barberPhotoUrl = barber.photoUrl ?? undefined;
+        }
+      }
+
+      if (req.query.includeClient === 'true' && result.clientId) {
+        const clients = await this.clientRepository.findByIds([result.clientId]);
+        const client = clients[0];
+        if (client) {
+          (result as any).clientPhotoUrl = client.photoUrl ?? undefined;
+          (result as any).clientKind = client.kind;
+          (result as any).clientRegisteredAt = client.registeredAt instanceof Date ? client.registeredAt.toISOString() : client.registeredAt;
+        }
+      }
+
+      return sendSuccess(res, { appointment: result }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener el turno');
     }

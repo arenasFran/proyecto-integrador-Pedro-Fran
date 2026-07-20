@@ -1,6 +1,6 @@
 import request from 'supertest';
 import express from 'express';
-import { createUserRouter, changePasswordLimiter } from '../../../src/interface-adapters/routes/user.routes';
+import { createUserRouter, changePasswordLimiter, profileUpdateLimiter } from '../../../src/interface-adapters/routes/user.routes';
 import { UserController } from '../../../src/interface-adapters/controllers/user/UserController';
 import { User, UserProps } from '../../../src/domain/entities/User';
 import { makeMockUserRepository, makeMockPasswordHasher, makeMockRefreshTokenRepository, makeMockEmailService } from '../../test-utils/mocks';
@@ -31,6 +31,7 @@ describe('User routes', () => {
 
   beforeEach(() => {
     changePasswordLimiter.resetKey('user-1');
+    profileUpdateLimiter.resetKey('user-1');
     userRepository = makeMockUserRepository();
     passwordHasher = makeMockPasswordHasher();
     refreshTokenRepository = makeMockRefreshTokenRepository();
@@ -138,12 +139,12 @@ describe('User routes', () => {
       expect(response.body.email).toBe('nuevo@example.com');
     });
 
-    it('debe aplicar el rate limit compartido con el cambio de contraseña tras 5 intentos', async () => {
+    it('debe aplicar el rate limit de actualización de perfil tras 30 intentos', async () => {
       const user = makeUser();
       userRepository.findById.mockResolvedValue(user);
       passwordHasher.compare.mockResolvedValue(false);
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 30; i++) {
         await request(app)
           .put('/api/user/me')
           .send({ email: 'nuevo@example.com', currentPassword: 'wrong' });

@@ -18,7 +18,7 @@ const orderItemSchema = new Schema<OrderItemData>(
 
 const statusHistoryEntrySchema = new Schema<StatusHistoryEntry>(
   {
-    status: { type: String, enum: ['pending', 'paid', 'delivered', 'cancelled', 'refunded', 'disputed'], required: true },
+    status: { type: String, enum: ['pending', 'paid', 'delivered', 'cancelled', 'refunded', 'disputed', 'stock_issue'], required: true },
     timestamp: { type: Date, required: true },
     actor: { type: String, required: true },
   },

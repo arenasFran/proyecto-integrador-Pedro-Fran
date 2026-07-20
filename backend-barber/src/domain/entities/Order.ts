@@ -96,6 +96,12 @@ export class Order {
     this.addHistoryEntry('refunded', 'system');
   }
 
+  markStockIssue(): void {
+    this.props.status = 'stock_issue';
+    this.props.updatedAt = new Date();
+    this.addHistoryEntry('stock_issue', 'system');
+  }
+
   markAsDisputed(): void {
     this.props.status = 'disputed';
     this.props.updatedAt = new Date();

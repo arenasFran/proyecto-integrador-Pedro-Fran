@@ -210,7 +210,7 @@ export class MembershipController {
           price: getConfig().membershipPriceUyu,
           paymentMethod: 'mercadopago',
         });
-        await this.membershipRepo.save(membership);
+        membership = await this.membershipRepo.save(membership);
       }
 
       const result = await this.createSubscriptionUseCase.execute({
@@ -305,7 +305,7 @@ export class MembershipController {
           price: getConfig().membershipPriceUyu,
           paymentMethod: 'mercadopago',
         });
-        await this.membershipRepo.save(membership);
+        membership = await this.membershipRepo.save(membership);
       }
 
       const config = getConfig();

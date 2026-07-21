@@ -33,6 +33,7 @@ import LoginPage from './pages/public/LoginPage';
 import BookingPage from './pages/client/BookingPage';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
 import MyOrdersPage from './pages/client/MyOrdersPage';
+import AiHaircutPage from './pages/client/AiHaircutPage';
 import ShopPage from './pages/public/ShopPage';
 import ProductDetailPage from './pages/public/ProductDetailPage';
 import PaymentResultPage from './pages/public/PaymentResultPage';
@@ -124,6 +125,7 @@ function App() {
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
               <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
+              <Route path="/recomendacion-corte" element={<AiHaircutPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />

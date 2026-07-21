@@ -109,10 +109,13 @@ api.interceptors.response.use(
       }
     }
 
-    const errorData = error.response?.data as { error?: string; message?: string } | undefined;
+    const errorData = error.response?.data as { error?: string; message?: string; code?: string } | undefined;
     const errMsg = errorData?.error ?? errorData?.message;
     if (errMsg) {
-      return Promise.reject(new Error(errMsg));
+      const richError = new Error(errMsg) as Error & { status?: number; code?: string };
+      richError.status = error.response?.status;
+      richError.code = errorData?.code;
+      return Promise.reject(richError);
     }
     if (error.code === 'ECONNREFUSED' || error.message.includes('Network Error')) {
       return Promise.reject(new Error('No se pudo conectar al servidor'));

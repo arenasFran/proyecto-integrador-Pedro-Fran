@@ -30,6 +30,11 @@ export type Config = {
   mpWebhookSecret: string | undefined;
   mpNotificationUrl: string | undefined;
   membershipPriceUyu: number;
+  awsRegion: string;
+  awsAccessKeyId: string | undefined;
+  awsSecretAccessKey: string | undefined;
+  awsSessionToken: string | undefined;
+  geminiApiKey: string | undefined;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -108,6 +113,11 @@ export function loadConfig(): Config {
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
+    awsRegion: optionalEnv('AWS_REGION', 'us-east-1'),
+    awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
+    awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
+    awsSessionToken: process.env.AWS_SESSION_TOKEN || undefined,
+    geminiApiKey: process.env.GEMINI_API_KEY || undefined,
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },
@@ -162,6 +172,13 @@ export function validateEnv(): Config {
       } else {
         console.log('[MP-CREDENTIALS] MP_NOTIFICATION_URL: ' + config.mpNotificationUrl);
       }
+    }
+
+    if (!config.awsAccessKeyId || !config.awsSecretAccessKey) {
+      console.warn('[ANALISIS-IA] Credenciales de AWS no configuradas. La validación de foto (Rekognition) no estará disponible.');
+    }
+    if (!config.geminiApiKey) {
+      console.warn('[ANALISIS-IA] GEMINI_API_KEY no configurada. La recomendación de corte (Gemini) no estará disponible.');
     }
 
     return config;

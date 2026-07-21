@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { Client } from '../../../domain/entities/Client';
 import { AppError } from '../../../domain/errors/AppError';
-import { Client as ClientModel, UnregisteredClient } from './models/client.model';
+import { Client as ClientModel, RegisteredClient, UnregisteredClient } from './models/client.model';
 
 export type UnregisteredClientData = {
   name: string;
@@ -24,9 +24,26 @@ const toClientEntity = (doc: Record<string, any>): Client =>
     kind: doc.kind || 'NoRegistrado',
     photoUrl: doc.photoUrl ?? null,
     registeredAt: (doc._id as mongoose.Types.ObjectId).getTimestamp(),
+    consentimientoAnalisisIA: doc.consentimientoAnalisisIA ?? false,
+    ultimoAnalisisFecha: doc.ultimoAnalisisFecha ?? null,
   });
 
 export class MongoClientRepository {
+  async findById(id: string): Promise<Client | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await ClientModel.findById(id).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
+  async updateAnalisisIA(
+    id: string,
+    data: { consentimientoAnalisisIA?: boolean; ultimoAnalisisFecha?: Date },
+    session?: mongoose.ClientSession
+  ): Promise<void> {
+    await RegisteredClient.findByIdAndUpdate(id, { $set: data }, session ? { session } : {});
+  }
+
   async findByEmail(email: string): Promise<Client | null> {
     const doc = await UnregisteredClient.findOne({ contactEmail: normalizeEmail(email) }).lean();
     if (!doc) return null;

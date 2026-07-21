@@ -7,6 +7,8 @@ export type ClientProps = {
   kind: 'Registrado' | 'NoRegistrado';
   photoUrl?: string | null;
   registeredAt?: Date;
+  consentimientoAnalisisIA?: boolean;
+  ultimoAnalisisFecha?: Date | null;
 };
 
 export class Client {
@@ -50,6 +52,14 @@ export class Client {
 
   get registeredAt(): Date | undefined {
     return this.props.registeredAt;
+  }
+
+  get consentimientoAnalisisIA(): boolean {
+    return this.props.consentimientoAnalisisIA ?? false;
+  }
+
+  get ultimoAnalisisFecha(): Date | null {
+    return this.props.ultimoAnalisisFecha ?? null;
   }
 
   toPrimitives(): ClientProps {

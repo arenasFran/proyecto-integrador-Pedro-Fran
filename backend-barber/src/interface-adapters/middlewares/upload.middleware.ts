@@ -26,3 +26,10 @@ export const uploadProductImages = multer({
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 },
 }).array('images', 5);
+
+// Límite de 5MB: es el máximo que acepta Rekognition DetectFaces con bytes inline.
+export const uploadAnalisisFoto = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}).single('foto');

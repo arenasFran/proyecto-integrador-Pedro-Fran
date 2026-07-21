@@ -46,47 +46,64 @@ export class AnalizarCorteUseCase {
       );
     }
 
-    const cupo = calcularCupoAnalisisCorte(client.ultimoAnalisisFecha);
-    if (!cupo.disponible) {
-      const proximaFecha = new Date(cupo.proximaFechaDisponible!);
+    const reservado = await this.clientRepository.reservarAnalisisIA(dto.clienteId);
+    if (!reservado) {
+      // Se relee el cliente en este momento (no se reusa el `client` de arriba):
+      // si perdió la carrera contra otro request concurrente, ese snapshot inicial
+      // quedó desactualizado y podría mostrar cupo disponible por error.
+      const clienteActual = await this.clientRepository.findById(dto.clienteId);
+      const cupo = calcularCupoAnalisisCorte(clienteActual?.ultimoAnalisisFecha ?? client.ultimoAnalisisFecha);
+      if (!cupo.disponible) {
+        const proximaFecha = new Date(cupo.proximaFechaDisponible!);
+        throw new AppError(
+          `Ya usaste tu análisis de este mes. Podés volver a intentarlo el ${proximaFecha.toLocaleDateString('es-UY')}.`,
+          429,
+          'QUOTA_EXCEEDED'
+        );
+      }
       throw new AppError(
-        `Ya usaste tu análisis de este mes. Podés volver a intentarlo el ${proximaFecha.toLocaleDateString('es-UY')}.`,
-        429,
-        'QUOTA_EXCEEDED'
+        'Ya tenés un análisis en curso, esperá unos segundos e intentá de nuevo.',
+        409,
+        'ANALYSIS_IN_PROGRESS'
       );
     }
 
-    const validacion = await this.faceValidationService.validar(dto.imagenBuffer);
-    if (!validacion.valido) {
-      throw new AppError(validacion.motivo ?? 'La foto no es válida.', 422, 'PHOTO_INVALID');
-    }
-
-    const servicios = (await this.serviceRepository.findAll())
-      .filter((s) => !SERVICIOS_EXCLUIDOS_DEL_ANALISIS.includes(s.name))
-      .map((s) => ({ name: s.name, description: s.description }));
-
-    const recomendacion = await this.recommendationService.recomendar(dto.imagenBuffer, dto.mimeType, servicios);
-
-    const session = await mongoose.startSession();
-    let registro: AnalisisCorteRecord;
     try {
-      session.startTransaction();
+      const validacion = await this.faceValidationService.validar(dto.imagenBuffer);
+      if (!validacion.valido) {
+        throw new AppError(validacion.motivo ?? 'La foto no es válida.', 422, 'PHOTO_INVALID');
+      }
 
-      registro = await this.analisisCorteRepository.create(dto.clienteId, recomendacion, session);
-      await this.clientRepository.updateAnalisisIA(
-        dto.clienteId,
-        { consentimientoAnalisisIA: true, ultimoAnalisisFecha: new Date() },
-        session
-      );
+      const servicios = (await this.serviceRepository.findAll())
+        .filter((s) => !SERVICIOS_EXCLUIDOS_DEL_ANALISIS.includes(s.name))
+        .map((s) => ({ name: s.name, description: s.description }));
 
-      await session.commitTransaction();
+      const recomendacion = await this.recommendationService.recomendar(dto.imagenBuffer, dto.mimeType, servicios);
+
+      const session = await mongoose.startSession();
+      let registro: AnalisisCorteRecord;
+      try {
+        session.startTransaction();
+
+        registro = await this.analisisCorteRepository.create(dto.clienteId, recomendacion, session);
+        await this.clientRepository.updateAnalisisIA(
+          dto.clienteId,
+          { consentimientoAnalisisIA: true, ultimoAnalisisFecha: new Date(), analisisLockedAt: null },
+          session
+        );
+
+        await session.commitTransaction();
+      } catch (error) {
+        await session.abortTransaction();
+        throw error;
+      } finally {
+        session.endSession();
+      }
+
+      return registro.resultado;
     } catch (error) {
-      await session.abortTransaction();
+      await this.clientRepository.liberarLockAnalisisIA(dto.clienteId);
       throw error;
-    } finally {
-      session.endSession();
     }
-
-    return registro.resultado;
   }
 }

@@ -19,6 +19,7 @@ export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
   resetLockedUntil?: Date;
   consentimientoAnalisisIA?: boolean;
   ultimoAnalisisFecha?: Date | null;
+  analisisLockedAt?: Date | null;
 }
 
 export interface IUnregisteredClient extends IClientBase, IUnregisteredClientInput {
@@ -120,6 +121,10 @@ const registeredClientSchema = new Schema<IRegisteredClient>(
       default: false,
     },
     ultimoAnalisisFecha: {
+      type: Date,
+      default: null,
+    },
+    analisisLockedAt: {
       type: Date,
       default: null,
     },

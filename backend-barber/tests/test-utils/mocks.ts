@@ -123,12 +123,27 @@ export const makeMockServiceRepository = () => ({
 });
 
 export const makeMockClientRepository = () => ({
+  findById: jest.fn(),
   findByEmail: jest.fn(),
   findByPhone: jest.fn(),
   findByBoth: jest.fn(),
   createUnregistered: jest.fn(),
   findByIds: jest.fn(),
   searchRegistered: jest.fn(),
+  updateAnalisisIA: jest.fn(),
+});
+
+export const makeMockAnalisisCorteRepository = () => ({
+  create: jest.fn(),
+  findByClienteId: jest.fn(),
+});
+
+export const makeMockFaceValidationService = () => ({
+  validar: jest.fn(),
+});
+
+export const makeMockRecommendationService = () => ({
+  recomendar: jest.fn(),
 });
 
 export const makeMockBarberBlockRepository = () => ({

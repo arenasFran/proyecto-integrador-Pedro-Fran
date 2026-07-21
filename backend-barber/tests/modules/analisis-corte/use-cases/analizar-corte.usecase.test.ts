@@ -93,6 +93,7 @@ describe('AnalizarCorteUseCase', () => {
     const deps = buildUseCase();
     deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
     deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: true }));
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
     deps.faceValidationService.validar.mockResolvedValue({ valido: true });
     deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo'), makeService('Promo x2')]);
     deps.recommendationService.recomendar.mockResolvedValue(recomendacion);
@@ -106,6 +107,7 @@ describe('AnalizarCorteUseCase', () => {
     const resultado = await deps.useCase.execute(dto);
 
     expect(resultado).toEqual(recomendacion);
+    expect(deps.clientRepository.reservarAnalisisIA).toHaveBeenCalledWith('client-1');
     // Promo x2 debe quedar excluida del prompt
     expect(deps.recommendationService.recomendar).toHaveBeenCalledWith(
       dto.imagenBuffer,
@@ -115,10 +117,11 @@ describe('AnalizarCorteUseCase', () => {
     expect(deps.analisisCorteRepository.create).toHaveBeenCalledWith('client-1', recomendacion, capturedSession);
     expect(deps.clientRepository.updateAnalisisIA).toHaveBeenCalledWith(
       'client-1',
-      { consentimientoAnalisisIA: true, ultimoAnalisisFecha: expect.any(Date) },
+      { consentimientoAnalisisIA: true, ultimoAnalisisFecha: expect.any(Date), analisisLockedAt: null },
       capturedSession
     );
     expect(capturedSession.commitTransaction).toHaveBeenCalled();
+    expect(deps.clientRepository.liberarLockAnalisisIA).not.toHaveBeenCalled();
   });
 
   it('rechaza si el cliente no tiene membresía activa', async () => {
@@ -145,6 +148,7 @@ describe('AnalizarCorteUseCase', () => {
     const deps = buildUseCase();
     deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
     deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: false }));
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
     deps.faceValidationService.validar.mockResolvedValue({ valido: true });
     deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo')]);
     deps.recommendationService.recomendar.mockResolvedValue(recomendacion);
@@ -159,7 +163,7 @@ describe('AnalizarCorteUseCase', () => {
 
     expect(deps.clientRepository.updateAnalisisIA).toHaveBeenCalledWith(
       'client-1',
-      { consentimientoAnalisisIA: true, ultimoAnalisisFecha: expect.any(Date) },
+      { consentimientoAnalisisIA: true, ultimoAnalisisFecha: expect.any(Date), analisisLockedAt: null },
       capturedSession
     );
   });
@@ -173,10 +177,28 @@ describe('AnalizarCorteUseCase', () => {
     deps.clientRepository.findById.mockResolvedValue(
       makeClient({ consentimientoAnalisisIA: true, ultimoAnalisisFecha: hace10Dias })
     );
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(false);
 
     await expect(deps.useCase.execute(dto)).rejects.toMatchObject({
       statusCode: 429,
       code: 'QUOTA_EXCEEDED',
+    });
+    expect(deps.faceValidationService.validar).not.toHaveBeenCalled();
+  });
+
+  it('responde 409 si hay un análisis en curso aunque el cupo mensual esté disponible', async () => {
+    const deps = buildUseCase();
+
+    deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
+    deps.clientRepository.findById.mockResolvedValue(
+      makeClient({ consentimientoAnalisisIA: true, ultimoAnalisisFecha: null })
+    );
+    // reservarAnalisisIA falla aunque el cupo esté libre => hay un lock activo
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(false);
+
+    await expect(deps.useCase.execute(dto)).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'ANALYSIS_IN_PROGRESS',
     });
     expect(deps.faceValidationService.validar).not.toHaveBeenCalled();
   });
@@ -190,6 +212,7 @@ describe('AnalizarCorteUseCase', () => {
     deps.clientRepository.findById.mockResolvedValue(
       makeClient({ consentimientoAnalisisIA: true, ultimoAnalisisFecha: hace31Dias })
     );
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
     deps.faceValidationService.validar.mockResolvedValue({ valido: true });
     deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo')]);
     deps.recommendationService.recomendar.mockResolvedValue(recomendacion);
@@ -207,6 +230,7 @@ describe('AnalizarCorteUseCase', () => {
     const deps = buildUseCase();
     deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
     deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: true }));
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
     deps.faceValidationService.validar.mockResolvedValue({ valido: false, motivo: 'Foto borrosa' });
 
     await expect(deps.useCase.execute(dto)).rejects.toMatchObject({
@@ -216,12 +240,15 @@ describe('AnalizarCorteUseCase', () => {
     });
     expect(deps.clientRepository.updateAnalisisIA).not.toHaveBeenCalled();
     expect(deps.recommendationService.recomendar).not.toHaveBeenCalled();
+    // El lock se libera para no dejar al cliente trabado hasta que venza el stale-timeout
+    expect(deps.clientRepository.liberarLockAnalisisIA).toHaveBeenCalledWith('client-1');
   });
 
   it('no descuenta cupo si el proveedor de IA falla', async () => {
     const deps = buildUseCase();
     deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
     deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: true }));
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
     deps.faceValidationService.validar.mockResolvedValue({ valido: true });
     deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo')]);
     deps.recommendationService.recomendar.mockRejectedValue(new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR'));
@@ -229,5 +256,6 @@ describe('AnalizarCorteUseCase', () => {
     await expect(deps.useCase.execute(dto)).rejects.toMatchObject({ statusCode: 503, code: 'AI_ERROR' });
     expect(deps.clientRepository.updateAnalisisIA).not.toHaveBeenCalled();
     expect(deps.analisisCorteRepository.create).not.toHaveBeenCalled();
+    expect(deps.clientRepository.liberarLockAnalisisIA).toHaveBeenCalledWith('client-1');
   });
 });

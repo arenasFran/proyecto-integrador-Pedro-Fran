@@ -131,6 +131,8 @@ export const makeMockClientRepository = () => ({
   findByIds: jest.fn(),
   searchRegistered: jest.fn(),
   updateAnalisisIA: jest.fn(),
+  reservarAnalisisIA: jest.fn(),
+  liberarLockAnalisisIA: jest.fn(),
 });
 
 export const makeMockAnalisisCorteRepository = () => ({

@@ -5,6 +5,7 @@ jest.mock('express-rate-limit', () => () => (_req: express.Request, _res: expres
 
 import { createMembershipRouter } from '../../../src/interface-adapters/routes/membership.routes';
 import { MembershipController } from '../../../src/interface-adapters/controllers/membership/MembershipController';
+import { CreateMembershipUseCase } from '../../../src/application/use-cases/membership/CreateMembershipUseCase';
 import { Membership } from '../../../src/domain/entities/Membership';
 import { makeMockMembershipRepository, makeMockUserRepository, makeMockMembershipTransactionRepository } from '../../test-utils/mocks';
 
@@ -177,7 +178,8 @@ describe('Membership routes', () => {
       membershipRepo.save.mockResolvedValue(activeMembership());
 
       const transactionRepo = makeMockMembershipTransactionRepository();
-      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any);
+      const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, transactionRepo as any);
+      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, undefined, undefined, createMembershipUseCase);
       const staffAppLocal = express();
       staffAppLocal.use(express.json());
       staffAppLocal.use('/api/memberships', createMembershipRouter({ membershipController: controller, authenticate: authenticateStaff as any }));

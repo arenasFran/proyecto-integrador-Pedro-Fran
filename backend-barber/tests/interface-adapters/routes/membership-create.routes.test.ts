@@ -2,6 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import { createMembershipRouter } from '../../../src/interface-adapters/routes/membership.routes';
 import { MembershipController } from '../../../src/interface-adapters/controllers/membership/MembershipController';
+import { CreateMembershipUseCase } from '../../../src/application/use-cases/membership/CreateMembershipUseCase';
 import { Membership } from '../../../src/domain/entities/Membership';
 import { makeMockMembershipRepository, makeMockUserRepository, makeMockMembershipTransactionRepository } from '../../test-utils/mocks';
 
@@ -40,7 +41,9 @@ describe('POST /api/memberships — autorización', () => {
   beforeEach(() => {
     membershipRepo = makeMockMembershipRepository();
     userRepo = makeMockUserRepository();
-    const controller = new MembershipController(membershipRepo as any, userRepo as any, makeMockMembershipTransactionRepository() as any);
+    const txRepo = makeMockMembershipTransactionRepository();
+    const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, txRepo as any);
+    const controller = new MembershipController(membershipRepo as any, userRepo as any, txRepo as any, undefined, undefined, undefined, undefined, createMembershipUseCase);
 
     app = express();
     app.use(express.json());

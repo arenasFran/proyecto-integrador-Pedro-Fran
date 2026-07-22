@@ -4,11 +4,11 @@ import { MongoMembershipTransactionRepository } from '../../../infrastructure/re
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { Membership } from '../../../domain/entities/Membership';
-import { Payment } from '../../../domain/entities/Payment';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
 import { CreateSubscriptionUseCase } from '../../../application/use-cases/payment/CreateSubscriptionUseCase';
+import { CreateMembershipUseCase } from '../../../application/use-cases/membership/CreateMembershipUseCase';
 import { IPaymentService } from '../../../application/ports/IPaymentService';
 import { getConfig } from '../../../infrastructure/config/env';
 import type { PaymentMethod } from '../../../domain/types/membership';
@@ -21,7 +21,8 @@ export class MembershipController {
     private readonly createPaymentUseCase?: CreatePaymentUseCase,
     private readonly paymentRepository?: MongoPaymentRepository,
     private readonly createSubscriptionUseCase?: CreateSubscriptionUseCase,
-    private readonly mercadoPagoService?: IPaymentService
+    private readonly mercadoPagoService?: IPaymentService,
+    private readonly createMembershipUseCase?: CreateMembershipUseCase
   ) {}
 
   private async buildMembershipSummary(userId: string) {
@@ -62,73 +63,20 @@ export class MembershipController {
         throw new AppError('Solo el personal puede crear membresías manualmente.', 403);
       }
 
-      const user = await this.userRepo.findById(userId);
-      if (!user) {
-        throw new AppError('Usuario no encontrado.', 404);
+      if (!this.createMembershipUseCase) {
+        throw new AppError('Servicio no disponible.', 500);
       }
 
-      const payment: PaymentMethod = paymentMethod || 'local';
-      const finalPrice = price ?? getConfig().membershipPriceUyu;
-
-      const existingActive = await this.membershipRepo.findActiveByUser(userId);
-      if (existingActive) {
-        throw new AppError('El usuario ya tiene una membresía activa.', 400);
-      }
-
-      const existingPending = await this.membershipRepo.findPendingByUser(userId);
-      if (existingPending) {
-        throw new AppError('El usuario ya tiene una membresía pendiente de pago.', 400);
-      }
-
-      const existing = await this.membershipRepo.findAnyByUser(userId);
-      let membership: Membership;
-
-      if (existing && existing.status === 'expired') {
-        existing.reactivate(finalPrice, payment, durationDays);
-        membership = existing;
-      } else if (existing && existing.status === 'pending') {
-        existing.approve(req.user!._id);
-        membership = existing;
-      } else {
-        membership = Membership.create({
-          userId,
-          createdBy: 'admin',
-          adminId: req.user!._id,
-          couponsTotal: couponsTotal ?? undefined,
-          productDiscount: productDiscount ?? undefined,
-          durationDays: durationDays ?? undefined,
-          billingCycle: billingCycle ?? undefined,
-          price: finalPrice,
-          status: 'active',
-        paymentMethod: payment || 'local',
-        });
-      }
-
-      const saved = await this.membershipRepo.save(membership);
-
-      await this.transactionRepo.create({
+      const saved = await this.createMembershipUseCase.execute({
         userId,
-        membershipId: saved.id,
-        amount: finalPrice,
-        paymentMethod: payment || 'local',
-        createdBy: 'admin',
-        adminId: req.user!._id,
+        couponsTotal,
+        productDiscount,
+        paymentMethod,
+        price,
+        durationDays,
+        billingCycle,
+        staffId: req.user!._id,
       });
-
-      if (finalPrice > 0 && this.paymentRepository) {
-        try {
-          const paymentDoc = Payment.create({
-            type: 'membership',
-            referenceId: saved.id,
-            amount: finalPrice,
-            userId,
-          });
-          paymentDoc.approve('admin_manual');
-          await this.paymentRepository.save(paymentDoc);
-        } catch (err) {
-          console.error('[MembershipController] Error creating PaymentModel for manual membership:', err);
-        }
-      }
 
       return sendSuccess(res, saved.toPrimitives(), 201);
     } catch (error) {

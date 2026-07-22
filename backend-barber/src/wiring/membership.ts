@@ -2,6 +2,7 @@ import { MongoMembershipRepository } from '../infrastructure/repositories/mongod
 import { MongoMembershipTransactionRepository } from '../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoPaymentRepository } from '../infrastructure/repositories/mongodb/MongoPaymentRepository';
+import { CreateMembershipUseCase } from '../application/use-cases/membership/CreateMembershipUseCase';
 import { MembershipController } from '../interface-adapters/controllers/membership/MembershipController';
 import { createMembershipRouter } from '../interface-adapters/routes/membership.routes';
 import { buildTokenService } from './auth';
@@ -16,6 +17,7 @@ export const buildMembershipRouter = () => {
   const createPaymentUseCase = buildCreatePaymentUseCase();
   const createSubscriptionUseCase = buildCreateSubscriptionUseCase();
   const mercadoPagoService = buildMercadoPagoService();
+  const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo, userRepo, transactionRepo, paymentRepo);
   const controller = new MembershipController(
     membershipRepo,
     userRepo,
@@ -23,7 +25,8 @@ export const buildMembershipRouter = () => {
     createPaymentUseCase,
     paymentRepo,
     createSubscriptionUseCase,
-    mercadoPagoService
+    mercadoPagoService,
+    createMembershipUseCase
   );
 
   const tokenService = buildTokenService();

@@ -91,6 +91,7 @@ export const makeMockMembershipTransactionRepository = () => ({
   findByMembershipId: jest.fn(),
   findByUser: jest.fn(),
   findAll: jest.fn(),
+  findByMpPaymentId: jest.fn(),
 });
 
 export const makeMockHashService = () => ({

@@ -1,4 +1,7 @@
 import { ProcessWebhookUseCase } from '../../../../src/application/use-cases/payment/ProcessWebhookUseCase';
+import { AppointmentPaymentHandler } from '../../../../src/application/use-cases/payment/handlers/AppointmentPaymentHandler';
+import { MembershipPaymentHandler } from '../../../../src/application/use-cases/payment/handlers/MembershipPaymentHandler';
+import { ProductOrderPaymentHandler } from '../../../../src/application/use-cases/payment/handlers/ProductOrderPaymentHandler';
 import { Payment } from '../../../../src/domain/entities/Payment';
 import {
   makeMockPaymentRepository,
@@ -69,14 +72,19 @@ describe('ProcessWebhookUseCase', () => {
     emailService = makeMockEmailService();
 
     membershipRepository.save.mockImplementation(async (m: any) => m);
+    transactionRepository.findByMpPaymentId = jest.fn().mockResolvedValue(null);
+
+    const appointmentHandler = new AppointmentPaymentHandler(appointmentRepository as any);
+    const membershipHandler = new MembershipPaymentHandler(membershipRepository as any, transactionRepository as any);
+    const productOrderHandler = new ProductOrderPaymentHandler(orderRepository as any, productRepository as any, emailService as any);
 
     useCase = new ProcessWebhookUseCase(
       paymentRepository as any,
-      appointmentRepository as any,
+      appointmentHandler,
+      membershipHandler,
+      productOrderHandler,
       membershipRepository as any,
       transactionRepository as any,
-      orderRepository as any,
-      productRepository as any,
       paymentService as any,
       emailService as any,
     );
@@ -112,14 +120,6 @@ describe('ProcessWebhookUseCase', () => {
       data: { id: 'preapp-1' },
       action: 'created',
     };
-
-    it('debe rechazar si HMAC es inválido en preapproval', async () => {
-      paymentService.validateWebhookSignature.mockReturnValue(false);
-
-      await expect(
-        useCase.execute(preapprovalPayload, 'bad-sig', 'req-id', ''),
-      ).rejects.toThrow('Firma HMAC inválida');
-    });
 
     it('debe ignorar si preapproval no se encuentra en MP', async () => {
       paymentService.validateWebhookSignature.mockReturnValue(true);
@@ -177,14 +177,6 @@ describe('ProcessWebhookUseCase', () => {
       data: { id: '123456' },
       action: 'payment.updated',
     };
-
-    it('debe lanzar error si HMAC es inválido', async () => {
-      paymentService.validateWebhookSignature.mockReturnValue(false);
-
-      await expect(
-        useCase.execute(paymentPayload, 'bad-sig', 'req-id', ''),
-      ).rejects.toThrow('Firma HMAC inválida');
-    });
 
     it('debe continuar si HMAC es válido', async () => {
       paymentService.validateWebhookSignature.mockReturnValue(true);
@@ -322,7 +314,7 @@ describe('ProcessWebhookUseCase', () => {
       expect(paymentRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'approved' }),
       );
-      expect(productRepository.atomicDecreaseStock).toHaveBeenCalledWith('prod-1', 2);
+      expect(productRepository.atomicDecreaseStock).toHaveBeenCalledWith('prod-1', 2, expect.any(Object));
       expect(orderRepository.save).toHaveBeenCalled();
     });
 

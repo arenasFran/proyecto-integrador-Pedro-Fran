@@ -30,6 +30,7 @@ export type Config = {
   mpWebhookSecret: string | undefined;
   mpNotificationUrl: string | undefined;
   membershipPriceUyu: number;
+  orphanPaymentCutoffHours: number;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -108,6 +109,7 @@ export function loadConfig(): Config {
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
+    orphanPaymentCutoffHours: parseIntEnv('ORPHAN_PAYMENT_CUTOFF_HOURS', 72),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },

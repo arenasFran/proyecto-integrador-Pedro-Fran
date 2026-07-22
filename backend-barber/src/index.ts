@@ -72,10 +72,10 @@ const startServer = async () => {
   }, 5 * 60 * 1000);
 
   createJob('cancel-orphan-payments', async () => {
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const cutoff = new Date(Date.now() - config.orphanPaymentCutoffHours * 60 * 60 * 1000);
     const cancelled = await paymentRepo.cancelOrphanPendingPayments(cutoff);
     if (cancelled > 0) {
-      console.log(`[OrphanPaymentCancel] ${cancelled} pago(s) huérfano(s) cancelado(s) por antigüedad > 24h`);
+      console.log(`[OrphanPaymentCancel] ${cancelled} pago(s) huérfano(s) cancelado(s) por antigüedad > ${config.orphanPaymentCutoffHours}h`);
     }
   }, 60 * 60 * 1000);
 

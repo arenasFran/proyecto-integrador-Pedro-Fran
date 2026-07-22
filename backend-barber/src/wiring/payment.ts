@@ -4,6 +4,9 @@ import { getConfig } from '../infrastructure/config/env';
 import { CreatePaymentUseCase } from '../application/use-cases/payment/CreatePaymentUseCase';
 import { CreateSubscriptionUseCase } from '../application/use-cases/payment/CreateSubscriptionUseCase';
 import { ProcessWebhookUseCase } from '../application/use-cases/payment/ProcessWebhookUseCase';
+import { AppointmentPaymentHandler } from '../application/use-cases/payment/handlers/AppointmentPaymentHandler';
+import { MembershipPaymentHandler } from '../application/use-cases/payment/handlers/MembershipPaymentHandler';
+import { ProductOrderPaymentHandler } from '../application/use-cases/payment/handlers/ProductOrderPaymentHandler';
 import { PaymentController } from '../interface-adapters/controllers/payment/PaymentController';
 import { createPaymentRouter } from '../interface-adapters/routes/payment.routes';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
@@ -50,19 +53,23 @@ export const buildPaymentRouter = () => {
 
   const userRepository = new MongoUserRepository();
 
+  const appointmentHandler = new AppointmentPaymentHandler(appointmentRepository);
+  const membershipHandler = new MembershipPaymentHandler(membershipRepository, transactionRepository);
+  const productOrderHandler = new ProductOrderPaymentHandler(orderRepository, productRepository, emailService, userRepository);
+
   const processWebhook = new ProcessWebhookUseCase(
     paymentRepository,
-    appointmentRepository,
+    appointmentHandler,
+    membershipHandler,
+    productOrderHandler,
     membershipRepository,
     transactionRepository,
-    orderRepository,
-    productRepository,
     mercadoPagoService,
     emailService,
     userRepository
   );
 
-  const paymentController = new PaymentController(processWebhook, paymentRepository);
+  const paymentController = new PaymentController(processWebhook, paymentRepository, mercadoPagoService);
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

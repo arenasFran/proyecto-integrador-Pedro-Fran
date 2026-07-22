@@ -11,7 +11,13 @@ type HistorialDetalleModalProps = {
 
 export const HistorialDetalleModal: FC<HistorialDetalleModalProps> = ({ record, onClose }) => {
   return (
-    <Modal isOpen={!!record} onClose={onClose} title={record ? formatDate(record.createdAt) : undefined} size="lg">
+    <Modal
+      isOpen={!!record}
+      onClose={onClose}
+      title={record ? formatDate(record.createdAt) : undefined}
+      size="lg"
+      centered
+    >
       {record && <RecomendacionDetalle resultado={record.resultado} />}
     </Modal>
   );

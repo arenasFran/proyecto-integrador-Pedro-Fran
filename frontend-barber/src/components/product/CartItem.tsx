@@ -1,5 +1,6 @@
 import { FiPlus, FiMinus, FiTrash2 } from 'react-icons/fi';
 import type { CartItem as CartItemType } from '../../store/slices/cartSlice';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface CartItemProps {
   item: CartItemType;
@@ -22,7 +23,7 @@ export default function CartItem({ item, onUpdateQuantity, onRemove }: CartItemP
           {item.product.name}
         </p>
         <p className="text-[12px] text-[#FF5C00] font-semibold mt-0.5">
-          ${item.product.price}
+          {formatCurrency(item.product.price)}
         </p>
         <div className="flex items-center gap-2 mt-2">
           <button

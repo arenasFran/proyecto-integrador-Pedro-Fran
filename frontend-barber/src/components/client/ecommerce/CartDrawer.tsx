@@ -18,6 +18,7 @@ import { Button, useToast } from '../../common';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import { useGetProductsQuery } from '../../../services/productApi';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 export const CartDrawer = () => {
   const dispatch = useAppDispatch();
@@ -117,7 +118,7 @@ export const CartDrawer = () => {
                   <div className="border-t border-[#282828] px-5 py-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-[13px] text-[#8A8A8A]">Subtotal</span>
-                      <span className="text-[16px] font-bold text-white">${total}</span>
+                      <span className="text-[16px] font-bold text-white">{formatCurrency(total)}</span>
                     </div>
 
                     <div className="flex gap-2">

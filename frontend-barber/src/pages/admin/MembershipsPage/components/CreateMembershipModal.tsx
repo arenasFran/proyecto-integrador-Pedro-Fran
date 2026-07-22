@@ -4,6 +4,7 @@ import { Modal, Button, Input, useToast } from '../../../../components/common';
 import { useCreateMembershipMutation } from '../../../../services/membershipApi';
 import { useGetClientesListQuery } from '../../../../services/analyticsApi';
 import type { ClienteData } from '../../../../types/analytics';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 type CreateMembershipModalProps = {
   isOpen: boolean;
@@ -321,7 +322,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
                 {!isCourtesy && (
                   <div className="flex-1 flex flex-col gap-1">
                     <label className="text-[11px] font-medium text-[#8A8A8A]" htmlFor="membership-price">
-                      Monto ($UYU)
+                      Monto ($)
                     </label>
                     <Input
                       id="membership-price"
@@ -443,7 +444,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
             </span>
             <span className="text-[#8A8A8A]">Total</span>
             <span className={`text-right font-semibold ${isCourtesy ? 'text-[#FFB800]' : 'text-[#22C55E]'}`}>
-              {isCourtesy ? 'Cortesía' : `$UYU ${Number(price).toLocaleString('es-UY')}`}
+              {isCourtesy ? 'Cortesía' : formatCurrency(Number(price))}
             </span>
           </div>
         </div>

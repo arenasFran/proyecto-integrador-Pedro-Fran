@@ -13,6 +13,7 @@ import { useAppointmentActions } from '../AppointmentsPage/useAppointmentActions
 import { AppointmentActionsMenu } from '../AppointmentsPage/AppointmentActionsMenu';
 import { AppointmentActionModals } from '../AppointmentsPage/AppointmentActionModals';
 import { formatDate } from '../../../utils/formatDate';
+import { formatCurrency } from '../../../utils/formatCurrency';
 import type { ClienteData } from '../../../types/analytics';
 import type { Appointment } from '../../../types/booking';
 
@@ -240,7 +241,7 @@ export default function ClientDetailPage() {
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatTile icon={FiTrendingUp} label="Total reservas" value={String(client.totalVisits)} />
-        <StatTile icon={FiDollarSign} label="Total gastado" value={`$${client.totalSpent.toLocaleString('es-UY')}`} valueClassName="text-green-400" />
+        <StatTile icon={FiDollarSign} label="Total gastado" value={formatCurrency(client.totalSpent)} valueClassName="text-green-400" />
         <StatTile icon={FiCalendar} label="Primera reserva" value={client.firstVisit ? formatDate(client.firstVisit) : '—'} />
         <StatTile icon={FiClock} label="Última reserva" value={client.lastVisit ? formatDate(client.lastVisit) : '—'} />
         <StatTile
@@ -251,7 +252,7 @@ export default function ClientDetailPage() {
         <StatTile
           icon={FiTag}
           label="Ticket promedio"
-          value={insights.avgTicket !== null ? `$${Math.round(insights.avgTicket).toLocaleString('es-UY')}` : '—'}
+          value={insights.avgTicket !== null ? formatCurrency(Math.round(insights.avgTicket)) : '—'}
           valueClassName="text-green-400"
         />
         <StatTile
@@ -295,7 +296,7 @@ export default function ClientDetailPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-[#8A8A8A]">{a.barberName ?? '—'}</span>
-                    <span className="text-green-400 font-medium">${a.servicePrice.toLocaleString('es-UY')}</span>
+                    <span className="text-green-400 font-medium">{formatCurrency(a.servicePrice)}</span>
                   </div>
                   <div><Badge label={a.paymentStatus} styles={paymentStyles[a.paymentStatus]} /></div>
                 </div>
@@ -323,7 +324,7 @@ export default function ClientDetailPage() {
                       <td className="px-4 py-3 text-[#8A8A8A]">{a.startTime} - {a.endTime}</td>
                       <td className="px-4 py-3 text-[#8A8A8A] max-w-[160px] truncate">{a.serviceName}</td>
                       <td className="px-4 py-3 text-[#8A8A8A]">{a.barberName ?? '—'}</td>
-                      <td className="px-4 py-3 text-right text-green-400 font-medium">${a.servicePrice.toLocaleString('es-UY')}</td>
+                      <td className="px-4 py-3 text-right text-green-400 font-medium">{formatCurrency(a.servicePrice)}</td>
                       <td className="px-4 py-3 text-center"><Badge label={a.status} styles={statusStyles[a.status]} /></td>
                       <td className="px-4 py-3 text-center"><Badge label={a.paymentStatus} styles={paymentStyles[a.paymentStatus]} /></td>
                       <td className="px-4 py-3 text-right"><AppointmentActionsMenu appointment={a} actions={actions} /></td>

@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
-import { useGetMyMembershipQuery, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation, useGetCouponHistoryQuery } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind, getTokenUser } from '../../../utils/token';
 import PaymentModal from '../../../components/payment/PaymentModal';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 export default function MembershipPage() {
   const token = getAccessToken();
@@ -35,6 +36,8 @@ export default function MembershipPage() {
   };
 
   const remainingCoupons = active ? active.couponsTotal - active.couponsUsed : 0;
+
+  const { data: couponHistory } = useGetCouponHistoryQuery(active?.id ?? '', { skip: !active?.id });
   const daysLeft = active
     ? Math.max(0, Math.ceil((new Date(active.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
@@ -313,7 +316,7 @@ export default function MembershipPage() {
                 </Button>
               </div>
               <p className="text-[11px] text-[#8A8A8A]">
-                Suscripción mensual recurrente por $399/mes. Podés cancelar cuando quieras.
+                Suscripción mensual recurrente por {formatCurrency(399)}/mes. Podés cancelar cuando quieras.
               </p>
             </div>
           </AnimatedContainer>
@@ -343,6 +346,30 @@ export default function MembershipPage() {
                 ))}
               </div>
             </div>
+
+            {couponHistory && couponHistory.history.length > 0 && (
+              <div className="bg-[#1E1E1E] rounded-xl p-5 border border-[#2A2A2A]">
+                <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
+                  <FiScissors className="text-[#FF5C00]" /> Historial de cupones
+                </h3>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {couponHistory.history.map((h: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center py-2 border-b border-[#2A2A2A] last:border-b-0">
+                      <div>
+                        <p className="text-[14px] text-white">{h.serviceName}</p>
+                        <p className="text-[12px] text-[#8A8A8A]">{h.date} · {h.startTime}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[14px] text-[#FF5C00]">{formatCurrency(h.servicePrice)}</p>
+                        <p className={`text-[11px] ${h.status === 'Cancelado' ? 'text-red-400' : 'text-[#22C55E]'}`}>
+                          {h.status === 'Cancelado' ? 'Cancelado' : h.status}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </AnimatedContainer>
         )}
       </div>

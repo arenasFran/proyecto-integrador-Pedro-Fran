@@ -8,12 +8,14 @@ import {
   useGetExpiringSoonQuery,
   useGetTransactionsQuery,
   useApprovePendingMembershipMutation,
+  useAddCouponsMutation,
 } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
 import { CreateMembershipModal } from './components/CreateMembershipModal';
 import type { MembershipStatus, MembershipWithUser } from '../../../types/membership';
 import { formatDate } from '../../../utils/formatDate';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 const STATUS_FILTERS = [
   { value: '', label: 'Todas' },
@@ -77,6 +79,7 @@ export default function MembershipsPage() {
   const [txDatePreset, setTxDatePreset] = useState('');
 
   const [approvePending, { isLoading: isApproving }] = useApprovePendingMembershipMutation();
+  const [addCoupons, { isLoading: isAddingCoupons }] = useAddCouponsMutation();
 
   const handleStatusFilter = (v: string) => { setStatusFilter(v); setPage(1); };
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => { setSearch(e.target.value); setPage(1); };
@@ -295,7 +298,26 @@ export default function MembershipsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">{statusBadge(m.status)}</td>
-                        <td className="px-4 py-3 text-center text-white">{m.couponsTotal - m.couponsUsed}<span className="text-[#8A8A8A]">/{m.couponsTotal}</span></td>
+                        <td className="px-4 py-3 text-center text-white">
+                          {m.couponsTotal - m.couponsUsed}
+                          <span className="text-[#8A8A8A]">/{m.couponsTotal}</span>
+                          <button
+                            onClick={async () => {
+                              const count = prompt('Cantidad de cupones a agregar:');
+                              if (count && !isNaN(Number(count)) && Number(count) > 0) {
+                                try {
+                                  await addCoupons({ id: m.id, count: Number(count) }).unwrap();
+                                  showToast('Cupones agregados correctamente', 'success');
+                                } catch {
+                                  showToast('Error al agregar cupones', 'error');
+                                }
+                              }
+                            }}
+                            disabled={isAddingCoupons}
+                            className="ml-2 text-[#22C55E] hover:text-[#16A34A] text-[10px] font-bold px-1.5 py-0.5 rounded border border-[#22C55E]/30 hover:border-[#22C55E] transition-colors"
+                            title="Agregar cupones"
+                          >+</button>
+                        </td>
                         <td className="px-4 py-3 text-center text-[#8A8A8A]">{m.durationDays} días</td>
                         <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">{formatDate(m.endDate)}</td>
                         <td className="px-4 py-3 text-center">
@@ -346,7 +368,7 @@ export default function MembershipsPage() {
                       <tr key={tx.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A] transition-colors">
                         <td className="px-4 py-3 text-[#8A8A8A]">{formatDate(tx.createdAt)}</td>
                         <td className="px-4 py-3 text-white font-mono text-[11px]">{tx.membershipId.slice(-8)}</td>
-                        <td className="px-4 py-3 text-center text-[#22C55E] font-semibold">$UYU {tx.amount.toLocaleString('es-UY')}</td>
+                        <td className="px-4 py-3 text-center text-[#22C55E] font-semibold">{formatCurrency(tx.amount)}</td>
                         <td className="px-4 py-3 text-center">
                           <span className={`text-[11px] rounded-full px-2 py-0.5 ${tx.paymentMethod === 'mercadopago' ? 'bg-[#009EE3]/10 text-[#009EE3]' : 'bg-[#22C55E]/10 text-[#22C55E]'}`}>
                             {tx.paymentMethod === 'mercadopago' ? 'MercadoPago' : 'Local'}

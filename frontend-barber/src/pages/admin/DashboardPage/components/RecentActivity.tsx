@@ -3,10 +3,7 @@ import { useGetAllOrdersQuery } from '../../../../services/orderApi';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import { Spinner } from '../../../../components/common/Spinner';
 import { formatDate } from '../../../../utils/formatDate';
-
-function formatCurrency(value: number): string {
-  return '$' + value.toLocaleString('es-UY');
-}
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 function timeAgo(dateStr: string): string {
   const now = new Date();

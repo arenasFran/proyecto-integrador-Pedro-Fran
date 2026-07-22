@@ -11,6 +11,7 @@ import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import type { Product } from '../../../types/product';
 import { Button } from '../../../components/common';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 export default function ShopPage() {
   const dispatch = useAppDispatch();
@@ -96,7 +97,7 @@ export default function ShopPage() {
               </button>
             </div>
             <p className="text-[13px] text-[#8A8A8A] mb-5">
-              <span className="text-white font-medium">{buyNowProduct.name}</span> — ${buyNowProduct.price}
+              <span className="text-white font-medium">{buyNowProduct.name}</span> — {formatCurrency(buyNowProduct.price)}
             </p>
             <div className="flex flex-col gap-2">
               <Button

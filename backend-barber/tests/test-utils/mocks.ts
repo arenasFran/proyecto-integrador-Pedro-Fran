@@ -79,6 +79,8 @@ export const makeMockMembershipRepository = () => ({
   save: jest.fn(),
   create: jest.fn(),
   incrementCouponsUsed: jest.fn(),
+  atomicConsumeCoupon: jest.fn(),
+  atomicRestoreCoupon: jest.fn(),
   hasActiveMembership: jest.fn(),
   approvePending: jest.fn(),
   expireExpiredMemberships: jest.fn(),

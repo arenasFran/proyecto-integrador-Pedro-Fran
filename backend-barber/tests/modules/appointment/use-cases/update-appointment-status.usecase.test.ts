@@ -240,10 +240,10 @@ describe('UpdateAppointmentStatusUseCase', () => {
         couponsUsed: 1,
         couponsTotal: 4,
       };
-      membershipRepository.findActiveByUser.mockResolvedValue(membership);
+      membershipRepository.atomicRestoreCoupon.mockResolvedValue(membership);
 
       appointmentRepository.findById.mockResolvedValue(
-        makeAppointment({ paymentMethod: 'memberPass', status: 'Confirmado', clientId: 'client-1' })
+        makeAppointment({ paymentMethod: 'memberPass', status: 'Confirmado', clientId: 'client-1', membershipId: 'membership-1', couponRedeemed: true })
       );
       appointmentRepository.updateStatus.mockResolvedValue(
         makeAppointment({ status: 'Cancelado', paymentMethod: 'memberPass', clientId: 'client-1' })
@@ -251,9 +251,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
       const result = await useCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin');
 
-      expect(membershipRepository.findActiveByUser).toHaveBeenCalledWith('client-1', capturedSession);
-      expect(membership.restoreCoupon).toHaveBeenCalledTimes(1);
-      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledWith('membership-1', -1, capturedSession);
+      expect(membershipRepository.atomicRestoreCoupon).toHaveBeenCalledWith('membership-1', capturedSession);
       expect(result.message).toMatch(/Cancelado/);
     });
 
@@ -267,8 +265,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
       await useCase.execute('apt-1', { status: 'NoShow' }, 'admin-1', 'Admin');
 
-      expect(membershipRepository.findActiveByUser).not.toHaveBeenCalled();
-      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
+      expect(membershipRepository.atomicRestoreCoupon).not.toHaveBeenCalled();
     });
 
     it('NO debe restaurar cupón al cancelar turno con método local', async () => {
@@ -281,8 +278,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
       await useCase.execute('apt-1', { status: 'Cancelado' }, 'admin-1', 'Admin');
 
-      expect(membershipRepository.findActiveByUser).not.toHaveBeenCalled();
-      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
+      expect(membershipRepository.atomicRestoreCoupon).not.toHaveBeenCalled();
     });
 
     it('NO debe restaurar cupón al completar turno con memberPass', async () => {
@@ -295,8 +291,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
 
       await useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin');
 
-      expect(membershipRepository.findActiveByUser).not.toHaveBeenCalled();
-      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
+      expect(membershipRepository.atomicRestoreCoupon).not.toHaveBeenCalled();
     });
   });
 });

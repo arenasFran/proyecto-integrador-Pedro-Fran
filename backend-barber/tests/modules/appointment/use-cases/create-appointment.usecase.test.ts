@@ -576,6 +576,7 @@ describe('CreateAppointmentUseCase', () => {
     it('debe canjear cupón de membresía cuando paymentMethod es memberPass', async () => {
       const membership = makeActiveMembership();
       membershipRepository.findActiveByUser.mockResolvedValue(membership);
+      membershipRepository.atomicConsumeCoupon.mockResolvedValue(membership);
       setupBaseMocks();
 
       await useCase.execute({
@@ -589,13 +590,13 @@ describe('CreateAppointmentUseCase', () => {
         paymentMethod: 'memberPass',
       });
 
-      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledTimes(1);
-      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledWith('mem-1', 1, capturedSession);
+      expect(membershipRepository.atomicConsumeCoupon).toHaveBeenCalledWith('mem-1', capturedSession);
     });
 
     it('debe establecer paymentStatus como Pagado cuando es memberPass', async () => {
       const membership = makeActiveMembership();
       membershipRepository.findActiveByUser.mockResolvedValue(membership);
+      membershipRepository.atomicConsumeCoupon.mockResolvedValue(membership);
       setupBaseMocks();
 
       await useCase.execute({
@@ -666,7 +667,7 @@ describe('CreateAppointmentUseCase', () => {
         paymentMethod: 'local',
       });
 
-      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
+      expect(membershipRepository.atomicConsumeCoupon).not.toHaveBeenCalled();
     });
   });
 

@@ -152,5 +152,20 @@ export const createMembershipRouter = (deps: {
     deps.membershipController.approvePending
   );
 
+  router.get(
+    '/:id/coupon-history',
+    membershipLimiter,
+    deps.authenticate,
+    deps.membershipController.getCouponHistory
+  );
+
+  router.put(
+    '/:id/coupons',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Admin'),
+    deps.membershipController.addCouponsToMembership
+  );
+
   return router;
 };

@@ -529,4 +529,71 @@ export class MembershipController {
       return sendError(res, error, 'Error al obtener membresías por vencer');
     }
   };
+
+  getCouponHistory = async (req: Request, res: Response) => {
+    try {
+      const membershipId = req.params.id as string;
+      const membership = await this.membershipRepo.findById(membershipId);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+
+      const appointments = await this.membershipRepo.findCouponAppointments(membershipId);
+
+      const history = appointments.map((a: Record<string, any>) => ({
+        appointmentId: a._id.toString(),
+        date: a.date,
+        startTime: a.startTime,
+        serviceName: a.serviceName,
+        servicePrice: a.servicePrice,
+        status: a.status,
+        couponRestored: a.status === 'Cancelado',
+        restoredAt: a.couponRestoredAt || null,
+      }));
+
+      return sendSuccess(res, {
+        membershipId,
+        couponsTotal: membership.couponsTotal,
+        couponsUsed: membership.couponsUsed,
+        remainingCoupons: membership.remainingCoupons,
+        history,
+      });
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener historial de cupones');
+    }
+  };
+
+  addCouponsToMembership = async (req: Request, res: Response) => {
+    try {
+      const membershipId = req.params.id as string;
+      const { count } = req.body as { count: number };
+
+      if (!count || count <= 0 || !Number.isInteger(count)) {
+        throw new AppError('La cantidad de cupones debe ser un número entero positivo.', 400);
+      }
+
+      if (req.user!.kind !== 'Admin') {
+        throw new AppError('Solo administradores pueden agregar cupones.', 403);
+      }
+
+      const membership = await this.membershipRepo.findById(membershipId);
+      if (!membership) {
+        throw new AppError('Membresía no encontrada.', 404);
+      }
+
+      const updated = await this.membershipRepo.addCouponsTotal(membershipId, count);
+      if (!updated) {
+        throw new AppError('Error al agregar cupones.', 500);
+      }
+
+      return sendSuccess(res, {
+        membershipId: updated.id,
+        couponsTotal: updated.couponsTotal,
+        couponsUsed: updated.couponsUsed,
+        remainingCoupons: updated.remainingCoupons,
+      });
+    } catch (error) {
+      return sendError(res, error, 'Error al agregar cupones');
+    }
+  };
 }

@@ -178,7 +178,8 @@ describe('Membership routes', () => {
       membershipRepo.save.mockResolvedValue(activeMembership());
 
       const transactionRepo = makeMockMembershipTransactionRepository();
-      const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, transactionRepo as any);
+      const paymentRepo = { save: jest.fn() };
+      const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, transactionRepo as any, paymentRepo as any);
       const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, undefined, undefined, createMembershipUseCase);
       const staffAppLocal = express();
       staffAppLocal.use(express.json());

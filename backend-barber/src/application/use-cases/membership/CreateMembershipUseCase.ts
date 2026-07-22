@@ -24,7 +24,7 @@ export class CreateMembershipUseCase {
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly userRepo: MongoUserRepository,
     private readonly transactionRepo: MongoMembershipTransactionRepository,
-    private readonly paymentRepo?: MongoPaymentRepository
+    private readonly paymentRepo: MongoPaymentRepository
   ) {}
 
   async execute(dto: CreateMembershipDTO): Promise<Membership> {
@@ -81,7 +81,7 @@ export class CreateMembershipUseCase {
       adminId: dto.staffId,
     });
 
-    if (finalPrice > 0 && this.paymentRepo) {
+    if (finalPrice > 0) {
       try {
         const paymentDoc = Payment.create({
           type: 'membership',

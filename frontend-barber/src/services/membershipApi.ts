@@ -90,6 +90,22 @@ export const membershipApi = createApi({
       query: (params) => ({ url: '/api/memberships/transactions', params }),
       providesTags: ['Transactions'],
     }),
+
+    getCouponHistory: builder.query<
+      { membershipId: string; couponsTotal: number; couponsUsed: number; remainingCoupons: number; history: Array<{ appointmentId: string; date: string; startTime: string; serviceName: string; servicePrice: number; status: string; couponRestored: boolean; restoredAt: string | null }> },
+      string
+    >({
+      query: (id) => ({ url: `/api/memberships/${id}/coupon-history` }),
+      providesTags: ['Membership'],
+    }),
+
+    addCoupons: builder.mutation<
+      { membershipId: string; couponsTotal: number; couponsUsed: number; remainingCoupons: number },
+      { id: string; count: number }
+    >({
+      query: ({ id, count }) => ({ url: `/api/memberships/${id}/coupons`, method: 'PUT', data: { count } }),
+      invalidatesTags: ['Membership', 'Memberships'],
+    }),
   }),
 });
 
@@ -108,4 +124,6 @@ export const {
   useRedeemCouponMutation,
   useApprovePendingMembershipMutation,
   useGetTransactionsQuery,
+  useGetCouponHistoryQuery,
+  useAddCouponsMutation,
 } = membershipApi;

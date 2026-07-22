@@ -186,14 +186,12 @@ export default function AiHaircutPage() {
     <div className="min-h-screen bg-[#050505]">
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF5C00]/10">
-              <FiCamera className="text-[#FF5C00] text-lg" />
+          <div className="flex flex-col items-center text-center mb-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[#FF5C00]/10 mb-4">
+              <FiCamera className="text-[#FF5C00] text-3xl" />
             </div>
-            <div>
-              <h1 className="text-[20px] font-bold text-white">Recomendación de corte con IA</h1>
-              <p className="text-[13px] text-[#8A8A8A]">Subí una foto y recibí una recomendación personalizada</p>
-            </div>
+            <h1 className="text-[20px] font-bold text-white">Recomendación de corte con IA</h1>
+            <p className="text-[13px] text-[#8A8A8A] mt-1">Subí una foto y recibí una recomendación personalizada</p>
           </div>
         </AnimatedContainer>
 

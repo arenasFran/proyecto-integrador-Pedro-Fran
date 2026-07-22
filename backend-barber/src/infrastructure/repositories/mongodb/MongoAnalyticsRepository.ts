@@ -113,6 +113,36 @@ function endOfDayDate(hasta: string): Date {
 }
 
 export class MongoAnalyticsRepository {
+  private static revenueMatchExpr(prefix = '$'): Record<string, unknown> {
+    const s = (f: string) => `${prefix}${f}`;
+    return {
+      $or: [
+        { $in: [s('status'), STATUS_CATEGORIES.countsAsRevenue] },
+        { $and: [{ $eq: [s('status'), 'Confirmado'] }, { $eq: [s('paymentStatus'), 'Pagado'] }] },
+      ],
+    };
+  }
+
+  private static revenueSumCond(priceField = '$servicePrice', prefix = '$'): Record<string, unknown> {
+    if (prefix !== '$') {
+      const s = (f: string) => `${prefix}${f}`;
+      return {
+        $cond: [
+          {
+            $or: [
+              { $in: [s('status'), STATUS_CATEGORIES.countsAsRevenue] },
+              { $and: [{ $eq: [s('status'), 'Confirmado'] }, { $eq: [s('paymentStatus'), 'Pagado'] }] },
+            ],
+          },
+          priceField,
+          0,
+        ],
+      };
+    }
+    return {
+      $cond: [MongoAnalyticsRepository.revenueMatchExpr(), priceField, 0],
+    };
+  }
   async getOverview(desde: string, hasta: string): Promise<OverviewResult> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
@@ -127,7 +157,7 @@ export class MongoAnalyticsRepository {
             { $group: { _id: null, total: { $sum: '$serviceDuration' } } },
           ],
           ingresosTotales: [
-            { $match: { $or: [{ status: { $in: STATUS_CATEGORIES.countsAsRevenue } }, { paymentStatus: 'Pagado', status: 'Confirmado' }] } },
+            { $match: { $expr: MongoAnalyticsRepository.revenueMatchExpr() } },
             { $group: { _id: null, total: { $sum: '$servicePrice' } } },
           ],
           ingresosPendientes: [
@@ -270,15 +300,7 @@ export class MongoAnalyticsRepository {
         $group: {
           _id: '$barberId',
           cantidad: { $sum: 1 },
-          ingresos: {
-            $sum: {
-              $cond: [
-                { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
-                '$servicePrice',
-                0,
-              ],
-            },
-          },
+          ingresos: { $sum: MongoAnalyticsRepository.revenueSumCond() },
         },
       },
       {
@@ -459,15 +481,7 @@ export class MongoAnalyticsRepository {
         $group: {
           _id: { serviceId: '$serviceId', serviceName: '$serviceName' },
           cantidad: { $sum: 1 },
-          ingresos: {
-            $sum: {
-              $cond: [
-                { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
-                '$servicePrice',
-                0,
-              ],
-            },
-          },
+          ingresos: { $sum: MongoAnalyticsRepository.revenueSumCond() },
         },
       },
       {
@@ -612,6 +626,18 @@ export class MongoAnalyticsRepository {
           let: { uid: '$_id' },
           pipeline: [
             { $match: { $expr: { $eq: ['$userId', { $toString: '$$uid' }] } } },
+            {
+              $lookup: {
+                from: 'memberships',
+                localField: 'membershipId',
+                foreignField: '_id',
+                pipeline: [
+                  { $project: { _id: 1, status: 1 } },
+                ],
+                as: 'membership',
+              },
+            },
+            { $match: { 'membership.status': { $nin: ['cancelled', 'expired'] } } },
             { $group: { _id: null, total: { $sum: '$amount' } } },
           ],
           as: 'membershipSpending',
@@ -642,7 +668,7 @@ export class MongoAnalyticsRepository {
                   $map: {
                     input: '$turnos',
                     as: 't',
-                    in: { $cond: [{ $or: [{ $in: ['$$t.status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$$t.status', 'Confirmado'] }, { $eq: ['$$t.paymentStatus', 'Pagado'] }] }] }, '$$t.servicePrice', 0] },
+                    in: MongoAnalyticsRepository.revenueSumCond('$$t.servicePrice', '$$t.'),
                   },
                 },
               },
@@ -734,30 +760,14 @@ export class MongoAnalyticsRepository {
           $group: {
             _id: { $concat: ['$date', ' ', '$startTime'] },
             cantidadReservas: { $sum: 1 },
-            ganancias: {
-              $sum: {
-                $cond: [
-                  { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
-                  '$servicePrice',
-                  0,
-                ],
-              },
-            },
+            ganancias: { $sum: MongoAnalyticsRepository.revenueSumCond() },
           },
         }
       : {
           $group: {
             _id: { $dateToString: { format: dateFormat, date: '$dateObj' } },
             cantidadReservas: { $sum: 1 },
-            ganancias: {
-              $sum: {
-                $cond: [
-                  { $or: [{ $in: ['$status', STATUS_CATEGORIES.countsAsRevenue] }, { $and: [{ $eq: ['$status', 'Confirmado'] }, { $eq: ['$paymentStatus', 'Pagado'] }] }] },
-                  '$servicePrice',
-                  0,
-                ],
-              },
-            },
+            ganancias: { $sum: MongoAnalyticsRepository.revenueSumCond() },
           },
         };
 

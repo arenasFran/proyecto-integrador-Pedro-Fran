@@ -1,4 +1,5 @@
 import { Payment } from '../../../domain/entities/Payment';
+import mongoose from 'mongoose';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
@@ -229,48 +230,61 @@ export class ProcessWebhookUseCase {
     }
 
     const config = getConfig();
-    const price = config.membershipPriceUyu;
 
-    const pending = await this.membershipRepository.findPendingByUser(userId);
-    if (pending) {
-      pending.approve('system');
-      await this.membershipRepository.save(pending);
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      const pending = await this.membershipRepository.findPendingByUser(userId, session);
+      if (pending) {
+        pending.approve('system');
+        await this.membershipRepository.save(pending, session);
+        await this.transactionRepository.create({
+          userId,
+          membershipId: pending.id,
+          amount: pending.price,
+          paymentMethod: 'mercadopago',
+          mpPaymentId: preapprovalId,
+          createdBy: 'client',
+        }, session);
+        await session.commitTransaction();
+        return;
+      }
+
+      const existingExpired = await this.membershipRepository.findAnyByUser(userId);
+      const fallbackPrice = config.membershipPriceUyu;
+      let membership: Membership;
+      if (existingExpired && existingExpired.status === 'expired') {
+        existingExpired.reactivate(existingExpired.price, 'mercadopago');
+        existingExpired.toPrimitives();
+        membership = existingExpired;
+      } else {
+        membership = Membership.create({
+          userId,
+          createdBy: 'client',
+          price: fallbackPrice,
+          mpPreapprovalId: preapprovalId,
+          status: 'active',
+          paymentMethod: 'mercadopago',
+        });
+      }
+      const saved = await this.membershipRepository.save(membership, session);
       await this.transactionRepository.create({
         userId,
-        membershipId: pending.id,
-        amount: price,
+        membershipId: saved.id,
+        amount: saved.price,
         paymentMethod: 'mercadopago',
         mpPaymentId: preapprovalId,
         createdBy: 'client',
-      });
-      return;
-    }
+      }, session);
 
-    const existingExpired = await this.membershipRepository.findAnyByUser(userId);
-    let membership: Membership;
-    if (existingExpired && existingExpired.status === 'expired') {
-      existingExpired.reactivate(price, 'mercadopago');
-      existingExpired.toPrimitives();
-      membership = existingExpired;
-    } else {
-      membership = Membership.create({
-        userId,
-        createdBy: 'client',
-        price,
-        mpPreapprovalId: preapprovalId,
-        status: 'active',
-        paymentMethod: 'mercadopago',
-      });
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-    const saved = await this.membershipRepository.save(membership);
-    await this.transactionRepository.create({
-      userId,
-      membershipId: saved.id,
-      amount: price,
-      paymentMethod: 'mercadopago',
-      mpPaymentId: preapprovalId,
-      createdBy: 'client',
-    });
   }
 
   private async handleSubscriptionPayment(mpPayment: {
@@ -280,6 +294,11 @@ export class ProcessWebhookUseCase {
     externalReference?: string;
   }): Promise<void> {
     if (mpPayment.status !== 'approved' || !mpPayment.preapprovalId) {
+      return;
+    }
+
+    const existingTransaction = await this.transactionRepository.findByMpPaymentId(mpPayment.id);
+    if (existingTransaction) {
       return;
     }
 
@@ -294,111 +313,149 @@ export class ProcessWebhookUseCase {
       return;
     }
 
-    membership.renew();
-    const saved = await this.membershipRepository.save(membership);
-    await this.transactionRepository.create({
-      userId: saved.userId,
-      membershipId: saved.id,
-      amount: saved.price,
-      paymentMethod: 'mercadopago',
-      mpPaymentId: mpPayment.id,
-      createdBy: 'client',
-    });
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      membership.renew();
+      const saved = await this.membershipRepository.save(membership, session);
+      await this.transactionRepository.create({
+        userId: saved.userId,
+        membershipId: saved.id,
+        amount: saved.price,
+        paymentMethod: 'mercadopago',
+        mpPaymentId: mpPayment.id,
+        createdBy: 'client',
+      }, session);
+
+      const subscriptionPayment = Payment.create({
+        type: 'membership',
+        referenceId: saved.id,
+        amount: saved.price,
+        userId: saved.userId,
+      });
+      subscriptionPayment.approve(mpPayment.id);
+      await this.paymentRepository.save(subscriptionPayment, session);
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   private async handleApproved(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
-    switch (payment.type) {
-      case 'appointment': {
-        const appointment = await this.appointmentRepository.findById(payment.referenceId);
-        if (appointment && appointment.paymentStatus !== 'Pagado') {
-          appointment.pay();
-          await this.appointmentRepository.updateStatus(payment.referenceId, {
-            paymentStatus: 'Pagado',
-            statusHistoryEntry: { status: appointment.status, timestamp: new Date(), actor: 'system' },
-          });
-        }
-        break;
-      }
-      case 'membership': {
-        const pending = await this.membershipRepository.findPendingByUser(payment.userId);
-        if (pending) {
-          pending.approve('system');
-          const savedPending = await this.membershipRepository.save(pending);
-          await this.transactionRepository.create({
-            userId: payment.userId,
-            membershipId: savedPending.id,
-            amount: payment.amount,
-            paymentMethod: 'mercadopago',
-            mpPaymentId: payment.mpPaymentId,
-            createdBy: 'client',
-          });
-          return;
-        }
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
 
-        const existingExpired = await this.membershipRepository.findAnyByUser(payment.userId);
-        if (existingExpired && existingExpired.status === 'expired') {
-          existingExpired.reactivate(payment.amount, 'mercadopago');
-          const saved = await this.membershipRepository.save(existingExpired);
-          await this.transactionRepository.create({
-            userId: payment.userId,
-            membershipId: saved.id,
-            amount: payment.amount,
-            paymentMethod: 'mercadopago',
-            mpPaymentId: payment.mpPaymentId,
-            createdBy: 'client',
-          });
-          return;
+      switch (payment.type) {
+        case 'appointment': {
+          const appointment = await this.appointmentRepository.findById(payment.referenceId, session);
+          if (appointment && appointment.paymentStatus !== 'Pagado') {
+            appointment.pay();
+            await this.appointmentRepository.updateStatus(payment.referenceId, {
+              paymentStatus: 'Pagado',
+              statusHistoryEntry: { status: appointment.status, timestamp: new Date(), actor: 'system' },
+            }, session);
+          }
+          break;
         }
-
-        const existingActive = await this.membershipRepository.findActiveByUser(payment.userId);
-        if (!existingActive) {
-          console.log(`[MP-WEBHOOK] Pago ${payment.id} tipo membership aprobado pero no existe membresía pending, expired ni activa para usuario ${payment.userId} — no se crea membresía.`);
-        }
-        break;
-      }
-      case 'product_order': {
-        const order = await this.orderRepository.findById(payment.referenceId);
-        if (!order || order.status !== 'pending') break;
-
-        const stockResults: { productId: string; success: boolean }[] = [];
-        for (const item of order.items) {
-          const ok = await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
-          stockResults.push({ productId: item.productId, success: ok });
-        }
-
-        const allOk = stockResults.every(r => r.success);
-
-        if (!allOk) {
-          for (const item of order.items) {
-            const result = stockResults.find(r => r.productId === item.productId);
-            if (result?.success) {
-              await this.productRepository.atomicIncreaseStock(item.productId, item.quantity);
-            }
+        case 'membership': {
+          const pending = await this.membershipRepository.findPendingByUser(payment.userId, session);
+          if (pending) {
+            pending.approve('system');
+            const savedPending = await this.membershipRepository.save(pending, session);
+            await this.transactionRepository.create({
+              userId: payment.userId,
+              membershipId: savedPending.id,
+              amount: payment.amount,
+              paymentMethod: 'mercadopago',
+              mpPaymentId: payment.mpPaymentId,
+              createdBy: 'client',
+            }, session);
+            await session.commitTransaction();
+            return;
           }
 
-          order.markStockIssue();
+          const existingExpired = await this.membershipRepository.findAnyByUser(payment.userId, session);
+          if (existingExpired && existingExpired.status === 'expired') {
+            existingExpired.reactivate(payment.amount, 'mercadopago');
+            const saved = await this.membershipRepository.save(existingExpired, session);
+            await this.transactionRepository.create({
+              userId: payment.userId,
+              membershipId: saved.id,
+              amount: payment.amount,
+              paymentMethod: 'mercadopago',
+              mpPaymentId: payment.mpPaymentId,
+              createdBy: 'client',
+            }, session);
+            await session.commitTransaction();
+            return;
+          }
+
+          const existingActive = await this.membershipRepository.findActiveByUser(payment.userId, session);
+          if (!existingActive) {
+            console.log(`[MP-WEBHOOK] Pago ${payment.id} tipo membership aprobado pero no existe membresía pending, expired ni activa para usuario ${payment.userId} — no se crea membresía.`);
+          }
+          break;
+        }
+        case 'product_order': {
+          const order = await this.orderRepository.findById(payment.referenceId);
+          if (!order || order.status !== 'pending') break;
+
+          const stockResults: { productId: string; success: boolean }[] = [];
+          for (const item of order.items) {
+            const ok = await this.productRepository.atomicDecreaseStock(item.productId, item.quantity, session);
+            stockResults.push({ productId: item.productId, success: ok });
+          }
+
+          const allOk = stockResults.every(r => r.success);
+
+          if (!allOk) {
+            for (const item of order.items) {
+              const result = stockResults.find(r => r.productId === item.productId);
+              if (result?.success) {
+                await this.productRepository.atomicIncreaseStock(item.productId, item.quantity, session);
+              }
+            }
+
+            order.markStockIssue();
+            order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
+            await this.orderRepository.save(order, session);
+
+            console.error(`[STOCK-OVERSELL] Orden ${order.id} — pago aprobado pero stock insuficiente. Payment MP: ${payment.mpPaymentId}`);
+            await session.commitTransaction();
+            return;
+          }
+
+          order.pay(payment.id);
           order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
-          await this.orderRepository.save(order);
-
-          console.error(`[STOCK-OVERSELL] Orden ${order.id} — pago aprobado pero stock insuficiente. Payment MP: ${payment.mpPaymentId}`);
-          return;
+          await this.orderRepository.save(order, session);
+          break;
         }
+      }
 
-        order.pay(payment.id);
-        order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
-        await this.orderRepository.save(order);
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
 
-        const userEmail = await this.getUserEmail(payment.userId);
-        if (userEmail && this.emailService) {
-          this.emailService.sendMail({
-            to: userEmail,
-            subject: 'Pago aprobado - Barbería SA',
-            html: `<p>Tu pago por la orden <strong>#${order.id}</strong> fue aprobado.</p>
-<p>Total: $${order.total}</p>
+    if (payment.type === 'product_order') {
+      const userEmail = await this.getUserEmail(payment.userId);
+      if (userEmail && this.emailService) {
+        this.emailService.sendMail({
+          to: userEmail,
+          subject: 'Pago aprobado - Barbería SA',
+          html: `<p>Tu pago por la orden <strong>#${payment.referenceId}</strong> fue aprobado.</p>
+<p>Total: $${payment.amount}</p>
 <p>Gracias por tu compra.</p>`,
-          }).catch(() => {});
-        }
-        break;
+        }).catch(() => {});
       }
     }
   }
@@ -460,37 +517,52 @@ export class ProcessWebhookUseCase {
   }
 
   private async handleRefunded(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
-    if (payment.type === 'product_order') {
-      const order = await this.orderRepository.findById(payment.referenceId);
-      if (order && order.status === 'paid') {
-        order.refund();
-        order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
-        await this.orderRepository.save(order);
-        for (const item of order.items) {
-          await this.productRepository.atomicIncreaseStock(item.productId, item.quantity);
+    const session = await mongoose.startSession();
+    try {
+      session.startTransaction();
+
+      if (payment.type === 'product_order') {
+        const order = await this.orderRepository.findById(payment.referenceId);
+        if (order && order.status === 'paid') {
+          order.refund();
+          order.updateMpMetadata(payment.mpPaymentId || '', mpStatusDetail, paymentMethod);
+          await this.orderRepository.save(order, session);
+          for (const item of order.items) {
+            await this.productRepository.atomicIncreaseStock(item.productId, item.quantity, session);
+          }
         }
-        const userEmail = await this.getUserEmail(payment.userId);
-        if (userEmail && this.emailService) {
-          this.emailService.sendMail({
-            to: userEmail,
-            subject: 'Reembolso procesado - Barbería SA',
-            html: `<p>Tu pago por la orden <strong>#${order.id}</strong> fue reembolsado.</p>
-<p>Total: $${order.total}</p>
-<p>El importe será acreditado en tu método de pago.</p>`,
-          }).catch(() => {});
+      } else if (payment.type === 'appointment') {
+        const appointment = await this.appointmentRepository.findById(payment.referenceId);
+        if (appointment && appointment.status !== 'Cancelado') {
+          await this.appointmentRepository.updateStatus(payment.referenceId, {
+            status: 'Cancelado',
+            paymentStatus: 'Cancelado',
+            cancelReason: 'Pago reembolsado',
+            cancelledAt: new Date(),
+            cancelledBy: 'system',
+            statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
+          }, session);
         }
       }
-    } else if (payment.type === 'appointment') {
-      const appointment = await this.appointmentRepository.findById(payment.referenceId);
-      if (appointment && appointment.status !== 'Cancelado') {
-        await this.appointmentRepository.updateStatus(payment.referenceId, {
-          status: 'Cancelado',
-          paymentStatus: 'Cancelado',
-          cancelReason: 'Pago reembolsado',
-          cancelledAt: new Date(),
-          cancelledBy: 'system',
-          statusHistoryEntry: { status: 'Cancelado', timestamp: new Date(), actor: 'system' },
-        });
+
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    if (payment.type === 'product_order') {
+      const userEmail = await this.getUserEmail(payment.userId);
+      if (userEmail && this.emailService) {
+        this.emailService.sendMail({
+          to: userEmail,
+          subject: 'Reembolso procesado - Barbería SA',
+          html: `<p>Tu pago por la orden <strong>#${payment.referenceId}</strong> fue reembolsado.</p>
+<p>Total: $${payment.amount}</p>
+<p>El importe será acreditado en tu método de pago.</p>`,
+        }).catch(() => {});
       }
     }
     await this.sendPaymentNotification(payment, 'reembolsado');

@@ -37,6 +37,11 @@ export class MongoMembershipTransactionRepository {
     return this.toData(created);
   }
 
+  async findByMpPaymentId(mpPaymentId: string): Promise<MembershipTransactionData | null> {
+    const doc = await MembershipTransactionModel.findOne({ mpPaymentId });
+    return doc ? this.toData(doc) : null;
+  }
+
   async findByMembershipId(membershipId: string, pagination?: { page?: number; limit?: number }): Promise<{ data: MembershipTransactionData[]; total: number }> {
     const page = pagination?.page ?? 1;
     const limit = pagination?.limit ?? 20;

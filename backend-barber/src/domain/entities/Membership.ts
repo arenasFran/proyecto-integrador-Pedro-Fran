@@ -119,6 +119,9 @@ export class Membership {
   }
 
   renew(): void {
+    if (this.props.status === 'cancelled') {
+      throw new AppError('Cannot renew a cancelled membership.', 400);
+    }
     const newEndDate = new Date(this.props.endDate);
     newEndDate.setDate(newEndDate.getDate() + this.props.durationDays);
     this.props.endDate = newEndDate;

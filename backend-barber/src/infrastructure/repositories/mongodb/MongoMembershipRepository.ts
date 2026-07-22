@@ -157,6 +157,32 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
+  async atomicConsumeCoupon(id: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    return this.incrementCouponsUsed(id, 1, session);
+  }
+
+  async atomicRestoreCoupon(id: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    return this.incrementCouponsUsed(id, -1, session);
+  }
+
+  async addCouponsTotal(id: string, count: number, session?: mongoose.ClientSession): Promise<Membership | null> {
+    if (count <= 0) return null;
+    const doc = await MembershipModel.findOneAndUpdate(
+      { _id: id },
+      { $inc: { couponsTotal: count }, $set: { updatedAt: new Date() } },
+      { returnDocument: 'after', session }
+    );
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async findCouponAppointments(membershipId: string): Promise<any[]> {
+    const { default: AppointmentModel } = await import('./models/appointment.model');
+    return AppointmentModel.find({
+      membershipId: new mongoose.Types.ObjectId(membershipId),
+      paymentMethod: 'memberPass',
+    }).sort({ date: -1, startTime: -1 }).lean();
+  }
+
   async hasActiveMembership(userId: string): Promise<boolean> {
     const now = new Date();
     const count = await MembershipModel.countDocuments({
@@ -217,10 +243,10 @@ export class MongoMembershipRepository {
     return docs.map((d) => this.toDomain(d as IMembershipDocument));
   }
 
-  async findAnyByUser(userId: string): Promise<Membership | null> {
+  async findAnyByUser(userId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
     const doc = await MembershipModel.findOne({
       userId: new mongoose.Types.ObjectId(userId),
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).session(session || null);
     return doc ? this.toDomain(doc) : null;
   }
 

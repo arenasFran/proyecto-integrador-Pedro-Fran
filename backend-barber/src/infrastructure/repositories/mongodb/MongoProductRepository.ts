@@ -104,20 +104,20 @@ export class MongoProductRepository {
     });
   }
 
-  async atomicDecreaseStock(id: string, quantity: number): Promise<boolean> {
+  async atomicDecreaseStock(id: string, quantity: number, session?: mongoose.ClientSession): Promise<boolean> {
     const result = await ProductModel.findOneAndUpdate(
       { _id: id, stock: { $gte: quantity } },
       { $inc: { stock: -quantity }, $set: { updatedAt: new Date() } },
-      { new: true }
+      { new: true, session }
     );
     return result !== null;
   }
 
-  async atomicIncreaseStock(id: string, quantity: number): Promise<void> {
+  async atomicIncreaseStock(id: string, quantity: number, session?: mongoose.ClientSession): Promise<void> {
     await ProductModel.findByIdAndUpdate(id, {
       $inc: { stock: quantity },
       $set: { updatedAt: new Date() },
-    });
+    }, { session });
   }
 
   async getCategories(): Promise<string[]> {

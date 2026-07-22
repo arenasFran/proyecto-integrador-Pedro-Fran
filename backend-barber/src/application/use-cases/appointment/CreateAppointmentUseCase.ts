@@ -161,7 +161,11 @@ export class CreateAppointmentUseCase {
           throw new AppError('No tenés una membresía activa.', 400);
         }
         membership.redeemCoupon();
-        await this.membershipRepository.incrementCouponsUsed(membership.id, 1, session);
+        const consumed = await this.membershipRepository.atomicConsumeCoupon(membership.id, session);
+        if (!consumed) {
+          throw new AppError('No quedan cupones disponibles.', 400);
+        }
+        appointment.markCouponRedeemed(membership.id);
       }
 
       // RN04 — Colisión con otros turnos activos

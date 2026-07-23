@@ -1,0 +1,21 @@
+info:
+  name: Desactivar barbero
+  type: http
+  seq: 1
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/api/barbers/6a178d2d04577c9fc57766c3/deactivate"
+  headers:
+    - name: Authorization
+      value: " Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTc4YjdkMWE1YTA5NGUyYWM4NzAwYyIsImVtYWlsIjoiYWRtaW5AYmFyYmVyaWEuY29tIiwia2luZCI6IkFkbWluIiwiaWF0IjoxNzc5OTc1NzA4LCJleHAiOjE3Nzk5NzkzMDh9.mcr2tlp3GRpgvpJ4p6FuVbnY7bwAXXQ33ubc2e7vML4"
+  body:
+    type: json
+    data: "{}"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

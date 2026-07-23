@@ -1,3 +1,5 @@
 node_modules/
 .env
 dist/
+coverage/
+src/infrastructure/scripts/dev-tools/

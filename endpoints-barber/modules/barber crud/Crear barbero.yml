@@ -1,0 +1,41 @@
+info:
+  name: Crear barbero
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/api/barbers
+  headers:
+    - name: Authorization
+      value: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTc4YjdkMWE1YTA5NGUyYWM4NzAwYyIsImVtYWlsIjoiYWRtaW5AYmFyYmVyaWEuY29tIiwia2luZCI6IkFkbWluIiwiaWF0IjoxNzc5OTI4MzU0LCJleHAiOjE3Nzk5MzE5NTR9.lckQarwE2knXD7CmcRgafk_5P8gFWnHPTu10FfIiHSU
+  body:
+    type: json
+    data: |-
+      {
+        "email": "juan@barberia.com",
+        "password": "Test1234!",
+        "name": "Juan",
+        "lastname": "Pérez",
+        "phone": "099123456",
+        "services": ["corte", "barba"],
+        "age": 28,
+        "slotDuration": 30,
+        "schedule": {
+          "monday":    { "startTime": "09:00", "endTime": "18:00", "breaks": [] },
+          "tuesday":   { "startTime": "09:00", "endTime": "18:00", "breaks": [] },
+          "wednesday": { "startTime": null,    "endTime": null,    "breaks": [] },
+          "thursday":  { "startTime": "09:00", "endTime": "18:00", "breaks": [] },
+          "friday":    { "startTime": "09:00", "endTime": "18:00", "breaks": [] },
+          "saturday":  { "startTime": "09:00", "endTime": "13:00", "breaks": [] },
+          "sunday":    { "startTime": null,    "endTime": null,    "breaks": [] }
+        }
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+​

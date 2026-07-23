@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "jest"],
+    "noEmit": true
+  },
+  "include": ["src", "tests", "jest.setup.ts"],
+  "files": ["src/interface-adapters/types/express.d.ts", "src/infrastructure/services/mercadopago.d.ts"]
+}

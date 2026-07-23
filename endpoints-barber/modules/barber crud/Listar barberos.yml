@@ -1,0 +1,18 @@
+info:
+  name: Listar barberos
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/barbers"
+  headers:
+    - name: Authorization
+      value: " Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMTc4YjdkMWE1YTA5NGUyYWM4NzAwYyIsImVtYWlsIjoiYWRtaW5AYmFyYmVyaWEuY29tIiwia2luZCI6IkFkbWluIiwiaWF0IjoxNzc5OTc1MzQ4LCJleHAiOjE3Nzk5Nzg5NDh9.-Nrx3p9YLV1CCqYEr94a-wapEZoVYnMpgmqE63noD7s"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

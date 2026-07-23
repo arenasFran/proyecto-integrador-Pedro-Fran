@@ -1,0 +1,22 @@
+info:
+  name: "Test login verify "
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/2fa/verify"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "admin@barberia.com",
+        "code" : "462442"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

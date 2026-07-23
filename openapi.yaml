@@ -1,0 +1,1643 @@
+openapi: "3.0.3"
+info:
+  title: Barberia API DOC
+  version: 1.0.0
+  description: API REST para sistema de gestión de turnos de barbería. Autenticación local y con Google, 2FA, gestión de barberos, servicios y turnos.
+
+servers:
+  - url: http://localhost:3000
+    description: Desarrollo local
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Servidor funcionando
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Registrar un nuevo usuario
+      description: Crea un nuevo usuario con credenciales locales (email y contraseña). El usuario queda como cliente registrado.
+      operationId: authRegister
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Usuario registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Error de validación (contraseñas no coinciden, formato inválido)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email o teléfono ya en uso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/google:
+    post:
+      tags:
+        - Auth
+      summary: Iniciar sesión con Google
+      description: Intercambia un token de Google ID por un token JWT de acceso. Si el usuario ya existe y tiene authProvider=google, retorna tokens. Si el usuario existe con authProvider=local, retorna error. Si el token de Google no contiene nombre, retorna un partialToken para completar el perfil.
+      operationId: authGoogleLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleLoginRequest"
+      responses:
+        "200":
+          description: Login exitoso o requiere completar perfil
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/AuthTokenResponse"
+                  - $ref: "#/components/schemas/GoogleProfileRequiredResponse"
+        "401":
+          description: Token de Google inválido o cuenta no verificada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Ya existe una cuenta local con ese email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/google/complete-profile:
+    post:
+      tags:
+        - Auth
+      summary: Completar perfil de Google
+      description: Completa el registro de un usuario que inició con Google pero no tenía nombre en su perfil de Google. Requiere el partialToken obtenido en /auth/google.
+      operationId: authGoogleCompleteProfile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteGoogleProfileRequest"
+      responses:
+        "200":
+          description: Perfil completado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "400":
+          description: Nombre obligatorio
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Token parcial inválido o expirado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: El usuario ya existe
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/refresh:
+    post:
+      tags:
+        - Auth
+      summary: Renovar access token
+      description: Intercambia un refresh token válido por un nuevo par access token + refresh token (rotación de refresh token).
+      operationId: authRefresh
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: Token renovado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "400":
+          description: refreshToken requerido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Refresh token inválido, expirado o ya utilizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/2fa/send:
+    post:
+      tags:
+        - Auth
+      summary: Enviar código 2FA
+      description: Autentica al usuario con email y contraseña, y envía un código de verificación de 6 dígitos por email como segundo factor.
+      operationId: authTwoFactorSend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorSendRequest"
+      responses:
+        "200":
+          description: Código enviado al email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Credenciales incorrectas, usuario con Google, o sin código activo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Demasiados intentos fallidos de verificación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Servicio de correo no disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/2fa/verify:
+    post:
+      tags:
+        - Auth
+      summary: Verificar código 2FA
+      description: Verifica el código de 6 dígitos enviado al email y completa el login, retornando access token y refresh token.
+      operationId: authTwoFactorVerify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorVerifyRequest"
+      responses:
+        "200":
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponse"
+        "401":
+          description: Código incorrecto, expirado, o usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Demasiados intentos fallidos (cuenta temporalmente bloqueada)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/request-reset:
+    post:
+      tags:
+        - Auth
+      summary: Solicitar restablecimiento de contraseña
+      description: Envía un email con un enlace para restablecer la contraseña. Siempre responde éxito para no revelar si el email existe.
+      operationId: authRequestReset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestResetRequest"
+      responses:
+        "200":
+          description: Si el email existe, se enviaron instrucciones
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "500":
+          description: Servicio de correo no disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Restablecer contraseña
+      description: Restablece la contraseña usando el token recibido por email.
+      operationId: authResetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          description: Contraseña restablecida exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Token inválido, expirado o contraseña débil
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Demasiados intentos fallidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/barbers/public:
+    get:
+      tags:
+        - Barbers
+      summary: Listar barberos públicos
+      description: Retorna los barberos activos con información pública (sin email, teléfono ni horario). No requiere autenticación.
+      operationId: barbersListPublic
+      responses:
+        "200":
+          description: Lista de barberos activos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  barbers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicBarber"
+
+  /api/barbers:
+    get:
+      tags:
+        - Barbers
+      summary: Listar todos los barberos
+      description: Retorna todos los barberos (activos e inactivos) con información completa. Requiere autenticación.
+      operationId: barbersList
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Lista de barberos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  barbers:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/BarberResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags:
+        - Barbers
+      summary: Crear un barbero
+      description: Crea un nuevo barbero (empleado). Requiere rol Admin.
+      operationId: barbersCreate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBarberRequest"
+      responses:
+        "201":
+          description: Barbero creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberResponse"
+        "400":
+          description: Error de validación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          description: Email o teléfono ya en uso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/barbers/{id}:
+    get:
+      tags:
+        - Barbers
+      summary: Obtener barbero por ID
+      description: Retorna la información completa de un barbero. El usuario debe ser Admin o el propio barbero.
+      operationId: barbersGetById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+      responses:
+        "200":
+          description: Datos del barbero
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Barbers
+      summary: Actualizar barbero
+      description: Actualiza los datos de un barbero. Requiere rol Admin.
+      operationId: barbersUpdate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBarberRequest"
+      responses:
+        "200":
+          description: Barbero actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberResponse"
+        "400":
+          description: Error de validación
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email o teléfono ya en uso
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - Barbers
+      summary: Eliminar (desactivar) barbero
+      description: Desactiva un barbero (soft-delete), cancela sus turnos futuros y elimina temp-locks. Requiere rol Admin.
+      operationId: barbersDelete
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+      responses:
+        "200":
+          description: Barbero desactivado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/barbers/{id}/deactivate:
+    patch:
+      tags:
+        - Barbers
+      summary: Desactivar barbero
+      description: Desactiva un barbero sin cancelar turnos futuros. Requiere rol Admin.
+      operationId: barbersDeactivate
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+      responses:
+        "200":
+          description: Barbero desactivado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/barbers/{id}/schedule:
+    get:
+      tags:
+        - Barbers
+      summary: Obtener horario del barbero
+      description: Retorna el horario semanal del barbero. El usuario debe ser Admin o el propio barbero.
+      operationId: barbersGetSchedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+      responses:
+        "200":
+          description: Horario del barbero
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedule:
+                    $ref: "#/components/schemas/BarberSchedule"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - Barbers
+      summary: Actualizar horario del barbero
+      description: Actualiza el horario semanal completo del barbero. Requiere rol Admin.
+      operationId: barbersUpdateSchedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BarberSchedule"
+      responses:
+        "200":
+          description: Horario actualizado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedule:
+                    $ref: "#/components/schemas/BarberSchedule"
+        "400":
+          description: Error de validación del horario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/barbers/{id}/slots:
+    get:
+      tags:
+        - Barbers
+      summary: Obtener slots disponibles
+      description: Retorna los horarios disponibles para un barbero en una fecha específica. No requiere autenticación.
+      operationId: barbersGetSlots
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del barbero
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+            example: "2026-06-15"
+          description: Fecha en formato YYYY-MM-DD
+      responses:
+        "200":
+          description: Slots disponibles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SlotsResponse"
+        "400":
+          description: Fecha inválida o barbero inactivo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/services:
+    get:
+      tags:
+        - Services
+      summary: Listar servicios
+      description: Retorna todos los servicios disponibles. No requiere autenticación.
+      operationId: servicesList
+      responses:
+        "200":
+          description: Lista de servicios
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ServiceResponse"
+
+  /api/appointments:
+    post:
+      tags:
+        - Appointments
+      summary: Crear un turno
+      description: Crea un nuevo turno. Si el usuario está autenticado, se le asigna automáticamente como cliente. Si no, se crea o busca un cliente no registrado.
+      operationId: appointmentsCreate
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAppointmentRequest"
+      responses:
+        "201":
+          description: Turno creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Turno creado exitosamente
+                  appointment:
+                    $ref: "#/components/schemas/AppointmentResponse"
+        "400":
+          description: Error de validación (fecha pasada, fuera de horario, superposición con breaks, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Barbero o servicio no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Horario ocupado o ya existe turno activo en esa fecha
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags:
+        - Appointments
+      summary: Listar turnos
+      description: Retorna los turnos según filtros. Admin/Empleado pueden filtrar por barberId y clientId. Clientes solo ven sus propios turnos.
+      operationId: appointmentsList
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: barberId
+          in: query
+          schema:
+            type: string
+          description: Filtrar por barbero (solo Admin/Empleado)
+        - name: clientId
+          in: query
+          schema:
+            type: string
+          description: Filtrar por cliente (solo Admin/Empleado)
+        - name: date
+          in: query
+          schema:
+            type: string
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          description: Filtrar por fecha exacta (YYYY-MM-DD)
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          description: Filtrar desde fecha (YYYY-MM-DD)
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          description: Filtrar hasta fecha (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Lista de turnos
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointments:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AppointmentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/appointments/{id}:
+    get:
+      tags:
+        - Appointments
+      summary: Obtener turno por ID
+      description: Retorna un turno específico. El cliente solo puede ver sus propios turnos; Admin/Empleado pueden ver cualquier turno.
+      operationId: appointmentsGetById
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del turno
+      responses:
+        "200":
+          description: Datos del turno
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  appointment:
+                    $ref: "#/components/schemas/AppointmentResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Turno no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/appointments/{id}/cancel:
+    patch:
+      tags:
+        - Appointments
+      summary: Cancelar turno
+      description: Cancela un turno. Puede cancelarlo el dueño del turno, un Admin, o el barbero asignado.
+      operationId: appointmentsCancel
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del turno
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelAppointmentRequest"
+      responses:
+        "200":
+          description: Turno cancelado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: No se puede cancelar un turno en estado terminal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Turno no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/appointments/{id}/status:
+    patch:
+      tags:
+        - Appointments
+      summary: Actualizar estado del turno
+      description: Actualiza el estado de un turno (Confirmado -> Completado/Cancelado/NoShow). Solo Admin/Empleado.
+      operationId: appointmentsUpdateStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del turno
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAppointmentStatusRequest"
+      responses:
+        "200":
+          description: Estado actualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Transición de estado inválida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Turno no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/appointments/{id}/reschedule:
+    patch:
+      tags:
+        - Appointments
+      summary: Reagendar turno
+      description: Reagenda un turno a una nueva fecha, hora y/o barbero. Puede hacerlo el dueño del turno, un Admin, o el barbero asignado.
+      operationId: appointmentsReschedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID del turno
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RescheduleAppointmentRequest"
+      responses:
+        "200":
+          description: Turno reagendado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Turno reagendado exitosamente
+                  appointment:
+                    $ref: "#/components/schemas/AppointmentResponse"
+        "400":
+          description: Error de validación (fecha pasada, fuera de horario, estado terminal, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Turno o barbero no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Horario ocupado o ya existe turno activo en esa fecha
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/appointments/temp-lock:
+    post:
+      tags:
+        - Appointments
+      summary: Apartar horario temporalmente
+      description: Bloquea temporalmente un slot para evitar que otro usuario lo reserve mientras se completa la creación del turno. Tiene rate limit de 20 requests cada 5 minutos.
+      operationId: tempLockCreate
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TempLockRequest"
+      responses:
+        "201":
+          description: Slot apartado temporalmente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "409":
+          description: El horario ya fue apartado por otro usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Demasiados intentos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/users/me:
+    get:
+      tags:
+        - Users
+      summary: Obtener perfil del usuario autenticado
+      description: Retorna la información del usuario actual según el token JWT. Cualquier usuario autenticado (cliente, barbero, admin) puede acceder a su propio perfil.
+      operationId: usersGetMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfileResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Usuario no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenido al iniciar sesión (register, login con Google, 2FA, refresh).
+
+  responses:
+    Unauthorized:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: No autorizado
+    Forbidden:
+      description: Sin permisos suficientes
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: No tenés permisos para acceder a este recurso
+
+  schemas:
+    # ──────────────────────────────────────────────
+    # Tipos base
+    # ──────────────────────────────────────────────
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+        refreshToken:
+          type: string
+      required:
+        - message
+        - token
+        - refreshToken
+
+    GoogleProfileRequiredResponse:
+      type: object
+      properties:
+        requiresProfileCompletion:
+          type: boolean
+          enum: [true]
+        partialToken:
+          type: string
+      required:
+        - requiresProfileCompletion
+        - partialToken
+
+    # ──────────────────────────────────────────────
+    # Auth - Requests
+    # ──────────────────────────────────────────────
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - repeatPassword
+        - name
+        - lastname
+        - phone
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email del usuario
+        password:
+          type: string
+          minLength: 8
+          description: Contraseña (mín. 8 caracteres, mayúscula, minúscula y número)
+        repeatPassword:
+          type: string
+          description: Confirmación de la contraseña (debe coincidir con password)
+        name:
+          type: string
+          minLength: 3
+        lastname:
+          type: string
+          minLength: 3
+        phone:
+          type: string
+          description: Teléfono del usuario
+
+    GoogleLoginRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          description: Token de ID de Google (obtenido del frontend con la librería de Google Identity)
+
+    CompleteGoogleProfileRequest:
+      type: object
+      required:
+        - partialToken
+        - name
+      properties:
+        partialToken:
+          type: string
+          description: Token parcial obtenido en /auth/google cuando no se pudo completar el perfil automáticamente
+        name:
+          type: string
+          minLength: 1
+        lastname:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+
+    TwoFactorSendRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    TwoFactorVerifyRequest:
+      type: object
+      required:
+        - email
+        - code
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          description: Código de 6 dígitos recibido por email
+
+    RequestResetRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+        - repeatPassword
+        - email
+      properties:
+        token:
+          type: string
+          description: Token recibido por email
+        password:
+          type: string
+          minLength: 6
+        repeatPassword:
+          type: string
+          description: Confirmación de la nueva contraseña
+        email:
+          type: string
+          format: email
+
+    # ──────────────────────────────────────────────
+    # Barber - Requests
+    # ──────────────────────────────────────────────
+    BarberSchedule:
+      type: object
+      required:
+        - monday
+        - tuesday
+        - wednesday
+        - thursday
+        - friday
+        - saturday
+        - sunday
+      properties:
+        monday:
+          $ref: "#/components/schemas/ScheduleDay"
+        tuesday:
+          $ref: "#/components/schemas/ScheduleDay"
+        wednesday:
+          $ref: "#/components/schemas/ScheduleDay"
+        thursday:
+          $ref: "#/components/schemas/ScheduleDay"
+        friday:
+          $ref: "#/components/schemas/ScheduleDay"
+        saturday:
+          $ref: "#/components/schemas/ScheduleDay"
+        sunday:
+          $ref: "#/components/schemas/ScheduleDay"
+
+    ScheduleDay:
+      type: object
+      properties:
+        startTime:
+          type: string
+          nullable: true
+          pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+          description: Hora de inicio (HH:mm) o null si el día no labora
+        endTime:
+          type: string
+          nullable: true
+          pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+          description: Hora de fin (HH:mm) o null si el día no labora
+        breaks:
+          type: array
+          items:
+            $ref: "#/components/schemas/Break"
+
+    Break:
+      type: object
+      required:
+        - startTime
+        - endTime
+      properties:
+        startTime:
+          type: string
+          pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+        endTime:
+          type: string
+          pattern: "^([01]\\d|2[0-3]):[0-5]\\d$"
+
+    CreateBarberRequest:
+      type: object
+      required:
+        - email
+        - password
+        - name
+        - lastname
+        - phone
+        - schedule
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+          minLength: 3
+        lastname:
+          type: string
+          minLength: 3
+        phone:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+          default: []
+        age:
+          type: integer
+          minimum: 0
+        photoUrl:
+          type: string
+          format: uri
+          nullable: true
+        slotDuration:
+          type: integer
+          minimum: 1
+          default: 30
+          description: Duración de cada slot en minutos
+        schedule:
+          $ref: "#/components/schemas/BarberSchedule"
+
+    UpdateBarberRequest:
+      type: object
+      minProperties: 1
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+        name:
+          type: string
+          minLength: 3
+        lastname:
+          type: string
+          minLength: 3
+        phone:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+        age:
+          type: integer
+          minimum: 0
+          nullable: true
+        photoUrl:
+          type: string
+          format: uri
+          nullable: true
+        isActive:
+          type: boolean
+        slotDuration:
+          type: integer
+          minimum: 1
+
+    # ──────────────────────────────────────────────
+    # Barber - Responses
+    # ──────────────────────────────────────────────
+    BarberResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastname:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        kind:
+          type: string
+          enum:
+            - Admin
+            - Empleado
+        services:
+          type: array
+          items:
+            type: string
+        age:
+          type: integer
+          nullable: true
+        photoUrl:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        slotDuration:
+          type: integer
+        schedule:
+          $ref: "#/components/schemas/BarberSchedule"
+
+    PublicBarber:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastname:
+          type: string
+        services:
+          type: array
+          items:
+            type: string
+        photoUrl:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        slotDuration:
+          type: integer
+
+    SlotsResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          example: "2026-06-15"
+        slots:
+          type: array
+          items:
+            type: string
+            example: "09:00"
+          description: Lista de horarios disponibles en formato HH:mm
+
+    # ──────────────────────────────────────────────
+    # Service - Responses
+    # ──────────────────────────────────────────────
+    ServiceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+        imageUrl:
+          type: string
+
+    # ──────────────────────────────────────────────
+    # Appointment - Requests
+    # ──────────────────────────────────────────────
+    CreateAppointmentRequest:
+      type: object
+      required:
+        - barberId
+        - serviceId
+        - date
+        - startTime
+        - clientName
+        - clientLastname
+      properties:
+        barberId:
+          type: string
+          description: ID del barbero
+        serviceId:
+          type: string
+          description: ID del servicio
+        date:
+          type: string
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+          description: Fecha del turno (YYYY-MM-DD)
+        startTime:
+          type: string
+          pattern: "^\\d{2}:\\d{2}$"
+          description: Hora de inicio (HH:mm)
+        clientName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        clientLastname:
+          type: string
+          minLength: 1
+          maxLength: 100
+        clientPhone:
+          type: string
+          maxLength: 20
+          nullable: true
+        clientEmail:
+          type: string
+          format: email
+          nullable: true
+
+    CancelAppointmentRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          nullable: true
+          description: Motivo de la cancelación
+
+    UpdateAppointmentStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - Cancelado
+            - Completado
+            - NoShow
+        cancelReason:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Obligatorio solo si status es Cancelado
+
+    RescheduleAppointmentRequest:
+      type: object
+      required:
+        - date
+        - startTime
+        - barberId
+      properties:
+        date:
+          type: string
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+        startTime:
+          type: string
+          pattern: "^\\d{2}:\\d{2}$"
+        barberId:
+          type: string
+
+    # ──────────────────────────────────────────────
+    # User - Responses
+    # ──────────────────────────────────────────────
+    UserProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        lastname:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        kind:
+          type: string
+          enum:
+            - Admin
+            - Empleado
+            - Registrado
+        photoUrl:
+          type: string
+          nullable: true
+
+    TempLockRequest:
+      type: object
+      required:
+        - barberId
+        - date
+        - startTime
+      properties:
+        barberId:
+          type: string
+        date:
+          type: string
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
+        startTime:
+          type: string
+          pattern: "^\\d{2}:\\d{2}$"
+
+    # ──────────────────────────────────────────────
+    # Appointment - Responses
+    # ──────────────────────────────────────────────
+    AppointmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        barberId:
+          type: string
+        clientId:
+          type: string
+          nullable: true
+        clientName:
+          type: string
+        clientLastname:
+          type: string
+        clientPhone:
+          type: string
+          nullable: true
+        clientEmail:
+          type: string
+          format: email
+          nullable: true
+        serviceId:
+          type: string
+        serviceName:
+          type: string
+        servicePrice:
+          type: number
+        serviceDuration:
+          type: integer
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        status:
+          type: string
+          enum:
+            - Confirmado
+            - Cancelado
+            - Completado
+            - NoShow
+        paymentStatus:
+          type: string
+          enum:
+            - Pendiente
+            - Pagado
+        paymentMethod:
+          type: string
+          enum:
+            - local
+            - online
+            - memberPass
+        cancelReason:
+          type: string
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time

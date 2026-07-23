@@ -1,0 +1,15 @@
+info:
+  name: Obtener horario
+  type: http
+
+http:
+  method: GET
+  url: "{{baseUrl}}/api/barbers/6a178d2d04577c9fc57766c3/schedule"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+​

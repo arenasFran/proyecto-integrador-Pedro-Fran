@@ -1,0 +1,22 @@
+info:
+  name: "Test login "
+  type: http
+  seq: 5
+
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/2fa/send"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "admin@barberia.com",
+        "password": "Admin1234!"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

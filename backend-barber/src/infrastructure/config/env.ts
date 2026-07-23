@@ -37,6 +37,11 @@ export type Config = {
     twoFA: { max: number; windowMs: number };
     google: { max: number; windowMs: number };
   };
+  telegram: {
+    enabled: boolean;
+    botToken: string | undefined;
+    apiBaseUrl: string;
+  };
 };
 
 const requiredVars = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'JWT_PARTIAL_SECRET', 'MONGO_URI', 'REFRESH_HASH_SECRET', 'CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'] as const;
@@ -77,9 +82,16 @@ export function loadConfig(): Config {
   const jwtAccessSecret = requireEnv('JWT_ACCESS_SECRET');
   const jwtRefreshSecret = requireEnv('JWT_REFRESH_SECRET');
   const jwtPartialSecret = requireEnv('JWT_PARTIAL_SECRET');
+  const port = parseIntEnv('PORT', 3000);
+  const telegramEnabled = parseBoolEnv('TELEGRAM_BOT_ENABLED', false);
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || undefined;
+
+  if (telegramEnabled && !telegramBotToken) {
+    throw new Error('TELEGRAM_BOT_ENABLED=true requiere TELEGRAM_BOT_TOKEN.');
+  }
 
   return {
-    port: parseIntEnv('PORT', 3000),
+    port,
     corsOrigin: optionalEnv('CORS_ORIGIN', 'http://localhost:5173'),
     jwtAccessSecret,
     jwtRefreshSecret,
@@ -114,6 +126,11 @@ export function loadConfig(): Config {
       reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 20), windowMs: 15 * 60 * 1000 },
       twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 30), windowMs: 15 * 60 * 1000 },
       google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 20), windowMs: 15 * 60 * 1000 },
+    },
+    telegram: {
+      enabled: telegramEnabled,
+      botToken: telegramBotToken,
+      apiBaseUrl: optionalEnv('TELEGRAM_BOT_API_BASE_URL', `http://localhost:${port}/api`),
     },
   };
 }
@@ -162,6 +179,12 @@ export function validateEnv(): Config {
       } else {
         console.log('[MP-CREDENTIALS] MP_NOTIFICATION_URL: ' + config.mpNotificationUrl);
       }
+    }
+
+    if (config.telegram.enabled) {
+      console.log('[TELEGRAM-BOT] TELEGRAM_BOT_ENABLED=true. El bot se iniciará en modo polling contra ' + config.telegram.apiBaseUrl);
+    } else {
+      console.log('[TELEGRAM-BOT] Deshabilitado (TELEGRAM_BOT_ENABLED=false).');
     }
 
     return config;

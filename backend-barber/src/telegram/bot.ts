@@ -1,0 +1,60 @@
+import { Telegraf, Scenes, session, Markup } from 'telegraf';
+import { getConfig } from '../infrastructure/config/env';
+import { guestBookingWizard, GUEST_BOOKING_SCENE_ID } from './scenes/booking.wizard';
+
+type BotContext = Scenes.WizardContext;
+
+export function createBot(): Telegraf<BotContext> {
+  const { botToken } = getConfig().telegram;
+  if (!botToken) {
+    throw new Error('TELEGRAM_BOT_TOKEN no configurado.');
+  }
+
+  const bot = new Telegraf<BotContext>(botToken);
+  const stage = new Scenes.Stage<BotContext>([guestBookingWizard]);
+
+  bot.use(session());
+  bot.use(stage.middleware());
+
+  bot.start(async (ctx) => {
+    await ctx.reply(
+      'Hola! Soy el bot de Barbería SA. ¿Tenés cuenta en la web?',
+      Markup.inlineKeyboard([
+        [Markup.button.callback('No tengo cuenta', 'guest_start')],
+        [Markup.button.callback('Tengo cuenta', 'account_start')],
+      ])
+    );
+  });
+
+  bot.action('guest_start', async (ctx) => {
+    await ctx.answerCbQuery();
+    return ctx.scene.enter(GUEST_BOOKING_SCENE_ID);
+  });
+
+  bot.action('account_start', async (ctx) => {
+    await ctx.answerCbQuery();
+    await ctx.reply('La vinculación de cuenta todavía no está disponible. Por ahora podés reservar sin cuenta con /reservar.');
+  });
+
+  bot.command('reservar', (ctx) => ctx.scene.enter(GUEST_BOOKING_SCENE_ID));
+  bot.command('misturnos', (ctx) => ctx.reply('Para ver tus turnos necesitás vincular tu cuenta (próximamente).'));
+  bot.command('cancelar', (ctx) => ctx.reply('Para cancelar un turno necesitás vincular tu cuenta, o usá /reservar para uno nuevo.'));
+  bot.command('ayuda', (ctx) =>
+    ctx.reply('Puedo ayudarte a reservar un turno con /reservar. La vinculación de cuenta está en camino.')
+  );
+
+  bot.catch((err, ctx) => {
+    console.error('[TelegramBot] Error no manejado:', err);
+    ctx.reply('Uy, algo salió mal. Probá de nuevo con /start.').catch(() => {});
+  });
+
+  return bot;
+}
+
+export async function launchBot(): Promise<void> {
+  const bot = createBot();
+  await bot.launch();
+  console.log('[TelegramBot] Bot iniciado en modo polling.');
+  process.once('SIGINT', () => bot.stop('SIGINT'));
+  process.once('SIGTERM', () => bot.stop('SIGTERM'));
+}

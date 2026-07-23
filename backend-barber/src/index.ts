@@ -91,6 +91,11 @@ const startServer = async () => {
   app.listen(config.port, () => {
     console.log(`Servidor corriendo en puerto ${config.port}`);
   });
+
+  if (config.telegram.enabled) {
+    const { launchBot } = await import('./telegram/bot');
+    await launchBot();
+  }
 };
 
 startServer();

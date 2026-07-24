@@ -1,10 +1,19 @@
-name: Frontend - Deploy to S3
+name: Frontend - Deploy to GitHub Pages
 
 on:
   push:
     branches: [main]
     paths:
       - 'frontend-barber/**'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: 'pages'
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -14,24 +23,27 @@ jobs:
         working-directory: frontend-barber
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend-barber/package-lock.json
-
       - run: npm ci
       - run: npm run test:run
 
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     defaults:
       run:
         working-directory: frontend-barber
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -48,15 +60,9 @@ jobs:
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_MP_PUBLIC_KEY: ${{ secrets.VITE_MP_PUBLIC_KEY }}
 
-      - name: Deploy to S3
-        run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }}/ --delete \
-            --cache-control 'max-age=31536000,immutable' \
-            --exclude '*.html'
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET }}/ --delete \
-            --cache-control 'no-cache' \
-            --include '*.html'
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend-barber/dist
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

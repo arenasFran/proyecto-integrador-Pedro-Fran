@@ -1,23 +1,23 @@
 import { Request, Response } from 'express';
 import { GetAvailableSlotsUseCase } from '../../../application/use-cases/barber/GetAvailableSlotsUseCase';
 import { DeleteBarberUseCase } from '../../../application/use-cases/barber/DeleteBarberUseCase';
+import { CreateBarberUseCase } from '../../../application/use-cases/barber/CreateBarberUseCase';
+import { UpdateBarberUseCase } from '../../../application/use-cases/barber/UpdateBarberUseCase';
+import { UpdateBarberMeUseCase, UpdateBarberMeResult } from '../../../application/use-cases/barber/UpdateBarberMeUseCase';
+import { GetBarberOccupancyUseCase } from '../../../application/use-cases/barber/GetBarberOccupancyUseCase';
+import { CreateBarberBlockUseCase } from '../../../application/use-cases/barber/CreateBarberBlockUseCase';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
-import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
-import { BcryptPasswordHasher } from '../../../infrastructure/services/BcryptPasswordHasher';
-import { Barber } from '../../../domain/entities/Barber';
-import { Email } from '../../../domain/value-objects/Email';
-import { Phone } from '../../../domain/value-objects/Phone';
-import { Password } from '../../../domain/value-objects/Password';
-import { BarberSchedule } from '../../../domain/entities/Barber';
+import { Barber, BarberSchedule, BarberProps } from '../../../domain/entities/Barber';
 import { sendSuccess, sendError } from '../../../common/response';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
-import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { AppError } from '../../../domain/errors/AppError';
-import { doesOverlap } from '../../../domain/utils/time';
 import { IEmailService } from '../../../application/ports/IEmailService';
 
 export class BarberController {
   private toResponse(barber: Barber) {
+    return this.toResponseProps(barber.toPrimitives());
+  }
+  private toResponseProps(barber: BarberProps) {
     return {
       id: barber.id,
       name: barber.name,
@@ -31,19 +31,21 @@ export class BarberController {
       isActive: barber.isActive,
       slotDuration: barber.slotDuration,
       maxAdvanceDays: barber.maxAdvanceDays,
-      schedule: barber.schedule as BarberSchedule,
+      schedule: barber.schedule,
     };
   }
 
   constructor(
     private readonly barberRepository: MongoBarberRepository,
-    private readonly userRepository: MongoUserRepository,
-    private readonly passwordHasher: BcryptPasswordHasher,
     private readonly getAvailableSlots: GetAvailableSlotsUseCase,
     private readonly deleteBarber: DeleteBarberUseCase,
     private readonly blockRepository: MongoBarberBlockRepository,
-    private readonly appointmentRepository: MongoAppointmentRepository,
-    private readonly emailService: IEmailService
+    private readonly emailService: IEmailService,
+    private readonly createBarber: CreateBarberUseCase,
+    private readonly updateBarber: UpdateBarberUseCase,
+    private readonly updateBarberMe: UpdateBarberMeUseCase,
+    private readonly getBarberOccupancy: GetBarberOccupancyUseCase,
+    private readonly createBarberBlock: CreateBarberBlockUseCase
   ) {}
 
   getAllPublic = async (_req: Request, res: Response) => {
@@ -70,42 +72,8 @@ export class BarberController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const dto = req.body;
-      const email = Email.create(dto.email).getValue();
-      const phone = Phone.create(dto.phone).getValue();
-      Password.create(dto.password);
-
-      const existingUser = await this.userRepository.findByEmail(email);
-      if (existingUser) {
-        throw new AppError('Email en uso.', 409);
-      }
-
-      const existingPhone = await this.userRepository.findByPhone(phone);
-      if (existingPhone) {
-        throw new AppError('Teléfono en uso.', 409);
-      }
-
-      const passwordHash = await this.passwordHasher.hash(dto.password);
-
-      const barber = Barber.create({
-        id: '',
-        email,
-        name: dto.name,
-        lastname: dto.lastname,
-        phone,
-        kind: 'Empleado',
-        services: dto.services || [],
-        age: dto.age,
-        photoUrl: dto.photoUrl ?? null,
-        isActive: true,
-        slotDuration: dto.slotDuration ?? 30,
-        maxAdvanceDays: dto.maxAdvanceDays ?? 30,
-        schedule: dto.schedule,
-        passwordHash,
-      });
-
-      const created = await this.barberRepository.createBarber(barber);
-      return sendSuccess(res, this.toResponse(created), 201);
+      const result = await this.createBarber.execute(req.body);
+      return sendSuccess(res, this.toResponseProps(result), 201);
     } catch (error) {
       return sendError(res, error, 'Error al crear el barbero');
     }
@@ -155,64 +123,8 @@ export class BarberController {
   update = async (req: Request, res: Response) => {
     try {
       const barberId = String(req.params.id);
-      const current = await this.barberRepository.findBarberById(barberId);
-      if (!current) {
-        throw new AppError('Barbero no encontrado.', 404);
-      }
-
-      const dto = req.body;
-      const update: {
-        email?: string;
-        name?: string;
-        lastname?: string;
-        phone?: string;
-        services?: string[];
-        age?: number | null;
-        photoUrl?: string | null;
-        isActive?: boolean;
-        slotDuration?: number;
-        maxAdvanceDays?: number;
-        passwordHash?: string;
-      } = {};
-
-      if (dto.email) {
-        const email = Email.create(dto.email).getValue();
-        const existing = await this.userRepository.findByEmail(email);
-        if (existing && existing.id !== current.id) {
-          throw new AppError('Email en uso.', 409);
-        }
-        update.email = email;
-      }
-
-      if (dto.phone) {
-        const phone = Phone.create(dto.phone).getValue();
-        const existing = await this.userRepository.findByPhone(phone);
-        if (existing && existing.id !== current.id) {
-          throw new AppError('Teléfono en uso.', 409);
-        }
-        update.phone = phone;
-      }
-
-      if (dto.password) {
-        Password.create(dto.password);
-        update.passwordHash = await this.passwordHasher.hash(dto.password);
-      }
-
-      if (dto.name) update.name = dto.name;
-      if (dto.lastname) update.lastname = dto.lastname;
-      if (dto.services) update.services = dto.services;
-      if (dto.age !== undefined) update.age = dto.age;
-      if (dto.photoUrl !== undefined) update.photoUrl = dto.photoUrl;
-      if (dto.isActive !== undefined) update.isActive = dto.isActive;
-      if (dto.slotDuration !== undefined) update.slotDuration = dto.slotDuration;
-      if (dto.maxAdvanceDays !== undefined) update.maxAdvanceDays = dto.maxAdvanceDays;
-
-      const updated = await this.barberRepository.updateBarber(barberId, update);
-      if (!updated) {
-        throw new AppError('Barbero no encontrado.', 404);
-      }
-
-      return sendSuccess(res, this.toResponse(updated), 200);
+      const result = await this.updateBarber.execute(barberId, req.body);
+      return sendSuccess(res, this.toResponseProps(result), 200);
     } catch (error) {
       return sendError(res, error, 'Error al actualizar barbero');
     }
@@ -271,62 +183,21 @@ export class BarberController {
   updateMe = async (req: Request, res: Response) => {
     try {
       const id = req.user!._id;
-      const { schedule: scheduleData, currentPassword, ...profileData } = req.body;
-
-      let oldEmail: string | undefined;
-
-      if (profileData.email) {
-        const current = await this.barberRepository.findBarberById(id);
-        if (!current) {
-          throw new AppError('Barbero no encontrado.', 404);
-        }
-
-        const email = Email.create(profileData.email).getValue();
-        profileData.email = email;
-
-        if (email !== current.email) {
-          const existing = await this.userRepository.findByEmail(email);
-          if (existing && existing.id !== current.id) {
-            throw new AppError('Email en uso.', 409);
-          }
-
-          if (!currentPassword) {
-            throw new AppError('La contraseña actual es obligatoria para cambiar el email.', 400);
-          }
-          const isCurrentPasswordValid = await this.passwordHasher.compare(
-            currentPassword,
-            current.passwordHash!
-          );
-          if (!isCurrentPasswordValid) {
-            throw new AppError('Contraseña actual incorrecta.', 401);
-          }
-          oldEmail = current.email;
-        }
-      }
-
-      const updated = await this.barberRepository.updateBarber(id, profileData);
-
-      if (scheduleData && updated) {
-        await this.barberRepository.updateSchedule(id, scheduleData);
-      }
-
-      if (!updated) {
-        throw new AppError('Barbero no encontrado.', 404);
-      }
+      const { oldEmail, barber } = await this.updateBarberMe.execute(id, req.body);
 
       if (oldEmail) {
         this.emailService
           .sendMail({
             to: oldEmail,
             subject: 'El email de tu cuenta fue actualizado',
-            html: `<p>El email de tu cuenta se cambió a ${updated.email}.</p><p>Si no fuiste vos, contactanos de inmediato.</p>`,
+            html: `<p>El email de tu cuenta se cambió a ${barber.email}.</p><p>Si no fuiste vos, contactanos de inmediato.</p>`,
           })
           .catch((error) => {
             console.error('Error enviando email de cambio de email:', error);
           });
       }
 
-      return sendSuccess(res, this.toResponse(updated), 200);
+      return sendSuccess(res, this.toResponseProps(barber), 200);
     } catch (error) {
       return sendError(res, error, 'Error al actualizar perfil');
     }
@@ -358,28 +229,15 @@ export class BarberController {
   createBlock = async (req: Request, res: Response) => {
     try {
       const id = String(req.params.id);
-
-      if (req.user?.kind !== 'Admin' && id !== req.user?._id) {
-        throw new AppError('No podés bloquear el horario de otro barbero.', 403);
-      }
-
       const { date, startTime, endTime } = req.body;
 
-      // Validar que no haya turnos confirmados en el horario a bloquear
-      const appointments = await this.appointmentRepository.findByBarberAndDate(id, date);
-      for (const apt of appointments) {
-        if (apt.status === 'Cancelado') continue;
-        if (doesOverlap(startTime, endTime, apt.startTime, apt.endTime)) {
-          throw new AppError('Hay turnos confirmados en ese horario. No se puede bloquear.', 409);
-        }
-      }
-
-      const block = await this.blockRepository.create({
+      const block = await this.createBarberBlock.execute({
         barberId: id,
         date,
         startTime,
         endTime,
-        createdBy: req.user?._id,
+        actorId: req.user?._id,
+        actorKind: req.user?.kind,
       });
 
       return sendSuccess(res, { block }, 201);
@@ -427,44 +285,9 @@ export class BarberController {
       const id = String(req.params.id);
       const date = String(req.query.date || '');
 
-      const barber = await this.barberRepository.findBarberById(id);
-      if (!barber) {
-        throw new AppError('Barbero no encontrado.', 404);
-      }
+      const result = await this.getBarberOccupancy.execute({ barberId: id, date });
 
-      const appointments = await this.appointmentRepository.findByBarberAndDate(id, date);
-      const activeAppointments = appointments.filter((a) => a.status !== 'Cancelado');
-
-      const totalSlots = barber.schedule
-        ? Object.values(barber.schedule).reduce((sum, day) => {
-            if (!day || !day.startTime || !day.endTime) return sum;
-            const [sh, sm] = day.startTime.split(':').map(Number);
-            const [eh, em] = day.endTime.split(':').map(Number);
-            return sum + Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / barber.slotDuration);
-          }, 0)
-        : 0;
-
-      const blocks = await this.blockRepository.findByBarberAndDate(id, date);
-      const blockedSlots = blocks.reduce((sum, b) => {
-        const [sh, sm] = b.startTime.split(':').map(Number);
-        const [eh, em] = b.endTime.split(':').map(Number);
-        return sum + Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / barber.slotDuration);
-      }, 0);
-
-      const availableSlots = Math.max(0, totalSlots - blockedSlots);
-      const ocupacion = availableSlots > 0
-        ? Math.round((activeAppointments.length / availableSlots) * 100)
-        : 0;
-
-      return sendSuccess(res, {
-        barberId: id,
-        date,
-        totalSlots,
-        blockedSlots,
-        availableSlots,
-        appointmentsCount: activeAppointments.length,
-        ocupacion,
-      }, 200);
+      return sendSuccess(res, result, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener ocupación');
     }

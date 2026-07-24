@@ -1,5 +1,6 @@
 import { RekognitionClient, DetectFacesCommand, FaceDetail } from '@aws-sdk/client-rekognition';
 import { IFaceValidationService, ResultadoValidacionFoto } from '../../application/ports/IFaceValidationService';
+import { AppError } from '../../domain/errors/AppError';
 
 export type RekognitionCredentials = {
   region: string;
@@ -55,12 +56,21 @@ export class RekognitionFaceValidationService implements IFaceValidationService 
       },
     });
 
-    const response = await client.send(
-      new DetectFacesCommand({
-        Image: { Bytes: imagenBuffer },
-        Attributes: ['DEFAULT'],
-      })
-    );
+    let response;
+    try {
+      response = await client.send(
+        new DetectFacesCommand({
+          Image: { Bytes: imagenBuffer },
+          Attributes: ['DEFAULT'],
+        })
+      );
+    } catch (error) {
+      const nombre = error instanceof Error ? error.name : '';
+      if (nombre === 'InvalidImageFormatException') {
+        return { valido: false, motivo: 'Formato de imagen no soportado, subí una foto JPG o PNG.' };
+      }
+      throw new AppError('No pudimos validar la foto, probá de nuevo en unos segundos.', 503, 'FACE_VALIDATION_ERROR');
+    }
 
     return validarDetalleCara(response.FaceDetails ?? []);
   }

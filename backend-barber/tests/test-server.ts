@@ -4,7 +4,11 @@ import { loadConfig } from '../src/infrastructure/config/env';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'a'.repeat(32);
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
-process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/test';
+
+const USE_EXTERNAL_MONGO = process.env.TEST_USE_EXTERNAL_MONGO === 'true';
+if (!USE_EXTERNAL_MONGO) {
+  delete process.env.MONGO_URI;
+}
 
 loadConfig();
 
@@ -17,7 +21,7 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Admin } from '../src/infrastructure/repositories/mongodb/models/barber.model';
 import { FakeEmailService } from '../src/infrastructure/services/FakeEmailService';
 import { buildAuthRouter } from '../src/wiring/auth';
-import { buildBarberRouter } from '../src/wiring';
+import { buildBarberRouter, buildServiceRouter, buildMembershipRouter } from '../src/wiring';
 
 const PORT = Number(process.env.TEST_PORT || 3000);
 
@@ -38,6 +42,8 @@ app.use(express.json());
 app.use(helmet());
 app.use('/auth', buildAuthRouter({ emailService: new FakeEmailService() }));
 app.use('/api/barbers', buildBarberRouter());
+app.use('/api/memberships', buildMembershipRouter());
+app.use('/api/services', buildServiceRouter());
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
@@ -68,14 +74,13 @@ const start = async () => {
   process.env.TEST_ADMIN_LASTNAME = process.env.TEST_ADMIN_LASTNAME || 'Barber';
   process.env.TEST_ADMIN_PHONE = process.env.TEST_ADMIN_PHONE || '099000000';
 
-  const externalUri = process.env.MONGO_URI;
+  const externalUri = USE_EXTERNAL_MONGO ? process.env.MONGO_URI : undefined;
 
- if (externalUri) {
+  if (externalUri) {
     await mongoose.connect(externalUri, { dbName: 'backend-barber-test' });
   } else {
     mongoServer = await MongoMemoryServer.create();
     const uri = mongoServer.getUri();
-    process.env.MONGO_URI = uri;
     await mongoose.connect(uri);
   }
 

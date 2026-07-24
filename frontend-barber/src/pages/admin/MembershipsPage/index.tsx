@@ -281,6 +281,7 @@ export default function MembershipsPage() {
                   <thead>
                     <tr className="bg-[#121212] border-b border-[#282828]">
                       <th className="text-left px-4 py-3 text-[10px] text-[#6A6A6A] uppercase font-medium">Cliente</th>
+                      <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase font-medium">Tipo</th>
                       <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase font-medium">Estado</th>
                       <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase font-medium">Cupones</th>
                       <th className="text-center px-4 py-3 text-[10px] text-[#6A6A6A] uppercase font-medium">Vigencia</th>
@@ -296,6 +297,11 @@ export default function MembershipsPage() {
                             <FiUser className="text-[#FF5C00] text-sm shrink-0" />
                             <span className="text-white font-medium truncate">{m.user?.name ?? '—'} {m.user?.lastname ?? ''}</span>
                           </div>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="text-[11px] text-[#8A8A8A]">
+                            {m.mpPreapprovalId != null ? 'Suscripción' : m.paymentMethod === 'mercadopago' ? 'Pago único' : m.paymentMethod === 'local' ? 'Local' : '—'}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-center">{statusBadge(m.status)}</td>
                         <td className="px-4 py-3 text-center text-white">

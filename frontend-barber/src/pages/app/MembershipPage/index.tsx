@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
-import { useGetMyMembershipQuery, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation, useGetCouponHistoryQuery } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useCancelMembershipMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation, useCreateSubscriptionMutation, useGetCouponHistoryQuery } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind, getTokenUser } from '../../../utils/token';
 import PaymentModal from '../../../components/payment/PaymentModal';
@@ -13,9 +13,10 @@ export default function MembershipPage() {
   const kind = getTokenKind(token);
 
   const { data, isLoading, refetch } = useGetMyMembershipQuery();
-  const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelSubscriptionMutation();
+  const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelMembershipMutation();
   const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
+  const [createSubscription, { isLoading: isSubscribing }] = useCreateSubscriptionMutation();
 
   const { showToast } = useToast();
 
@@ -43,6 +44,7 @@ export default function MembershipPage() {
     : 0;
 
   const isSubscription = active?.mpPreapprovalId != null;
+  const isOnetime = active?.paymentMethod === 'mercadopago' && !isSubscription;
 
   const handlePurchaseOnline = async () => {
     try {
@@ -53,6 +55,20 @@ export default function MembershipPage() {
         setRetryPreferenceId(result.preferenceId);
         setPaymentModalOpen(true);
       }
+    } catch {
+      showToast('Error al crear el pago. Intentá de nuevo.', 'error');
+    }
+  };
+
+  const handleCreateSubscription = async () => {
+    try {
+      const user = getTokenUser(token);
+      if (!user) { showToast('Sesión inválida', 'error'); return; }
+      const result = await createSubscription({ userId: user.id, email: user.email || '' }).unwrap();
+      if (result.initPoint) {
+        window.open(result.initPoint, '_blank');
+      }
+      showToast('Redirigiendo a MercadoPago para autorizar la suscripción...', 'success');
     } catch {
       showToast('Error al crear la suscripción. Intentá de nuevo.', 'error');
     }
@@ -120,7 +136,13 @@ export default function MembershipPage() {
                       {isSubscription && (
                         <span className="text-[11px] text-[#8A8A8A] ml-2 flex items-center gap-1">
                           <FiCreditCard className="text-[#FF5C00]" />
-                          Suscripción recurrente
+                          Suscripción mensual
+                        </span>
+                      )}
+                      {isOnetime && (
+                        <span className="text-[11px] text-[#8A8A8A] ml-2 flex items-center gap-1">
+                          <FiDollarSign className="text-[#FF5C00]" />
+                          Pago único
                         </span>
                       )}
                       {active.paymentMethod === 'local' && (
@@ -201,7 +223,7 @@ export default function MembershipPage() {
                 {isSubscription && (
                   <div className="mt-4 flex justify-end">
                     <Button variant="danger" onClick={() => setCancelModalOpen(true)} loading={isCancellingSub}>
-                      Cancelar suscripción en Mercado Pago
+                      Cancelar suscripción
                     </Button>
                   </div>
                 )}
@@ -306,18 +328,51 @@ export default function MembershipPage() {
                 </div>
               </div>
 
-              <div className="flex justify-center max-w-lg mx-auto mb-8">
-                <Button
-                  loading={isPaying}
-                  onClick={handlePurchaseOnline}
-                  icon={FiCreditCard}
-                >
-                  Suscribirme online
-                </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto mb-8">
+                <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-5 text-left flex flex-col h-full">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FiDollarSign className="text-[#FF5C00] text-lg" />
+                    <div>
+                      <p className="text-[15px] font-semibold text-white">Pago único</p>
+                      <p className="text-[20px] font-bold text-white">{formatCurrency(399)}</p>
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-[#8A8A8A] mb-4 flex-1">
+                    Pagás una vez, disfrutás 30 días de beneficios.
+                    Al vencer, podés renovar manualmente cuando quieras.
+                  </p>
+                  <Button
+                    loading={isPaying}
+                    onClick={handlePurchaseOnline}
+                    icon={FiDollarSign}
+                    className="w-full"
+                  >
+                    Pagar online
+                  </Button>
+                </div>
+                <div className="rounded-[12px] bg-[#1A1A1A] border border-[#FF5C00]/20 p-5 text-left flex flex-col h-full">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FiRefreshCw className="text-[#FF5C00] text-lg" />
+                    <div>
+                      <p className="text-[15px] font-semibold text-white">Suscripción mensual</p>
+                      <p className="text-[20px] font-bold text-white">{formatCurrency(399)}<span className="text-[13px] text-[#8A8A8A]">/mes</span></p>
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-[#8A8A8A] mb-4 flex-1">
+                    Se renueva automáticamente cada mes.
+                    Podés cancelar cuando quieras desde esta página.
+                  </p>
+                  <Button
+                    loading={isSubscribing}
+                    onClick={handleCreateSubscription}
+                    icon={FiCreditCard}
+                    className="w-full"
+                    variant="primary"
+                  >
+                    Suscribirme
+                  </Button>
+                </div>
               </div>
-              <p className="text-[11px] text-[#8A8A8A]">
-                Suscripción mensual recurrente por {formatCurrency(399)}/mes. Podés cancelar cuando quieras.
-              </p>
             </div>
           </AnimatedContainer>
         )}
@@ -390,7 +445,7 @@ export default function MembershipPage() {
         onClose={() => setCancelModalOpen(false)}
         onConfirm={handleCancelSubscription}
         title="Cancelar suscripción"
-        message="Al cancelar la suscripción en MercadoPago, no se realizarán más cobros automáticos. La membresía actual se mantendrá activa hasta su fecha de vencimiento. ¿Querés continuar?"
+        message="Al cancelar la suscripción no se realizarán más cobros automáticos. La membresía actual se mantendrá activa hasta su fecha de vencimiento. ¿Querés continuar?"
         confirmText="Cancelar suscripción"
         variant="danger"
         loading={isCancellingSub}

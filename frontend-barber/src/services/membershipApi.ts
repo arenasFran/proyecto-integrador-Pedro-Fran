@@ -53,8 +53,8 @@ export const membershipApi = createApi({
       query: (data) => ({ url: '/api/memberships/create-subscription', method: 'POST', data }),
     }),
 
-    cancelSubscription: builder.mutation<void, string>({
-      query: (id) => ({ url: `/api/memberships/${id}/cancel-subscription`, method: 'POST' }),
+    cancelMembership: builder.mutation<void, string>({
+      query: (id) => ({ url: `/api/memberships/${id}/cancel`, method: 'POST' }),
       invalidatesTags: ['Membership'],
     }),
 
@@ -118,7 +118,7 @@ export const {
   useGetMembershipByIdQuery,
   useGetMembershipByUserIdQuery,
   useCreateSubscriptionMutation,
-  useCancelSubscriptionMutation,
+  useCancelMembershipMutation,
   useInitiateMembershipPaymentMutation,
   useRetryMembershipPaymentMutation,
   useRedeemCouponMutation,

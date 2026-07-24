@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useGetDistribucionQuery } from '../../../../services/analyticsApi';
 import DateRangeFilter from '../../../../components/common/DateRangeFilter';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+
+export default function BarberComparisonTable() {
   const [desde, setDesde] = useState('');
   const [hasta, setHasta] = useState('');
 

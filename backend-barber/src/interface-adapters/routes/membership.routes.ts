@@ -110,10 +110,10 @@ export const createMembershipRouter = (deps: {
   );
 
   router.post(
-    '/:id/cancel-subscription',
+    '/:id/cancel',
     membershipMutationLimiter,
     deps.authenticate,
-    deps.membershipController.cancelSubscription
+    deps.membershipController.cancel
   );
 
   router.post(

@@ -197,12 +197,48 @@ export class ProcessWebhookUseCase {
     _xRequestId: string
   ): Promise<void> {
     const mpPreapproval = await this.mercadoPagoService.getPreapproval(preapprovalId);
-    if (!mpPreapproval || mpPreapproval.status !== 'authorized') {
+    if (!mpPreapproval) {
+      console.log(`[MP-WEBHOOK] Preapproval ${preapprovalId} no encontrado en MP.`);
       return;
     }
 
     const userId = mpPreapproval.externalReference;
     if (!userId) {
+      console.log(`[MP-WEBHOOK] Preapproval ${preapprovalId} sin externalReference — ignorando.`);
+      return;
+    }
+
+    if (mpPreapproval.status === 'cancelled') {
+      const membership = await this.membershipRepository.findByPreapprovalId(preapprovalId);
+      if (membership && membership.status === 'active') {
+        membership.cancel();
+        await this.membershipRepository.save(membership);
+        console.log(`[MP-WEBHOOK] Membresía ${membership.id} cancelada por cancelación de preapproval ${preapprovalId}.`);
+      }
+      return;
+    }
+
+    if (mpPreapproval.status === 'expired') {
+      const membership = await this.membershipRepository.findByPreapprovalId(preapprovalId);
+      if (membership && membership.status === 'active') {
+        membership.expire();
+        await this.membershipRepository.save(membership);
+        console.log(`[MP-WEBHOOK] Membresía ${membership.id} expirada por vencimiento de preapproval ${preapprovalId}.`);
+      }
+      return;
+    }
+
+    if (mpPreapproval.status === 'paused') {
+      console.log(`[MP-WEBHOOK] Preapproval ${preapprovalId} pausado — no se modifica la membresía local.`);
+      return;
+    }
+
+    if (mpPreapproval.status === 'pending') {
+      return;
+    }
+
+    if (mpPreapproval.status !== 'authorized') {
+      console.log(`[MP-WEBHOOK] Preapproval ${preapprovalId} con estado desconocido: ${mpPreapproval.status} — ignorando.`);
       return;
     }
 
@@ -249,6 +285,7 @@ export class ProcessWebhookUseCase {
           mpPreapprovalId: preapprovalId,
           status: 'active',
           paymentMethod: 'mercadopago',
+          billingCycle: 'monthly',
         });
       }
       const saved = await this.membershipRepository.save(membership, session);

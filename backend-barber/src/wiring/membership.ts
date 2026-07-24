@@ -3,6 +3,11 @@ import { MongoMembershipTransactionRepository } from '../infrastructure/reposito
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoPaymentRepository } from '../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { CreateMembershipUseCase } from '../application/use-cases/membership/CreateMembershipUseCase';
+import { CancelMembershipUseCase } from '../application/use-cases/membership/CancelMembershipUseCase';
+import { InitiateMembershipPaymentUseCase } from '../application/use-cases/membership/InitiateMembershipPaymentUseCase';
+import { ApprovePendingMembershipUseCase } from '../application/use-cases/membership/ApprovePendingMembershipUseCase';
+import { RetryMembershipPaymentUseCase } from '../application/use-cases/membership/RetryMembershipPaymentUseCase';
+import { CreateMembershipSubscriptionUseCase } from '../application/use-cases/membership/CreateMembershipSubscriptionUseCase';
 import { MembershipController } from '../interface-adapters/controllers/membership/MembershipController';
 import { createMembershipRouter } from '../interface-adapters/routes/membership.routes';
 import { buildTokenService } from './auth';
@@ -18,6 +23,13 @@ export const buildMembershipRouter = () => {
   const createSubscriptionUseCase = buildCreateSubscriptionUseCase();
   const mercadoPagoService = buildMercadoPagoService();
   const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo, userRepo, transactionRepo, paymentRepo);
+
+  const cancelMembershipUseCase = new CancelMembershipUseCase(membershipRepo, mercadoPagoService);
+  const initiateMembershipPaymentUseCase = new InitiateMembershipPaymentUseCase(membershipRepo, userRepo, createPaymentUseCase);
+  const approvePendingMembershipUseCase = new ApprovePendingMembershipUseCase(membershipRepo, transactionRepo);
+  const retryMembershipPaymentUseCase = new RetryMembershipPaymentUseCase(membershipRepo, userRepo, createPaymentUseCase, paymentRepo);
+  const createMembershipSubscriptionUseCase = new CreateMembershipSubscriptionUseCase(membershipRepo, userRepo, createSubscriptionUseCase);
+
   const controller = new MembershipController(
     membershipRepo,
     userRepo,
@@ -26,7 +38,12 @@ export const buildMembershipRouter = () => {
     paymentRepo,
     createSubscriptionUseCase,
     mercadoPagoService,
-    createMembershipUseCase
+    createMembershipUseCase,
+    cancelMembershipUseCase,
+    initiateMembershipPaymentUseCase,
+    approvePendingMembershipUseCase,
+    retryMembershipPaymentUseCase,
+    createMembershipSubscriptionUseCase,
   );
 
   const tokenService = buildTokenService();

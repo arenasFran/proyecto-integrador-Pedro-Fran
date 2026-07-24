@@ -45,8 +45,12 @@ export class MembershipPaymentHandler {
     }
   }
 
-  async handleRejected(_payment: Payment): Promise<void> {
-    // No hay acción específica para membresías rechazadas
+  async handleRejected(payment: Payment): Promise<void> {
+    const pending = await this.membershipRepository.findPendingByUser(payment.userId);
+    if (pending) {
+      pending.cancel();
+      await this.membershipRepository.save(pending);
+    }
   }
 
   async handleCancelled(_payment: Payment): Promise<void> {

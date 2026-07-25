@@ -10,6 +10,8 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
   let repository: MongoMembershipRepository;
 
   const userId = new mongoose.Types.ObjectId();
+  const userId2 = new mongoose.Types.ObjectId();
+  const userId3 = new mongoose.Types.ObjectId();
   const DAY_MS = 24 * 60 * 60 * 1000;
   const userIds: mongoose.Types.ObjectId[] = [userId];
 
@@ -38,8 +40,7 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
   });
 
   afterEach(async () => {
-    await MembershipModel.deleteMany({ userId: { $in: userIds } });
-    userIds.length = 1;
+    await MembershipModel.deleteMany({ $or: [{ userId }, { userId: userId2 }, { userId: userId3 }] });
   });
 
   it('debe expirar membresía vencida (endDate < now): status pasa a expired', async () => {
@@ -73,11 +74,28 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
     const yesterday = new Date(Date.now() - DAY_MS);
     const userId2 = new mongoose.Types.ObjectId();
     await createMembershipDoc({ endDate: yesterday, couponsUsed: 3 });
-    await createMembershipDoc({ uid: userId2, endDate: yesterday, couponsUsed: 1 });
+    await MembershipModel.create({
+      userId: userId2,
+      status: 'active',
+      startDate: new Date(Date.now() - 60 * DAY_MS),
+      endDate: yesterday,
+      couponsTotal: 4,
+      couponsUsed: 1,
+      productDiscount: 10,
+      createdBy: 'client',
+    });
 
     const tomorrow = new Date(Date.now() + DAY_MS);
-    const userId3 = new mongoose.Types.ObjectId();
-    await createMembershipDoc({ uid: userId3, endDate: tomorrow, couponsUsed: 0 });
+    await MembershipModel.create({
+      userId: userId3,
+      status: 'active',
+      startDate: new Date(Date.now() - 60 * DAY_MS),
+      endDate: tomorrow,
+      couponsTotal: 4,
+      couponsUsed: 0,
+      productDiscount: 10,
+      createdBy: 'client',
+    });
 
     const expired = await repository.expireExpiredMemberships();
 

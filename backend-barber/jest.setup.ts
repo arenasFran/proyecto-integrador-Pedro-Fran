@@ -3,7 +3,6 @@ import 'dotenv/config';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-test-secret-test-secret!';
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
-process.env.MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/test';
 
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
@@ -23,6 +22,10 @@ const clearAllCollections = async () => {
 };
 
 beforeAll(async () => {
+  if (process.env.MONGO_READY === 'false') {
+    mongoReady = false;
+    return;
+  }
 
   const externalUri = process.env.MONGO_URI;
 

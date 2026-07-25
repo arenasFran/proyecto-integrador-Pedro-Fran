@@ -11,6 +11,7 @@ import { getConfig } from '../../../infrastructure/config/env';
 import { AppointmentPaymentHandler } from './handlers/AppointmentPaymentHandler';
 import { MembershipPaymentHandler } from './handlers/MembershipPaymentHandler';
 import { ProductOrderPaymentHandler } from './handlers/ProductOrderPaymentHandler';
+import { RevenueTracker } from '../../services/RevenueTracker';
 
 export class ProcessWebhookUseCase {
   private readonly appointmentHandler: AppointmentPaymentHandler;
@@ -26,7 +27,8 @@ export class ProcessWebhookUseCase {
     private readonly transactionRepository: MongoMembershipTransactionRepository,
     private readonly mercadoPagoService: IPaymentService,
     private readonly emailService?: IEmailService,
-    private readonly userRepository?: MongoUserRepository
+    private readonly userRepository?: MongoUserRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {
     this.appointmentHandler = appointmentHandler;
     this.membershipHandler = membershipHandler;
@@ -267,6 +269,10 @@ export class ProcessWebhookUseCase {
           createdBy: 'client',
         }, session);
         await session.commitTransaction();
+        await this.revenueTracker?.trackMembership(pending.id, pending.price, new Date(), {
+          preapprovalId,
+          userId,
+        });
         return;
       }
 
@@ -299,6 +305,10 @@ export class ProcessWebhookUseCase {
       }, session);
 
       await session.commitTransaction();
+      await this.revenueTracker?.trackMembership(saved.id, saved.price, new Date(), {
+        preapprovalId,
+        userId,
+      });
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -358,6 +368,10 @@ export class ProcessWebhookUseCase {
       await this.paymentRepository.save(subscriptionPayment, session);
 
       await session.commitTransaction();
+      await this.revenueTracker?.trackMembership(saved.id, saved.price, new Date(), {
+        mpPaymentId: mpPayment.id,
+        userId: saved.userId,
+      });
     } catch (error) {
       await session.abortTransaction();
       throw error;

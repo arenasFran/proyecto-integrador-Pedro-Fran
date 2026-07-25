@@ -1,11 +1,13 @@
 import { Payment } from '../../../../domain/entities/Payment';
 import { MongoMembershipRepository } from '../../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoMembershipTransactionRepository } from '../../../../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
+import { RevenueTracker } from '../../../services/RevenueTracker';
 
 export class MembershipPaymentHandler {
   constructor(
     private readonly membershipRepository: MongoMembershipRepository,
-    private readonly transactionRepository: MongoMembershipTransactionRepository
+    private readonly transactionRepository: MongoMembershipTransactionRepository,
+    private readonly revenueTracker?: RevenueTracker,
   ) {}
 
   async handleApproved(payment: Payment): Promise<void> {
@@ -21,6 +23,10 @@ export class MembershipPaymentHandler {
         mpPaymentId: payment.mpPaymentId,
         createdBy: 'client',
       });
+      await this.revenueTracker?.trackMembership(savedPending.id, payment.amount, new Date(), {
+        paymentId: payment.id,
+        userId: payment.userId,
+      });
       return;
     }
 
@@ -35,6 +41,10 @@ export class MembershipPaymentHandler {
         paymentMethod: 'mercadopago',
         mpPaymentId: payment.mpPaymentId,
         createdBy: 'client',
+      });
+      await this.revenueTracker?.trackMembership(saved.id, payment.amount, new Date(), {
+        paymentId: payment.id,
+        userId: payment.userId,
       });
       return;
     }

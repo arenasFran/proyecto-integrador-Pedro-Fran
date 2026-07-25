@@ -6,6 +6,8 @@ import { OrderModel } from './models/order.model';
 import { MembershipModel } from './models/membership.model';
 import { parseLocalDate, parseLocalDateRange } from '../../../common/dateUtils';
 import { Client } from './models/client.model';
+import { MongoRevenueEntryRepository } from './MongoRevenueEntryRepository';
+import { RevenueService } from '../../../domain/services/RevenueService';
 
 const STATUS_NORMALIZE: Record<string, string> = Object.fromEntries(
   Object.keys(VALID_TRANSITIONS).map(s => [s.toLowerCase(), s])
@@ -113,6 +115,10 @@ function endOfDayDate(hasta: string): Date {
 }
 
 export class MongoAnalyticsRepository {
+  constructor(
+    private readonly revenueEntryRepo?: MongoRevenueEntryRepository,
+    private readonly revenueService?: RevenueService,
+  ) {}
   private static revenueMatchExpr(prefix = '$'): Record<string, unknown> {
     const s = (f: string) => `${prefix}${f}`;
     return {
@@ -145,6 +151,10 @@ export class MongoAnalyticsRepository {
   }
   async getOverview(desde: string, hasta: string): Promise<OverviewResult> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    const revenueFromEntries = this.revenueEntryRepo
+      ? await this.revenueEntryRepo.getTotalByDateRange(desdeDate, hastaDate)
+      : 0;
 
     const facetPipeline = [
       DATE_CONVERSION_STAGE,
@@ -239,7 +249,9 @@ export class MongoAnalyticsRepository {
     return {
       totalReservas: (data.totalReservas as Array<{ count: number }>)[0]?.count ?? 0,
       duracionTotalMinutos: (data.duracionTotalMinutos as Array<{ total: number }>)[0]?.total ?? 0,
-      ingresosTotales: ((data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0) + (commerceAndMembershipRevenue[0]?.total ?? 0),
+      ingresosTotales: revenueFromEntries > 0
+        ? revenueFromEntries
+        : ((data.ingresosTotales as Array<{ total: number }>)[0]?.total ?? 0) + (commerceAndMembershipRevenue[0]?.total ?? 0),
       ingresosPendientes: ((data.ingresosPendientes as Array<{ total: number }>)[0]?.total ?? 0) + (membershipPending[0]?.total ?? 0) + (ordersPending[0]?.total ?? 0),
       nuevosClientes: nuevosClientes[0]?.total ?? 0,
       membresiasActivas: (membresiasActivasResult as Array<{ total: number }>)[0]?.total ?? 0,
@@ -780,22 +792,40 @@ export class MongoAnalyticsRepository {
     ] as mongoose.PipelineStage[];
 
     const paymentFormat = isSingleDay ? '%Y-%m-%d %H:%M' : dateFormat;
-    const [appointmentData, paymentData] = await Promise.all([
-      AppointmentModel.aggregate(pipeline),
-      PaymentModel.aggregate([
-        { $match: { type: { $in: ['product_order', 'membership'] }, status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
-        {
-          $group: {
-            _id: { $dateToString: { format: paymentFormat, date: '$createdAt' } },
-            ganancias: { $sum: '$amount' },
-          },
+    const fallbackPaymentData = () => PaymentModel.aggregate([
+      { $match: { type: { $in: ['product_order', 'membership'] }, status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+      {
+        $group: {
+          _id: { $dateToString: { format: paymentFormat, date: '$createdAt' } },
+          ganancias: { $sum: '$amount' },
         },
-        { $project: { _id: 0, periodo: '$_id', ganancias: 1 } },
-        { $sort: { periodo: 1 } },
-      ] as mongoose.PipelineStage[]),
+      },
+      { $project: { _id: 0, periodo: '$_id', ganancias: 1 } },
+      { $sort: { periodo: 1 } },
+    ] as mongoose.PipelineStage[]);
+
+    const [appointmentData, rawPaymentData] = await Promise.all([
+      AppointmentModel.aggregate(pipeline),
+      this.revenueEntryRepo
+        ? this.revenueEntryRepo.getRevenueByPeriod(desdeDate, hastaDate, {
+            field: isSingleDay ? 'day' : 'month',
+            format: dateFormat,
+          }).then(entries => entries.length > 0 ? entries : null)
+        : null,
     ]);
 
-    const paymentMap = new Map(paymentData.map((p) => [p.periodo, p.ganancias]));
+    const paymentData = rawPaymentData
+      ? rawPaymentData
+      : await fallbackPaymentData();
+
+    const paymentMap = new Map(
+      Array.isArray(paymentData)
+        ? paymentData.map((p: { period: string; revenue: number } | { periodo: string; ganancias: number }) => {
+            if ('period' in p) return [p.period, p.revenue];
+            return [(p as { periodo: string }).periodo, (p as { ganancias: number }).ganancias];
+          })
+        : []
+    );
     const appointmentPeriods = new Set(appointmentData.map((e) => e.periodo));
 
     const merged: ReservasGananciasEntry[] = appointmentData.map((entry) => ({
@@ -823,7 +853,7 @@ export class MongoAnalyticsRepository {
   }> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
-    const [ordersAgg, paymentsAgg] = await Promise.all([
+    const [ordersAgg] = await Promise.all([
       OrderModel.aggregate([
         { $match: { createdAt: { $gte: desdeDate, $lte: hastaDate } } },
         {
@@ -832,10 +862,6 @@ export class MongoAnalyticsRepository {
             byStatus: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
           },
         },
-      ]),
-      PaymentModel.aggregate([
-        { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
-        { $group: { _id: null, total: { $sum: '$amount' }, avg: { $avg: '$amount' } } },
       ]),
     ]);
 
@@ -847,8 +873,17 @@ export class MongoAnalyticsRepository {
       ordersByStatus[s._id] = s.count;
     }
 
-    const paymentTotal = paymentsAgg[0]?.total ?? 0;
-    const averageTicket = paymentsAgg[0]?.avg ? Math.round(paymentsAgg[0].avg) : 0;
+    const revenueFromEntries = this.revenueEntryRepo
+      ? await this.revenueEntryRepo.getTotalByDateRange(desdeDate, hastaDate, 'product_order')
+      : 0;
+
+    const paymentTotal = revenueFromEntries > 0
+      ? revenueFromEntries
+      : (await PaymentModel.aggregate([
+          { $match: { type: 'product_order', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },
+          { $group: { _id: null, total: { $sum: '$amount' } } },
+        ]))[0]?.total ?? 0;
+    const averageTicket = totalOrders > 0 ? Math.round(paymentTotal / totalOrders) : 0;
 
     return {
       totalOrders,
@@ -898,6 +933,19 @@ export class MongoAnalyticsRepository {
 
   async getMembershipRevenue(desde: string, hasta: string): Promise<ReservasGananciasEntry[]> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+
+    if (this.revenueEntryRepo) {
+      const entries = await this.revenueEntryRepo.getRevenueByPeriod(desdeDate, hastaDate, {
+        field: 'month',
+        format: '%Y-%m',
+      });
+      const hasRevenue = entries.some(e => e.revenue > 0);
+      if (hasRevenue) {
+        return entries
+          .filter(e => e.revenue > 0)
+          .map(e => ({ periodo: e.period, ganancias: e.revenue, cantidadReservas: 0 }));
+      }
+    }
 
     return PaymentModel.aggregate([
       { $match: { type: 'membership', status: 'approved', createdAt: { $gte: desdeDate, $lte: hastaDate } } },

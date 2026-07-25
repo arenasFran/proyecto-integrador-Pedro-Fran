@@ -35,7 +35,8 @@ export const CartDrawer = () => {
     if (allProductsData?.products && items.length > 0) {
       dispatch(syncWithProducts(allProductsData.products));
     }
-  }, [allProductsData?.products, items, dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allProductsData?.products, dispatch]);
 
   const handleCheckout = async (paymentMethod: 'online' | 'local') => {
     const token = getAccessToken();

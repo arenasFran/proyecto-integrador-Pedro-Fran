@@ -4,6 +4,7 @@ import { MongoOrderRepository } from '../../../infrastructure/repositories/mongo
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { AppError } from '../../../domain/errors/AppError';
+import { RevenueTracker } from '../../services/RevenueTracker';
 
 export interface CreateManualOrderDTO {
   items: { productId: string; quantity: number }[];
@@ -18,7 +19,8 @@ export class CreateManualOrderUseCase {
   constructor(
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
-    private readonly paymentRepository?: MongoPaymentRepository
+    private readonly paymentRepository?: MongoPaymentRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(dto: CreateManualOrderDTO): Promise<OrderProps> {
@@ -101,6 +103,12 @@ export class CreateManualOrderUseCase {
       } catch (err) {
         console.error('[CreateManualOrderUseCase] Error creating PaymentModel:', err);
       }
+    }
+
+    if (targetStatus === 'paid' || targetStatus === 'delivered') {
+      await this.revenueTracker?.trackProductOrder(saved.id, saved.total, new Date(), {
+        userId: orderUserId,
+      });
     }
 
     return saved.toPrimitives();

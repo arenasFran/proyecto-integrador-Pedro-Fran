@@ -6,6 +6,7 @@ import { MongoMembershipTransactionRepository } from '../../../infrastructure/re
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { getConfig } from '../../../infrastructure/config/env';
+import { RevenueTracker } from '../../services/RevenueTracker';
 import type { PaymentMethod, BillingCycle } from '../../../domain/types/membership';
 
 export interface CreateMembershipDTO {
@@ -24,7 +25,8 @@ export class CreateMembershipUseCase {
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly userRepo: MongoUserRepository,
     private readonly transactionRepo: MongoMembershipTransactionRepository,
-    private readonly paymentRepo: MongoPaymentRepository
+    private readonly paymentRepo: MongoPaymentRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(dto: CreateMembershipDTO): Promise<Membership> {
@@ -95,6 +97,11 @@ export class CreateMembershipUseCase {
         console.error('[CreateMembershipUseCase] Error creating PaymentModel for manual membership:', err);
       }
     }
+
+    await this.revenueTracker?.trackMembership(saved.id, finalPrice, new Date(), {
+      userId: dto.userId,
+      staffId: dto.staffId,
+    });
 
     return saved;
   }

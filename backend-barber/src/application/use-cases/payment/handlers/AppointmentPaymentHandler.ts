@@ -1,9 +1,11 @@
 import { Payment } from '../../../../domain/entities/Payment';
 import { MongoAppointmentRepository } from '../../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { RevenueTracker } from '../../../services/RevenueTracker';
 
 export class AppointmentPaymentHandler {
   constructor(
-    private readonly appointmentRepository: MongoAppointmentRepository
+    private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly revenueTracker?: RevenueTracker,
   ) {}
 
   async handleApproved(payment: Payment): Promise<void> {
@@ -14,6 +16,12 @@ export class AppointmentPaymentHandler {
         paymentStatus: 'Pagado',
         statusHistoryEntry: { status: appointment.status, timestamp: new Date(), actor: 'system' },
       });
+      await this.revenueTracker?.trackAppointment(
+        appointment.id,
+        appointment.servicePrice,
+        new Date(),
+        { paymentId: payment.id, barberId: appointment.barberId, serviceId: appointment.serviceId },
+      );
     }
   }
 

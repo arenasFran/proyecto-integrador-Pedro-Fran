@@ -15,6 +15,8 @@ import { MongoMembershipTransactionRepository } from '../infrastructure/reposito
 import { MongoOrderRepository } from '../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoRevenueEntryRepository } from '../infrastructure/repositories/mongodb/MongoRevenueEntryRepository';
+import { RevenueTracker } from '../application/services/RevenueTracker';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { buildTokenService } from './auth';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
@@ -52,10 +54,12 @@ export const buildPaymentRouter = () => {
   const emailService = new NodemailerEmailService();
 
   const userRepository = new MongoUserRepository();
+  const revenueEntryRepository = new MongoRevenueEntryRepository();
+  const revenueTracker = new RevenueTracker(revenueEntryRepository);
 
-  const appointmentHandler = new AppointmentPaymentHandler(appointmentRepository);
-  const membershipHandler = new MembershipPaymentHandler(membershipRepository, transactionRepository);
-  const productOrderHandler = new ProductOrderPaymentHandler(orderRepository, productRepository, emailService, userRepository);
+  const appointmentHandler = new AppointmentPaymentHandler(appointmentRepository, revenueTracker);
+  const membershipHandler = new MembershipPaymentHandler(membershipRepository, transactionRepository, revenueTracker);
+  const productOrderHandler = new ProductOrderPaymentHandler(orderRepository, productRepository, emailService, userRepository, revenueTracker);
 
   const processWebhook = new ProcessWebhookUseCase(
     paymentRepository,
@@ -66,7 +70,8 @@ export const buildPaymentRouter = () => {
     transactionRepository,
     mercadoPagoService,
     emailService,
-    userRepository
+    userRepository,
+    revenueTracker
   );
 
   const paymentController = new PaymentController(processWebhook, paymentRepository, mercadoPagoService);

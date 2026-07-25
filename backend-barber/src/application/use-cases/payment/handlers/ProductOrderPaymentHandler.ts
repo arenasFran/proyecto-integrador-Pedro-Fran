@@ -3,13 +3,15 @@ import { MongoOrderRepository } from '../../../../infrastructure/repositories/mo
 import { MongoProductRepository } from '../../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoUserRepository } from '../../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { IEmailService } from '../../../../application/ports/IEmailService';
+import { RevenueTracker } from '../../../services/RevenueTracker';
 
 export class ProductOrderPaymentHandler {
   constructor(
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly emailService?: IEmailService,
-    private readonly userRepository?: MongoUserRepository
+    private readonly userRepository?: MongoUserRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async handleApproved(payment: Payment, mpStatusDetail?: string, paymentMethod?: string): Promise<void> {
@@ -50,6 +52,11 @@ export class ProductOrderPaymentHandler {
       await this.orderRepository.save(order, session);
 
       await session.commitTransaction();
+
+      await this.revenueTracker?.trackProductOrder(order.id, order.total, new Date(), {
+        userId: payment.userId,
+        paymentId: payment.id,
+      });
     } catch (error) {
       await session.abortTransaction();
       throw error;

@@ -14,19 +14,23 @@ import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoRevenueEntryRepository } from '../infrastructure/repositories/mongodb/MongoRevenueEntryRepository';
+import { RevenueTracker } from '../application/services/RevenueTracker';
 
 export const buildOrderRouter = () => {
   const orderRepository = new MongoOrderRepository();
   const productRepository = new MongoProductRepository();
   const membershipRepository = new MongoMembershipRepository();
   const { paymentRepository, mercadoPagoService } = buildPaymentDependencies();
+  const revenueEntryRepository = new MongoRevenueEntryRepository();
+  const revenueTracker = new RevenueTracker(revenueEntryRepository);
 
   const createPaymentUseCase = new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
 
-  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase, paymentRepository);
+  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase, paymentRepository, revenueTracker);
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
-  const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository, productRepository, paymentRepository);
-  const createManualOrderUseCase = new CreateManualOrderUseCase(orderRepository, productRepository, paymentRepository);
+  const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository, productRepository, paymentRepository, revenueTracker);
+  const createManualOrderUseCase = new CreateManualOrderUseCase(orderRepository, productRepository, paymentRepository, revenueTracker);
   const deleteOrderUseCase = new DeleteOrderUseCase(orderRepository, productRepository);
 
   const emailService = new NodemailerEmailService();

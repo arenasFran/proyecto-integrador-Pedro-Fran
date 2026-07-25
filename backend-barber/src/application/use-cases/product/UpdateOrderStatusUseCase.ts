@@ -4,6 +4,7 @@ import { MongoOrderRepository } from '../../../infrastructure/repositories/mongo
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { AppError } from '../../../domain/errors/AppError';
+import { RevenueTracker } from '../../services/RevenueTracker';
 
 export interface UpdateOrderStatusDTO {
   orderId: string;
@@ -15,7 +16,8 @@ export class UpdateOrderStatusUseCase {
   constructor(
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
-    private readonly paymentRepository?: MongoPaymentRepository
+    private readonly paymentRepository?: MongoPaymentRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(dto: UpdateOrderStatusDTO): Promise<{ order: Order; previousStatus: string }> {
@@ -75,6 +77,12 @@ export class UpdateOrderStatusUseCase {
     }
 
     const saved = await this.orderRepository.save(order);
+    if (dto.status === 'paid' || dto.status === 'delivered') {
+      await this.revenueTracker?.trackProductOrder(saved.id, saved.total, new Date(), {
+        userId: saved.userId,
+        paymentId: saved.paymentId,
+      });
+    }
     return { order: saved, previousStatus };
   }
 

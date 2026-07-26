@@ -1,7 +1,6 @@
 import { AppError } from '../../../domain/errors/AppError';
 import { MembershipProps } from '../../../domain/entities/Membership';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
-import { IPaymentService } from '../../ports/IPaymentService';
 
 export interface CancelMembershipDTO {
   membershipId: string;
@@ -12,7 +11,6 @@ export interface CancelMembershipDTO {
 export class CancelMembershipUseCase {
   constructor(
     private readonly membershipRepo: MongoMembershipRepository,
-    private readonly mercadoPagoService?: IPaymentService,
   ) {}
 
   async execute(dto: CancelMembershipDTO): Promise<MembershipProps> {
@@ -29,17 +27,6 @@ export class CancelMembershipUseCase {
     const isAdmin = dto.actorKind === 'Admin';
     if (!isOwner && !isAdmin) {
       throw new AppError('No tenés permiso para cancelar esta membresía.', 403);
-    }
-
-    if (membership.mpPreapprovalId && this.mercadoPagoService) {
-      try {
-        await this.mercadoPagoService.cancelPreapproval(membership.mpPreapprovalId);
-      } catch {
-        throw new AppError(
-          'No se pudo cancelar la suscripción en MercadoPago. Reintentá en unos minutos.',
-          502
-        );
-      }
     }
 
     membership.cancel();

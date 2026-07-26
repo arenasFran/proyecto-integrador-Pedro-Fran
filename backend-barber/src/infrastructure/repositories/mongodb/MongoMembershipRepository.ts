@@ -36,21 +36,6 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  async findByPreapprovalId(preapprovalId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
-    const query = MembershipModel.findOne({ mpPreapprovalId: preapprovalId });
-    if (session) query.session(session);
-    const doc = await query;
-    return doc ? this.toDomain(doc) : null;
-  }
-
-  async findAllWithPreapprovalId(): Promise<Membership[]> {
-    const docs = await MembershipModel.find({
-      mpPreapprovalId: { $exists: true, $ne: null },
-      status: 'cancelled',
-    }).lean();
-    return docs.map((d) => this.toDomain(d as IMembershipDocument));
-  }
-
   async findAll(filter?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Membership[]; total: number; page: number; totalPages: number; limit: number }> {
     const query: Record<string, unknown> = {};
     if (filter?.status) query.status = filter.status;
@@ -128,7 +113,6 @@ export class MongoMembershipRepository {
       billingCycle: data.billingCycle,
       createdBy: data.createdBy,
       adminId: data.adminId ? new mongoose.Types.ObjectId(data.adminId) : undefined,
-      mpPreapprovalId: data.mpPreapprovalId,
       paymentMethod: data.paymentMethod,
       paymentId: data.paymentId,
       approvedBy: data.approvedBy,
@@ -315,7 +299,6 @@ export class MongoMembershipRepository {
       billingCycle: (doc as any).billingCycle ?? null,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
-      mpPreapprovalId: doc.mpPreapprovalId ?? undefined,
       paymentMethod: (doc as any).paymentMethod ?? null,
       paymentId: (doc as any).paymentId ?? undefined,
       approvedBy: doc.approvedBy?.toString(),

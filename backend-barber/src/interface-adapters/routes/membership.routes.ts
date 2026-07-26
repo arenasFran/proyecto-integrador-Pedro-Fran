@@ -9,7 +9,6 @@ import {
   redeemCouponSchema,
   queryMembershipsSchema,
   initiateMembershipPaymentSchema,
-  createSubscriptionSchema,
   membershipIdParamSchema,
   membershipUserIdParamSchema,
 } from '../validators/membership.validator';

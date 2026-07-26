@@ -7,7 +7,7 @@ import type {
   MembershipWithUser,
   MembershipTransaction,
 } from '../types/membership';
-import type { InitiatePaymentResponse, CreateSubscriptionResponse } from '../types/payment';
+import type { InitiatePaymentResponse } from '../types/payment';
 
 export const membershipApi = createApi({
   reducerPath: 'membershipApi',

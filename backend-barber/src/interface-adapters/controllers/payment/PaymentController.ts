@@ -28,7 +28,7 @@ export class PaymentController {
 
     const hasSecureTopic = notifications.some((n: any) => {
       const topic = n?.type || n?.topic;
-      return ['payment', 'subscription_authorized_payment', 'preapproval', 'subscription_preapproval', 'topic_chargebacks_wh'].includes(topic || '');
+      return ['payment', 'topic_chargebacks_wh'].includes(topic || '');
     });
 
     if (hasSecureTopic && this.mercadoPagoService) {

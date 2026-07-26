@@ -60,12 +60,9 @@ export const buildPaymentRouter = () => {
     appointmentHandler,
     membershipHandler,
     productOrderHandler,
-    membershipRepository,
-    transactionRepository,
     mercadoPagoService,
     emailService,
     userRepository,
-    revenueTracker
   );
 
   const paymentController = new PaymentController(processWebhook, paymentRepository, mercadoPagoService);

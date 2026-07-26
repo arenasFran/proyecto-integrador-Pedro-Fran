@@ -300,7 +300,7 @@ export default function MembershipsPage() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className="text-[11px] text-[#8A8A8A]">
-                            {m.mpPreapprovalId != null ? 'Suscripción' : m.paymentMethod === 'mercadopago' ? 'Pago único' : m.paymentMethod === 'local' ? 'Local' : '—'}
+                            {m.paymentMethod === 'mercadopago' ? 'Pago único' : m.paymentMethod === 'local' ? 'Local' : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">{statusBadge(m.status)}</td>

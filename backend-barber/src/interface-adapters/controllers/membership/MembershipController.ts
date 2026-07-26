@@ -11,9 +11,6 @@ import { CancelMembershipUseCase } from '../../../application/use-cases/membersh
 import { InitiateMembershipPaymentUseCase } from '../../../application/use-cases/membership/InitiateMembershipPaymentUseCase';
 import { ApprovePendingMembershipUseCase } from '../../../application/use-cases/membership/ApprovePendingMembershipUseCase';
 import { RetryMembershipPaymentUseCase } from '../../../application/use-cases/membership/RetryMembershipPaymentUseCase';
-import { IPaymentService } from '../../../application/ports/IPaymentService';
-import { getConfig } from '../../../infrastructure/config/env';
-import type { PaymentMethod } from '../../../domain/types/membership';
 
 export class MembershipController {
   constructor(
@@ -22,7 +19,6 @@ export class MembershipController {
     private readonly transactionRepo: MongoMembershipTransactionRepository,
     private readonly createPaymentUseCase?: CreatePaymentUseCase,
     private readonly paymentRepository?: MongoPaymentRepository,
-    private readonly mercadoPagoService?: IPaymentService,
     private readonly createMembershipUseCase?: CreateMembershipUseCase,
     private readonly cancelMembershipUseCase?: CancelMembershipUseCase,
     private readonly initiateMembershipPaymentUseCase?: InitiateMembershipPaymentUseCase,

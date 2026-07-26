@@ -1,5 +1,5 @@
 import { OrderModel } from '../../../infrastructure/repositories/mongodb/models/order.model';
-import { parseLocalDateRange, parseLocalDate } from '../../../common/dateUtils';
+import { buildDateRangeFilter } from '../../../common/dateUtils';
 
 export interface ExportOrdersCsvDTO {
   desde?: string;
@@ -10,20 +10,7 @@ export interface ExportOrdersCsvDTO {
 export class ExportOrdersCsvUseCase {
   async execute(dto: ExportOrdersCsvDTO): Promise<string> {
     const filter: Record<string, unknown> = {};
-    if (dto.desde || dto.hasta) {
-      filter.createdAt = {};
-      if (dto.desde && dto.hasta) {
-        const range = parseLocalDateRange(dto.desde, dto.hasta);
-        (filter.createdAt as Record<string, unknown>).$gte = range.desdeDate;
-        (filter.createdAt as Record<string, unknown>).$lte = range.hastaDate;
-      } else if (dto.desde) {
-        (filter.createdAt as Record<string, unknown>).$gte = parseLocalDate(dto.desde);
-      } else if (dto.hasta) {
-        const d = parseLocalDate(dto.hasta);
-        d.setHours(23, 59, 59, 999);
-        (filter.createdAt as Record<string, unknown>).$lte = d;
-      }
-    }
+    Object.assign(filter, buildDateRangeFilter(dto.desde, dto.hasta));
     if (dto.status) filter.status = dto.status;
 
     const orders = await OrderModel.find(filter).sort({ createdAt: -1 }).lean();

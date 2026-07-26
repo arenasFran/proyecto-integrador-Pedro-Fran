@@ -1,8 +1,7 @@
 import { AppError } from '../../../domain/errors/AppError';
-import { Membership } from '../../../domain/entities/Membership';
-import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
+import { MembershipResolver } from '../../services/MembershipResolver';
 import { getConfig } from '../../../infrastructure/config/env';
 
 export interface InitiateMembershipPaymentDTO {
@@ -22,7 +21,7 @@ export interface InitiateMembershipPaymentResult {
 
 export class InitiateMembershipPaymentUseCase {
   constructor(
-    private readonly membershipRepo: MongoMembershipRepository,
+    private readonly membershipResolver: MembershipResolver,
     private readonly userRepo: MongoUserRepository,
     private readonly createPaymentUseCase: CreatePaymentUseCase,
   ) {}
@@ -37,27 +36,7 @@ export class InitiateMembershipPaymentUseCase {
       throw new AppError('Usuario no encontrado.', 404);
     }
 
-    const existingActive = await this.membershipRepo.findActiveByUser(dto.userId);
-    if (existingActive) {
-      throw new AppError('Ya tenés una membresía activa.', 400);
-    }
-
-    const existing = await this.membershipRepo.findAnyByUser(dto.userId);
-    let membership: Membership;
-
-    if (existing && (existing.status === 'expired' || existing.status === 'pending')) {
-      membership = existing;
-    } else {
-      membership = Membership.create({
-        userId: dto.userId,
-        createdBy: 'client',
-        status: 'pending',
-        price: getConfig().membershipPriceUyu,
-        paymentMethod: 'mercadopago',
-        billingCycle: 'onetime',
-      });
-      await this.membershipRepo.save(membership);
-    }
+    const membership = await this.membershipResolver.findOrCreatePending(dto.userId, 'onetime');
 
     const config = getConfig();
     const membershipPrice = config.membershipPriceUyu;

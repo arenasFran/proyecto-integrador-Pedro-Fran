@@ -4,6 +4,7 @@ import { AppError } from '../../../domain/errors/AppError';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
+import { EmailChangeVerifier } from '../../services/EmailChangeVerifier';
 
 export interface UpdateBarberMeDTO {
   email?: string;
@@ -25,7 +26,8 @@ export class UpdateBarberMeUseCase {
   constructor(
     private readonly barberRepository: MongoBarberRepository,
     private readonly userRepository: MongoUserRepository,
-    private readonly passwordHasher: IPasswordHasher
+    private readonly passwordHasher: IPasswordHasher,
+    private readonly emailChangeVerifier: EmailChangeVerifier
   ) {}
 
   async execute(userId: string, dto: UpdateBarberMeDTO): Promise<UpdateBarberMeResult> {
@@ -42,24 +44,13 @@ export class UpdateBarberMeUseCase {
       const email = Email.create(profileData.email).getValue();
       profileData.email = email;
 
-      if (email !== current.email) {
-        const existing = await this.userRepository.findByEmail(email);
-        if (existing && existing.id !== current.id) {
-          throw new AppError('Email en uso.', 409);
-        }
-
-        if (!currentPassword) {
-          throw new AppError('La contraseña actual es obligatoria para cambiar el email.', 400);
-        }
-        const isCurrentPasswordValid = await this.passwordHasher.compare(
-          currentPassword,
-          current.passwordHash!
-        );
-        if (!isCurrentPasswordValid) {
-          throw new AppError('Contraseña actual incorrecta.', 401);
-        }
-        oldEmail = current.email;
-      }
+      oldEmail = await this.emailChangeVerifier.verifyEmailChange(
+        current,
+        email,
+        currentPassword,
+        this.userRepository,
+        this.passwordHasher
+      );
     }
 
     const updated = await this.barberRepository.updateBarber(userId, profileData);

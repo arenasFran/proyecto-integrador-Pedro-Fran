@@ -2,6 +2,7 @@ import { UserProps } from '../../../domain/entities/User';
 import { AppError } from '../../../domain/errors/AppError';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
+import { EmailChangeVerifier } from '../../services/EmailChangeVerifier';
 
 export interface UpdateUserProfileDTO {
   email?: string;
@@ -20,7 +21,8 @@ export interface UpdateUserProfileResult {
 export class UpdateUserProfileUseCase {
   constructor(
     private readonly userRepository: MongoUserRepository,
-    private readonly passwordHasher: IPasswordHasher
+    private readonly passwordHasher: IPasswordHasher,
+    private readonly emailChangeVerifier: EmailChangeVerifier
   ) {}
 
   async execute(userId: string, dto: UpdateUserProfileDTO): Promise<UpdateUserProfileResult> {
@@ -34,19 +36,13 @@ export class UpdateUserProfileUseCase {
         throw new AppError('Usuario no encontrado.', 404);
       }
 
-      if (updateData.email !== user.email) {
-        if (!currentPassword) {
-          throw new AppError('La contraseña actual es obligatoria para cambiar el email.', 400);
-        }
-        const isCurrentPasswordValid = await this.passwordHasher.compare(
-          currentPassword,
-          user.passwordHash!
-        );
-        if (!isCurrentPasswordValid) {
-          throw new AppError('Contraseña actual incorrecta.', 401);
-        }
-        oldEmail = user.email;
-      }
+      oldEmail = await this.emailChangeVerifier.verifyEmailChange(
+        user,
+        updateData.email,
+        currentPassword,
+        this.userRepository,
+        this.passwordHasher
+      );
     }
 
     const updated = await this.userRepository.update(userId, updateData);

@@ -1,10 +1,10 @@
 import { Order } from '../../../domain/entities/Order';
 import { Payment } from '../../../domain/entities/Payment';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
-import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { AppError } from '../../../domain/errors/AppError';
 import { RevenueTracker } from '../../services/RevenueTracker';
+import { OrderStockService } from '../../services/OrderStockService';
 
 export interface UpdateOrderStatusDTO {
   orderId: string;
@@ -15,7 +15,7 @@ export interface UpdateOrderStatusDTO {
 export class UpdateOrderStatusUseCase {
   constructor(
     private readonly orderRepository: MongoOrderRepository,
-    private readonly productRepository: MongoProductRepository,
+    private readonly orderStockService: OrderStockService,
     private readonly paymentRepository?: MongoPaymentRepository,
     private readonly revenueTracker?: RevenueTracker
   ) {}
@@ -41,7 +41,7 @@ export class UpdateOrderStatusUseCase {
     }
 
     if (dto.status === 'cancelled') {
-      await this.restoreStock(order);
+      await this.orderStockService.restoreStock(order);
       if (this.paymentRepository && order.paymentId) {
         try {
           const payment = await this.paymentRepository.findById(order.paymentId);
@@ -86,13 +86,4 @@ export class UpdateOrderStatusUseCase {
     return { order: saved, previousStatus };
   }
 
-  private async restoreStock(order: Order): Promise<void> {
-    for (const item of order.items) {
-      const product = await this.productRepository.findById(item.productId);
-      if (product) {
-        product.restoreStock(item.quantity);
-        await this.productRepository.save(product);
-      }
-    }
-  }
 }

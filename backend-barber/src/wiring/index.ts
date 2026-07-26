@@ -37,6 +37,7 @@ import { buildTokenService } from './auth';
 import { getConfig } from '../infrastructure/config/env';
 import { UpdateUserProfileUseCase } from '../application/use-cases/user/UpdateUserProfileUseCase';
 import { ChangePasswordUseCase } from '../application/use-cases/user/ChangePasswordUseCase';
+import { EmailChangeVerifier } from '../application/services/EmailChangeVerifier';
 
 export const buildBarberRouter = () => {
   const barberRepository = new MongoBarberRepository();
@@ -54,7 +55,8 @@ export const buildBarberRouter = () => {
   const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService, membershipRepository);
   const createBarber = new CreateBarberUseCase(barberRepository, userRepository, passwordHasher);
   const updateBarber = new UpdateBarberUseCase(barberRepository, userRepository, passwordHasher);
-  const updateBarberMe = new UpdateBarberMeUseCase(barberRepository, userRepository, passwordHasher);
+  const emailChangeVerifier = new EmailChangeVerifier();
+  const updateBarberMe = new UpdateBarberMeUseCase(barberRepository, userRepository, passwordHasher, emailChangeVerifier);
   const getBarberOccupancy = new GetBarberOccupancyUseCase(barberRepository, appointmentRepository, blockRepository);
   const createBarberBlock = new CreateBarberBlockUseCase(appointmentRepository, blockRepository);
 
@@ -109,7 +111,8 @@ export const buildUserRouter = () => {
   });
 
   const emailService = new NodemailerEmailService();
-  const updateUserProfile = new UpdateUserProfileUseCase(userRepository, passwordHasher);
+  const emailChangeVerifier = new EmailChangeVerifier();
+  const updateUserProfile = new UpdateUserProfileUseCase(userRepository, passwordHasher, emailChangeVerifier);
   const changePassword = new ChangePasswordUseCase(userRepository, passwordHasher, refreshTokenRepository);
   const userController = new UserController(userRepository, emailService, updateUserProfile, changePassword);
   const authenticate = createAuthenticate(tokenService);
@@ -128,7 +131,7 @@ export const buildUploadRouter = () => {
 };
 
 export { buildMembershipRouter } from './membership';
-export { buildPaymentRepository, buildMercadoPagoService, buildPaymentDependencies, buildPaymentRouter, buildCreatePaymentUseCase, buildCreateSubscriptionUseCase } from './payment';
+export { buildPaymentRepository, buildMercadoPagoService, buildPaymentDependencies, buildPaymentRouter, buildCreatePaymentUseCase } from './payment';
 export { buildProductRouter } from './product';
 export { buildOrderRouter } from './order';
 

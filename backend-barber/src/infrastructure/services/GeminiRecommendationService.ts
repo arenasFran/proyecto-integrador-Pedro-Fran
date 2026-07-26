@@ -8,19 +8,10 @@ import { AppError } from '../../domain/errors/AppError';
 
 const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
-export class GeminiRecommendationService implements IRecommendationService {
-  constructor(private readonly apiKey: string | undefined) {}
+export function construirPrompt(servicios: ServicioParaPrompt[]): string {
+  const listaServicios = servicios.map((s) => `- "${s.name}": ${s.description}`).join('\n');
 
-  private ensureConfigured(): void {
-    if (!this.apiKey) {
-      throw new Error('Gemini no está configurado. Falta GEMINI_API_KEY en el entorno.');
-    }
-  }
-
-  private construirPrompt(servicios: ServicioParaPrompt[]): string {
-    const listaServicios = servicios.map((s) => `- "${s.name}": ${s.description}`).join('\n');
-
-    return `
+  return `
 Sos un barbero experto con conocimiento actualizado de cortes y tendencias de peluquería real.
 
 Analizá la foto adjunta y determiná la forma de cara de la persona (ovalada, redonda, cuadrada, alargada, triangular, o diamante).
@@ -46,37 +37,46 @@ Respondé ÚNICAMENTE con JSON, sin texto adicional, con esta estructura:
   "explicacionGeneral": "string"
 }
 `.trim();
+}
+
+export function parsearYValidar(texto: string, servicios: ServicioParaPrompt[]): ResultadoRecomendacion {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(texto);
+  } catch {
+    throw new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR');
   }
 
-  private parsearYValidar(texto: string, servicios: ServicioParaPrompt[]): ResultadoRecomendacion {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(texto);
-    } catch {
-      throw new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR');
+  const resultado = parsed as Partial<ResultadoRecomendacion>;
+  const nombresValidos = new Set(servicios.map((s) => s.name));
+
+  if (
+    !resultado ||
+    typeof resultado.formaCara !== 'string' ||
+    typeof resultado.explicacionGeneral !== 'string' ||
+    !Array.isArray(resultado.cortesRecomendados) ||
+    resultado.cortesRecomendados.length === 0 ||
+    resultado.cortesRecomendados.some(
+      (c) =>
+        typeof c.nombreCorte !== 'string' ||
+        typeof c.descripcion !== 'string' ||
+        typeof c.razon !== 'string' ||
+        !nombresValidos.has(c.servicioSugerido)
+    )
+  ) {
+    throw new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR');
+  }
+
+  return resultado as ResultadoRecomendacion;
+}
+
+export class GeminiRecommendationService implements IRecommendationService {
+  constructor(private readonly apiKey: string | undefined) {}
+
+  private ensureConfigured(): void {
+    if (!this.apiKey) {
+      throw new Error('Gemini no está configurado. Falta GEMINI_API_KEY en el entorno.');
     }
-
-    const resultado = parsed as Partial<ResultadoRecomendacion>;
-    const nombresValidos = new Set(servicios.map((s) => s.name));
-
-    if (
-      !resultado ||
-      typeof resultado.formaCara !== 'string' ||
-      typeof resultado.explicacionGeneral !== 'string' ||
-      !Array.isArray(resultado.cortesRecomendados) ||
-      resultado.cortesRecomendados.length === 0 ||
-      resultado.cortesRecomendados.some(
-        (c) =>
-          typeof c.nombreCorte !== 'string' ||
-          typeof c.descripcion !== 'string' ||
-          typeof c.razon !== 'string' ||
-          !nombresValidos.has(c.servicioSugerido)
-      )
-    ) {
-      throw new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR');
-    }
-
-    return resultado as ResultadoRecomendacion;
   }
 
   async recomendar(
@@ -96,7 +96,7 @@ Respondé ÚNICAMENTE con JSON, sin texto adicional, con esta estructura:
           {
             role: 'user',
             parts: [
-              { text: this.construirPrompt(servicios) },
+              { text: construirPrompt(servicios) },
               { inlineData: { data: imagenBuffer.toString('base64'), mimeType } },
             ],
           },
@@ -112,6 +112,6 @@ Respondé ÚNICAMENTE con JSON, sin texto adicional, con esta estructura:
       throw new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR');
     }
 
-    return this.parsearYValidar(texto, servicios);
+    return parsearYValidar(texto, servicios);
   }
 }

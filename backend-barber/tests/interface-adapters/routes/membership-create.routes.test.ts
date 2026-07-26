@@ -44,7 +44,7 @@ describe('POST /api/memberships — autorización', () => {
     const txRepo = makeMockMembershipTransactionRepository();
     const paymentRepo = { save: jest.fn() };
     const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, txRepo as any, paymentRepo as any);
-    const controller = new MembershipController(membershipRepo as any, userRepo as any, txRepo as any, undefined, undefined, undefined, undefined, createMembershipUseCase);
+    const controller = new MembershipController(membershipRepo as any, userRepo as any, txRepo as any, undefined, undefined, createMembershipUseCase);
 
     app = express();
     app.use(express.json());

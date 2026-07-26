@@ -14,6 +14,7 @@ describe('Membership routes', () => {
   let staffApp: express.Application;
   let empleadoApp: express.Application;
   let membershipRepo: ReturnType<typeof makeMockMembershipRepository>;
+  let approvePendingUseCase: { execute: jest.Mock };
 
   const authenticate: express.RequestHandler = (req, _res, next) => {
     (req as any).user = { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' };
@@ -55,7 +56,8 @@ describe('Membership routes', () => {
     membershipRepo = makeMockMembershipRepository();
     const userRepo = makeMockUserRepository();
     const transactionRepo = makeMockMembershipTransactionRepository();
-    const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any);
+    approvePendingUseCase = { execute: jest.fn() };
+    const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, undefined, undefined, undefined, approvePendingUseCase as any);
 
     app = express();
     app.use(express.json());
@@ -180,7 +182,7 @@ describe('Membership routes', () => {
       const transactionRepo = makeMockMembershipTransactionRepository();
       const paymentRepo = { save: jest.fn() };
       const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, transactionRepo as any, paymentRepo as any);
-      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, undefined, undefined, createMembershipUseCase);
+      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, createMembershipUseCase);
       const staffAppLocal = express();
       staffAppLocal.use(express.json());
       staffAppLocal.use('/api/memberships', createMembershipRouter({ membershipController: controller, authenticate: authenticateStaff as any }));
@@ -195,8 +197,7 @@ describe('Membership routes', () => {
 
   describe('POST /api/memberships/:id/approve', () => {
     it('debe aprobar membresía pendiente', async () => {
-      membershipRepo.findById.mockResolvedValue(pendingMembership());
-      membershipRepo.approvePending.mockResolvedValue(activeMembership());
+      approvePendingUseCase.execute.mockResolvedValue({ status: 'active' });
 
       const response = await request(staffApp)
         .post('/api/memberships/507f1f77bcf86cd799439011/approve');
@@ -206,7 +207,8 @@ describe('Membership routes', () => {
     });
 
     it('debe retornar 400 si no está pendiente', async () => {
-      membershipRepo.findById.mockResolvedValue(activeMembership());
+      const { AppError } = require('../../../src/domain/errors/AppError');
+      approvePendingUseCase.execute.mockRejectedValue(new AppError('La membresía no está pendiente de pago.', 400));
 
       const response = await request(staffApp)
         .post('/api/memberships/507f1f77bcf86cd799439011/approve');

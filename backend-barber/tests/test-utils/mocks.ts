@@ -72,7 +72,6 @@ export const makeMockMembershipRepository = () => ({
   findById: jest.fn(),
   findAll: jest.fn(),
   findAllEntityView: jest.fn(),
-  findByPreapprovalId: jest.fn(),
   findAnyByUser: jest.fn(),
   findPendingAll: jest.fn(),
   findExpiringSoon: jest.fn(),
@@ -164,9 +163,6 @@ export const makeMockPaymentService = () => ({
   createPreference: jest.fn(),
   getPayment: jest.fn(),
   validateWebhookSignature: jest.fn(),
-  createPreapproval: jest.fn(),
-  getPreapproval: jest.fn(),
-  cancelPreapproval: jest.fn(),
 });
 
 export const makeMockOrderRepository = () => ({

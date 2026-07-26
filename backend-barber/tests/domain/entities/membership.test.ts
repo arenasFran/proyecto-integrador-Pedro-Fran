@@ -50,9 +50,8 @@ describe('Membership entity', () => {
     });
 
     it('debe crear membresía con paymentMethod mercadopago', () => {
-      const m = Membership.create({ userId: 'u1', createdBy: 'client', paymentMethod: 'mercadopago', mpPreapprovalId: 'pre-123' });
+      const m = Membership.create({ userId: 'u1', createdBy: 'client', paymentMethod: 'mercadopago' });
       expect(m.paymentMethod).toBe('mercadopago');
-      expect(m.mpPreapprovalId).toBe('pre-123');
     });
 
     it('debe crear membresía con paymentMethod local', () => {
@@ -151,17 +150,6 @@ describe('Membership entity', () => {
     it('no debe ser negativo', () => {
       const m = makeActiveMembership({ couponsTotal: 2, couponsUsed: 5 });
       expect(m.remainingCoupons).toBe(0);
-    });
-  });
-
-  describe('renew', () => {
-    it('debe extender endDate y resetear couponsUsed', () => {
-      const m = makeActiveMembership({ couponsUsed: 3 });
-      const before = new Date(m.endDate);
-      m.renew();
-      expect(m.endDate.getTime()).toBeGreaterThan(before.getTime());
-      expect(m.couponsUsed).toBe(0);
-      expect(m.status).toBe('active');
     });
   });
 

@@ -81,6 +81,9 @@ export class CreateOrderUseCase {
     const paymentMethod = dto.paymentMethod || 'online';
 
     if (paymentMethod === 'local') {
+      saved.pay();
+      await this.orderRepository.save(saved);
+
       for (const item of resolvedItems) {
         await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
       }

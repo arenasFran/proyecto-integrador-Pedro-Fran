@@ -8,6 +8,9 @@ import { AppError } from '../../domain/errors/AppError';
 
 const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 
+// Bien por debajo de ANALISIS_LOCK_STALE_MS (2 min) para dejar margen a Rekognition + la escritura a Mongo.
+const GEMINI_TIMEOUT_MS = 45 * 1000;
+
 export function construirPrompt(servicios: ServicioParaPrompt[]): string {
   const listaServicios = servicios.map((s) => `- "${s.name}": ${s.description}`).join('\n');
 
@@ -101,9 +104,10 @@ export class GeminiRecommendationService implements IRecommendationService {
             ],
           },
         ],
-        config: { responseMimeType: 'application/json' },
+        config: { responseMimeType: 'application/json', httpOptions: { timeout: GEMINI_TIMEOUT_MS } },
       });
-    } catch {
+    } catch (error) {
+      console.error('[Gemini] Error al generar la recomendación:', error);
       throw new AppError('El servicio de recomendación no está disponible, probá de nuevo en unos segundos.', 503, 'AI_ERROR');
     }
 

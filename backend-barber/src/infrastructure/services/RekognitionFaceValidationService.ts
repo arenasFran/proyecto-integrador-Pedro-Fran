@@ -1,4 +1,5 @@
 import { RekognitionClient, DetectFacesCommand, FaceDetail } from '@aws-sdk/client-rekognition';
+import { NodeHttpHandler } from '@smithy/node-http-handler';
 import { IFaceValidationService, ResultadoValidacionFoto } from '../../application/ports/IFaceValidationService';
 import { AppError } from '../../domain/errors/AppError';
 
@@ -8,6 +9,9 @@ export type RekognitionCredentials = {
   secretAccessKey: string | undefined;
   sessionToken: string | undefined;
 };
+
+// Bien por debajo de ANALISIS_LOCK_STALE_MS (2 min) para dejar margen a Gemini + la escritura a Mongo.
+const REKOGNITION_TIMEOUT_MS = 45 * 1000;
 
 export function validarDetalleCara(faceDetails: FaceDetail[]): ResultadoValidacionFoto {
   if (faceDetails.length === 0) {
@@ -54,6 +58,10 @@ export class RekognitionFaceValidationService implements IFaceValidationService 
         secretAccessKey: this.credentials.secretAccessKey!,
         sessionToken: this.credentials.sessionToken,
       },
+      requestHandler: new NodeHttpHandler({
+        requestTimeout: REKOGNITION_TIMEOUT_MS,
+        connectionTimeout: 5000,
+      }),
     });
 
     let response;
@@ -65,6 +73,7 @@ export class RekognitionFaceValidationService implements IFaceValidationService 
         })
       );
     } catch (error) {
+      console.error('[Rekognition] Error al validar la foto:', error);
       const nombre = error instanceof Error ? error.name : '';
       if (nombre === 'InvalidImageFormatException') {
         return { valido: false, motivo: 'Formato de imagen no soportado, subí una foto JPG o PNG.' };

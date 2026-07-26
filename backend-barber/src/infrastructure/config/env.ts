@@ -13,6 +13,7 @@ export type Config = {
   mongoUri: string;
   frontendUrl: string;
   resetTokenExpirationMin: number;
+  emailProvider: 'ethereal' | 'brevo';
   smtp: {
     host: string;
     port: number;
@@ -76,6 +77,14 @@ function parseBoolEnv(name: string, defaultValue: boolean): boolean {
   return raw === 'true' || raw === '1';
 }
 
+function parseEmailProvider(): 'ethereal' | 'brevo' {
+  const raw = (process.env.EMAIL_PROVIDER || 'brevo').trim().toLowerCase();
+  if (raw !== 'ethereal' && raw !== 'brevo') {
+    throw new Error(`EMAIL_PROVIDER inválido ("${raw}"). Valores permitidos: "ethereal" o "brevo".`);
+  }
+  return raw;
+}
+
 export function loadConfig(): Config {
   dotenv.config();
 
@@ -96,6 +105,7 @@ export function loadConfig(): Config {
     mongoUri: requireEnv('MONGO_URI'),
     frontendUrl: optionalEnv('FRONTEND_URL', ''),
     resetTokenExpirationMin: parseIntEnv('RESET_TOKEN_EXPIRATION_MIN', 60),
+    emailProvider: parseEmailProvider(),
     smtp: {
       host: optionalEnv('SMTP_HOST', 'localhost'),
       port: parseIntEnv('SMTP_PORT', 587),
@@ -137,10 +147,27 @@ export function getConfig(): Config {
   return _config;
 }
 
+const EMAIL_FROM_WITH_NAME_REGEX = /^.+\s<[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+>$/;
+
 export function validateEnv(): Config {
   try {
     const config = loadConfig();
     console.log('Variables de entorno validadas correctamente.');
+
+    if (config.emailProvider === 'brevo') {
+      const rawFrom = (process.env.EMAIL_FROM || '').trim();
+      if (!rawFrom) {
+        throw new Error('EMAIL_FROM es requerido cuando EMAIL_PROVIDER=brevo (debe ser un sender verificado en Brevo).');
+      }
+      if (!EMAIL_FROM_WITH_NAME_REGEX.test(rawFrom)) {
+        throw new Error(
+          'EMAIL_FROM debe tener el formato "Nombre <email@dominio>" cuando EMAIL_PROVIDER=brevo. Ejemplo: "Barbería Santiago Abbona <noreply@barberiasantiagoabbona.com>".'
+        );
+      }
+      console.log(`[EMAIL] Proveedor: Brevo. Remitente: ${rawFrom}`);
+    } else {
+      console.log('[EMAIL] Proveedor: Ethereal (modo test, los mails no se entregan de verdad).');
+    }
 
     if (config.mpAccessToken) {
       const isTestToken = config.mpAccessToken.startsWith('TEST-');

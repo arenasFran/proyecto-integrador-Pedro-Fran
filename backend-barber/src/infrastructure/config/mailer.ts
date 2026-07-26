@@ -32,7 +32,16 @@ export const sendMail = async ({
   text?: string;
 }) => {
   const config = getConfig();
-  return getTransporter().sendMail({ from: from || config.smtp.from, to, subject, html, text });
+  const info = await getTransporter().sendMail({ from: from || config.smtp.from, to, subject, html, text });
+
+  if (config.emailProvider === 'ethereal') {
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log(`[EMAIL-ETHEREAL] Preview del mail enviado: ${previewUrl}`);
+    }
+  }
+
+  return info;
 };
 
 export default { sendMail };

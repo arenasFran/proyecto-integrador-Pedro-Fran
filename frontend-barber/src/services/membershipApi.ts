@@ -49,10 +49,6 @@ export const membershipApi = createApi({
       providesTags: ['Membership'],
     }),
 
-    createSubscription: builder.mutation<CreateSubscriptionResponse, { userId: string; email: string }>({
-      query: (data) => ({ url: '/api/memberships/create-subscription', method: 'POST', data }),
-    }),
-
     cancelMembership: builder.mutation<void, string>({
       query: (id) => ({ url: `/api/memberships/${id}/cancel`, method: 'POST' }),
       invalidatesTags: ['Membership'],
@@ -117,7 +113,6 @@ export const {
   useGetExpiringSoonQuery,
   useGetMembershipByIdQuery,
   useGetMembershipByUserIdQuery,
-  useCreateSubscriptionMutation,
   useCancelMembershipMutation,
   useInitiateMembershipPaymentMutation,
   useRetryMembershipPaymentMutation,

@@ -101,15 +101,6 @@ export const createMembershipRouter = (deps: {
   );
 
   router.post(
-    '/create-subscription',
-    membershipMutationLimiter,
-    deps.authenticate,
-    authorize('Registrado'),
-    validate({ body: createSubscriptionSchema }),
-    deps.membershipController.createSubscription
-  );
-
-  router.post(
     '/:id/cancel',
     membershipMutationLimiter,
     deps.authenticate,

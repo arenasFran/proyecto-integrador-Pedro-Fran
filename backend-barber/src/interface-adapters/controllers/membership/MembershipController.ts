@@ -6,13 +6,11 @@ import { MongoPaymentRepository } from '../../../infrastructure/repositories/mon
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
-import { CreateSubscriptionUseCase } from '../../../application/use-cases/payment/CreateSubscriptionUseCase';
 import { CreateMembershipUseCase } from '../../../application/use-cases/membership/CreateMembershipUseCase';
 import { CancelMembershipUseCase } from '../../../application/use-cases/membership/CancelMembershipUseCase';
 import { InitiateMembershipPaymentUseCase } from '../../../application/use-cases/membership/InitiateMembershipPaymentUseCase';
 import { ApprovePendingMembershipUseCase } from '../../../application/use-cases/membership/ApprovePendingMembershipUseCase';
 import { RetryMembershipPaymentUseCase } from '../../../application/use-cases/membership/RetryMembershipPaymentUseCase';
-import { CreateMembershipSubscriptionUseCase } from '../../../application/use-cases/membership/CreateMembershipSubscriptionUseCase';
 import { IPaymentService } from '../../../application/ports/IPaymentService';
 import { getConfig } from '../../../infrastructure/config/env';
 import type { PaymentMethod } from '../../../domain/types/membership';
@@ -24,14 +22,12 @@ export class MembershipController {
     private readonly transactionRepo: MongoMembershipTransactionRepository,
     private readonly createPaymentUseCase?: CreatePaymentUseCase,
     private readonly paymentRepository?: MongoPaymentRepository,
-    private readonly createSubscriptionUseCase?: CreateSubscriptionUseCase,
     private readonly mercadoPagoService?: IPaymentService,
     private readonly createMembershipUseCase?: CreateMembershipUseCase,
     private readonly cancelMembershipUseCase?: CancelMembershipUseCase,
     private readonly initiateMembershipPaymentUseCase?: InitiateMembershipPaymentUseCase,
     private readonly approvePendingMembershipUseCase?: ApprovePendingMembershipUseCase,
     private readonly retryMembershipPaymentUseCase?: RetryMembershipPaymentUseCase,
-    private readonly createMembershipSubscriptionUseCase?: CreateMembershipSubscriptionUseCase,
   ) {}
 
   private async buildMembershipSummary(userId: string) {
@@ -129,31 +125,6 @@ export class MembershipController {
       return sendSuccess(res, membership.toPrimitives());
     } catch (error) {
       return sendError(res, error, 'Error al obtener membresía');
-    }
-  };
-
-  createSubscription = async (req: Request, res: Response) => {
-    try {
-      const { userId, email } = req.body;
-
-      if (!this.createMembershipSubscriptionUseCase) {
-        throw new AppError('MercadoPago no está configurado.', 500);
-      }
-
-      const result = await this.createMembershipSubscriptionUseCase.execute({
-        userId,
-        email,
-        actorId: req.user!._id,
-        actorKind: req.user!.kind,
-      });
-
-      return sendSuccess(res, {
-        preapprovalId: result.preapprovalId,
-        initPoint: result.initPoint,
-        membershipId: result.membershipId,
-      }, 201);
-    } catch (error) {
-      return sendError(res, error, 'Error al crear suscripción');
     }
   };
 

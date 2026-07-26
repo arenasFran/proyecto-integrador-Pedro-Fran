@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
-import { useGetMyMembershipQuery, useCancelMembershipMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation, useCreateSubscriptionMutation, useGetCouponHistoryQuery } from '../../../services/membershipApi';
+import { useGetMyMembershipQuery, useCancelMembershipMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation, useGetCouponHistoryQuery } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind, getTokenUser } from '../../../utils/token';
 import PaymentModal from '../../../components/payment/PaymentModal';
@@ -16,7 +16,6 @@ export default function MembershipPage() {
   const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelMembershipMutation();
   const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
-  const [createSubscription, { isLoading: isSubscribing }] = useCreateSubscriptionMutation();
 
   const { showToast } = useToast();
 
@@ -57,20 +56,6 @@ export default function MembershipPage() {
       }
     } catch {
       showToast('Error al crear el pago. Intentá de nuevo.', 'error');
-    }
-  };
-
-  const handleCreateSubscription = async () => {
-    try {
-      const user = getTokenUser(token);
-      if (!user) { showToast('Sesión inválida', 'error'); return; }
-      const result = await createSubscription({ userId: user.id, email: user.email || '' }).unwrap();
-      if (result.initPoint) {
-        window.open(result.initPoint, '_blank');
-      }
-      showToast('Redirigiendo a MercadoPago para autorizar la suscripción...', 'success');
-    } catch {
-      showToast('Error al crear la suscripción. Intentá de nuevo.', 'error');
     }
   };
 
@@ -348,28 +333,6 @@ export default function MembershipPage() {
                     className="w-full"
                   >
                     Pagar online
-                  </Button>
-                </div>
-                <div className="rounded-[12px] bg-[#1A1A1A] border border-[#FF5C00]/20 p-5 text-left flex flex-col h-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <FiRefreshCw className="text-[#FF5C00] text-lg" />
-                    <div>
-                      <p className="text-[15px] font-semibold text-white">Suscripción mensual</p>
-                      <p className="text-[20px] font-bold text-white">{formatCurrency(399)}<span className="text-[13px] text-[#8A8A8A]">/mes</span></p>
-                    </div>
-                  </div>
-                  <p className="text-[12px] text-[#8A8A8A] mb-4 flex-1">
-                    Se renueva automáticamente cada mes.
-                    Podés cancelar cuando quieras desde esta página.
-                  </p>
-                  <Button
-                    loading={isSubscribing}
-                    onClick={handleCreateSubscription}
-                    icon={FiCreditCard}
-                    className="w-full"
-                    variant="primary"
-                  >
-                    Suscribirme
                   </Button>
                 </div>
               </div>

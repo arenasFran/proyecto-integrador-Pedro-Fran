@@ -14,7 +14,7 @@ const RevenueEntrySchema = new Schema<IRevenueEntryDocument>(
     source: { type: String, enum: ['appointment', 'product_order', 'membership'], required: true, index: true },
     amount: { type: Number, required: true },
     date: { type: Date, required: true, index: true },
-    referenceId: { type: String, required: true, index: true },
+    referenceId: { type: String, required: true, unique: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: { createdAt: true, updatedAt: false } }

@@ -36,6 +36,9 @@ export class RevenueTracker {
   }
 
   async trackMembership(membershipId: string, amount: number, date: Date, metadata?: Record<string, unknown>): Promise<void> {
+    const existing = await this.revenueEntryRepo.findByReferenceId(membershipId);
+    if (existing) return;
+
     const entry = RevenueEntry.create({
       source: 'membership',
       amount,

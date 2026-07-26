@@ -42,9 +42,7 @@ const workDay = (s: string, e: string) => ({ startTime: s, endTime: e, breaks: [
 // ── Connect ──────────────────────────────────────────────
 
 export async function runFullSeed() {
-  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/backend-barber';
-  await mongoose.connect(mongoUri);
-  console.log('[SEED] Conectado a MongoDB');
+  console.log('[SEED] Iniciando seed...');
 
   // Clean previous seed data
   await AppointmentModel.deleteMany({ clientEmail: { $regex: '@test\\.com$' } });
@@ -355,11 +353,4 @@ export async function runFullSeed() {
   console.log('  Clave clientes: Cliente123!');
   console.log('  Barbers: carlos@barberia.com, martin@barberia.com, lucia@barberia.com');
   console.log('  Clave barbers: Barber123!');
-
-  await mongoose.disconnect();
 }
-
-runFullSeed().catch((err) => {
-  console.error('[SEED] Error:', err);
-  process.exit(1);
-});

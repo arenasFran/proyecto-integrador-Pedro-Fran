@@ -29,8 +29,8 @@ export class MembershipResolver {
       paymentMethod: 'mercadopago',
       billingCycle,
     });
-    await this.membershipRepo.save(membership);
+    const saved = await this.membershipRepo.save(membership);
 
-    return membership;
+    return saved;
   }
 }

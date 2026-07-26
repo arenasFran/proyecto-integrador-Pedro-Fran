@@ -15,9 +15,17 @@ export class PaymentController {
   handleWebhook = (req: Request, res: Response) => {
     const xSignature = (req.headers['x-signature'] as string) || '';
     const xRequestId = (req.headers['x-request-id'] as string) || '';
-    const dataIdFromQuery = (req.query['data.id'] as string) || '';
+    let dataIdFromQuery = (req.query['data.id'] as string) || '';
 
     const notifications = Array.isArray(req.body) ? req.body : [req.body];
+
+    if (!dataIdFromQuery) {
+      for (const n of notifications) {
+        const d = n?.data?.id;
+        if (d) { dataIdFromQuery = String(d); break; }
+      }
+    }
+
     const hasSecureTopic = notifications.some((n: any) => {
       const topic = n?.type || n?.topic;
       return ['payment', 'subscription_authorized_payment', 'preapproval', 'subscription_preapproval', 'topic_chargebacks_wh'].includes(topic || '');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FiAward, FiCamera, FiClock, FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, Button, ImageUpload, Spinner, useToast } from '../../../components/common';
@@ -26,17 +26,27 @@ export default function AiHaircutPage() {
   } = useGetHistorialAnalisisCorteQuery();
   const historial = historialData?.historial ?? [];
   const cupo = historialData?.cupo;
+  const yaConsintio = historialData?.consentimientoAceptado ?? false;
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [resultado, setResultado] = useState<AnalisisCorteResultado | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
+  const [consentMode, setConsentMode] = useState<'gate' | 'retry'>('gate');
+  const [sessionConsentAccepted, setSessionConsentAccepted] = useState(false);
   const [detalleSeleccionado, setDetalleSeleccionado] = useState<AnalisisCorteRecord | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
 
   if (!token) return <Navigate to="/login" replace />;
 
   const active = membershipData?.active;
+  const puedeCargarImagen = yaConsintio || sessionConsentAccepted;
 
   const ultimoAnalisis = historial[0] ?? null;
   const enCupo = cupo ? !cupo.disponible : false;
@@ -49,28 +59,51 @@ export default function AiHaircutPage() {
     setPreview(selected ? URL.createObjectURL(selected) : null);
   };
 
+  const MIN_ANALYSIS_LOADING_MS = 3000;
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
   const runAnalysis = async (aceptaConsentimiento?: boolean) => {
     if (!file) return;
     setIsAnalyzing(true);
     try {
-      const data = await analizarCorte(file, aceptaConsentimiento);
+      const [data] = await Promise.all([
+        analizarCorte(file, aceptaConsentimiento),
+        delay(MIN_ANALYSIS_LOADING_MS),
+      ]);
       setResultado(data);
       setConsentOpen(false);
       refetchHistorial();
     } catch (err) {
       const error = err as Error & { code?: string };
       if (error.code === 'CONSENT_REQUIRED') {
+        setConsentMode('retry');
         setConsentOpen(true);
       } else {
         showToast(error.message ?? 'Error al analizar la foto', 'error');
+        if (error.code === 'QUOTA_EXCEEDED') {
+          refetchHistorial();
+        }
       }
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleAnalyzeClick = () => runAnalysis();
-  const handleConsentAccept = () => runAnalysis(true);
+  const handleAddImageClick = () => {
+    setConsentMode('gate');
+    setConsentOpen(true);
+  };
+
+  const handleAnalyzeClick = () => runAnalysis(!yaConsintio ? true : undefined);
+
+  const handleConsentAccept = () => {
+    if (consentMode === 'retry') {
+      runAnalysis(true);
+      return;
+    }
+    setSessionConsentAccepted(true);
+    setConsentOpen(false);
+  };
 
   if (isLoadingMembership) {
     return (
@@ -168,11 +201,23 @@ export default function AiHaircutPage() {
 
     return (
       <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6">
-        <ImageUpload
-          variant="box"
-          onFileSelect={handleFileSelect}
-          helperText="Subí una foto de frente, con buena luz, sin lentes de sol ni nada que tape tu cara"
-        />
+        {puedeCargarImagen ? (
+          <ImageUpload
+            variant="box"
+            onFileSelect={handleFileSelect}
+            helperText="Subí una foto de frente, con buena luz, sin lentes de sol ni nada que tape tu cara"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={handleAddImageClick}
+            className="w-full flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-[#282828] bg-[#1A1A1A] p-6 cursor-pointer hover:border-[#FF5C00]/50 transition-colors"
+          >
+            <FiCamera className="w-8 h-8 text-[#8A8A8A] mb-2" />
+            <p className="text-[13px] text-[#8A8A8A]">Agregar imagen</p>
+            <p className="text-[11px] text-[#555] mt-1">Te vamos a pedir tu consentimiento antes de subirla</p>
+          </button>
+        )}
         <div className="mt-4 flex justify-center">
           <Button onClick={handleAnalyzeClick} disabled={!file} icon={FiCamera}>
             Analizar foto

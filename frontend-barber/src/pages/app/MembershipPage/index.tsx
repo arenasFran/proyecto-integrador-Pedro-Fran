@@ -219,6 +219,8 @@ export default function MembershipPage() {
                 </div>
               </AnimatedContainer>
             )}
+              </div>
+            </AnimatedContainer>
           </>
         ) : pending ? (
           <AnimatedContainer animation="fadeInUp" delay={0.1}>

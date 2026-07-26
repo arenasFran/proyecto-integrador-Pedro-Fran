@@ -2,6 +2,7 @@ import { AppError } from '../../../domain/errors/AppError';
 import { MembershipProps } from '../../../domain/entities/Membership';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoMembershipTransactionRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
+import { RevenueTracker } from '../../services/RevenueTracker';
 
 export interface ApprovePendingMembershipDTO {
   membershipId: string;
@@ -12,6 +13,7 @@ export class ApprovePendingMembershipUseCase {
   constructor(
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly transactionRepo: MongoMembershipTransactionRepository,
+    private readonly revenueTracker?: RevenueTracker,
   ) {}
 
   async execute(dto: ApprovePendingMembershipDTO): Promise<MembershipProps> {
@@ -35,6 +37,11 @@ export class ApprovePendingMembershipUseCase {
       paymentMethod: result.paymentMethod === 'mercadopago' ? 'mercadopago' : 'local',
       createdBy: 'admin',
       adminId: dto.staffId,
+    });
+
+    await this.revenueTracker?.trackMembership(result.id, result.price, new Date(), {
+      userId: result.userId,
+      staffId: dto.staffId,
     });
 
     return result.toPrimitives();

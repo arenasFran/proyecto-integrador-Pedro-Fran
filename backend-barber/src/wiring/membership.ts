@@ -14,7 +14,7 @@ import { MembershipController } from '../interface-adapters/controllers/membersh
 import { createMembershipRouter } from '../interface-adapters/routes/membership.routes';
 import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
-import { buildCreatePaymentUseCase, buildMercadoPagoService } from './payment';
+import { buildCreatePaymentUseCase } from './payment';
 
 export const buildMembershipRouter = () => {
   const membershipRepo = new MongoMembershipRepository();
@@ -22,15 +22,14 @@ export const buildMembershipRouter = () => {
   const paymentRepo = new MongoPaymentRepository();
   const transactionRepo = new MongoMembershipTransactionRepository();
   const createPaymentUseCase = buildCreatePaymentUseCase();
-  const mercadoPagoService = buildMercadoPagoService();
   const revenueEntryRepository = new MongoRevenueEntryRepository();
   const revenueTracker = new RevenueTracker(revenueEntryRepository);
   const membershipResolver = new MembershipResolver(membershipRepo);
   const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo, userRepo, transactionRepo, paymentRepo, revenueTracker);
 
-  const cancelMembershipUseCase = new CancelMembershipUseCase(membershipRepo, mercadoPagoService);
+  const cancelMembershipUseCase = new CancelMembershipUseCase(membershipRepo);
   const initiateMembershipPaymentUseCase = new InitiateMembershipPaymentUseCase(membershipResolver, userRepo, createPaymentUseCase);
-  const approvePendingMembershipUseCase = new ApprovePendingMembershipUseCase(membershipRepo, transactionRepo);
+  const approvePendingMembershipUseCase = new ApprovePendingMembershipUseCase(membershipRepo, transactionRepo, revenueTracker);
   const retryMembershipPaymentUseCase = new RetryMembershipPaymentUseCase(membershipRepo, userRepo, createPaymentUseCase, paymentRepo);
 
   const controller = new MembershipController(
@@ -39,7 +38,6 @@ export const buildMembershipRouter = () => {
     transactionRepo,
     createPaymentUseCase,
     paymentRepo,
-    mercadoPagoService,
     createMembershipUseCase,
     cancelMembershipUseCase,
     initiateMembershipPaymentUseCase,

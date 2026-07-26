@@ -163,6 +163,35 @@ describe('AnalizarCorteUseCase', () => {
 
     expect(deps.clientRepository.updateAnalisisIA).toHaveBeenCalledWith(
       'client-1',
+      {
+        consentimientoAnalisisIA: true,
+        consentimientoAnalisisIAFecha: expect.any(Date),
+        ultimoAnalisisFecha: expect.any(Date),
+        analisisLockedAt: null,
+      },
+      capturedSession
+    );
+  });
+
+  it('no vuelve a setear la fecha de consentimiento si el cliente ya había consentido antes', async () => {
+    const deps = buildUseCase();
+    deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
+    deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: true }));
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
+    deps.faceValidationService.validar.mockResolvedValue({ valido: true });
+    deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo')]);
+    deps.recommendationService.recomendar.mockResolvedValue(recomendacion);
+    deps.analisisCorteRepository.create.mockResolvedValue({
+      id: 'a1',
+      clienteId: 'client-1',
+      resultado: recomendacion,
+      createdAt: new Date(),
+    });
+
+    await deps.useCase.execute(dto);
+
+    expect(deps.clientRepository.updateAnalisisIA).toHaveBeenCalledWith(
+      'client-1',
       { consentimientoAnalisisIA: true, ultimoAnalisisFecha: expect.any(Date), analisisLockedAt: null },
       capturedSession
     );

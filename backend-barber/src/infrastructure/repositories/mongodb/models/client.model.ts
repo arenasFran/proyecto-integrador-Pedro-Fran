@@ -18,6 +18,7 @@ export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
   resetFailedAttempts?: number;
   resetLockedUntil?: Date;
   consentimientoAnalisisIA?: boolean;
+  consentimientoAnalisisIAFecha?: Date | null;
   ultimoAnalisisFecha?: Date | null;
   analisisLockedAt?: Date | null;
 }
@@ -119,6 +120,10 @@ const registeredClientSchema = new Schema<IRegisteredClient>(
     consentimientoAnalisisIA: {
       type: Boolean,
       default: false,
+    },
+    consentimientoAnalisisIAFecha: {
+      type: Date,
+      default: null,
     },
     ultimoAnalisisFecha: {
       type: Date,

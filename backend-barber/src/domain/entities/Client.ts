@@ -8,6 +8,7 @@ export type ClientProps = {
   photoUrl?: string | null;
   registeredAt?: Date;
   consentimientoAnalisisIA?: boolean;
+  consentimientoAnalisisIAFecha?: Date | null;
   ultimoAnalisisFecha?: Date | null;
 };
 
@@ -56,6 +57,10 @@ export class Client {
 
   get consentimientoAnalisisIA(): boolean {
     return this.props.consentimientoAnalisisIA ?? false;
+  }
+
+  get consentimientoAnalisisIAFecha(): Date | null {
+    return this.props.consentimientoAnalisisIAFecha ?? null;
   }
 
   get ultimoAnalisisFecha(): Date | null {

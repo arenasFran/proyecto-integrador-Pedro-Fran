@@ -30,6 +30,7 @@ const toClientEntity = (doc: Record<string, any>): Client =>
     photoUrl: doc.photoUrl ?? null,
     registeredAt: (doc._id as mongoose.Types.ObjectId).getTimestamp(),
     consentimientoAnalisisIA: doc.consentimientoAnalisisIA ?? false,
+    consentimientoAnalisisIAFecha: doc.consentimientoAnalisisIAFecha ?? null,
     ultimoAnalisisFecha: doc.ultimoAnalisisFecha ?? null,
   });
 
@@ -43,7 +44,12 @@ export class MongoClientRepository {
 
   async updateAnalisisIA(
     id: string,
-    data: { consentimientoAnalisisIA?: boolean; ultimoAnalisisFecha?: Date; analisisLockedAt?: Date | null },
+    data: {
+      consentimientoAnalisisIA?: boolean;
+      consentimientoAnalisisIAFecha?: Date;
+      ultimoAnalisisFecha?: Date;
+      analisisLockedAt?: Date | null;
+    },
     session?: mongoose.ClientSession
   ): Promise<void> {
     await RegisteredClient.findByIdAndUpdate(id, { $set: data }, session ? { session } : {});

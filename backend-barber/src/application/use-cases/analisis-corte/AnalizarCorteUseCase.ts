@@ -88,7 +88,12 @@ export class AnalizarCorteUseCase {
         registro = await this.analisisCorteRepository.create(dto.clienteId, recomendacion, session);
         await this.clientRepository.updateAnalisisIA(
           dto.clienteId,
-          { consentimientoAnalisisIA: true, ultimoAnalisisFecha: new Date(), analisisLockedAt: null },
+          {
+            consentimientoAnalisisIA: true,
+            ...(client.consentimientoAnalisisIA ? {} : { consentimientoAnalisisIAFecha: new Date() }),
+            ultimoAnalisisFecha: new Date(),
+            analisisLockedAt: null,
+          },
           session
         );
 

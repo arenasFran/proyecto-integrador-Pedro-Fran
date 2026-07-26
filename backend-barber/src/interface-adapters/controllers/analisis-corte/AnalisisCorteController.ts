@@ -41,7 +41,11 @@ export class AnalisisCorteController {
 
       const cupo = calcularCupoAnalisisCorte(client?.ultimoAnalisisFecha ?? null);
 
-      return sendSuccess(res, { historial, cupo });
+      return sendSuccess(res, {
+        historial,
+        cupo,
+        consentimientoAceptado: client?.consentimientoAnalisisIA ?? false,
+      });
     } catch (error) {
       return sendError(res, error, 'Error al obtener el historial de análisis');
     }

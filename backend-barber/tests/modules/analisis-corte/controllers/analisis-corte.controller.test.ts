@@ -110,6 +110,7 @@ describe('AnalisisCorteController', () => {
       expect(res.json).toHaveBeenCalledWith({
         historial,
         cupo: { disponible: true, proximaFechaDisponible: null },
+        consentimientoAceptado: true,
       });
     });
 

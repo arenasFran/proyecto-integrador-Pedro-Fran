@@ -26,4 +26,5 @@ export type CupoAnalisisCorte = {
 export type HistorialAnalisisCorte = {
   historial: AnalisisCorteRecord[];
   cupo: CupoAnalisisCorte;
+  consentimientoAceptado: boolean;
 };

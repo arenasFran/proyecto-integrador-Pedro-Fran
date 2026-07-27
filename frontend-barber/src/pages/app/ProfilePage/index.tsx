@@ -1,12 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSettings, FiUser } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSend, FiSettings, FiUser } from 'react-icons/fi';
 import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner, useToast } from '../../../components/common';
 import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout, updateCurrentUser } from '../../../store/slices/authSlice';
 import { fetchBarbers, updateBarberMe } from '../../../store/slices/barbersSlice';
 import { useChangePasswordMutation, useRequestResetMutation } from '../../../services/authApi';
+import { useGenerateTelegramLinkTokenMutation } from '../../../services/telegramApi';
 import { getErrorMessage } from '../../../utils/errorMessages';
 import type { DayKey } from '../../../types/professional';
 import {
@@ -62,6 +63,9 @@ export const ProfilePage: React.FC = () => {
 
   const [changePasswordMutation, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const [requestReset, { isLoading: isRequestingReset }] = useRequestResetMutation();
+  const [generateTelegramLinkToken, { isLoading: isGeneratingTelegramLink }] = useGenerateTelegramLinkTokenMutation();
+  const [telegramDeepLink, setTelegramDeepLink] = useState<string | null>(null);
+  const [telegramLinkCommand, setTelegramLinkCommand] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
@@ -274,6 +278,17 @@ export const ProfilePage: React.FC = () => {
       showToast('Te enviamos un email para restablecer tu contraseña.', 'success');
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al solicitar el restablecimiento'), 'error');
+    }
+  };
+
+  const handleConnectTelegram = async () => {
+    try {
+      const result = await generateTelegramLinkToken().unwrap();
+      setTelegramDeepLink(result.deepLink);
+      setTelegramLinkCommand(`/start ${result.token}`);
+      showToast('¡Listo! Abrí el link para vincular tu Telegram.', 'success');
+    } catch (err: unknown) {
+      showToast(getErrorMessage(err, 'Error al generar el link de Telegram'), 'error');
     }
   };
 
@@ -547,6 +562,62 @@ export const ProfilePage: React.FC = () => {
                 >
                   Cancelar
                 </Button>
+              </div>
+            </div>
+          )}
+        </AnimatedContainer>
+
+        <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <FiSend className="w-5 h-5 text-[#FF5C00]" />
+              <h2 className="text-[18px] font-bold text-white">Conectar Telegram</h2>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              loading={isGeneratingTelegramLink}
+              onClick={handleConnectTelegram}
+            >
+              Conectar
+            </Button>
+          </div>
+
+          <p className="text-[13px] text-[#8A8A8A]">
+            Vinculá tu Telegram para reservar, ver y cancelar turnos directamente desde el bot, usando tu cuenta.
+          </p>
+
+          {telegramDeepLink && telegramLinkCommand && (
+            <div className="mt-3 grid gap-3">
+              <a
+                href={telegramDeepLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block w-fit text-[13px] text-[#FF5C00] hover:underline"
+              >
+                Abrir en Telegram
+              </a>
+
+              <div className="grid gap-1.5">
+                <p className="text-[12px] text-[#8A8A8A]">
+                  ¿Ya hablaste antes con el bot? El botón de arriba puede no mostrarte "Start". Pegá este comando
+                  directo en el chat en su lugar (vence en 10 minutos):
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 rounded-lg border border-[#282828] bg-[#0A0A0A] px-3 py-2 text-[12px] text-white font-mono overflow-x-auto">
+                    {telegramLinkCommand}
+                  </code>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(telegramLinkCommand);
+                      showToast('Comando copiado.', 'success');
+                    }}
+                  >
+                    Copiar
+                  </Button>
+                </div>
               </div>
             </div>
           )}

@@ -13,6 +13,7 @@ import { createAuthenticate } from "./interface-adapters/middlewares/auth.middle
 import { buildTokenService } from "./wiring/auth";
 import { getConfig } from "./infrastructure/config/env";
 import { buildDebugRouter } from "./interface-adapters/routes/debug.routes";
+import { buildTelegramRouter } from "./wiring/telegram";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -103,6 +104,8 @@ app.use("/api/cart", buildCartRouter());
 const reportsController = new ReportsController();
 const reportsAuth = createAuthenticate(tokenService);
 app.use("/api/reports", createReportsRouter({ reportsController, authenticate: reportsAuth }));
+const telegramAuth = createAuthenticate(tokenService);
+app.use("/api/telegram", buildTelegramRouter({ authenticate: telegramAuth }));
 app.use("/api/debug", buildDebugRouter());
 
 app.get("/health", (_req, res) => {

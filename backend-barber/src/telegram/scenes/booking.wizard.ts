@@ -1,6 +1,9 @@
 import { Scenes, Markup } from 'telegraf';
-import { EMAIL_REGEX } from '../../domain/constants/validation';
+import { EMAIL_REGEX, TIME_REGEX } from '../../domain/constants/validation';
+import { getConfig } from '../../infrastructure/config/env';
 import * as backendClient from '../services/backendClient';
+import * as geminiService from '../services/gemini.service';
+import { getSessionForTelegramId } from '../services/accountLink.service';
 import type { GuestBookingState } from '../types/bookingState';
 
 export const GUEST_BOOKING_SCENE_ID = 'guest-booking-wizard';
@@ -48,12 +51,116 @@ const REASON_MESSAGES: Record<string, string> = {
   'fully-booked': 'Ese día ya no tiene horarios libres.',
 };
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function renderServiceOptions(ctx: WizardCtx): Promise<'ok' | 'empty'> {
+  const { services } = await backendClient.getServices();
+  if (services.length === 0) {
+    await ctx.reply('No hay servicios disponibles en este momento. Probá más tarde.');
+    return 'empty';
+  }
+  const keyboard = Markup.inlineKeyboard(
+    chunk(services.map((s) => Markup.button.callback(`${s.name} ($${s.price})`, `svc:${s.id}`)), 2)
+  );
+  await ctx.reply('Elegí un servicio:', keyboard);
+  return 'ok';
+}
+
+async function renderBarberOptions(ctx: WizardCtx): Promise<'ok' | 'empty'> {
+  const { barbers } = await backendClient.getBarbersPublic();
+  if (barbers.length === 0) {
+    await ctx.reply('No hay barberos disponibles en este momento. Probá más tarde.');
+    return 'empty';
+  }
+  const keyboard = Markup.inlineKeyboard(
+    chunk(barbers.map((b) => Markup.button.callback(`${b.name} ${b.lastname}`, `brb:${b.id}`)), 2)
+  );
+  await ctx.reply('Elegí un barbero:', keyboard);
+  return 'ok';
+}
+
+async function renderDateOptions(ctx: WizardCtx): Promise<void> {
+  await ctx.reply('Elegí un día:', nextDaysKeyboard());
+}
+
+async function renderTimeOptions(
+  ctx: WizardCtx,
+  barberId: string,
+  date: string,
+  preferredTime?: string
+): Promise<'confirmed' | 'ok' | 'retry-date'> {
+  const result = await backendClient.getSlots(barberId, date);
+  if (result.slots.length === 0) {
+    await ctx.reply((result.reason && REASON_MESSAGES[result.reason]) || 'No hay horarios disponibles ese día.');
+    await renderDateOptions(ctx);
+    return 'retry-date';
+  }
+  const state = getState(ctx);
+  state.date = date;
+
+  if (preferredTime && result.slots.includes(preferredTime)) {
+    state.startTime = preferredTime;
+    await renderConfirmation(ctx);
+    return 'confirmed';
+  }
+
+  const keyboard = Markup.inlineKeyboard(
+    chunk(result.slots.map((time) => Markup.button.callback(time, `time:${time}`)), 3)
+  );
+  await ctx.reply(`Horarios disponibles para el ${date}:`, keyboard);
+  return 'ok';
+}
+
+async function renderConfirmation(ctx: WizardCtx): Promise<void> {
+  const state = getState(ctx);
+  await ctx.reply(
+    'Confirmá tu turno:\n\n' +
+      `Servicio: ${state.serviceName}\n` +
+      `Barbero: ${state.barberName}\n` +
+      `Fecha: ${state.date} ${state.startTime}\n` +
+      `Nombre: ${state.clientName} ${state.clientLastname}\n` +
+      `Teléfono: ${state.clientPhone}\n` +
+      `Email: ${state.clientEmail}`,
+    Markup.inlineKeyboard([
+      [Markup.button.callback('Confirmar', 'confirm:yes'), Markup.button.callback('Cancelar', 'confirm:no')],
+    ])
+  );
+}
+
 export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
   GUEST_BOOKING_SCENE_ID,
 
   // 0: inicio
   async (ctx) => {
-    getState(ctx);
+    const state = getState(ctx);
+
+    try {
+      const telegramId = ctx.from?.id;
+      const authSession = telegramId ? await getSessionForTelegramId(telegramId) : null;
+      if (authSession) {
+        const profile = await backendClient.getMyProfile(authSession.accessToken);
+        if (profile.name && profile.lastname && profile.phone && profile.email) {
+          state.accessToken = authSession.accessToken;
+          state.clientName = profile.name;
+          state.clientLastname = profile.lastname;
+          state.clientPhone = profile.phone;
+          state.clientEmail = profile.email;
+
+          await ctx.reply(`¡Hola ${profile.name}! Vamos a reservar tu turno.`);
+          await ctx.reply(
+            'Contame qué querés reservar (ej: "corte con Santiago el lunes a las 15") o tocá el botón de abajo.',
+            Markup.inlineKeyboard([[Markup.button.callback('Prefiero elegir con botones', 'use_buttons')]])
+          );
+          return ctx.wizard.selectStep(5);
+        }
+        state.accessToken = authSession.accessToken;
+      }
+    } catch (error) {
+      console.error('[TelegramBot] Error chequeando vínculo de cuenta:', error);
+    }
+
     await ctx.reply('Vamos a reservar tu turno. ¿Cuál es tu nombre?');
     return ctx.wizard.next();
   },
@@ -94,7 +201,7 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     return ctx.wizard.next();
   },
 
-  // 4: email -> lista de servicios
+  // 4: email -> invita a texto libre o botones
   async (ctx) => {
     const text = getTextInput(ctx);
     if (!text || !EMAIL_REGEX.test(text)) {
@@ -103,22 +210,88 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     }
     getState(ctx).clientEmail = text;
 
-    const { services } = await backendClient.getServices();
-    if (services.length === 0) {
-      await ctx.reply('No hay servicios disponibles en este momento. Probá más tarde.');
-      return ctx.scene.leave();
-    }
-    const keyboard = Markup.inlineKeyboard(
-      chunk(
-        services.map((s) => Markup.button.callback(`${s.name} ($${s.price})`, `svc:${s.id}`)),
-        2
-      )
+    await ctx.reply(
+      'Contame qué querés reservar (ej: "corte con Santiago el lunes a las 15") o tocá el botón de abajo.',
+      Markup.inlineKeyboard([[Markup.button.callback('Prefiero elegir con botones', 'use_buttons')]])
     );
-    await ctx.reply('Elegí un servicio:', keyboard);
     return ctx.wizard.next();
   },
 
-  // 5: servicio -> lista de barberos
+  // 5: resuelve texto libre (Gemini) o botón "usar botones"
+  async (ctx) => {
+    const data = getCallbackData(ctx);
+    if (data === 'use_buttons') {
+      await ctx.answerCbQuery();
+      const result = await renderServiceOptions(ctx);
+      if (result === 'empty') return ctx.scene.leave();
+      return ctx.wizard.selectStep(6);
+    }
+
+    const text = getTextInput(ctx);
+    if (!text) {
+      await ctx.reply('Escribime qué querés reservar, o tocá el botón de arriba.');
+      return;
+    }
+
+    const fallbackToButtons = async () => {
+      await ctx.reply('No te entendí bien, elijamos con botones.');
+      const result = await renderServiceOptions(ctx);
+      if (result === 'empty') return ctx.scene.leave();
+      return ctx.wizard.selectStep(6);
+    };
+
+    if (!getConfig().gemini.enabled) return fallbackToButtons();
+
+    const { services } = await backendClient.getServices();
+    const { barbers } = await backendClient.getBarbersPublic();
+    const parsed = await geminiService.extractBookingIntent(text, {
+      services,
+      barbers,
+      todayISO: todayISO(),
+    });
+
+    if (!parsed || parsed.confianza_baja || parsed.intent !== 'crear_turno') {
+      return fallbackToButtons();
+    }
+
+    const state = getState(ctx);
+    const service = geminiService.matchService(parsed.servicio, services);
+    const barber = geminiService.matchBarber(parsed.barbero, barbers);
+    const validDate = Boolean(parsed.fecha) && /^\d{4}-\d{2}-\d{2}$/.test(parsed.fecha as string) && (parsed.fecha as string) >= todayISO();
+    const validTimeFormat = Boolean(parsed.hora) && TIME_REGEX.test(parsed.hora as string);
+
+    if (service) {
+      state.serviceId = service.id;
+      state.serviceName = service.name;
+    }
+    if (barber) {
+      state.barberId = barber.id;
+      state.barberName = `${barber.name} ${barber.lastname}`;
+    }
+    if (validDate) state.date = parsed.fecha as string;
+    if (validTimeFormat) state.pendingTime = parsed.hora as string;
+
+    if (!state.serviceId) {
+      const result = await renderServiceOptions(ctx);
+      if (result === 'empty') return ctx.scene.leave();
+      return ctx.wizard.selectStep(6);
+    }
+    if (!state.barberId) {
+      const result = await renderBarberOptions(ctx);
+      if (result === 'empty') return ctx.scene.leave();
+      return ctx.wizard.selectStep(7);
+    }
+    if (!state.date) {
+      await renderDateOptions(ctx);
+      return ctx.wizard.selectStep(8);
+    }
+
+    const result = await renderTimeOptions(ctx, state.barberId as string, state.date as string, state.pendingTime);
+    if (result === 'retry-date') return ctx.wizard.selectStep(8);
+    return ctx.wizard.selectStep(result === 'confirmed' ? 10 : 9);
+  },
+
+  // 6: servicio -> lista de barberos
   async (ctx) => {
     const data = getCallbackData(ctx);
     if (!data?.startsWith('svc:')) {
@@ -137,22 +310,12 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     state.serviceId = service.id;
     state.serviceName = service.name;
 
-    const { barbers } = await backendClient.getBarbersPublic();
-    if (barbers.length === 0) {
-      await ctx.reply('No hay barberos disponibles en este momento. Probá más tarde.');
-      return ctx.scene.leave();
-    }
-    const keyboard = Markup.inlineKeyboard(
-      chunk(
-        barbers.map((b) => Markup.button.callback(`${b.name} ${b.lastname}`, `brb:${b.id}`)),
-        2
-      )
-    );
-    await ctx.reply('Elegí un barbero:', keyboard);
+    const result = await renderBarberOptions(ctx);
+    if (result === 'empty') return ctx.scene.leave();
     return ctx.wizard.next();
   },
 
-  // 6: barbero -> fechas
+  // 7: barbero -> fechas
   async (ctx) => {
     const data = getCallbackData(ctx);
     if (!data?.startsWith('brb:')) {
@@ -171,11 +334,11 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     state.barberId = barber.id;
     state.barberName = `${barber.name} ${barber.lastname}`;
 
-    await ctx.reply('Elegí un día:', nextDaysKeyboard());
+    await renderDateOptions(ctx);
     return ctx.wizard.next();
   },
 
-  // 7: fecha -> horarios
+  // 8: fecha -> horarios
   async (ctx) => {
     const data = getCallbackData(ctx);
     if (!data?.startsWith('date:')) {
@@ -185,26 +348,12 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     await ctx.answerCbQuery();
     const date = data.slice('date:'.length);
     const state = getState(ctx);
-    const result = await backendClient.getSlots(state.barberId as string, date);
-
-    if (result.slots.length === 0) {
-      await ctx.reply((result.reason && REASON_MESSAGES[result.reason]) || 'No hay horarios disponibles ese día.');
-      await ctx.reply('Elegí otro día:', nextDaysKeyboard());
-      return;
-    }
-
-    state.date = date;
-    const keyboard = Markup.inlineKeyboard(
-      chunk(
-        result.slots.map((time) => Markup.button.callback(time, `time:${time}`)),
-        3
-      )
-    );
-    await ctx.reply(`Horarios disponibles para el ${date}:`, keyboard);
-    return ctx.wizard.next();
+    const result = await renderTimeOptions(ctx, state.barberId as string, date, state.pendingTime);
+    if (result === 'retry-date') return;
+    return ctx.wizard.selectStep(result === 'confirmed' ? 10 : 9);
   },
 
-  // 8: horario -> confirmación
+  // 9: horario -> confirmación
   async (ctx) => {
     const data = getCallbackData(ctx);
     if (!data?.startsWith('time:')) {
@@ -215,22 +364,11 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     const state = getState(ctx);
     state.startTime = data.slice('time:'.length);
 
-    await ctx.reply(
-      'Confirmá tu turno:\n\n' +
-        `Servicio: ${state.serviceName}\n` +
-        `Barbero: ${state.barberName}\n` +
-        `Fecha: ${state.date} ${state.startTime}\n` +
-        `Nombre: ${state.clientName} ${state.clientLastname}\n` +
-        `Teléfono: ${state.clientPhone}\n` +
-        `Email: ${state.clientEmail}`,
-      Markup.inlineKeyboard([
-        [Markup.button.callback('Confirmar', 'confirm:yes'), Markup.button.callback('Cancelar', 'confirm:no')],
-      ])
-    );
+    await renderConfirmation(ctx);
     return ctx.wizard.next();
   },
 
-  // 9: confirmación final
+  // 10: confirmación final
   async (ctx) => {
     const data = getCallbackData(ctx);
     if (data !== 'confirm:yes' && data !== 'confirm:no') {
@@ -246,16 +384,25 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
 
     const state = getState(ctx);
     try {
-      await backendClient.createGuestAppointment({
-        barberId: state.barberId as string,
-        serviceId: state.serviceId as string,
-        date: state.date as string,
-        startTime: state.startTime as string,
-        clientName: state.clientName as string,
-        clientLastname: state.clientLastname as string,
-        clientPhone: state.clientPhone as string,
-        clientEmail: state.clientEmail as string,
-      });
+      // El accessToken capturado al principio del wizard puede haber expirado (dura 15 min).
+      // Se pide una sesión fresca recién acá, justo antes de crear el turno.
+      const freshAccessToken = state.accessToken && ctx.from
+        ? (await getSessionForTelegramId(ctx.from.id))?.accessToken
+        : undefined;
+
+      await backendClient.createGuestAppointment(
+        {
+          barberId: state.barberId as string,
+          serviceId: state.serviceId as string,
+          date: state.date as string,
+          startTime: state.startTime as string,
+          clientName: state.clientName as string,
+          clientLastname: state.clientLastname as string,
+          clientPhone: state.clientPhone as string,
+          clientEmail: state.clientEmail as string,
+        },
+        freshAccessToken
+      );
       await ctx.reply('¡Listo! Tu turno quedó reservado. 💈');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
@@ -266,6 +413,8 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
 );
 
 guestBookingWizard.command('cancelar', async (ctx) => {
-  await ctx.reply('Reserva cancelada.');
+  await ctx.reply(
+    'Se canceló la reserva que estabas armando. Escribí /reservar para empezar de nuevo, o /cancelar fuera de este flujo si querés cancelar un turno ya confirmado.'
+  );
   return ctx.scene.leave();
 });

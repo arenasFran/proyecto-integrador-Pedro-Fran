@@ -41,6 +41,12 @@ export type Config = {
     enabled: boolean;
     botToken: string | undefined;
     apiBaseUrl: string;
+    botUsername: string;
+  };
+  gemini: {
+    enabled: boolean;
+    apiKey: string | undefined;
+    model: string;
   };
 };
 
@@ -131,6 +137,12 @@ export function loadConfig(): Config {
       enabled: telegramEnabled,
       botToken: telegramBotToken,
       apiBaseUrl: optionalEnv('TELEGRAM_BOT_API_BASE_URL', `http://localhost:${port}/api`),
+      botUsername: optionalEnv('TELEGRAM_BOT_USERNAME', ''),
+    },
+    gemini: {
+      enabled: Boolean(process.env.GEMINI_API_KEY),
+      apiKey: process.env.GEMINI_API_KEY || undefined,
+      model: optionalEnv('GEMINI_MODEL', 'gemini-flash-lite-latest'),
     },
   };
 }
@@ -185,6 +197,12 @@ export function validateEnv(): Config {
       console.log('[TELEGRAM-BOT] TELEGRAM_BOT_ENABLED=true. El bot se iniciará en modo polling contra ' + config.telegram.apiBaseUrl);
     } else {
       console.log('[TELEGRAM-BOT] Deshabilitado (TELEGRAM_BOT_ENABLED=false).');
+    }
+
+    if (config.gemini.enabled) {
+      console.log('[GEMINI] Texto libre habilitado (modelo: ' + config.gemini.model + ').');
+    } else {
+      console.log('[GEMINI] Deshabilitado (GEMINI_API_KEY no configurada). El bot solo usará botones.');
     }
 
     return config;

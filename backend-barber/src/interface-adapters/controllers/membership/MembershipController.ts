@@ -5,6 +5,7 @@ import { MongoUserRepository } from '../../../infrastructure/repositories/mongod
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
+import { assertOwnershipOrAdmin } from '../../../common/ownership';
 import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
 import { CreateMembershipUseCase } from '../../../application/use-cases/membership/CreateMembershipUseCase';
 import { CancelMembershipUseCase } from '../../../application/use-cases/membership/CancelMembershipUseCase';
@@ -331,6 +332,8 @@ export class MembershipController {
       if (!membership) {
         throw new AppError('Membresía no encontrada.', 404);
       }
+
+      assertOwnershipOrAdmin(membership.userId.toString(), req.user!._id.toString(), req.user!.kind, 'membresía');
 
       const appointments = await this.membershipRepo.findCouponAppointments(membershipId);
 

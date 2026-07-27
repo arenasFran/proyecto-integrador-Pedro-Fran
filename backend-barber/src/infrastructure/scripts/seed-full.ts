@@ -117,8 +117,8 @@ const barbersSeedData = [
 
 async function seedBarbersTable(): Promise<void> {
   for (const data of barbersSeedData) {
-    const existing = await Employee.findOne({ email: data.email });
-    if (existing) { console.log(`[Seed] Barbero ${data.name} ya existe — omitido`); continue; }
+    const existing = await Employee.findOne({ $or: [{ email: data.email }, { phone: data.phone }] });
+    if (existing) { console.log(`[Seed] Barbero ${data.name} ya existe (email o teléfono en uso) — omitido`); continue; }
     const hash = await bcrypt.hash(data.password, 10);
     await Employee.create({ ...data, password: hash, isActive: true, photoUrl: null });
     console.log(`[Seed] Barbero ${data.name} ${data.lastname} creado`);

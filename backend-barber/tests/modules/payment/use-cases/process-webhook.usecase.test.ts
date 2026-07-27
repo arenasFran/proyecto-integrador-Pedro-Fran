@@ -172,6 +172,7 @@ describe('ProcessWebhookUseCase', () => {
       expect(appointmentRepository.updateStatus).toHaveBeenCalledWith(
         'ref-1',
         expect.objectContaining({ paymentStatus: 'Pagado' }),
+        expect.anything()
       );
     });
 

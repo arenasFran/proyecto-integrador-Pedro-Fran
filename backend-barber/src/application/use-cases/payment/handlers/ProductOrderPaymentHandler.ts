@@ -56,7 +56,7 @@ export class ProductOrderPaymentHandler {
       await this.revenueTracker?.trackProductOrder(order.id, order.total, new Date(), {
         userId: payment.userId,
         paymentId: payment.id,
-      });
+      }, session);
     } catch (error) {
       await session.abortTransaction();
       throw error;

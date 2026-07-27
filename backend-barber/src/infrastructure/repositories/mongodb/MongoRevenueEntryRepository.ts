@@ -10,6 +10,7 @@ export class MongoRevenueEntryRepository {
       amount: primitives.amount,
       date: primitives.date,
       referenceId: primitives.referenceId,
+      paymentId: primitives.paymentId,
       metadata: primitives.metadata,
     }], session ? { session } : undefined);
 
@@ -19,6 +20,11 @@ export class MongoRevenueEntryRepository {
 
   async findByReferenceId(referenceId: string): Promise<RevenueEntry | null> {
     const doc = await RevenueEntryModel.findOne({ referenceId });
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async findByPaymentId(paymentId: string): Promise<RevenueEntry | null> {
+    const doc = await RevenueEntryModel.findOne({ paymentId });
     return doc ? this.toDomain(doc) : null;
   }
 
@@ -69,6 +75,8 @@ export class MongoRevenueEntryRepository {
     desde: Date,
     hasta: Date,
     period: { field: string; format: string },
+    source?: string,
+    barberId?: string,
   ): Promise<{ period: string; revenue: number }[]> {
     const groupId: Record<string, unknown> = {};
 
@@ -80,8 +88,12 @@ export class MongoRevenueEntryRepository {
       groupId.$dateToString = { format: '%Y', date: '$date' };
     }
 
+    const match: Record<string, unknown> = { date: { $gte: desde, $lte: hasta } };
+    if (source) match.source = source;
+    if (barberId) match['metadata.barberId'] = barberId;
+
     return RevenueEntryModel.aggregate([
-      { $match: { date: { $gte: desde, $lte: hasta } } },
+      { $match: match },
       { $group: { _id: groupId, revenue: { $sum: '$amount' } } },
       { $project: { period: '$_id', revenue: 1, _id: 0 } },
       { $sort: { period: 1 } },
@@ -95,6 +107,7 @@ export class MongoRevenueEntryRepository {
       amount: doc.amount,
       date: doc.date,
       referenceId: doc.referenceId,
+      paymentId: doc.paymentId,
       metadata: doc.metadata as Record<string, unknown> | undefined,
       createdAt: doc.createdAt,
     });

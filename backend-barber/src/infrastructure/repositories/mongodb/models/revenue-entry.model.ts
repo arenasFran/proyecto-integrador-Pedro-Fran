@@ -5,6 +5,7 @@ export interface IRevenueEntryDocument extends Document {
   amount: number;
   date: Date;
   referenceId: string;
+  paymentId?: string;
   metadata?: Record<string, unknown>;
   createdAt: Date;
 }
@@ -14,7 +15,8 @@ const RevenueEntrySchema = new Schema<IRevenueEntryDocument>(
     source: { type: String, enum: ['appointment', 'product_order', 'membership'], required: true, index: true },
     amount: { type: Number, required: true },
     date: { type: Date, required: true, index: true },
-    referenceId: { type: String, required: true, unique: true },
+    referenceId: { type: String, required: true, index: true },
+    paymentId: { type: String, required: false, unique: true, sparse: true },
     metadata: { type: Schema.Types.Mixed, default: {} },
   },
   { timestamps: { createdAt: true, updatedAt: false } }

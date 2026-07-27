@@ -39,6 +39,11 @@ export class ApprovePendingMembershipUseCase {
       adminId: dto.staffId,
     });
 
+    // Sin paymentId a propósito: este flujo no genera un Payment doc, y
+    // MongoMembershipRepository.approvePending no tiene precondición de estado, por lo
+    // que dos aprobaciones concurrentes de la misma pending podrían persistir ambas.
+    // El fallback por membershipId en RevenueTracker.trackMembership es la única
+    // protección real contra ese duplicado — no reemplazar por una clave sintética.
     await this.revenueTracker?.trackMembership(result.id, result.price, new Date(), {
       userId: result.userId,
       staffId: dto.staffId,

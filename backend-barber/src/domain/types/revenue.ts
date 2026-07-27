@@ -6,6 +6,7 @@ export interface RevenueEntryData {
   amount: number;
   date: Date;
   referenceId: string;
+  paymentId?: string;
   metadata?: {
     appointmentId?: string;
     orderId?: string;

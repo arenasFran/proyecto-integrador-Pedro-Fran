@@ -83,6 +83,7 @@ export class CreateMembershipUseCase {
       adminId: dto.staffId,
     });
 
+    let paymentId: string | undefined;
     if (finalPrice > 0) {
       try {
         const paymentDoc = Payment.create({
@@ -92,7 +93,8 @@ export class CreateMembershipUseCase {
           userId: dto.userId,
         });
         paymentDoc.approve('admin_manual');
-        await this.paymentRepo.save(paymentDoc);
+        const savedPayment = await this.paymentRepo.save(paymentDoc);
+        paymentId = savedPayment.id;
       } catch (err) {
         console.error('[CreateMembershipUseCase] Error creating PaymentModel for manual membership:', err);
       }
@@ -101,7 +103,7 @@ export class CreateMembershipUseCase {
     await this.revenueTracker?.trackMembership(saved.id, finalPrice, new Date(), {
       userId: dto.userId,
       staffId: dto.staffId,
-    });
+    }, paymentId);
 
     return saved;
   }

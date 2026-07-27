@@ -93,6 +93,17 @@ export const makeMockMembershipTransactionRepository = () => ({
   findByMpPaymentId: jest.fn(),
 });
 
+export const makeMockRevenueEntryRepository = () => ({
+  create: jest.fn(),
+  findByReferenceId: jest.fn(),
+  findByPaymentId: jest.fn(),
+  getTotalByDateRange: jest.fn(),
+  getTotalByDateRangeAndSource: jest.fn(),
+  getRevenueByService: jest.fn(),
+  getRevenueByBarber: jest.fn(),
+  getRevenueByPeriod: jest.fn(),
+});
+
 export const makeMockHashService = () => ({
   sha256: jest.fn(),
   constantTimeEqual: jest.fn(),

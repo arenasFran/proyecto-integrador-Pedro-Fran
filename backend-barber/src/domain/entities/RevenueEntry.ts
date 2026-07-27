@@ -7,6 +7,7 @@ export class RevenueEntry {
     amount: number;
     date: Date;
     referenceId: string;
+    paymentId?: string;
     metadata?: Record<string, unknown>;
     createdAt: Date;
   }) {}
@@ -16,6 +17,7 @@ export class RevenueEntry {
     amount: number;
     referenceId: string;
     date?: Date;
+    paymentId?: string;
     metadata?: Record<string, unknown>;
   }): RevenueEntry {
     const now = new Date();
@@ -25,6 +27,7 @@ export class RevenueEntry {
       amount: data.amount,
       date: data.date ?? now,
       referenceId: data.referenceId,
+      paymentId: data.paymentId,
       metadata: data.metadata,
       createdAt: now,
     });
@@ -39,6 +42,7 @@ export class RevenueEntry {
   get amount(): number { return this.props.amount; }
   get date(): Date { return this.props.date; }
   get referenceId(): string { return this.props.referenceId; }
+  get paymentId(): string | undefined { return this.props.paymentId; }
   get metadata(): Record<string, unknown> | undefined { return this.props.metadata; }
   get createdAt(): Date { return this.props.createdAt; }
 

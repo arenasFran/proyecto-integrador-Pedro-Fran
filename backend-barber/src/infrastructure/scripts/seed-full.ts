@@ -213,7 +213,7 @@ export async function runFullSeed() {
     } else if (dayOffset === 0) {
       status = rand < 0.50 ? 'Completado' : rand < 0.75 ? 'Confirmado' : 'Cancelado';
     } else {
-      if (dayOffset > 7) break; // max 7 dias futuro
+      if (dayOffset > 14) break; // max 14 dias futuro (2 semanas)
       status = rand < 0.70 ? 'Confirmado' : 'Cancelado';
     }
 
@@ -333,14 +333,14 @@ export async function runFullSeed() {
     status: 'approved',
   });
   for (const pay of revenuePayments) {
-    const exists = await RevenueEntryModel.findOne({ referenceId: pay._id.toString() });
+    const exists = await RevenueEntryModel.findOne({ referenceId: pay.referenceId });
     if (exists) continue;
     await RevenueEntryModel.create({
       source: pay.type === 'product_order' ? 'product_order' : 'membership',
       amount: pay.amount,
       date: pay.createdAt || new Date(),
-      referenceId: pay._id.toString(),
-      metadata: { paymentId: pay._id.toString(), userId: pay.userId?.toString(), referenceId: pay.referenceId },
+      referenceId: pay.referenceId,
+      metadata: { paymentId: pay.referenceId, userId: pay.userId?.toString(), },
     });
     revCount++;
   }

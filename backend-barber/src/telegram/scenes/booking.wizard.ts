@@ -256,7 +256,7 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
       todayISO: todayISO(),
     });
 
-    if (!parsed || parsed.confianza_baja || parsed.intent !== 'crear_turno') {
+    if (!parsed || parsed.intent !== 'crear_turno') {
       return fallbackToButtons();
     }
 
@@ -265,6 +265,12 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     const barber = geminiService.matchBarber(parsed.barbero, barbers);
     const validDate = Boolean(parsed.fecha) && /^\d{4}-\d{2}-\d{2}$/.test(parsed.fecha as string) && (parsed.fecha as string) >= todayISO();
     const validTimeFormat = Boolean(parsed.hora) && TIME_REGEX.test(parsed.hora as string);
+
+    // confianza_baja no descarta lo entendido: puede deberse a un solo campo ambiguo
+    // (ej. dos barberos con el mismo nombre) mientras el resto del mensaje se interpretó bien.
+    if (!service && !barber && !validDate && !validTimeFormat) {
+      return fallbackToButtons();
+    }
 
     if (service) {
       state.serviceId = service.id;
@@ -276,6 +282,18 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     }
     if (validDate) state.date = parsed.fecha as string;
     if (validTimeFormat) state.pendingTime = parsed.hora as string;
+
+    const missingSomething = !state.serviceId || !state.barberId || !state.date;
+    if (missingSomething) {
+      const understood: string[] = [];
+      if (service) understood.push(`Servicio: ${service.name}`);
+      if (barber) understood.push(`Barbero: ${barber.name} ${barber.lastname}`);
+      if (validDate) understood.push(`Fecha: ${parsed.fecha}`);
+      if (validTimeFormat) understood.push(`Hora: ${parsed.hora}`);
+      if (understood.length > 0) {
+        await ctx.reply(`Entendí esto de tu mensaje:\n${understood.map((u) => `• ${u}`).join('\n')}\n\nVamos con lo que falta:`);
+      }
+    }
 
     if (!state.serviceId) {
       const result = await renderServiceOptions(ctx);

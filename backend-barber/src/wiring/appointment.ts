@@ -12,6 +12,8 @@ import { MongoMembershipRepository } from '../infrastructure/repositories/mongod
 import { MongoTempLockRepository } from '../infrastructure/repositories/mongodb/MongoTempLockRepository';
 import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
+import { MongoRevenueEntryRepository } from '../infrastructure/repositories/mongodb/MongoRevenueEntryRepository';
+import { RevenueTracker } from '../application/services/RevenueTracker';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
 import { AppointmentController } from '../interface-adapters/controllers/appointment/AppointmentController';
@@ -31,6 +33,8 @@ export const buildAppointmentRouter = () => {
 
   const membershipRepository = new MongoMembershipRepository();
   const createPaymentUseCase = buildCreatePaymentUseCase();
+  const revenueEntryRepository = new MongoRevenueEntryRepository();
+  const revenueTracker = new RevenueTracker(revenueEntryRepository);
 
   const createAppointment = new CreateAppointmentUseCase(
     appointmentRepository,
@@ -49,7 +53,7 @@ export const buildAppointmentRouter = () => {
     appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository
   );
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
-    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository
+    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository, revenueTracker
   );
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,
@@ -59,7 +63,7 @@ export const buildAppointmentRouter = () => {
     blockRepository
   );
   const updatePaymentStatus = new UpdatePaymentStatusUseCase(
-    appointmentRepository
+    appointmentRepository, revenueTracker
   );
   const sendReminder = new SendReminderUseCase(
     appointmentRepository,

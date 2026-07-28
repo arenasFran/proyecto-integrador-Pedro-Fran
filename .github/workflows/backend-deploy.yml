@@ -9,9 +9,22 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
     defaults:
       run:
         working-directory: backend-barber
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,6 +35,11 @@ jobs:
           cache-dependency-path: backend-barber/package-lock.json
 
       - run: npm ci
+
+      - name: Create .env
+        run: |
+          echo '${{ secrets.ENV_FILE }}' > .env
+
       - run: npm run test:ci
 
   deploy:

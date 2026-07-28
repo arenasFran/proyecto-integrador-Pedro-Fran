@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
-import { MongoRefreshTokenRepository } from '../../../infrastructure/repositories/mongodb/MongoRefreshTokenRepository';
-import { BcryptPasswordHasher } from '../../../infrastructure/services/BcryptPasswordHasher';
-import { Password } from '../../../domain/value-objects/Password';
+import { UpdateUserProfileUseCase } from '../../../application/use-cases/user/UpdateUserProfileUseCase';
+import { ChangePasswordUseCase } from '../../../application/use-cases/user/ChangePasswordUseCase';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { IEmailService } from '../../../application/ports/IEmailService';
@@ -10,9 +9,9 @@ import { IEmailService } from '../../../application/ports/IEmailService';
 export class UserController {
   constructor(
     private readonly userRepository: MongoUserRepository,
-    private readonly passwordHasher: BcryptPasswordHasher,
-    private readonly refreshTokenRepository: MongoRefreshTokenRepository,
-    private readonly emailService: IEmailService
+    private readonly emailService: IEmailService,
+    private readonly updateUserProfile: UpdateUserProfileUseCase,
+    private readonly changePasswordUseCase: ChangePasswordUseCase
   ) {}
 
   getMe = async (req: Request, res: Response) => {
@@ -41,33 +40,10 @@ export class UserController {
       const currentPassword = dto.currentPassword;
       delete dto.currentPassword;
 
-      let oldEmail: string | undefined;
-
-      if (dto.email) {
-        const user = await this.userRepository.findById(req.user!._id);
-        if (!user) {
-          throw new AppError('Usuario no encontrado.', 404);
-        }
-
-        if (dto.email !== user.email) {
-          if (!currentPassword) {
-            throw new AppError('La contraseña actual es obligatoria para cambiar el email.', 400);
-          }
-          const isCurrentPasswordValid = await this.passwordHasher.compare(
-            currentPassword,
-            user.passwordHash!
-          );
-          if (!isCurrentPasswordValid) {
-            throw new AppError('Contraseña actual incorrecta.', 401);
-          }
-          oldEmail = user.email;
-        }
-      }
-
-      const updated = await this.userRepository.update(req.user!._id, dto);
-      if (!updated) {
-        throw new AppError('Usuario no encontrado.', 404);
-      }
+      const { user: updated, oldEmail } = await this.updateUserProfile.execute(req.user!._id, {
+        ...dto,
+        currentPassword,
+      });
 
       if (oldEmail) {
         this.emailService
@@ -115,37 +91,16 @@ export class UserController {
     try {
       const { currentPassword, newPassword, newPasswordConfirmation } = req.body;
 
-      if (newPassword !== newPasswordConfirmation) {
-        throw new AppError('Las contraseñas nuevas no coinciden.', 400);
-      }
-
-      if (newPassword === currentPassword) {
-        throw new AppError('La nueva contraseña debe ser diferente a la actual.', 400);
-      }
-
-      Password.create(newPassword);
-
-      const user = await this.userRepository.findById(req.user!._id);
-      if (!user) {
-        throw new AppError('Usuario no encontrado.', 404);
-      }
-
-      const isCurrentPasswordValid = await this.passwordHasher.compare(
+      const { email } = await this.changePasswordUseCase.execute({
+        userId: req.user!._id,
         currentPassword,
-        user.passwordHash!
-      );
-      if (!isCurrentPasswordValid) {
-        throw new AppError('Contraseña actual incorrecta.', 401);
-      }
-
-      const newPasswordHash = await this.passwordHasher.hash(newPassword);
-
-      await this.userRepository.updatePassword(req.user!._id, newPasswordHash);
-      await this.refreshTokenRepository.revokeAllByUserId(req.user!._id);
+        newPassword,
+        newPasswordConfirmation,
+      });
 
       this.emailService
         .sendMail({
-          to: user.email,
+          to: email,
           subject: 'Tu contraseña fue actualizada',
           html: `<p>Tu contraseña se cambió correctamente.</p><p>Si no fuiste vos, contactanos de inmediato.</p>`,
         })

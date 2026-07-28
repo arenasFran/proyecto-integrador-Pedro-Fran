@@ -5,6 +5,7 @@ import { MongoProductRepository } from '../../../infrastructure/repositories/mon
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
+import { RevenueTracker } from '../../services/RevenueTracker';
 import { AppError } from '../../../domain/errors/AppError';
 
 export type CreateOrderDTO = {
@@ -27,7 +28,8 @@ export class CreateOrderUseCase {
     private readonly productRepository: MongoProductRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly createPaymentUseCase: CreatePaymentUseCase,
-    private readonly paymentRepository?: MongoPaymentRepository
+    private readonly paymentRepository?: MongoPaymentRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(dto: CreateOrderDTO): Promise<CreateOrderResult> {
@@ -79,6 +81,9 @@ export class CreateOrderUseCase {
     const paymentMethod = dto.paymentMethod || 'online';
 
     if (paymentMethod === 'local') {
+      saved.pay();
+      await this.orderRepository.save(saved);
+
       for (const item of resolvedItems) {
         await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
       }
@@ -95,6 +100,9 @@ export class CreateOrderUseCase {
           console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
         }
       }
+      await this.revenueTracker?.trackProductOrder(saved.id, saved.total, new Date(), {
+        userId: dto.userId,
+      });
       return { orderId: saved.id };
     }
 

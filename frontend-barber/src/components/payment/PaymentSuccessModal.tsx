@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
 import { Button } from '../common';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const typeLabels: Record<string, string> = {
   appointment: 'Turno',
@@ -17,10 +18,6 @@ const drawCheckmark = {
     transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1] as const },
   },
 };
-
-function formatAmount(amount: number): string {
-  return `$${amount.toLocaleString('es-UY')}`;
-}
 
 interface PaymentSuccessModalProps {
   isOpen: boolean;
@@ -118,7 +115,7 @@ export default function PaymentSuccessModal({ isOpen, paymentType, amount, onClo
           >
             <div className="flex justify-between items-center">
               <span className="text-[13px] text-[#666]">Monto</span>
-              <span className="text-[16px] text-white font-bold">{formatAmount(amount)}</span>
+              <span className="text-[16px] text-white font-bold">{formatCurrency(amount)}</span>
             </div>
           </motion.div>
         )}

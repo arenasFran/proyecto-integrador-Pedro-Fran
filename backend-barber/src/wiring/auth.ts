@@ -4,6 +4,7 @@ import { RefreshTokenUseCase } from '../application/use-cases/auth/RefreshTokenU
 import { RegisterUserUseCase } from '../application/use-cases/auth/RegisterUserUseCase';
 import { SendTwoFactorCodeUseCase } from '../application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../application/use-cases/auth/VerifyTwoFactorUseCase';
+import { LogoutUseCase } from '../application/use-cases/auth/LogoutUseCase';
 import { RequestPasswordResetUseCase } from '../application/use-cases/password/RequestPasswordResetUseCase';
 import { ResetPasswordUseCase } from '../application/use-cases/password/ResetPasswordUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
@@ -91,7 +92,7 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     refreshTokenRepository
   );
 
-  const authController = new AuthController(registerUser, refreshTokenUseCase, refreshTokenRepository, hashService);
+  const authController = new AuthController(registerUser, refreshTokenUseCase, new LogoutUseCase(hashService, refreshTokenRepository));
   const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(

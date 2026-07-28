@@ -4,6 +4,7 @@ import { AnimatedContainer, Button, ConfirmModal, Spinner, useToast } from '../.
 import { useCreateProductMutation, useDeleteProductMutation, useGetProductsQuery, useUpdateProductMutation } from '../../../services/productApi';
 import type { CreateProductPayload, Product, ProductStatus } from '../../../types/product';
 import ProductFormModal from './components/ProductFormModal';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 const statusLabel: Record<ProductStatus, string> = {
   active: 'Activo',
@@ -189,7 +190,7 @@ export const ProductsPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-[#8A8A8A]">{product.category || '-'}</td>
-                      <td className="px-4 py-3 text-white font-semibold">${product.price}</td>
+                      <td className="px-4 py-3 text-white font-semibold">{formatCurrency(product.price)}</td>
                       <td className="px-4 py-3">
                         <span className={product.stock > 0 ? 'text-[#22C55E]' : 'text-red-400'}>
                           {product.stock}

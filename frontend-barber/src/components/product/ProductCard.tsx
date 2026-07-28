@@ -1,6 +1,7 @@
 import { FiGrid, FiShoppingCart } from 'react-icons/fi';
 import { Button } from '../common';
 import type { Product } from '../../types/product';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface ProductCardProps {
   product: Product;
@@ -44,7 +45,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
       <div className="p-3 space-y-2">
         <p className="text-[11px] text-[#555] uppercase tracking-wider">{product.category}</p>
         <p className="text-[13px] font-semibold text-white leading-tight">{product.name}</p>
-        <p className="text-[15px] font-bold text-[#FF5C00]">${product.price}</p>
+        <p className="text-[15px] font-bold text-[#FF5C00]">{formatCurrency(product.price)}</p>
         <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"

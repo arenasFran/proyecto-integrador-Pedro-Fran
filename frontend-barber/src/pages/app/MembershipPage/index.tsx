@@ -1,24 +1,26 @@
 import { useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
-import { AnimatedContainer, Spinner, Button, ConfirmModal, useToast } from '../../../components/common';
-import { useGetMyMembershipQuery, useCancelSubscriptionMutation, useRetryMembershipPaymentMutation, useInitiateMembershipPaymentMutation } from '../../../services/membershipApi';
+import { AnimatedContainer, Spinner, Button, useToast } from '../../../components/common';
+import {   useGetMyMembershipQuery,
+  useRetryMembershipPaymentMutation,
+  useInitiateMembershipPaymentMutation,
+  useGetCouponHistoryQuery } from '../../../services/membershipApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind, getTokenUser } from '../../../utils/token';
 import PaymentModal from '../../../components/payment/PaymentModal';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 export default function MembershipPage() {
   const token = getAccessToken();
   const kind = getTokenKind(token);
 
   const { data, isLoading, refetch } = useGetMyMembershipQuery();
-  const [cancelSubscription, { isLoading: isCancellingSub }] = useCancelSubscriptionMutation();
   const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
 
   const { showToast } = useToast();
 
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [retryPreferenceId, setRetryPreferenceId] = useState('');
 
@@ -35,11 +37,13 @@ export default function MembershipPage() {
   };
 
   const remainingCoupons = active ? active.couponsTotal - active.couponsUsed : 0;
+
+  const { data: couponHistory } = useGetCouponHistoryQuery(active?.id ?? '', { skip: !active?.id });
   const daysLeft = active
     ? Math.max(0, Math.ceil((new Date(active.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
 
-  const isSubscription = active?.mpPreapprovalId != null;
+  const isOnetime = active?.paymentMethod === 'mercadopago';
 
   const handlePurchaseOnline = async () => {
     try {
@@ -51,18 +55,7 @@ export default function MembershipPage() {
         setPaymentModalOpen(true);
       }
     } catch {
-      showToast('Error al crear la suscripción. Intentá de nuevo.', 'error');
-    }
-  };
-
-  const handleCancelSubscription = async () => {
-    if (!active) return;
-    setCancelModalOpen(false);
-    try {
-      await cancelSubscription(active.id).unwrap();
-      showToast('Suscripción cancelada correctamente', 'success');
-    } catch {
-      showToast('Error al cancelar la suscripción', 'error');
+      showToast('Error al crear el pago. Intentá de nuevo.', 'error');
     }
   };
 
@@ -114,10 +107,10 @@ export default function MembershipPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="flex h-2.5 w-2.5 rounded-full bg-[#22C55E]" />
                       <span className="text-[13px] font-medium text-[#22C55E]">Activa</span>
-                      {isSubscription && (
+                      {isOnetime && (
                         <span className="text-[11px] text-[#8A8A8A] ml-2 flex items-center gap-1">
-                          <FiCreditCard className="text-[#FF5C00]" />
-                          Suscripción recurrente
+                          <FiDollarSign className="text-[#FF5C00]" />
+                          Pago único
                         </span>
                       )}
                       {active.paymentMethod === 'local' && (
@@ -195,17 +188,7 @@ export default function MembershipPage() {
                   </div>
                 )}
 
-                {isSubscription && (
-                  <div className="mt-4 flex justify-end">
-                    <Button variant="danger" onClick={() => setCancelModalOpen(true)} loading={isCancellingSub}>
-                      Cancelar suscripción en Mercado Pago
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </AnimatedContainer>
-
-            {history.length > 1 && (
+                {history.length > 1 && (
               <AnimatedContainer animation="fadeInUp" delay={0.2}>
                 <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6">
                   <h3 className="text-[15px] font-semibold text-white mb-4">Historial</h3>
@@ -236,6 +219,8 @@ export default function MembershipPage() {
                 </div>
               </AnimatedContainer>
             )}
+              </div>
+            </AnimatedContainer>
           </>
         ) : pending ? (
           <AnimatedContainer animation="fadeInUp" delay={0.1}>
@@ -303,18 +288,29 @@ export default function MembershipPage() {
                 </div>
               </div>
 
-              <div className="flex justify-center max-w-lg mx-auto mb-8">
-                <Button
-                  loading={isPaying}
-                  onClick={handlePurchaseOnline}
-                  icon={FiCreditCard}
-                >
-                  Suscribirme online
-                </Button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto mb-8">
+                <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-5 text-left flex flex-col h-full">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FiDollarSign className="text-[#FF5C00] text-lg" />
+                    <div>
+                      <p className="text-[15px] font-semibold text-white">Pago único</p>
+                      <p className="text-[20px] font-bold text-white">{formatCurrency(399)}</p>
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-[#8A8A8A] mb-4 flex-1">
+                    Pagás una vez, disfrutás 30 días de beneficios.
+                    Al vencer, podés renovar manualmente cuando quieras.
+                  </p>
+                  <Button
+                    loading={isPaying}
+                    onClick={handlePurchaseOnline}
+                    icon={FiDollarSign}
+                    className="w-full"
+                  >
+                    Pagar online
+                  </Button>
+                </div>
               </div>
-              <p className="text-[11px] text-[#8A8A8A]">
-                Suscripción mensual recurrente por $399/mes. Podés cancelar cuando quieras.
-              </p>
             </div>
           </AnimatedContainer>
         )}
@@ -343,6 +339,30 @@ export default function MembershipPage() {
                 ))}
               </div>
             </div>
+
+            {couponHistory && couponHistory.history.length > 0 && (
+              <div className="bg-[#1E1E1E] rounded-xl p-5 border border-[#2A2A2A]">
+                <h3 className="text-[15px] font-semibold text-white mb-4 flex items-center gap-2">
+                  <FiScissors className="text-[#FF5C00]" /> Historial de cupones
+                </h3>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                  {couponHistory.history.map((h: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center py-2 border-b border-[#2A2A2A] last:border-b-0">
+                      <div>
+                        <p className="text-[14px] text-white">{h.serviceName}</p>
+                        <p className="text-[12px] text-[#8A8A8A]">{h.date} · {h.startTime}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[14px] text-[#FF5C00]">{formatCurrency(h.servicePrice)}</p>
+                        <p className={`text-[11px] ${h.status === 'Cancelado' ? 'text-red-400' : 'text-[#22C55E]'}`}>
+                          {h.status === 'Cancelado' ? 'Cancelado' : h.status}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </AnimatedContainer>
         )}
       </div>
@@ -356,17 +376,6 @@ export default function MembershipPage() {
           refetch();
         }}
         title="Completar pago - Membresía"
-      />
-
-      <ConfirmModal
-        isOpen={cancelModalOpen}
-        onClose={() => setCancelModalOpen(false)}
-        onConfirm={handleCancelSubscription}
-        title="Cancelar suscripción"
-        message="Al cancelar la suscripción en MercadoPago, no se realizarán más cobros automáticos. La membresía actual se mantendrá activa hasta su fecha de vencimiento. ¿Querés continuar?"
-        confirmText="Cancelar suscripción"
-        variant="danger"
-        loading={isCancellingSub}
       />
     </div>
   );

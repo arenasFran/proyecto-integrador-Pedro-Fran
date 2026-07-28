@@ -5,6 +5,7 @@ module.exports = {
   modulePathIgnorePatterns: ['<rootDir>/dist/'],
   clearMocks: true,
   restoreMocks: true,
+  testTimeout: 30000,
   maxWorkers: 1,
   globalSetup: '<rootDir>/jest.global-setup.js',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],

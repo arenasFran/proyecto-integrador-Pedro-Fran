@@ -93,11 +93,10 @@ export class CancelAppointmentUseCase {
       await this.appointmentRepository.updateStatus(id, updateData, session);
 
       // Restaurar cupón de membresía si corresponde
-      if (appointment.paymentMethod === 'memberPass' && appointment.clientId) {
-        const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
-        if (membership) {
-          membership.restoreCoupon();
-          await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
+      if (appointment.paymentMethod === 'memberPass' && appointment.couponRedeemed && !appointment.couponRestoredAt) {
+        const restored = await this.membershipRepository.atomicRestoreCoupon(appointment.membershipId!, session);
+        if (restored) {
+          appointment.markCouponRestored();
         }
       }
 

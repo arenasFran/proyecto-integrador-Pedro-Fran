@@ -8,6 +8,7 @@ describe('AnalisisCorteController', () => {
   let analizarCorte: { execute: jest.Mock };
   let analisisCorteRepository: ReturnType<typeof makeMockAnalisisCorteRepository>;
   let clientRepository: ReturnType<typeof makeMockClientRepository>;
+  let generarImagenEjemplo: { execute: jest.Mock };
   let controller: AnalisisCorteController;
 
   const makeClient = (overrides?: Partial<Parameters<typeof Client.create>[0]>) =>
@@ -34,10 +35,12 @@ describe('AnalisisCorteController', () => {
     analizarCorte = { execute: jest.fn() };
     analisisCorteRepository = makeMockAnalisisCorteRepository();
     clientRepository = makeMockClientRepository();
+    generarImagenEjemplo = { execute: jest.fn() };
     controller = new AnalisisCorteController(
       analizarCorte as any,
       analisisCorteRepository as any,
-      clientRepository as any
+      clientRepository as any,
+      generarImagenEjemplo as any
     );
   });
 
@@ -129,6 +132,44 @@ describe('AnalisisCorteController', () => {
           cupo: { disponible: false, proximaFechaDisponible: expect.any(String) },
         })
       );
+    });
+  });
+
+  describe('imagenEjemplo', () => {
+    it('llama al use case con clienteId, analisisId y corteIndex, y responde con la imagen generada', async () => {
+      generarImagenEjemplo.execute.mockResolvedValue('https://res.cloudinary.com/demo/cortes-ejemplo/fake.png');
+      const req = makeReq({ body: { analisisId: 'a1', corteIndex: 0 } });
+      const res = createMockRes();
+
+      await controller.imagenEjemplo(req, res);
+
+      expect(generarImagenEjemplo.execute).toHaveBeenCalledWith({
+        clienteId: 'client-1',
+        analisisId: 'a1',
+        corteIndex: 0,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({ imagenUrl: 'https://res.cloudinary.com/demo/cortes-ejemplo/fake.png' });
+    });
+
+    it('responde 400 si falta analisisId o corteIndex no es un número válido', async () => {
+      const req = makeReq({ body: { analisisId: '', corteIndex: 0 } });
+      const res = createMockRes();
+
+      await controller.imagenEjemplo(req, res);
+
+      expect(generarImagenEjemplo.execute).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('propaga el status code de un AppError del use case (ej. análisis ajeno)', async () => {
+      generarImagenEjemplo.execute.mockRejectedValue(new AppError('Análisis no encontrado.', 404));
+      const req = makeReq({ body: { analisisId: 'a1', corteIndex: 0 } });
+      const res = createMockRes();
+
+      await controller.imagenEjemplo(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
     });
   });
 });

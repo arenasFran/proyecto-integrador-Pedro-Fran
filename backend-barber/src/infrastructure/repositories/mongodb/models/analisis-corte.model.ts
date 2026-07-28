@@ -5,6 +5,7 @@ export interface ICorteRecomendado {
   descripcion: string;
   razon: string;
   servicioSugerido: string;
+  imagenEjemploUrl?: string;
 }
 
 export interface IAnalisisCorteDocument extends Document {
@@ -23,6 +24,7 @@ const corteRecomendadoSchema = new Schema<ICorteRecomendado>(
     descripcion: { type: String, required: true },
     razon: { type: String, required: true },
     servicioSugerido: { type: String, required: true },
+    imagenEjemploUrl: { type: String, required: false },
   },
   { _id: false }
 );

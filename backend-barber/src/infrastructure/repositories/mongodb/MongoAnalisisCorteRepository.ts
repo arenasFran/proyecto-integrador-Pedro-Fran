@@ -51,4 +51,25 @@ export class MongoAnalisisCorteRepository {
       createdAt: doc.createdAt,
     }));
   }
+
+  async findById(id: string): Promise<AnalisisCorteRecord | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+
+    const doc = await AnalisisCorteModel.findById(id).lean();
+    if (!doc) return null;
+
+    return {
+      id: (doc._id as mongoose.Types.ObjectId).toString(),
+      clienteId: doc.clienteId.toString(),
+      resultado: doc.resultado,
+      createdAt: doc.createdAt,
+    };
+  }
+
+  async actualizarImagenEjemplo(id: string, corteIndex: number, imagenUrl: string): Promise<void> {
+    await AnalisisCorteModel.updateOne(
+      { _id: new mongoose.Types.ObjectId(id) },
+      { $set: { [`resultado.cortesRecomendados.${corteIndex}.imagenEjemploUrl`]: imagenUrl } }
+    );
+  }
 }

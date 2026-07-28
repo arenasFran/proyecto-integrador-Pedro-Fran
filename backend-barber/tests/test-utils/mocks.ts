@@ -138,6 +138,8 @@ export const makeMockClientRepository = () => ({
 export const makeMockAnalisisCorteRepository = () => ({
   create: jest.fn(),
   findByClienteId: jest.fn(),
+  findById: jest.fn(),
+  actualizarImagenEjemplo: jest.fn(),
 });
 
 export const makeMockFaceValidationService = () => ({
@@ -146,6 +148,15 @@ export const makeMockFaceValidationService = () => ({
 
 export const makeMockRecommendationService = () => ({
   recomendar: jest.fn(),
+});
+
+export const makeMockImageGenerationService = () => ({
+  generarEjemploDeCorte: jest.fn(),
+});
+
+export const makeMockCloudinaryService = () => ({
+  uploadImage: jest.fn(),
+  deleteImage: jest.fn(),
 });
 
 export const makeMockBarberBlockRepository = () => ({

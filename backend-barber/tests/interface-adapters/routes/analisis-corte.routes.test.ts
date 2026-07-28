@@ -23,6 +23,7 @@ describe('analisisCorte.routes — orden de middlewares', () => {
     const analisisCorteController = {
       analizar: jest.fn((_req: Request, res: Response) => res.status(201).json({ ok: true })),
       historial: jest.fn((_req: Request, res: Response) => res.status(200).json({ ok: true })),
+      imagenEjemplo: jest.fn((_req: Request, res: Response) => res.status(200).json({ ok: true })),
     };
 
     const app = express();

@@ -136,7 +136,7 @@ describeIfMongo('AnalizarCorteUseCase — concurrencia real sobre Mongo', () => 
 
     const resultado = await buildUseCase().execute(dto);
 
-    expect(resultado).toEqual(recomendacion);
+    expect(resultado).toEqual({ id: expect.any(String), ...recomendacion });
 
     const clienteFinal = await RegisteredClient.findById(clienteId).lean();
     expect(clienteFinal?.analisisLockedAt).toBeNull();

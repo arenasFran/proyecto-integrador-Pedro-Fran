@@ -15,6 +15,16 @@ const analisisCorteLimiter = rateLimit({
   keyGenerator: (req) => req.user!._id,
 });
 
+// Cada análisis muestra 2-3 cortes recomendados, cada uno dispara una generación de imagen.
+const imagenEjemploLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: { error: 'Demasiados intentos de generación de imagen, esperá 15 minutos' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user!._id,
+});
+
 export const createAnalisisCorteRouter = (deps: {
   analisisCorteController: AnalisisCorteController;
   authenticate: ReturnType<typeof createAuthenticate>;
@@ -39,6 +49,15 @@ export const createAnalisisCorteRouter = (deps: {
     authorize('Registrado'),
     requireActiveMembership,
     deps.analisisCorteController.historial
+  );
+
+  router.post(
+    '/imagen-ejemplo',
+    deps.authenticate,
+    authorize('Registrado'),
+    imagenEjemploLimiter,
+    requireActiveMembership,
+    deps.analisisCorteController.imagenEjemplo
   );
 
   return router;

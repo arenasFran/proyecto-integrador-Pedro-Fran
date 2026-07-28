@@ -36,6 +36,7 @@ export type Config = {
   awsSecretAccessKey: string | undefined;
   awsSessionToken: string | undefined;
   geminiApiKey: string | undefined;
+  openaiApiKey: string | undefined;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -128,6 +129,7 @@ export function loadConfig(): Config {
     awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
     awsSessionToken: process.env.AWS_SESSION_TOKEN || undefined,
     geminiApiKey: process.env.GEMINI_API_KEY || undefined,
+    openaiApiKey: process.env.OPENAI_API_KEY || undefined,
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },
@@ -206,6 +208,9 @@ export function validateEnv(): Config {
     }
     if (!config.geminiApiKey) {
       console.warn('[ANALISIS-IA] GEMINI_API_KEY no configurada. La recomendación de corte (Gemini) no estará disponible.');
+    }
+    if (!config.openaiApiKey) {
+      console.warn('[ANALISIS-IA] OPENAI_API_KEY no configurada. La imagen de ejemplo del corte (OpenAI) no estará disponible.');
     }
 
     return config;

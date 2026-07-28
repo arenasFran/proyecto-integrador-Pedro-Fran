@@ -106,7 +106,7 @@ describe('AnalizarCorteUseCase', () => {
 
     const resultado = await deps.useCase.execute(dto);
 
-    expect(resultado).toEqual(recomendacion);
+    expect(resultado).toEqual({ id: 'a1', ...recomendacion });
     expect(deps.clientRepository.reservarAnalisisIA).toHaveBeenCalledWith('client-1');
     // Promo x2 debe quedar excluida del prompt
     expect(deps.recommendationService.recomendar).toHaveBeenCalledWith(
@@ -252,7 +252,7 @@ describe('AnalizarCorteUseCase', () => {
       createdAt: new Date(),
     });
 
-    await expect(deps.useCase.execute(dto)).resolves.toEqual(recomendacion);
+    await expect(deps.useCase.execute(dto)).resolves.toEqual({ id: 'a1', ...recomendacion });
   });
 
   it('no descuenta cupo si la foto es inválida', async () => {

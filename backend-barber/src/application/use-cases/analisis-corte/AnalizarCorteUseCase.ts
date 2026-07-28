@@ -27,7 +27,7 @@ export class AnalizarCorteUseCase {
     private readonly recommendationService: IRecommendationService
   ) {}
 
-  async execute(dto: AnalizarCorteDTO): Promise<AnalisisCorteRecord['resultado']> {
+  async execute(dto: AnalizarCorteDTO): Promise<AnalisisCorteRecord['resultado'] & { id: string }> {
     const hasActiveMembership = await this.membershipRepository.hasActiveMembership(dto.clienteId);
     if (!hasActiveMembership) {
       throw new AppError('No tenés una membresía activa.', 403);
@@ -105,7 +105,7 @@ export class AnalizarCorteUseCase {
         session.endSession();
       }
 
-      return registro.resultado;
+      return { id: registro.id, ...registro.resultado };
     } catch (error) {
       await this.clientRepository.liberarLockAnalisisIA(dto.clienteId);
       throw error;

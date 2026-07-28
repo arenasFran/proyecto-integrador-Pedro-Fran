@@ -6,7 +6,7 @@ import {
 } from '../../application/ports/IRecommendationService';
 import { AppError } from '../../domain/errors/AppError';
 
-const GEMINI_MODEL = 'gemini-3.1-flash-lite';
+const GEMINI_MODEL = 'gemini-flash-latest';
 
 // Bien por debajo de ANALISIS_LOCK_STALE_MS (2 min) para dejar margen a Rekognition + la escritura a Mongo.
 const GEMINI_TIMEOUT_MS = 45 * 1000;

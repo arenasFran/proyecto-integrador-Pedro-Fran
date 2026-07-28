@@ -1,5 +1,5 @@
 import { Scenes, Markup } from 'telegraf';
-import { getProducts, getMyAppointments } from '../services/backendClient';
+import { getProducts, getMyAppointments, getBarbersPublic } from '../services/backendClient';
 import { getSessionForTelegramId } from '../services/accountLink.service';
 
 type BotContext = Scenes.WizardContext;
@@ -19,6 +19,20 @@ export async function handleProductosCommand(ctx: BotContext) {
   } catch (error) {
     console.error('[TelegramBot] Error /productos:', error);
     await ctx.reply('No pude obtener los productos ahora mismo. Probá de nuevo más tarde.');
+  }
+}
+
+export async function handleBarberosCommand(ctx: BotContext) {
+  try {
+    const { barbers } = await getBarbersPublic();
+    if (barbers.length === 0) {
+      return ctx.reply('No hay barberos disponibles en este momento.');
+    }
+    const lines = barbers.map((b) => `• ${b.name} ${b.lastname}`);
+    await ctx.reply(`Nuestros barberos:\n\n${lines.join('\n')}`);
+  } catch (error) {
+    console.error('[TelegramBot] Error /barberos:', error);
+    await ctx.reply('No pude obtener los barberos ahora mismo. Probá de nuevo más tarde.');
   }
 }
 
@@ -84,6 +98,6 @@ export async function handleCancelarCommand(ctx: BotContext) {
 
 export async function handleAyudaCommand(ctx: BotContext) {
   await ctx.reply(
-    'Puedo ayudarte a reservar un turno con /reservar, consultar productos con /productos, ver tus turnos con /misturnos y cancelar uno con /cancelar. Si tenés cuenta en la web, vinculala desde tu perfil para que te reconozca.'
+    'Puedo ayudarte a reservar un turno con /reservar, ver los barberos con /barberos, consultar productos con /productos, ver tus turnos con /misturnos y cancelar uno con /cancelar. Si tenés cuenta en la web, vinculala desde tu perfil para que te reconozca.'
   );
 }

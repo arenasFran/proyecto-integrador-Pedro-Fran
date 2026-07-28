@@ -96,26 +96,27 @@ export async function extractBookingIntent(
 }
 
 export interface GeneralIntent {
-  intent: 'productos' | 'misturnos' | 'cancelar' | 'reservar' | 'otro';
+  intent: 'productos' | 'barberos' | 'misturnos' | 'cancelar' | 'reservar' | 'otro';
   confianza_baja: boolean;
 }
 
 const GENERAL_SYSTEM_PROMPT = `Sos un asistente que clasifica la intención de un mensaje de un cliente de una barbería, entre estas opciones:
 - "productos": el cliente quiere saber qué productos hay disponibles o sus precios.
+- "barberos": el cliente quiere saber qué barberos atienden.
 - "misturnos": el cliente quiere ver sus turnos reservados.
 - "cancelar": el cliente quiere cancelar un turno.
 - "reservar": el cliente quiere reservar un turno nuevo.
 - "otro": cualquier otra cosa (saludos, preguntas no relacionadas, ambigüedad).
 Si tenés dudas razonables, marcá confianza_baja: true.
 Respondé ÚNICAMENTE JSON con este shape exacto, sin texto adicional ni markdown:
-{"intent":"productos|misturnos|cancelar|reservar|otro","confianza_baja":boolean}`;
+{"intent":"productos|barberos|misturnos|cancelar|reservar|otro","confianza_baja":boolean}`;
 
 function isValidGeneralIntent(value: unknown): value is GeneralIntent {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
   return (
     typeof v.intent === 'string' &&
-    ['productos', 'misturnos', 'cancelar', 'reservar', 'otro'].includes(v.intent as string) &&
+    ['productos', 'barberos', 'misturnos', 'cancelar', 'reservar', 'otro'].includes(v.intent as string) &&
     typeof v.confianza_baja === 'boolean'
   );
 }

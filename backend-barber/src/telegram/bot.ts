@@ -6,6 +6,7 @@ import { linkTelegramAccount, getSessionForTelegramId } from './services/account
 import { classifyGeneralIntent } from './services/gemini.service';
 import {
   handleProductosCommand,
+  handleBarberosCommand,
   handleMisTurnosCommand,
   handleCancelarCommand,
   handleAyudaCommand,
@@ -85,6 +86,8 @@ export function createBot(): Telegraf<BotContext> {
 
   bot.command('productos', handleProductosCommand);
 
+  bot.command('barberos', handleBarberosCommand);
+
   bot.on('text', async (ctx) => {
     const text = (ctx.message as { text?: string })?.text;
     if (!text || text.startsWith('/')) return;
@@ -96,6 +99,8 @@ export function createBot(): Telegraf<BotContext> {
     switch (classification.intent) {
       case 'productos':
         return handleProductosCommand(ctx);
+      case 'barberos':
+        return handleBarberosCommand(ctx);
       case 'misturnos':
         return handleMisTurnosCommand(ctx);
       case 'cancelar':

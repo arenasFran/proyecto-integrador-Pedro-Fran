@@ -4,6 +4,12 @@ import { getConfig } from '../../infrastructure/config/env';
 import * as backendClient from '../services/backendClient';
 import * as geminiService from '../services/gemini.service';
 import { getSessionForTelegramId } from '../services/accountLink.service';
+import {
+  handleProductosCommand,
+  handleBarberosCommand,
+  handleMisTurnosCommand,
+  handleAyudaCommand,
+} from '../handlers/commonCommands';
 import type { GuestBookingState } from '../types/bookingState';
 
 export const GUEST_BOOKING_SCENE_ID = 'guest-booking-wizard';
@@ -417,4 +423,37 @@ guestBookingWizard.command('cancelar', async (ctx) => {
     'Se canceló la reserva que estabas armando. Escribí /reservar para empezar de nuevo, o /cancelar fuera de este flujo si querés cancelar un turno ya confirmado.'
   );
   return ctx.scene.leave();
+});
+
+// Comandos informativos: no deben quedar "atrapados" por el paso actual del wizard
+// (antes, cualquier texto/comando que no fuera la respuesta esperada por el paso activo
+// se perdía silenciosamente, dando la sensación de que el bot ignoraba al usuario).
+guestBookingWizard.command('productos', handleProductosCommand);
+guestBookingWizard.command('barberos', handleBarberosCommand);
+guestBookingWizard.command('misturnos', handleMisTurnosCommand);
+guestBookingWizard.command('ayuda', handleAyudaCommand);
+
+// Mismo escape que los comandos de arriba, pero para lenguaje natural ("mostrame los
+// barberos") en medio de una reserva. Corre antes que el paso actual del wizard: si
+// Gemini detecta con confianza una intención informativa (productos/barberos/misturnos)
+// la resuelve ahí mismo sin tocar el estado de la reserva; para cualquier otro caso
+// (incluida la descripción libre del turno en el paso 5) deja pasar el mensaje sin tocarlo.
+guestBookingWizard.on('text', async (ctx, next) => {
+  const text = getTextInput(ctx);
+  if (!text || text.startsWith('/')) return next();
+  if (!getConfig().gemini.enabled) return next();
+
+  const classification = await geminiService.classifyGeneralIntent(text);
+  if (!classification || classification.confianza_baja) return next();
+
+  switch (classification.intent) {
+    case 'productos':
+      return handleProductosCommand(ctx);
+    case 'barberos':
+      return handleBarberosCommand(ctx);
+    case 'misturnos':
+      return handleMisTurnosCommand(ctx);
+    default:
+      return next();
+  }
 });

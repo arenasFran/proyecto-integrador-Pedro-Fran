@@ -61,7 +61,7 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div
       className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-black/60 px-4 py-12 ${
-        centered ? 'items-center lg:pl-52' : 'items-start'
+        centered ? 'items-start sm:items-center lg:pl-52' : 'items-start'
       }`}
     >
       <motion.div

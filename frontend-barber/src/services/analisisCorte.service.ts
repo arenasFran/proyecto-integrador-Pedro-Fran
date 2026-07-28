@@ -1,15 +1,15 @@
 import api from './api';
-import type { AnalisisCorteResultado } from '../types/analisisCorte';
+import type { AnalisisCorteCreado } from '../types/analisisCorte';
 
 export const analizarCorte = async (
   file: File,
   aceptaConsentimiento?: boolean
-): Promise<AnalisisCorteResultado> => {
+): Promise<AnalisisCorteCreado> => {
   const formData = new FormData();
   formData.append('foto', file);
   if (aceptaConsentimiento) formData.append('aceptaConsentimiento', 'true');
 
-  const response = await api.post<AnalisisCorteResultado>('/api/analisis-corte', formData, {
+  const response = await api.post<AnalisisCorteCreado>('/api/analisis-corte', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 

@@ -11,7 +11,7 @@ import { RecomendacionDetalle } from '../../../components/analisis-corte/Recomen
 import { HistorialDetalleModal } from '../../../components/analisis-corte/HistorialDetalleModal';
 import { formatDate } from '../../../utils/formatDate';
 import { getAccessToken } from '../../../services/api';
-import type { AnalisisCorteRecord, AnalisisCorteResultado } from '../../../types/analisisCorte';
+import type { AnalisisCorteCreado, AnalisisCorteRecord } from '../../../types/analisisCorte';
 
 export default function AiHaircutPage() {
   const token = getAccessToken();
@@ -31,7 +31,7 @@ export default function AiHaircutPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [resultado, setResultado] = useState<AnalisisCorteResultado | null>(null);
+  const [resultado, setResultado] = useState<AnalisisCorteCreado | null>(null);
   const [consentOpen, setConsentOpen] = useState(false);
   const [consentMode, setConsentMode] = useState<'gate' | 'retry'>('gate');
   const [sessionConsentAccepted, setSessionConsentAccepted] = useState(false);
@@ -149,7 +149,7 @@ export default function AiHaircutPage() {
     if (resultado) {
       return (
         <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6">
-          <RecomendacionDetalle resultado={resultado} fotoUrl={preview} />
+          <RecomendacionDetalle resultado={resultado} analisisId={resultado.id} fotoUrl={preview} />
 
           <div className="mt-5 flex items-start gap-2 rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-3">
             <FiClock className="mt-0.5 shrink-0 text-[#FF5C00]" />
@@ -263,7 +263,9 @@ export default function AiHaircutPage() {
                     className="w-full text-left rounded-[12px] bg-[#1A1A1A] border border-[#282828] px-4 py-3 hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center justify-between mb-2 gap-2">
-                      <p className="text-[13px] text-white font-medium capitalize">{item.resultado.formaCara}</p>
+                      <p className="min-w-0 flex-1 truncate text-[13px] text-white font-medium capitalize">
+                        {item.resultado.formaCara}
+                      </p>
                       <span className="shrink-0 text-[11px] text-[#8A8A8A]">{formatDate(item.createdAt)}</span>
                     </div>
                     <p className="text-[12px] text-[#8A8A8A]">

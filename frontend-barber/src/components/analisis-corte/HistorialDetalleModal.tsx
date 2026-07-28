@@ -18,7 +18,7 @@ export const HistorialDetalleModal: FC<HistorialDetalleModalProps> = ({ record, 
       size="lg"
       centered
     >
-      {record && <RecomendacionDetalle resultado={record.resultado} />}
+      {record && <RecomendacionDetalle resultado={record.resultado} analisisId={record.id} />}
     </Modal>
   );
 };

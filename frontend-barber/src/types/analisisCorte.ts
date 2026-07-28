@@ -3,6 +3,7 @@ export type CorteRecomendado = {
   descripcion: string;
   razon: string;
   servicioSugerido: string;
+  imagenEjemploUrl?: string;
 };
 
 export type AnalisisCorteResultado = {
@@ -10,6 +11,8 @@ export type AnalisisCorteResultado = {
   cortesRecomendados: CorteRecomendado[];
   explicacionGeneral: string;
 };
+
+export type AnalisisCorteCreado = AnalisisCorteResultado & { id: string };
 
 export type AnalisisCorteRecord = {
   id: string;

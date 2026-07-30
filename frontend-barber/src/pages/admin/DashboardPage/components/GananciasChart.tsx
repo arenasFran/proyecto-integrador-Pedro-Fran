@@ -87,7 +87,7 @@ export default function GananciasChart() {
               contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
               labelStyle={{ color: '#fff' }}
               labelFormatter={(label) => formatFecha(label)}
-              formatter={(value) => [formatCurrency(value ?? 0), 'Ganancias']}
+              formatter={(value) => [formatCurrency(Number(value ?? 0)), 'Ganancias']}
             />
             <Area
               type="monotone"

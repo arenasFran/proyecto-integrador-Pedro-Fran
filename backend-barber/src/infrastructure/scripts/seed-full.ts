@@ -95,7 +95,6 @@ export async function runFullSeed() {
     { name: 'Corte de pelo', description: 'Corte clasico con tijera y maquina', price: 490, durationMinutes: 50 },
     { name: 'Corte a maquina', description: 'Corte rapido solo con maquina', price: 350, durationMinutes: 30 },
     { name: 'Barba', description: 'Perfilado y recorte de barba', price: 250, durationMinutes: 25 },
-    { name: 'Promo x2', description: 'Corte + Barba', price: 650, durationMinutes: 70 },
   ];
   const serviceIds: string[] = [];
   for (const s of servicesData) {
@@ -103,7 +102,7 @@ export async function runFullSeed() {
     const doc = existing || await ServiceModel.create({ ...s, status: 'active' });
     serviceIds.push(doc._id.toString());
   }
-  console.log('[SEED] 4 servicios creados');
+  console.log('[SEED] 3 servicios creados');
 
   // ── 4. Products ──────────────────────────────────────
   const productsData = [
@@ -217,7 +216,7 @@ export async function runFullSeed() {
       status = rand < 0.70 ? 'Confirmado' : 'Cancelado';
     }
 
-    const serviceIdx = Math.floor(Math.random() * 4);
+    const serviceIdx = Math.floor(Math.random() * servicesData.length);
     const serviceId = serviceIds[serviceIdx];
     const service = servicesData[serviceIdx];
     const slot = slots[Math.floor(Math.random() * slots.length)];

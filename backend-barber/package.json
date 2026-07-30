@@ -21,6 +21,9 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1091.0",
+    "@google/genai": "^2.12.0",
+    "@smithy/node-http-handler": "^4.9.8",
     "@types/cors": "^2.8.19",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
@@ -35,7 +38,8 @@
     "mercadopago": "^3.2.0",
     "mongoose": "^9.5.0",
     "multer": "^2.2.0",
-    "nodemailer": "^6.9.4"
+    "nodemailer": "^6.9.4",
+    "openai": "^7.1.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",

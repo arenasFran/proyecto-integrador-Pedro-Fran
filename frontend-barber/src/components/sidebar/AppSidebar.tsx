@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FiAward, FiBarChart2, FiCalendar, FiList, FiLogOut, FiPackage, FiPlus, FiScissors, FiShoppingBag, FiUser, FiUserCheck, FiUsers, FiX } from 'react-icons/fi';
+import { FiAward, FiBarChart2, FiCalendar, FiCamera, FiList, FiLogOut, FiPackage, FiPlus, FiScissors, FiShoppingBag, FiUser, FiUserCheck, FiUsers, FiX } from 'react-icons/fi';
 import { NavLink, useNavigate } from 'react-router-dom';
 import api, { getAccessToken } from '../../services/api';
 import { useAppDispatch, useAppSelector } from '../../store/hooks';
@@ -40,6 +40,7 @@ const userNavItems = [
   { to: '/mis-turnos', icon: FiCalendar, label: 'Mis turnos' },
   { to: '/mis-ordenes', icon: FiShoppingBag, label: 'Mis órdenes' },
   { to: '/mi-membresia', icon: FiAward, label: 'Mi Membresía' },
+  { to: '/recomendacion-corte', icon: FiCamera, label: 'Recomendación IA' },
   { to: '/tienda', icon: FiPackage, label: 'Tienda' },
   { to: '/perfil', icon: FiUser, label: 'Perfil' },
 ];

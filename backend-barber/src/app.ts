@@ -5,6 +5,7 @@ import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
 import { buildBarberRouter, buildMembershipRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter, buildPaymentRouter, buildProductRouter, buildOrderRouter } from "./wiring";
+import { buildAnalisisCorteRouter } from "./wiring/analisisCorte";
 import { buildCartRouter } from "./wiring/cart";
 import { ReportsController } from "./interface-adapters/controllers/reports/ReportsController";
 import { createReportsRouter } from "./interface-adapters/routes/reports.routes";
@@ -104,6 +105,7 @@ app.use("/api/payments", buildPaymentRouter());
 app.use("/api/products", buildProductRouter());
 app.use("/api/orders", buildOrderRouter());
 app.use("/api/cart", buildCartRouter());
+app.use("/api/analisis-corte", buildAnalisisCorteRouter());
 const reportsController = new ReportsController(
   new ExportOrdersCsvUseCase(),
   new ExportSalesCsvUseCase(),

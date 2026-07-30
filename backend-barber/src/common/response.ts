@@ -15,7 +15,7 @@ function safeStringify(obj: object): string {
 
 export function sendError(res: Response, error: unknown, fallbackMessage: string) {
   if (error instanceof AppError) {
-    return res.status(error.statusCode).json({ error: error.message });
+    return res.status(error.statusCode).json({ error: error.message, ...(error.code ? { code: error.code } : {}) });
   }
 
   const message = error instanceof Error ? error.message

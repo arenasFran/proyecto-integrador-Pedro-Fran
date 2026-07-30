@@ -11,14 +11,16 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
 
   const userId = new mongoose.Types.ObjectId();
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const createdUserIds: mongoose.Types.ObjectId[] = [userId];
 
   const createMembershipDoc = async (overrides: {
+    userId?: mongoose.Types.ObjectId;
     status?: string;
     endDate: Date;
     couponsUsed?: number;
   }) => {
     return MembershipModel.create({
-      userId,
+      userId: overrides.userId ?? userId,
       status: overrides.status ?? 'active',
       startDate: new Date(Date.now() - 60 * DAY_MS),
       endDate: overrides.endDate,
@@ -34,7 +36,7 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
   });
 
   afterEach(async () => {
-    await MembershipModel.deleteMany({ userId });
+    await MembershipModel.deleteMany({ userId: { $in: createdUserIds } });
   });
 
   it('debe expirar membresía vencida (endDate < now): status pasa a expired', async () => {
@@ -65,9 +67,16 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
   });
 
   it('debe manejar múltiples membresías vencidas', async () => {
+    // Cada usuario solo puede tener una membresía 'active' a la vez (índice único
+    // parcial userId+status), así que "múltiples vencidas" se simula con usuarios
+    // distintos, no reutilizando el mismo userId con dos membresías activas.
+    const otherUserId1 = new mongoose.Types.ObjectId();
+    const otherUserId2 = new mongoose.Types.ObjectId();
+    createdUserIds.push(otherUserId1, otherUserId2);
+
     const yesterday = new Date(Date.now() - DAY_MS);
-    await createMembershipDoc({ endDate: yesterday, couponsUsed: 3 });
-    await createMembershipDoc({ endDate: yesterday, couponsUsed: 1 });
+    await createMembershipDoc({ userId: otherUserId1, endDate: yesterday, couponsUsed: 3 });
+    await createMembershipDoc({ userId: otherUserId2, endDate: yesterday, couponsUsed: 1 });
 
     const tomorrow = new Date(Date.now() + DAY_MS);
     await createMembershipDoc({ endDate: tomorrow, couponsUsed: 0 });

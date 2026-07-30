@@ -8,6 +8,10 @@ import type { ServiceStatus } from '../../../../src/domain/entities/Service';
 
 describe('ServiceController', () => {
   let serviceRepository: jest.Mocked<MongoServiceRepository>;
+  let createServiceUseCase: { execute: jest.Mock };
+  let updateServiceUseCase: { execute: jest.Mock };
+  let deleteServiceUseCase: { execute: jest.Mock };
+  let restoreServiceUseCase: { execute: jest.Mock };
   let controller: ServiceController;
 
   beforeEach(() => {
@@ -22,7 +26,11 @@ describe('ServiceController', () => {
       restore: jest.fn(),
     } as unknown as jest.Mocked<MongoServiceRepository>;
 
-    controller = new ServiceController(serviceRepository);
+    createServiceUseCase = { execute: jest.fn() };
+    updateServiceUseCase = { execute: jest.fn() };
+    deleteServiceUseCase = { execute: jest.fn() };
+    restoreServiceUseCase = { execute: jest.fn() };
+    controller = new ServiceController(serviceRepository, createServiceUseCase as any, updateServiceUseCase as any, deleteServiceUseCase as any, restoreServiceUseCase as any);
   });
 
   it('debe responder 200 con la lista de servicios', async () => {
@@ -106,15 +114,7 @@ describe('ServiceController', () => {
   });
 
   it('create debe responder 201 con el servicio creado', async () => {
-    const service = Service.create({
-      id: new mongoose.Types.ObjectId().toString(),
-      name: 'Corte de pelo',
-      description: 'Incluye barba',
-      price: 490,
-      imageUrl: '',
-      status: 'active',
-    });
-    serviceRepository.create.mockResolvedValue(service);
+    createServiceUseCase.execute.mockResolvedValue({ toPrimitives: () => ({ name: 'Corte de pelo', id: 'svc-1' }) });
 
     const req = createMockReq({ body: { name: 'Corte de pelo', description: 'Incluye barba', price: 490, imageUrl: '' } });
     const res = createMockRes();
@@ -130,7 +130,7 @@ describe('ServiceController', () => {
   });
 
   it('create debe responder 409 si el nombre está duplicado', async () => {
-    serviceRepository.create.mockRejectedValue(new AppError('Ya existe un servicio con ese nombre.', 409));
+    createServiceUseCase.execute.mockRejectedValue(new AppError('Ya existe un servicio con ese nombre.', 409));
 
     const req = createMockReq({ body: { name: 'Duplicado', description: 'otro', price: 200, imageUrl: '' } });
     const res = createMockRes();
@@ -141,15 +141,7 @@ describe('ServiceController', () => {
   });
 
   it('update debe responder 200 con el servicio actualizado', async () => {
-    const service = Service.create({
-      id: new mongoose.Types.ObjectId().toString(),
-      name: 'Corte actualizado',
-      description: 'Incluye barba/cejas/lavado/bebida a elección',
-      price: 490,
-      imageUrl: '',
-      status: 'active',
-    });
-    serviceRepository.update.mockResolvedValue(service);
+    updateServiceUseCase.execute.mockResolvedValue({ toPrimitives: () => ({ name: 'Corte actualizado', id: 'svc-1' }) });
 
     const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() }, body: { name: 'Corte actualizado' } });
     const res = createMockRes();
@@ -165,7 +157,7 @@ describe('ServiceController', () => {
   });
 
   it('update debe responder 404 si el servicio no existe', async () => {
-    serviceRepository.update.mockResolvedValue(null);
+    updateServiceUseCase.execute.mockRejectedValue(new AppError('Servicio no encontrado.', 404));
 
     const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() }, body: { name: 'Corte actualizado' } });
     const res = createMockRes();
@@ -176,15 +168,7 @@ describe('ServiceController', () => {
   });
 
   it('delete debe responder 200 con el servicio eliminado', async () => {
-    const service = Service.create({
-      id: new mongoose.Types.ObjectId().toString(),
-      name: 'Eliminar',
-      description: '',
-      price: 100,
-      imageUrl: '',
-      status: 'deleted',
-    });
-    serviceRepository.softDelete.mockResolvedValue(service);
+    deleteServiceUseCase.execute.mockResolvedValue({ toPrimitives: () => ({ status: 'deleted', id: 'svc-1' }) });
 
     const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
     const res = createMockRes();
@@ -200,7 +184,7 @@ describe('ServiceController', () => {
   });
 
   it('delete debe responder 404 si el servicio no existe', async () => {
-    serviceRepository.softDelete.mockResolvedValue(null);
+    deleteServiceUseCase.execute.mockRejectedValue(new AppError('Servicio no encontrado.', 404));
 
     const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
     const res = createMockRes();
@@ -211,15 +195,7 @@ describe('ServiceController', () => {
   });
 
   it('restore debe responder 200 y cambiar status a inactive', async () => {
-    const restored = Service.create({
-      id: new mongoose.Types.ObjectId().toString(),
-      name: 'Restaurado',
-      description: '',
-      price: 100,
-      imageUrl: '',
-      status: 'inactive',
-    });
-    serviceRepository.restore.mockResolvedValue(restored);
+    restoreServiceUseCase.execute.mockResolvedValue({ toPrimitives: () => ({ status: 'inactive', id: 'svc-1' }) });
 
     const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
     const res = createMockRes();
@@ -235,7 +211,7 @@ describe('ServiceController', () => {
   });
 
   it('restore debe responder 404 si el servicio no está eliminado', async () => {
-    serviceRepository.restore.mockResolvedValue(null);
+    restoreServiceUseCase.execute.mockRejectedValue(new AppError('El servicio no está en estado eliminado.', 404));
 
     const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
     const res = createMockRes();

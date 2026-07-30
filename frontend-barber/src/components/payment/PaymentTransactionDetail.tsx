@@ -1,5 +1,6 @@
 import type { Payment } from '../../types/payment';
 import { formatDateTime } from '../../utils/formatDate';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const methodLabel: Record<string, string> = {
   master: 'Mastercard',
@@ -24,10 +25,6 @@ const statusColors: Record<string, string> = {
   pending: 'text-[#FFB800] bg-[#FFB800]/10',
   cancelled: 'text-[#8A8A8A] bg-[#8A8A8A]/10',
 };
-
-function formatAmount(n: number): string {
-  return `$${n.toLocaleString('es-UY')}`;
-}
 
 function formatDateStr(s: string): string {
   return formatDateTime(s);
@@ -81,21 +78,21 @@ export default function PaymentTransactionDetail({ payment }: PaymentTransaction
         <div className="flex items-center justify-between">
           <span className="text-[12px] text-[#666]">Pagado</span>
           <span className="text-[12px] text-white font-medium">
-            {formatAmount(payment.mpTotalPaidAmount || payment.amount)}
+            {formatCurrency(payment.mpTotalPaidAmount || payment.amount)}
           </span>
         </div>
 
         {payment.mpNetReceivedAmount != null && (
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-[#666]">Neto recibido</span>
-            <span className="text-[12px] text-[#22C55E] font-medium">{formatAmount(payment.mpNetReceivedAmount)}</span>
+            <span className="text-[12px] text-[#22C55E] font-medium">{formatCurrency(payment.mpNetReceivedAmount)}</span>
           </div>
         )}
 
         {payment.mpFeeAmount != null && (
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-[#666]">Comisión MP</span>
-            <span className="text-[12px] text-red-400">-{formatAmount(payment.mpFeeAmount)}</span>
+            <span className="text-[12px] text-red-400">-{formatCurrency(payment.mpFeeAmount)}</span>
           </div>
         )}
 

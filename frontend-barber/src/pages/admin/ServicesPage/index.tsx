@@ -11,6 +11,7 @@ import {
 import type { Service, ServiceStatus } from '../../../types/booking';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 import ServiceFormModal from './components/ServiceFormModal';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 type ServiceForm = {
   name: string;
@@ -330,7 +331,7 @@ export const ServicesPage: React.FC = () => {
                     </div>
                     <p className="text-[13px] text-[#8A8A8A] line-clamp-2">{service.description}</p>
                     <div className="flex items-center justify-between">
-                      <p className="text-[15px] font-bold text-white">${service.price}</p>
+                      <p className="text-[15px] font-bold text-white">{formatCurrency(service.price)}</p>
                       <div className="flex items-center gap-1.5">
                         {service.status !== 'deleted' ? (
                           <>
@@ -388,7 +389,7 @@ export const ServicesPage: React.FC = () => {
                       >
                         <td className="py-3 pr-4 font-medium text-white">{service.name}</td>
                         <td className="py-3 pr-4 text-[#8A8A8A] max-w-[200px] truncate">{service.description}</td>
-                        <td className="py-3 pr-4 text-white">${service.price}</td>
+                        <td className="py-3 pr-4 text-white">{formatCurrency(service.price)}</td>
                         <td className="py-3 pr-4">
                           {service.status !== 'deleted' ? (
                             <span

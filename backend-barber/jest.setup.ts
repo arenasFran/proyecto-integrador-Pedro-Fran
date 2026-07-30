@@ -30,6 +30,11 @@ const clearAllCollections = async () => {
 // Usa un replica set (no server standalone) porque varios use-cases corren
 // transacciones Mongo (session.startTransaction()), que requieren replica set.
 beforeAll(async () => {
+  if (process.env.MONGO_READY === 'false') {
+    mongoReady = false;
+    return;
+  }
+
   try {
     mongoServer = await MongoMemoryReplSet.create({
       replSet: { count: 1, storageEngine: 'wiredTiger' },

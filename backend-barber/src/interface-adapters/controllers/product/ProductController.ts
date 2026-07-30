@@ -1,12 +1,18 @@
 import { Request, Response } from 'express';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
+import { CreateProductUseCase } from '../../../application/use-cases/product/CreateProductUseCase';
+import { UpdateProductUseCase } from '../../../application/use-cases/product/UpdateProductUseCase';
+import { DeleteProductUseCase } from '../../../application/use-cases/product/DeleteProductUseCase';
 import { Product } from '../../../domain/entities/Product';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 
 export class ProductController {
   constructor(
-    private readonly productRepository: MongoProductRepository
+    private readonly productRepository: MongoProductRepository,
+    private readonly createProductUseCase: CreateProductUseCase,
+    private readonly updateProductUseCase: UpdateProductUseCase,
+    private readonly deleteProductUseCase: DeleteProductUseCase
   ) {}
 
   getAll = async (req: Request, res: Response) => {
@@ -49,11 +55,17 @@ export class ProductController {
     try {
       const { name, description, price, stock, imageUrl, gallery, category } = req.body;
 
-      const product = Product.create({ name, description, price, stock, imageUrl: imageUrl || '', gallery, category: category || '' });
+      const result = await this.createProductUseCase.execute({
+        name,
+        description,
+        price,
+        stock,
+        imageUrl: imageUrl || '',
+        gallery,
+        category: category || '',
+      });
 
-      const saved = await this.productRepository.save(product);
-
-      return sendSuccess(res, { product: saved.toPrimitives() }, 201);
+      return sendSuccess(res, { product: result }, 201);
     } catch (error) {
       return sendError(res, error, 'Error al crear producto');
     }
@@ -61,17 +73,21 @@ export class ProductController {
 
   update = async (req: Request, res: Response) => {
     try {
-      const product = await this.productRepository.findById(req.params.id as string);
-      if (!product) {
-        throw new AppError('Producto no encontrado.', 404);
-      }
-
       const { name, description, price, stock, imageUrl, gallery, category, status } = req.body;
-      product.update({ name, description, price, stock, imageUrl, gallery, category, status });
 
-      const saved = await this.productRepository.save(product);
+      const result = await this.updateProductUseCase.execute({
+        productId: req.params.id as string,
+        name,
+        description,
+        price,
+        stock,
+        imageUrl,
+        gallery,
+        category,
+        status,
+      });
 
-      return sendSuccess(res, { product: saved.toPrimitives() });
+      return sendSuccess(res, { product: result });
     } catch (error) {
       return sendError(res, error, 'Error al actualizar producto');
     }
@@ -79,14 +95,7 @@ export class ProductController {
 
   delete = async (req: Request, res: Response) => {
     try {
-      const product = await this.productRepository.findById(req.params.id as string);
-      if (!product) {
-        throw new AppError('Producto no encontrado.', 404);
-      }
-
-      product.delete();
-      await this.productRepository.save(product);
-
+      await this.deleteProductUseCase.execute({ productId: req.params.id as string });
       return sendSuccess(res, { message: 'Producto eliminado correctamente.' });
     } catch (error) {
       return sendError(res, error, 'Error al eliminar producto');

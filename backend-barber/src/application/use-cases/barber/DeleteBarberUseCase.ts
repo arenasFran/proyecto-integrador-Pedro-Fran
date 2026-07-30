@@ -45,11 +45,11 @@ export class DeleteBarberUseCase {
             cancelledAt: new Date(),
           }, session);
 
-          if (apt.paymentMethod === 'memberPass' && apt.clientId) {
-            const membership = await this.membershipRepository.findActiveByUser(apt.clientId, session).catch(() => null);
-            if (membership) {
-              membership.restoreCoupon();
-              await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
+          const current = await this.appointmentRepository.findById(apt.id, session);
+          if (current && current.paymentMethod === 'memberPass' && current.couponRedeemed && !current.couponRestoredAt && current.membershipId) {
+            const restored = await this.membershipRepository.atomicRestoreCoupon(current.membershipId, session);
+            if (restored) {
+              current.markCouponRestored();
             }
           }
 

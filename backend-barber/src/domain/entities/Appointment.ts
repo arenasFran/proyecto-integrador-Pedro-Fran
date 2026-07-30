@@ -30,6 +30,9 @@ export type AppointmentProps = {
   createdBy?: CreatedBy;
   statusHistory: StatusHistoryEntry[];
   version: number;
+  membershipId?: string;
+  couponRedeemed?: boolean;
+  couponRestoredAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -68,6 +71,9 @@ export class Appointment {
   get createdBy(): CreatedBy | undefined { return this.props.createdBy ? { ...this.props.createdBy } : undefined; }
   get statusHistory(): StatusHistoryEntry[] { return [...this.props.statusHistory]; }
   get version(): number { return this.props.version; }
+  get membershipId(): string | undefined { return this.props.membershipId; }
+  get couponRedeemed(): boolean { return this.props.couponRedeemed ?? false; }
+  get couponRestoredAt(): Date | undefined { return this.props.couponRestoredAt ? new Date(this.props.couponRestoredAt.getTime()) : undefined; }
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
   get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
 
@@ -119,6 +125,29 @@ export class Appointment {
     this.props.status = 'NoShow';
     this.props.paymentStatus = 'Cancelado';
     this.addStatusHistoryEntry('NoShow', actor || 'system');
+    this.props.updatedAt = new Date();
+  }
+
+  markCouponRedeemed(membershipId: string): void {
+    if (this.props.paymentMethod !== 'memberPass') {
+      throw new AppError('Solo los turnos con pago por membresía pueden canjear cupones.', 400);
+    }
+    if (this.props.couponRedeemed) {
+      throw new AppError('El cupón ya fue canjeado para este turno.', 400);
+    }
+    this.props.membershipId = membershipId;
+    this.props.couponRedeemed = true;
+    this.props.updatedAt = new Date();
+  }
+
+  markCouponRestored(): void {
+    if (!this.props.couponRedeemed) {
+      throw new AppError('Este turno no tiene un cupón canjeado para restaurar.', 400);
+    }
+    if (this.props.couponRestoredAt) {
+      throw new AppError('El cupón de este turno ya fue restaurado.', 400);
+    }
+    this.props.couponRestoredAt = new Date();
     this.props.updatedAt = new Date();
   }
 }

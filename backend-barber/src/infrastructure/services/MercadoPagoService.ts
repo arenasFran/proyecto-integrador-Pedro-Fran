@@ -1,13 +1,10 @@
-import MercadoPagoConfig, { Preference, Payment, PreApproval, WebhookSignatureValidator } from 'mercadopago';
+import MercadoPagoConfig, { Preference, Payment, WebhookSignatureValidator } from 'mercadopago';
 import {
   IPaymentService,
   CreatePreferenceParams,
   CreatePreferenceResult,
   GetPaymentResult,
   ValidateWebhookParams,
-  CreatePreapprovalParams,
-  CreatePreapprovalResult,
-  GetPreapprovalResult,
 } from '../../application/ports/IPaymentService';
 
 export class MercadoPagoService implements IPaymentService {
@@ -129,7 +126,6 @@ export class MercadoPagoService implements IPaymentService {
         paymentTypeId: response.payment_type_id,
         payerEmail: response.payer?.email,
         externalReference: response.external_reference,
-        preapprovalId: response.preapproval_id,
         installments: (response as any).installments,
         cardLastFourDigits: (response as any).card?.last_four_digits,
         cardIssuerId: (response as any).issuer_id,
@@ -165,77 +161,5 @@ export class MercadoPagoService implements IPaymentService {
       console.log('[MP-DEBUG-WEBHOOK] xSignature:', params.xSignature);
       return false;
     }
-  }
-
-  async createPreapproval(params: CreatePreapprovalParams): Promise<CreatePreapprovalResult> {
-    this.ensureConfigured();
-    const preapproval = new PreApproval(this.config);
-
-    const body: Record<string, unknown> = {
-      reason: params.reason,
-      external_reference: params.externalReference,
-      payer_email: params.payerEmail,
-      auto_recurring: {
-        frequency: 1,
-        frequency_type: 'months',
-        transaction_amount: params.transactionAmount,
-        currency_id: 'UYU',
-      },
-    };
-
-    if (params.backUrl) {
-      const isLocal = /localhost|127\.0\.0\.1/i.test(params.backUrl);
-      const isNotHttps = !/^https:\/\//i.test(params.backUrl);
-      if (isLocal || isNotHttps) {
-        console.warn('[MP-DEBUG] back_url inválida para preapproval (MP rechaza localhost/HTTP), usando fallback HTTPS:', params.backUrl);
-        body.back_url = 'https://www.mercadopago.com.uy';
-      } else {
-        body.back_url = params.backUrl;
-      }
-    }
-
-    try {
-      const response = await preapproval.create({ body });
-
-      return {
-        preapprovalId: response.id!,
-        initPoint: response.init_point!,
-      };
-    } catch (error: any) {
-      console.error('[MP-DEBUG] ===== ERROR CREANDO PREAPPROVAL =====');
-      console.error('[MP-DEBUG] error.message:', error?.message);
-      console.error('[MP-DEBUG] error.name:', error?.name);
-      console.error('[MP-DEBUG] error.stack:', error?.stack);
-      console.error('[MP-DEBUG] error.cause:', error?.cause);
-      console.error('[MP-DEBUG] error.status:', error?.status);
-      if (error?.details) {
-        console.error('[MP-DEBUG] error.details:', JSON.stringify(error.details));
-      }
-      if (error?.response) {
-        console.error('[MP-DEBUG] error.response:', JSON.stringify(error.response));
-      }
-      throw new Error(error?.message || error?.cause || 'Error creando preapproval en MercadoPago');
-    }
-  }
-
-  async getPreapproval(preapprovalId: string): Promise<GetPreapprovalResult> {
-    this.ensureConfigured();
-    const preapproval = new PreApproval(this.config);
-
-    const response = await preapproval.get({ id: preapprovalId });
-
-    return {
-      id: response.id!,
-      status: response.status!,
-      payerEmail: response.payer_email,
-      externalReference: response.external_reference,
-    };
-  }
-
-  async cancelPreapproval(preapprovalId: string): Promise<void> {
-    this.ensureConfigured();
-    const preapproval = new PreApproval(this.config);
-
-    await preapproval.update({ id: preapprovalId, body: { status: 'cancelled' } });
   }
 }

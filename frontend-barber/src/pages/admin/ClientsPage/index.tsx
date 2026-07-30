@@ -5,6 +5,7 @@ import { AnimatedContainer } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 const PAGE_SIZE = 20;
 
@@ -77,7 +78,7 @@ export default function ClientsPage() {
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
           <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiDollarSign size={12} /> Gastado</span>
-          <span className="text-2xl font-bold text-green-400">${stats.totalSpent.toLocaleString('es-UY')}</span>
+          <span className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalSpent)}</span>
         </div>
       </div>
 
@@ -159,7 +160,7 @@ export default function ClientsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8A8A8A]">Gastado</span>
-                    <span className="text-green-400 font-medium">${c.totalSpent.toLocaleString('es-UY')}</span>
+                    <span className="text-green-400 font-medium">{formatCurrency(c.totalSpent)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8A8A8A]">Primera reserva</span>
@@ -215,7 +216,7 @@ export default function ClientsPage() {
                         <span className={c.totalVisits >= 2 ? 'text-white font-medium' : 'text-[#8A8A8A]'}>{c.totalVisits}</span>
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-green-400 font-medium">${c.totalSpent.toLocaleString('es-UY')}</td>
+                    <td className="px-4 py-3 text-right text-green-400 font-medium">{formatCurrency(c.totalSpent)}</td>
                     <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">{c.firstVisit ?? '—'}</td>
                     <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">{c.lastVisit ?? '—'}</td>
                   </tr>

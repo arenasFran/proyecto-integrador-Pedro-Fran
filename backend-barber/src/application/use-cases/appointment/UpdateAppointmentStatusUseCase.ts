@@ -7,6 +7,7 @@ import { IEmailService } from '../../ports/IEmailService';
 import { AppError } from '../../../domain/errors/AppError';
 import { toMinutes, getNowInTimezone } from '../../../domain/utils/time';
 import { sendMailWithRetry } from '../shared/sendMailWithRetry';
+import { RevenueTracker } from '../../services/RevenueTracker';
 
 export type UpdateAppointmentStatusDTO = {
   status: AppointmentStatus;
@@ -19,7 +20,8 @@ export class UpdateAppointmentStatusUseCase {
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
     private readonly cancelMinHoursBefore: number,
-    private readonly barberRepository: MongoBarberRepository
+    private readonly barberRepository: MongoBarberRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(
@@ -125,11 +127,10 @@ export class UpdateAppointmentStatusUseCase {
       await this.appointmentRepository.updateStatus(id, updateData, session);
 
       // Restaurar cupón de membresía si se cancela
-      if (dto.status === 'Cancelado' && appointment.paymentMethod === 'memberPass' && appointment.clientId) {
-        const membership = await this.membershipRepository.findActiveByUser(appointment.clientId, session).catch(() => null);
-        if (membership) {
-          membership.restoreCoupon();
-          await this.membershipRepository.incrementCouponsUsed(membership.id, -1, session);
+      if (dto.status === 'Cancelado' && appointment.paymentMethod === 'memberPass' && appointment.couponRedeemed && !appointment.couponRestoredAt) {
+        const restored = await this.membershipRepository.atomicRestoreCoupon(appointment.membershipId!, session);
+        if (restored) {
+          appointment.markCouponRestored();
         }
       }
 
@@ -139,6 +140,15 @@ export class UpdateAppointmentStatusUseCase {
       throw error;
     } finally {
       session.endSession();
+    }
+
+    if (dto.status === 'Completado') {
+      await this.revenueTracker?.trackAppointment(
+        id,
+        appointment.servicePrice,
+        new Date(),
+        { barberId: appointment.barberId, serviceId: appointment.serviceId },
+      );
     }
 
     // RN17 — Email notification (async, non-blocking)

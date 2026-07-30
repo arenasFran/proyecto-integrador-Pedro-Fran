@@ -5,7 +5,7 @@ export const createMembershipSchema = Joi.object({
   couponsTotal: Joi.number().integer().min(1).max(12).default(4),
   productDiscount: Joi.number().integer().min(0).max(100).default(10),
   durationDays: Joi.number().integer().min(1).max(365).default(30),
-  billingCycle: Joi.string().valid('monthly', 'onetime').optional(),
+  billingCycle: Joi.string().valid('onetime').optional(),
   paymentMethod: Joi.string().valid('local').optional(),
   paymentId: Joi.string().optional(),
   price: Joi.number().min(0).optional(),
@@ -24,11 +24,6 @@ export const queryMembershipsSchema = Joi.object({
 
 export const initiateMembershipPaymentSchema = Joi.object({
   userId: Joi.string().required(),
-});
-
-export const createSubscriptionSchema = Joi.object({
-  userId: Joi.string().required(),
-  email: Joi.string().email().required(),
 });
 
 export const membershipIdParamSchema = Joi.object({

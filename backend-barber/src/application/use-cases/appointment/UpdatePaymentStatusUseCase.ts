@@ -1,9 +1,11 @@
 import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { AppError } from '../../../domain/errors/AppError';
+import { RevenueTracker } from '../../services/RevenueTracker';
 
 export class UpdatePaymentStatusUseCase {
   constructor(
-    private readonly appointmentRepository: MongoAppointmentRepository
+    private readonly appointmentRepository: MongoAppointmentRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(
@@ -29,6 +31,13 @@ export class UpdatePaymentStatusUseCase {
     await this.appointmentRepository.updateStatus(id, {
       paymentStatus: 'Pagado',
     });
+
+    await this.revenueTracker?.trackAppointment(
+      appointment.id,
+      appointment.servicePrice,
+      new Date(),
+      { barberId: appointment.barberId, serviceId: appointment.serviceId },
+    );
 
     return { message: 'Pago registrado con éxito' };
   }

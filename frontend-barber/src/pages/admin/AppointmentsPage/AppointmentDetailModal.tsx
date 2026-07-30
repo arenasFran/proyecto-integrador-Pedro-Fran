@@ -21,6 +21,7 @@ import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/b
 import { formatDate, formatDateTime } from '../../../utils/formatDate';
 import PaymentTransactionDetail from '../../../components/payment/PaymentTransactionDetail';
 import { useGetPaymentByReferenceQuery } from '../../../services/paymentApi';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
   Confirmado: { bg: 'bg-blue-500/10', text: 'text-blue-400', label: 'Confirmado' },
@@ -251,7 +252,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
             </div>
             <div className="flex items-center justify-between border-t border-[#282828]/60 mt-1 pt-3">
               <span className="text-[12px] text-[#8A8A8A]">Precio</span>
-              <span className="text-[19px] font-bold text-green-400">${appointment.servicePrice}</span>
+              <span className="text-[19px] font-bold text-green-400">{formatCurrency(appointment.servicePrice)}</span>
             </div>
           </div>
 

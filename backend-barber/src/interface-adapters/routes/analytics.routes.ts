@@ -1,6 +1,8 @@
 import express from 'express';
 import { AnalyticsController } from '../controllers/analytics/AnalyticsController';
 import { MongoAnalyticsRepository } from '../../infrastructure/repositories/mongodb/MongoAnalyticsRepository';
+import { MongoRevenueEntryRepository } from '../../infrastructure/repositories/mongodb/MongoRevenueEntryRepository';
+import { RevenueService } from '../../domain/services/RevenueService';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import {
@@ -17,7 +19,9 @@ import {
 } from '../validators/analytics.validator';
 
 export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
-  const controller = new AnalyticsController(new MongoAnalyticsRepository());
+  const revenueEntryRepo = new MongoRevenueEntryRepository();
+  const revenueService = new RevenueService();
+  const controller = new AnalyticsController(new MongoAnalyticsRepository(revenueEntryRepo, revenueService));
   const router = express.Router();
 
   router.get(

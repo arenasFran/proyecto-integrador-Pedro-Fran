@@ -23,7 +23,6 @@ import MembershipsPage from './pages/admin/MembershipsPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import OrdersPage from './pages/admin/OrdersPage';
 import MembershipPage from './pages/app/MembershipPage';
-import SubscriptionSuccess from './pages/app/MembershipPage/SubscriptionSuccess';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
@@ -90,7 +89,6 @@ function App() {
             <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
             <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
-            <Route path="/membership/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />
@@ -200,3 +198,10 @@ function OptionalAppLayout({ children }: { children: React.ReactNode }) {
 }
 
 export default App;
+
+
+
+
+
+
+

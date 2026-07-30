@@ -72,13 +72,14 @@ export const makeMockMembershipRepository = () => ({
   findById: jest.fn(),
   findAll: jest.fn(),
   findAllEntityView: jest.fn(),
-  findByPreapprovalId: jest.fn(),
   findAnyByUser: jest.fn(),
   findPendingAll: jest.fn(),
   findExpiringSoon: jest.fn(),
   save: jest.fn(),
   create: jest.fn(),
   incrementCouponsUsed: jest.fn(),
+  atomicConsumeCoupon: jest.fn(),
+  atomicRestoreCoupon: jest.fn(),
   hasActiveMembership: jest.fn(),
   approvePending: jest.fn(),
   expireExpiredMemberships: jest.fn(),
@@ -89,6 +90,18 @@ export const makeMockMembershipTransactionRepository = () => ({
   findByMembershipId: jest.fn(),
   findByUser: jest.fn(),
   findAll: jest.fn(),
+  findByMpPaymentId: jest.fn(),
+});
+
+export const makeMockRevenueEntryRepository = () => ({
+  create: jest.fn(),
+  findByReferenceId: jest.fn(),
+  findByPaymentId: jest.fn(),
+  getTotalByDateRange: jest.fn(),
+  getTotalByDateRangeAndSource: jest.fn(),
+  getRevenueByService: jest.fn(),
+  getRevenueByBarber: jest.fn(),
+  getRevenueByPeriod: jest.fn(),
 });
 
 export const makeMockHashService = () => ({
@@ -189,9 +202,6 @@ export const makeMockPaymentService = () => ({
   createPreference: jest.fn(),
   getPayment: jest.fn(),
   validateWebhookSignature: jest.fn(),
-  createPreapproval: jest.fn(),
-  getPreapproval: jest.fn(),
-  cancelPreapproval: jest.fn(),
 });
 
 export const makeMockOrderRepository = () => ({

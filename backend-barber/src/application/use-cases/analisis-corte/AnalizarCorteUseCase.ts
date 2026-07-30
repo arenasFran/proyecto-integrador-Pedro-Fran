@@ -8,8 +8,6 @@ import { IRecommendationService } from '../../ports/IRecommendationService';
 import { AppError } from '../../../domain/errors/AppError';
 import { calcularCupoAnalisisCorte } from './calcularCupoAnalisisCorte';
 
-const SERVICIOS_EXCLUIDOS_DEL_ANALISIS = ['Promo x2'];
-
 type AnalizarCorteDTO = {
   clienteId: string;
   imagenBuffer: Buffer;
@@ -75,7 +73,6 @@ export class AnalizarCorteUseCase {
       }
 
       const servicios = (await this.serviceRepository.findAll())
-        .filter((s) => !SERVICIOS_EXCLUIDOS_DEL_ANALISIS.includes(s.name))
         .map((s) => ({ name: s.name, description: s.description }));
 
       const recomendacion = await this.recommendationService.recomendar(dto.imagenBuffer, dto.mimeType, servicios);

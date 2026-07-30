@@ -95,7 +95,7 @@ describe('AnalizarCorteUseCase', () => {
     deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: true }));
     deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
     deps.faceValidationService.validar.mockResolvedValue({ valido: true });
-    deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo'), makeService('Promo x2')]);
+    deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo'), makeService('Barba')]);
     deps.recommendationService.recomendar.mockResolvedValue(recomendacion);
     deps.analisisCorteRepository.create.mockResolvedValue({
       id: 'a1',
@@ -108,11 +108,14 @@ describe('AnalizarCorteUseCase', () => {
 
     expect(resultado).toEqual({ id: 'a1', ...recomendacion });
     expect(deps.clientRepository.reservarAnalisisIA).toHaveBeenCalledWith('client-1');
-    // Promo x2 debe quedar excluida del prompt
+    // Todos los servicios activos se pasan al prompt, sin exclusiones
     expect(deps.recommendationService.recomendar).toHaveBeenCalledWith(
       dto.imagenBuffer,
       dto.mimeType,
-      [{ name: 'Corte de pelo', description: 'Descripción de Corte de pelo' }]
+      [
+        { name: 'Corte de pelo', description: 'Descripción de Corte de pelo' },
+        { name: 'Barba', description: 'Descripción de Barba' },
+      ]
     );
     expect(deps.analisisCorteRepository.create).toHaveBeenCalledWith('client-1', recomendacion, capturedSession);
     expect(deps.clientRepository.updateAnalisisIA).toHaveBeenCalledWith(

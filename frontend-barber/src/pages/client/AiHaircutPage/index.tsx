@@ -205,6 +205,7 @@ export default function AiHaircutPage() {
           <ImageUpload
             variant="box"
             onFileSelect={handleFileSelect}
+            capture="user"
             helperText="Subí una foto de frente, con buena luz, sin lentes de sol ni nada que tape tu cara"
           />
         ) : (

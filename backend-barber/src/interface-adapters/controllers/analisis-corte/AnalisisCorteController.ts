@@ -36,15 +36,24 @@ export class AnalisisCorteController {
 
   historial = async (req: Request, res: Response) => {
     try {
+      const { page, limit } = (req.query ?? {}) as Record<string, string>;
+
       const [historial, client] = await Promise.all([
-        this.analisisCorteRepository.findByClienteId(req.user!._id),
+        this.analisisCorteRepository.findByClienteId(req.user!._id, {
+          page: page ? parseInt(page, 10) : undefined,
+          limit: limit ? parseInt(limit, 10) : undefined,
+        }),
         this.clientRepository.findById(req.user!._id),
       ]);
 
       const cupo = calcularCupoAnalisisCorte(client?.ultimoAnalisisFecha ?? null);
 
       return sendSuccess(res, {
-        historial,
+        historial: historial.data,
+        total: historial.total,
+        page: historial.page,
+        totalPages: historial.totalPages,
+        limit: historial.limit,
         cupo,
         consentimientoAceptado: client?.consentimientoAnalisisIA ?? false,
       });

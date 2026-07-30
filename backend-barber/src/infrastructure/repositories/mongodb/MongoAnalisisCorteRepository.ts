@@ -13,6 +13,19 @@ export type AnalisisCorteRecord = {
   createdAt: Date;
 };
 
+export type FindByClienteIdParams = {
+  page?: number;
+  limit?: number;
+};
+
+export type AnalisisCortePaginado = {
+  data: AnalisisCorteRecord[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+};
+
 export class MongoAnalisisCorteRepository {
   async create(
     clienteId: string,
@@ -37,19 +50,32 @@ export class MongoAnalisisCorteRepository {
     };
   }
 
-  async findByClienteId(clienteId: string): Promise<AnalisisCorteRecord[]> {
-    const docs = await AnalisisCorteModel.find({
-      clienteId: new mongoose.Types.ObjectId(clienteId),
-    })
-      .sort({ createdAt: -1 })
-      .lean();
+  async findByClienteId(
+    clienteId: string,
+    params: FindByClienteIdParams = {}
+  ): Promise<AnalisisCortePaginado> {
+    const page = params.page && params.page > 0 ? params.page : 1;
+    const limit = params.limit && params.limit > 0 ? params.limit : 20;
+    const skip = (page - 1) * limit;
+    const filter = { clienteId: new mongoose.Types.ObjectId(clienteId) };
 
-    return docs.map((doc) => ({
-      id: (doc._id as mongoose.Types.ObjectId).toString(),
-      clienteId: doc.clienteId.toString(),
-      resultado: doc.resultado,
-      createdAt: doc.createdAt,
-    }));
+    const [docs, total] = await Promise.all([
+      AnalisisCorteModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+      AnalisisCorteModel.countDocuments(filter),
+    ]);
+
+    return {
+      data: docs.map((doc) => ({
+        id: (doc._id as mongoose.Types.ObjectId).toString(),
+        clienteId: doc.clienteId.toString(),
+        resultado: doc.resultado,
+        createdAt: doc.createdAt,
+      })),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+    };
   }
 
   async findById(id: string): Promise<AnalisisCorteRecord | null> {

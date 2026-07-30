@@ -100,27 +100,66 @@ describe('AnalisisCorteController', () => {
   describe('historial', () => {
     it('devuelve el historial completo y el cupo disponible cuando nunca hizo un análisis', async () => {
       const historial = [{ id: 'a1', clienteId: 'client-1', resultado: {}, createdAt: new Date() }];
-      analisisCorteRepository.findByClienteId.mockResolvedValue(historial);
+      analisisCorteRepository.findByClienteId.mockResolvedValue({
+        data: historial,
+        total: 1,
+        page: 1,
+        totalPages: 1,
+        limit: 20,
+      });
       clientRepository.findById.mockResolvedValue(makeClient({ ultimoAnalisisFecha: null }));
       const req = makeReq();
       const res = createMockRes();
 
       await controller.historial(req, res);
 
-      expect(analisisCorteRepository.findByClienteId).toHaveBeenCalledWith('client-1');
+      expect(analisisCorteRepository.findByClienteId).toHaveBeenCalledWith('client-1', {
+        page: undefined,
+        limit: undefined,
+      });
       expect(clientRepository.findById).toHaveBeenCalledWith('client-1');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({
         historial,
+        total: 1,
+        page: 1,
+        totalPages: 1,
+        limit: 20,
         cupo: { disponible: true, proximaFechaDisponible: null },
         consentimientoAceptado: true,
+      });
+    });
+
+    it('pasa page y limit de la query string al repositorio', async () => {
+      analisisCorteRepository.findByClienteId.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 2,
+        totalPages: 0,
+        limit: 5,
+      });
+      clientRepository.findById.mockResolvedValue(makeClient({ ultimoAnalisisFecha: null }));
+      const req = makeReq({ query: { page: '2', limit: '5' } });
+      const res = createMockRes();
+
+      await controller.historial(req, res);
+
+      expect(analisisCorteRepository.findByClienteId).toHaveBeenCalledWith('client-1', {
+        page: 2,
+        limit: 5,
       });
     });
 
     it('devuelve cupo no disponible con la próxima fecha si el último análisis fue hace menos de 30 días', async () => {
       const hace10Dias = new Date();
       hace10Dias.setDate(hace10Dias.getDate() - 10);
-      analisisCorteRepository.findByClienteId.mockResolvedValue([]);
+      analisisCorteRepository.findByClienteId.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        totalPages: 0,
+        limit: 20,
+      });
       clientRepository.findById.mockResolvedValue(makeClient({ ultimoAnalisisFecha: hace10Dias }));
       const req = makeReq();
       const res = createMockRes();

@@ -37,6 +37,10 @@ beforeAll(async () => {
     const uri = mongoServer.getUri();
     process.env.MONGO_URI = uri;
     await mongoose.connect(uri);
+    // mongoose crea los índices (incluidos los unique) en segundo plano al conectar,
+    // sin esperar esa promesa: sin este await, un test puede insertar un duplicado
+    // antes de que el índice único termine de construirse y no ver el error esperado.
+    await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
     mongoReady = true;
   } catch (error) {
     mongoReady = false;

@@ -5,9 +5,11 @@ export interface ITelegramLink extends Document {
   userId: mongoose.Types.ObjectId;
   telegramId: number;
   /**
-   * Refresh token crudo (no hash): el bot lo necesita para presentarlo más adelante
-   * en /auth/refresh y actuar en nombre de este usuario. Riesgo aceptado, mismo nivel
-   * que cualquier sesión persistente de cliente (ver plan-bot-telegram.md, sección 10).
+   * Refresh token cifrado (AES-256-GCM, ver TokenCipherService): el bot lo necesita
+   * en texto plano más adelante para presentarlo en /auth/refresh y actuar en nombre
+   * de este usuario, así que no puede guardarse solo como hash (a diferencia de
+   * RefreshTokenModel). Se cifra en reposo para que una lectura de solo-Mongo no
+   * alcance para impersonar al usuario.
    */
   refreshToken: string;
   createdAt: Date;

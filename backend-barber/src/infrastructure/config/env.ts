@@ -42,6 +42,7 @@ export type Config = {
     botToken: string | undefined;
     apiBaseUrl: string;
     botUsername: string;
+    tokenEncKey: string | undefined;
   };
   gemini: {
     enabled: boolean;
@@ -91,9 +92,14 @@ export function loadConfig(): Config {
   const port = parseIntEnv('PORT', 3000);
   const telegramEnabled = parseBoolEnv('TELEGRAM_BOT_ENABLED', false);
   const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || undefined;
+  const telegramTokenEncKey = process.env.TELEGRAM_TOKEN_ENC_KEY || undefined;
 
   if (telegramEnabled && !telegramBotToken) {
     throw new Error('TELEGRAM_BOT_ENABLED=true requiere TELEGRAM_BOT_TOKEN.');
+  }
+
+  if (telegramEnabled && !telegramTokenEncKey) {
+    throw new Error('TELEGRAM_BOT_ENABLED=true requiere TELEGRAM_TOKEN_ENC_KEY.');
   }
 
   return {
@@ -138,6 +144,7 @@ export function loadConfig(): Config {
       botToken: telegramBotToken,
       apiBaseUrl: optionalEnv('TELEGRAM_BOT_API_BASE_URL', `http://localhost:${port}/api`),
       botUsername: optionalEnv('TELEGRAM_BOT_USERNAME', ''),
+      tokenEncKey: telegramTokenEncKey,
     },
     gemini: {
       enabled: Boolean(process.env.GEMINI_API_KEY),

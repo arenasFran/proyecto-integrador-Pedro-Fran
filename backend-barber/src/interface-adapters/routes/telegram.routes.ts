@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { TelegramController } from '../controllers/telegram/TelegramController';
-import { createAuthenticate } from '../middlewares/auth.middleware';
+import { authorize, createAuthenticate } from '../middlewares/auth.middleware';
 
 const linkTokenLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -17,7 +17,13 @@ export const createTelegramRouter = (deps: {
 }) => {
   const router = Router();
 
-  router.post('/link-token', linkTokenLimiter, deps.authenticate, deps.telegramController.generateToken);
+  router.post(
+    '/link-token',
+    linkTokenLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    deps.telegramController.generateToken
+  );
 
   return router;
 };

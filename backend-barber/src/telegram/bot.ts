@@ -93,7 +93,7 @@ export function createBot(): Telegraf<BotContext> {
     if (!text || text.startsWith('/')) return;
     if (!getConfig().gemini.enabled) return;
 
-    const classification = await classifyGeneralIntent(text);
+    const classification = await classifyGeneralIntent(text, ctx.from?.id);
     if (!classification || classification.confianza_baja || classification.intent === 'otro') return;
 
     switch (classification.intent) {
@@ -106,7 +106,7 @@ export function createBot(): Telegraf<BotContext> {
       case 'cancelar':
         return handleCancelarCommand(ctx);
       case 'reservar':
-        return ctx.scene.enter(GUEST_BOOKING_SCENE_ID);
+        return ctx.scene.enter(GUEST_BOOKING_SCENE_ID, { booking: { pendingFreeText: text } });
     }
   });
 

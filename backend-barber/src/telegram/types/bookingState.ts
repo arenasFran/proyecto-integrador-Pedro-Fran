@@ -13,4 +13,6 @@ export interface GuestBookingState {
   pendingTime?: string;
   /** Presente si el Telegram del usuario ya está vinculado: la reserva se crea como usuario registrado. */
   accessToken?: string;
+  /** Texto libre que ya traía intención de reserva al entrar a la escena (ver bot.ts, intent "reservar"): se procesa apenas la escena esté lista para interpretarlo, en vez de descartarlo y volver a preguntar. */
+  pendingFreeText?: string;
 }

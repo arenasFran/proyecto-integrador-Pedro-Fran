@@ -59,11 +59,11 @@ describe('gemini.service — validacion de la respuesta del modelo', () => {
   it('extractBookingIntent devuelve null si Gemini responde JSON invalido', async () => {
     mockGeminiRawText('esto no es json{');
 
-    const result = await extractBookingIntent('quiero un corte', {
-      services: [],
-      barbers: [],
-      todayISO: '2026-07-29',
-    });
+    const result = await extractBookingIntent(
+      'quiero un corte',
+      { services: [], barbers: [], todayISO: '2026-07-29' },
+      101
+    );
 
     expect(result).toBeNull();
   });
@@ -71,11 +71,11 @@ describe('gemini.service — validacion de la respuesta del modelo', () => {
   it('extractBookingIntent devuelve null si el JSON no cumple el shape esperado', async () => {
     mockGeminiRawText(JSON.stringify({ intent: 'crear_turno' }));
 
-    const result = await extractBookingIntent('quiero un corte', {
-      services: [],
-      barbers: [],
-      todayISO: '2026-07-29',
-    });
+    const result = await extractBookingIntent(
+      'quiero un corte',
+      { services: [], barbers: [], todayISO: '2026-07-29' },
+      102
+    );
 
     expect(result).toBeNull();
   });
@@ -92,11 +92,11 @@ describe('gemini.service — validacion de la respuesta del modelo', () => {
     };
     mockGeminiRawText(JSON.stringify(valid));
 
-    const result = await extractBookingIntent('quiero un corte clasico', {
-      services: [],
-      barbers: [],
-      todayISO: '2026-07-29',
-    });
+    const result = await extractBookingIntent(
+      'quiero un corte clasico',
+      { services: [], barbers: [], todayISO: '2026-07-29' },
+      103
+    );
 
     expect(result).toEqual(valid);
   });
@@ -104,8 +104,53 @@ describe('gemini.service — validacion de la respuesta del modelo', () => {
   it('classifyGeneralIntent devuelve null si el intent no esta en el enum permitido', async () => {
     mockGeminiRawText(JSON.stringify({ intent: 'algo_inventado', confianza_baja: false }));
 
-    const result = await classifyGeneralIntent('mensaje ambiguo');
+    const result = await classifyGeneralIntent('mensaje ambiguo', 104);
 
     expect(result).toBeNull();
+  });
+});
+
+describe('gemini.service — límite de mensajes libres por telegramId', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('permite hasta 8 mensajes en la ventana y bloquea el 9no sin llamar a fetch', async () => {
+    const valid = { intent: 'productos', confianza_baja: false };
+    mockGeminiRawText(JSON.stringify(valid));
+    const telegramId = 201;
+
+    for (let i = 0; i < 8; i++) {
+      const result = await classifyGeneralIntent('mensaje libre', telegramId);
+      expect(result).toEqual(valid);
+    }
+    expect(global.fetch).toHaveBeenCalledTimes(8);
+
+    const blocked = await classifyGeneralIntent('mensaje libre de más', telegramId);
+    expect(blocked).toBeNull();
+    expect(global.fetch).toHaveBeenCalledTimes(8);
+  });
+
+  it('no comparte el límite entre distintos telegramId', async () => {
+    const valid = { intent: 'productos', confianza_baja: false };
+    mockGeminiRawText(JSON.stringify(valid));
+
+    for (let i = 0; i < 8; i++) {
+      await classifyGeneralIntent('mensaje libre', 202);
+    }
+    expect(await classifyGeneralIntent('mensaje libre', 202)).toBeNull();
+
+    const otroUsuario = await classifyGeneralIntent('mensaje libre', 203);
+    expect(otroUsuario).toEqual(valid);
+  });
+
+  it('sin telegramId (edge case defensivo) nunca bloquea', async () => {
+    const valid = { intent: 'productos', confianza_baja: false };
+    mockGeminiRawText(JSON.stringify(valid));
+
+    for (let i = 0; i < 20; i++) {
+      const result = await classifyGeneralIntent('mensaje libre', undefined);
+      expect(result).toEqual(valid);
+    }
   });
 });

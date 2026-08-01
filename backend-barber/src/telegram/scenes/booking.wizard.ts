@@ -119,6 +119,90 @@ async function renderTimeOptions(
   return 'ok';
 }
 
+/**
+ * Interpreta `text` como intención de reserva (Gemini) y avanza la escena según lo
+ * que se pudo entender. Compartido entre el step 5 (mensaje escrito ahí mismo) y los
+ * puntos de entrada que ya traen texto libre desde antes de entrar a la escena
+ * (ver `pendingFreeText` en GuestBookingState) — mismo comportamiento en ambos casos,
+ * sin esperar un mensaje nuevo cuando el texto ya lo teníamos.
+ */
+async function processFreeText(ctx: WizardCtx, text: string) {
+  const fallbackToButtons = async () => {
+    await ctx.reply('No te entendí bien, elijamos con botones.');
+    const result = await renderServiceOptions(ctx);
+    if (result === 'empty') return ctx.scene.leave();
+    return ctx.wizard.selectStep(6);
+  };
+
+  if (!getConfig().gemini.enabled) return fallbackToButtons();
+
+  const { services } = await backendClient.getServices();
+  const { barbers } = await backendClient.getBarbersPublic();
+  const parsed = await geminiService.extractBookingIntent(
+    text,
+    { services, barbers, todayISO: todayISO() },
+    ctx.from?.id
+  );
+
+  if (!parsed || parsed.intent !== 'crear_turno') {
+    return fallbackToButtons();
+  }
+
+  const state = getState(ctx);
+  const service = geminiService.matchService(parsed.servicio, services);
+  const barber = geminiService.matchBarber(parsed.barbero, barbers);
+  const validDate = Boolean(parsed.fecha) && /^\d{4}-\d{2}-\d{2}$/.test(parsed.fecha as string) && (parsed.fecha as string) >= todayISO();
+  const validTimeFormat = Boolean(parsed.hora) && TIME_REGEX.test(parsed.hora as string);
+
+  // confianza_baja no descarta lo entendido: puede deberse a un solo campo ambiguo
+  // (ej. dos barberos con el mismo nombre) mientras el resto del mensaje se interpretó bien.
+  if (!service && !barber && !validDate && !validTimeFormat) {
+    return fallbackToButtons();
+  }
+
+  if (service) {
+    state.serviceId = service.id;
+    state.serviceName = service.name;
+  }
+  if (barber) {
+    state.barberId = barber.id;
+    state.barberName = `${barber.name} ${barber.lastname}`;
+  }
+  if (validDate) state.date = parsed.fecha as string;
+  if (validTimeFormat) state.pendingTime = parsed.hora as string;
+
+  const missingSomething = !state.serviceId || !state.barberId || !state.date;
+  if (missingSomething) {
+    const understood: string[] = [];
+    if (service) understood.push(`Servicio: ${service.name}`);
+    if (barber) understood.push(`Barbero: ${barber.name} ${barber.lastname}`);
+    if (validDate) understood.push(`Fecha: ${parsed.fecha}`);
+    if (validTimeFormat) understood.push(`Hora: ${parsed.hora}`);
+    if (understood.length > 0) {
+      await ctx.reply(`Entendí esto de tu mensaje:\n${understood.map((u) => `• ${u}`).join('\n')}\n\nVamos con lo que falta:`);
+    }
+  }
+
+  if (!state.serviceId) {
+    const result = await renderServiceOptions(ctx);
+    if (result === 'empty') return ctx.scene.leave();
+    return ctx.wizard.selectStep(6);
+  }
+  if (!state.barberId) {
+    const result = await renderBarberOptions(ctx);
+    if (result === 'empty') return ctx.scene.leave();
+    return ctx.wizard.selectStep(7);
+  }
+  if (!state.date) {
+    await renderDateOptions(ctx);
+    return ctx.wizard.selectStep(8);
+  }
+
+  const result = await renderTimeOptions(ctx, state.barberId as string, state.date as string, state.pendingTime);
+  if (result === 'retry-date') return ctx.wizard.selectStep(8);
+  return ctx.wizard.selectStep(result === 'confirmed' ? 10 : 9);
+}
+
 async function renderConfirmation(ctx: WizardCtx): Promise<void> {
   const state = getState(ctx);
   await ctx.reply(
@@ -155,6 +239,13 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
           state.clientEmail = profile.email;
 
           await ctx.reply(`¡Hola ${profile.name}! Vamos a reservar tu turno.`);
+
+          const pending = state.pendingFreeText;
+          if (pending) {
+            state.pendingFreeText = undefined;
+            return processFreeText(ctx, pending);
+          }
+
           await ctx.reply(
             'Contame qué querés reservar (ej: "corte con Santiago el lunes a las 15") o tocá el botón de abajo.',
             Markup.inlineKeyboard([[Markup.button.callback('Prefiero elegir con botones', 'use_buttons')]])
@@ -214,7 +305,14 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
       await ctx.reply('Ese email no parece válido. Probá de nuevo.');
       return;
     }
-    getState(ctx).clientEmail = text;
+    const state = getState(ctx);
+    state.clientEmail = text;
+
+    const pending = state.pendingFreeText;
+    if (pending) {
+      state.pendingFreeText = undefined;
+      return processFreeText(ctx, pending);
+    }
 
     await ctx.reply(
       'Contame qué querés reservar (ej: "corte con Santiago el lunes a las 15") o tocá el botón de abajo.',
@@ -239,80 +337,7 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
       return;
     }
 
-    const fallbackToButtons = async () => {
-      await ctx.reply('No te entendí bien, elijamos con botones.');
-      const result = await renderServiceOptions(ctx);
-      if (result === 'empty') return ctx.scene.leave();
-      return ctx.wizard.selectStep(6);
-    };
-
-    if (!getConfig().gemini.enabled) return fallbackToButtons();
-
-    const { services } = await backendClient.getServices();
-    const { barbers } = await backendClient.getBarbersPublic();
-    const parsed = await geminiService.extractBookingIntent(text, {
-      services,
-      barbers,
-      todayISO: todayISO(),
-    });
-
-    if (!parsed || parsed.intent !== 'crear_turno') {
-      return fallbackToButtons();
-    }
-
-    const state = getState(ctx);
-    const service = geminiService.matchService(parsed.servicio, services);
-    const barber = geminiService.matchBarber(parsed.barbero, barbers);
-    const validDate = Boolean(parsed.fecha) && /^\d{4}-\d{2}-\d{2}$/.test(parsed.fecha as string) && (parsed.fecha as string) >= todayISO();
-    const validTimeFormat = Boolean(parsed.hora) && TIME_REGEX.test(parsed.hora as string);
-
-    // confianza_baja no descarta lo entendido: puede deberse a un solo campo ambiguo
-    // (ej. dos barberos con el mismo nombre) mientras el resto del mensaje se interpretó bien.
-    if (!service && !barber && !validDate && !validTimeFormat) {
-      return fallbackToButtons();
-    }
-
-    if (service) {
-      state.serviceId = service.id;
-      state.serviceName = service.name;
-    }
-    if (barber) {
-      state.barberId = barber.id;
-      state.barberName = `${barber.name} ${barber.lastname}`;
-    }
-    if (validDate) state.date = parsed.fecha as string;
-    if (validTimeFormat) state.pendingTime = parsed.hora as string;
-
-    const missingSomething = !state.serviceId || !state.barberId || !state.date;
-    if (missingSomething) {
-      const understood: string[] = [];
-      if (service) understood.push(`Servicio: ${service.name}`);
-      if (barber) understood.push(`Barbero: ${barber.name} ${barber.lastname}`);
-      if (validDate) understood.push(`Fecha: ${parsed.fecha}`);
-      if (validTimeFormat) understood.push(`Hora: ${parsed.hora}`);
-      if (understood.length > 0) {
-        await ctx.reply(`Entendí esto de tu mensaje:\n${understood.map((u) => `• ${u}`).join('\n')}\n\nVamos con lo que falta:`);
-      }
-    }
-
-    if (!state.serviceId) {
-      const result = await renderServiceOptions(ctx);
-      if (result === 'empty') return ctx.scene.leave();
-      return ctx.wizard.selectStep(6);
-    }
-    if (!state.barberId) {
-      const result = await renderBarberOptions(ctx);
-      if (result === 'empty') return ctx.scene.leave();
-      return ctx.wizard.selectStep(7);
-    }
-    if (!state.date) {
-      await renderDateOptions(ctx);
-      return ctx.wizard.selectStep(8);
-    }
-
-    const result = await renderTimeOptions(ctx, state.barberId as string, state.date as string, state.pendingTime);
-    if (result === 'retry-date') return ctx.wizard.selectStep(8);
-    return ctx.wizard.selectStep(result === 'confirmed' ? 10 : 9);
+    return processFreeText(ctx, text);
   },
 
   // 6: servicio -> lista de barberos
@@ -461,7 +486,7 @@ guestBookingWizard.on('text', async (ctx, next) => {
   if (!text || text.startsWith('/')) return next();
   if (!getConfig().gemini.enabled) return next();
 
-  const classification = await geminiService.classifyGeneralIntent(text);
+  const classification = await geminiService.classifyGeneralIntent(text, ctx.from?.id);
   if (!classification || classification.confianza_baja) return next();
 
   switch (classification.intent) {

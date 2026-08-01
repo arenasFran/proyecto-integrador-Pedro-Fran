@@ -47,9 +47,37 @@ function isValidIntent(value: unknown): value is GeminiBookingIntent {
   );
 }
 
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<unknown | null> {
+// Cuota de Gemini compartida entre todos los usuarios del bot: sin esto, un solo
+// usuario mandando mensajes sueltos repetidos puede agotarla y romper el texto
+// libre para todos. Ventana fija simple en memoria, misma idea que
+// `pendingSessionRequests` en accountLink.service.ts.
+const FREE_TEXT_MAX_PER_WINDOW = 8;
+const FREE_TEXT_WINDOW_MS = 60_000;
+const freeTextUsage = new Map<number, { count: number; windowStart: number }>();
+
+function isRateLimited(telegramId: number | undefined): boolean {
+  if (telegramId === undefined) return false;
+
+  const now = Date.now();
+  const usage = freeTextUsage.get(telegramId);
+  if (!usage || now - usage.windowStart >= FREE_TEXT_WINDOW_MS) {
+    freeTextUsage.set(telegramId, { count: 1, windowStart: now });
+    return false;
+  }
+  if (usage.count >= FREE_TEXT_MAX_PER_WINDOW) return true;
+
+  usage.count += 1;
+  return false;
+}
+
+async function callGemini(systemPrompt: string, userPrompt: string, telegramId: number | undefined): Promise<unknown | null> {
   const { apiKey, model } = getConfig().gemini;
   if (!apiKey) return null;
+
+  if (isRateLimited(telegramId)) {
+    console.warn(`[GeminiService] Límite de mensajes libres alcanzado para telegramId=${telegramId}, se omite la llamada.`);
+    return null;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 4000);
@@ -89,9 +117,10 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<unk
 
 export async function extractBookingIntent(
   text: string,
-  ctx: { services: ServiceDTO[]; barbers: BarberDTO[]; todayISO: string }
+  ctx: { services: ServiceDTO[]; barbers: BarberDTO[]; todayISO: string },
+  telegramId: number | undefined
 ): Promise<GeminiBookingIntent | null> {
-  const parsed = await callGemini(SYSTEM_PROMPT, buildUserPrompt(text, ctx));
+  const parsed = await callGemini(SYSTEM_PROMPT, buildUserPrompt(text, ctx), telegramId);
   return isValidIntent(parsed) ? parsed : null;
 }
 
@@ -121,8 +150,8 @@ function isValidGeneralIntent(value: unknown): value is GeneralIntent {
   );
 }
 
-export async function classifyGeneralIntent(text: string): Promise<GeneralIntent | null> {
-  const parsed = await callGemini(GENERAL_SYSTEM_PROMPT, text);
+export async function classifyGeneralIntent(text: string, telegramId: number | undefined): Promise<GeneralIntent | null> {
+  const parsed = await callGemini(GENERAL_SYSTEM_PROMPT, text, telegramId);
   return isValidGeneralIntent(parsed) ? parsed : null;
 }
 

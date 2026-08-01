@@ -14,6 +14,15 @@ import {
 
 type BotContext = Scenes.WizardContext;
 
+// Chequeo determinístico, sin pegarle a Gemini: un saludo suelto ("hola", "buenas") no
+// necesita clasificación de intención, y hoy caía en el enum "otro" (o directamente se
+// ignoraba si Gemini estaba deshabilitado) sin ninguna respuesta.
+const GREETING_REGEX = /^(hola+|holis|buenas|buen[oa]?s?\s+(d[ií]as?|tardes?|noches?)|hey|qu[eé]\s+tal)[\s!.,]*$/i;
+
+export function isGreeting(text: string): boolean {
+  return GREETING_REGEX.test(text.trim());
+}
+
 export function createBot(): Telegraf<BotContext> {
   const { botToken } = getConfig().telegram;
   if (!botToken) {
@@ -91,6 +100,14 @@ export function createBot(): Telegraf<BotContext> {
   bot.on('text', async (ctx) => {
     const text = (ctx.message as { text?: string })?.text;
     if (!text || text.startsWith('/')) return;
+
+    if (isGreeting(text)) {
+      await ctx.reply(
+        '¡Hola! ¿En qué te ayudo? Podés reservar con /reservar, ver tus turnos con /misturnos, consultar /productos o /barberos, o contarme directamente qué necesitás.'
+      );
+      return;
+    }
+
     if (!getConfig().gemini.enabled) return;
 
     const classification = await classifyGeneralIntent(text, ctx.from?.id);

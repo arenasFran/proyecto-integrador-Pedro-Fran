@@ -12,6 +12,7 @@ import { productApi } from '../services/productApi';
 import { orderApi } from '../services/orderApi';
 import { paymentApi } from '../services/paymentApi';
 import { telegramApi } from '../services/telegramApi';
+import { analisisCorteApi } from '../services/analisisCorteApi';
 
 export const store = configureStore({
   reducer: {
@@ -28,6 +29,7 @@ export const store = configureStore({
     [orderApi.reducerPath]: orderApi.reducer,
     [paymentApi.reducerPath]: paymentApi.reducer,
     [telegramApi.reducerPath]: telegramApi.reducer,
+    [analisisCorteApi.reducerPath]: analisisCorteApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -39,7 +41,8 @@ export const store = configureStore({
       productApi.middleware,
       orderApi.middleware,
       paymentApi.middleware,
-      telegramApi.middleware
+      telegramApi.middleware,
+      analisisCorteApi.middleware
     ),
 });
 

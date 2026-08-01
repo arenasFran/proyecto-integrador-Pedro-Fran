@@ -113,6 +113,7 @@ export class MongoPaymentRepository {
       {
         status: 'pending',
         createdAt: { $lt: cutoff },
+        type: { $in: ['appointment', 'product_order'] },
       },
       {
         $set: {

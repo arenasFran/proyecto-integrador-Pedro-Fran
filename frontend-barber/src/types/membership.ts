@@ -1,7 +1,7 @@
 export type MembershipStatus = 'active' | 'expired' | 'pending';
 export type MembershipSource = 'client' | 'admin';
 export type PaymentMethod = 'mercadopago' | 'local' | null;
-export type BillingCycle = 'monthly' | 'onetime' | null;
+export type BillingCycle = 'onetime' | null;
 
 export type Membership = {
   id: string;
@@ -17,7 +17,6 @@ export type Membership = {
   billingCycle: BillingCycle;
   createdBy: MembershipSource;
   adminId?: string;
-  mpPreapprovalId?: string;
   paymentMethod: PaymentMethod;
   paymentId?: string;
   approvedBy?: string;
@@ -37,7 +36,7 @@ export type CreateMembershipPayload = {
   couponsTotal?: number;
   productDiscount?: number;
   durationDays?: number;
-  billingCycle?: 'monthly' | 'onetime';
+  billingCycle?: 'onetime';
   paymentMethod?: 'local';
   paymentId?: string;
   price?: number;

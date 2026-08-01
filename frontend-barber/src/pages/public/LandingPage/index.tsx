@@ -31,8 +31,8 @@ const services = [
     name: 'Corte de pelo',
     desc: 'Tijera y máquina, terminación prolija, lavado incluido.',
     price: '$ 490',
-    image: '/foto2.jpeg',
-    bgPosition: '50% 72%',
+    image: '/corte%20de%20pelo.jpeg',
+    bgPosition: '50% 25%',
   },
   {
     name: 'Corte a máquina',
@@ -42,11 +42,11 @@ const services = [
     bgPosition: '50% 50%',
   },
   {
-    name: 'Barba.',
+    name: 'Barba',
     desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
     price: '$ 250',
-    image: '/foto1.jpg',
-    bgPosition: '50% 85%',
+    image: '/corte%20de%20barba.jpeg',
+    bgPosition: '35% 35%',
   }
 ];
 
@@ -209,7 +209,7 @@ export const LandingPage: React.FC = () => {
           <picture>
             <source media="(max-width: 767px)" srcSet="/hero-mobile.jpeg" />
             <img
-              src="/hero.jpg"
+              src="/hero.png"
               alt=""
               className="max-w-full max-h-full object-contain"
             />

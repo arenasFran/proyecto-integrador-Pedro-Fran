@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import { MongoAnalyticsRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoAnalyticsRepository';
+import { MongoRevenueEntryRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoRevenueEntryRepository';
+import { RevenueEntryModel } from '../../../../src/infrastructure/repositories/mongodb/models/revenue-entry.model';
 import { Barber } from '../../../../src/infrastructure/repositories/mongodb/models/barber.model';
 import AppointmentModel from '../../../../src/infrastructure/repositories/mongodb/models/appointment.model';
 import { Client, RegisteredClient, UnregisteredClient } from '../../../../src/infrastructure/repositories/mongodb/models/client.model';
 
-// ObjectId cuyo timestamp embebido es el instante dado (segundos de resolución).
 const oidAt = (iso: string) => mongoose.Types.ObjectId.createFromTime(Math.floor(new Date(iso).getTime() / 1000));
 
 const isMongoReady = process.env.MONGO_READY === 'true';
@@ -15,6 +16,7 @@ const HASTA = '2025-06-30';
 
 describeIfMongo('MongoAnalyticsRepository', () => {
   let repository: MongoAnalyticsRepository;
+  let revenueEntryRepo: MongoRevenueEntryRepository;
   let barber1Id: mongoose.Types.ObjectId;
   let barber2Id: mongoose.Types.ObjectId;
   let regId1: mongoose.Types.ObjectId;
@@ -22,7 +24,8 @@ describeIfMongo('MongoAnalyticsRepository', () => {
   let regId3: mongoose.Types.ObjectId;
 
   beforeEach(async () => {
-    repository = new MongoAnalyticsRepository();
+    revenueEntryRepo = new MongoRevenueEntryRepository();
+    repository = new MongoAnalyticsRepository(revenueEntryRepo);
 
     const b1 = await Barber.create({
       _id: new mongoose.Types.ObjectId(),
@@ -76,41 +79,47 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       statusHistory: [{ status: overrides.status, timestamp: new Date(), actor: 'system' }],
     });
 
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-05-20', barberId: barber1Id, status: 'Confirmado', clientId: regId1,
-    }));
+    const appointments = [
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-05-20', barberId: barber1Id, status: 'Confirmado', clientId: regId1,
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-05', barberId: barber1Id, status: 'Completado', clientId: regId1,
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-05', barberId: barber2Id, status: 'Confirmado', clientId: regId2,
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-10', barberId: barber1Id, status: 'Completado', servicePrice: 600, serviceDuration: 45, clientPhone: 'p1',
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-10', barberId: barber2Id, status: 'Cancelado', clientId: regId1,
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-15', barberId: barber1Id, status: 'NoShow', clientId: regId3,
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-20', barberId: barber2Id, status: 'Completado', clientPhone: 'p1',
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-06-25', barberId: barber1Id, status: 'Confirmado', clientPhone: 'p2',
+      })),
+      await AppointmentModel.create(makeAppointment({
+        date: '2025-07-05', barberId: barber1Id, status: 'Completado', clientId: regId1,
+      })),
+    ];
 
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-05', barberId: barber1Id, status: 'Completado', clientId: regId1,
-    }));
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-05', barberId: barber2Id, status: 'Confirmado', clientId: regId2,
-    }));
+    const parseDate = (s: string) => {
+      const [y, m, d] = s.split('-').map(Number);
+      return new Date(Date.UTC(y, m - 1, d));
+    };
 
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-10', barberId: barber1Id, status: 'Completado', servicePrice: 600, serviceDuration: 45, clientPhone: 'p1',
-    }));
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-10', barberId: barber2Id, status: 'Cancelado', clientId: regId1,
-    }));
+    await RevenueEntryModel.create(
+      { source: 'appointment', amount: 490, date: parseDate('2025-06-05'), referenceId: appointments[1]._id.toString(), metadata: { barberId: barber1Id.toString(), serviceId: 'svc-1', clientId: regId1.toString() } },
+      { source: 'appointment', amount: 600, date: parseDate('2025-06-10'), referenceId: appointments[3]._id.toString(), metadata: { barberId: barber1Id.toString(), serviceId: 'svc-1', clientId: regId3.toString() } },
+      { source: 'appointment', amount: 490, date: parseDate('2025-06-20'), referenceId: appointments[6]._id.toString(), metadata: { barberId: barber2Id.toString(), serviceId: 'svc-1', clientId: regId1.toString() } },
+    );
 
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-15', barberId: barber1Id, status: 'NoShow', clientId: regId3,
-    }));
-
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-20', barberId: barber2Id, status: 'Completado', clientPhone: 'p1',
-    }));
-
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-06-25', barberId: barber1Id, status: 'Confirmado', clientPhone: 'p2',
-    }));
-
-    await AppointmentModel.create(makeAppointment({
-      date: '2025-07-05', barberId: barber1Id, status: 'Completado', clientId: regId1,
-    }));
-
-    // Clientes registrados/anónimos con fecha de alta embebida en el _id
     await RegisteredClient.create({
       _id: oidAt('2025-05-20T10:00:00Z'),
       name: 'Ana', lastname: 'Vieja', email: 'ana@test.com', password: 'hash',
@@ -344,7 +353,6 @@ describeIfMongo('MongoAnalyticsRepository', () => {
     it('lista todos los clientes dados de alta hasta el fin del rango, con estadísticas del período', async () => {
       const result = await repository.getClientesList(DESDE, HASTA);
 
-      // Pia (alta 2025-07-02) queda fuera; los demás aparecen aunque no tengan turnos
       expect(result).toHaveLength(4);
 
       expect(result[0]).toMatchObject({
@@ -358,7 +366,6 @@ describeIfMongo('MongoAnalyticsRepository', () => {
         firstVisit: '2025-06-10', lastVisit: '2025-06-20',
       });
 
-      // Registrados sin turnos: aparecen con 0 actividad
       expect(result[2]).toMatchObject({
         clientName: 'Juan', kind: 'Registrado', totalVisits: 0, totalSpent: 0,
         firstVisit: null, lastVisit: null,

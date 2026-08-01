@@ -1,6 +1,11 @@
 import { SlotService } from '../domain/services/SlotService';
 import { GetAvailableSlotsUseCase } from '../application/use-cases/barber/GetAvailableSlotsUseCase';
 import { DeleteBarberUseCase } from '../application/use-cases/barber/DeleteBarberUseCase';
+import { CreateBarberUseCase } from '../application/use-cases/barber/CreateBarberUseCase';
+import { UpdateBarberUseCase } from '../application/use-cases/barber/UpdateBarberUseCase';
+import { UpdateBarberMeUseCase } from '../application/use-cases/barber/UpdateBarberMeUseCase';
+import { GetBarberOccupancyUseCase } from '../application/use-cases/barber/GetBarberOccupancyUseCase';
+import { CreateBarberBlockUseCase } from '../application/use-cases/barber/CreateBarberBlockUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoBarberBlockRepository } from '../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
@@ -18,6 +23,10 @@ import { CloudinaryService } from '../infrastructure/services/CloudinaryService'
 import { UploadController } from '../interface-adapters/controllers/upload/UploadController';
 import { createUploadRouter } from '../interface-adapters/routes/upload.routes';
 import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
+import { CreateServiceUseCase } from '../application/use-cases/service/CreateServiceUseCase';
+import { UpdateServiceUseCase } from '../application/use-cases/service/UpdateServiceUseCase';
+import { DeleteServiceUseCase } from '../application/use-cases/service/DeleteServiceUseCase';
+import { RestoreServiceUseCase } from '../application/use-cases/service/RestoreServiceUseCase';
 import { ServiceController } from '../interface-adapters/controllers/service/ServiceController';
 import { createServiceRouter } from '../interface-adapters/routes/service.routes';
 import { UserController } from '../interface-adapters/controllers/user/UserController';
@@ -26,6 +35,9 @@ import { TempLockController } from '../interface-adapters/controllers/tempLock/T
 import { createTempLockRouter } from '../interface-adapters/routes/tempLock.routes';
 import { buildTokenService } from './auth';
 import { getConfig } from '../infrastructure/config/env';
+import { UpdateUserProfileUseCase } from '../application/use-cases/user/UpdateUserProfileUseCase';
+import { ChangePasswordUseCase } from '../application/use-cases/user/ChangePasswordUseCase';
+import { EmailChangeVerifier } from '../application/services/EmailChangeVerifier';
 
 export const buildBarberRouter = () => {
   const barberRepository = new MongoBarberRepository();
@@ -41,16 +53,24 @@ export const buildBarberRouter = () => {
   const slotService = new SlotService();
   const getAvailableSlots = new GetAvailableSlotsUseCase(barberRepository, slotService, appointmentRepository, tempLockRepository, blockRepository);
   const deleteBarber = new DeleteBarberUseCase(barberRepository, appointmentRepository, tempLockRepository, blockRepository, emailService, membershipRepository);
+  const createBarber = new CreateBarberUseCase(barberRepository, userRepository, passwordHasher);
+  const updateBarber = new UpdateBarberUseCase(barberRepository, userRepository, passwordHasher);
+  const emailChangeVerifier = new EmailChangeVerifier();
+  const updateBarberMe = new UpdateBarberMeUseCase(barberRepository, userRepository, passwordHasher, emailChangeVerifier);
+  const getBarberOccupancy = new GetBarberOccupancyUseCase(barberRepository, appointmentRepository, blockRepository);
+  const createBarberBlock = new CreateBarberBlockUseCase(appointmentRepository, blockRepository);
 
   const barberController = new BarberController(
     barberRepository,
-    userRepository,
-    passwordHasher,
     getAvailableSlots,
     deleteBarber,
     blockRepository,
-    appointmentRepository,
-    emailService
+    emailService,
+    createBarber,
+    updateBarber,
+    updateBarberMe,
+    getBarberOccupancy,
+    createBarberBlock
   );
 
   const authenticate = createAuthenticate(tokenService);
@@ -60,7 +80,17 @@ export const buildBarberRouter = () => {
 
 export const buildServiceRouter = (deps?: { authenticate?: ReturnType<typeof createAuthenticate> }) => {
   const repo = new MongoServiceRepository();
-  const controller = new ServiceController(repo);
+  const createServiceUseCase = new CreateServiceUseCase(repo);
+  const updateServiceUseCase = new UpdateServiceUseCase(repo);
+  const deleteServiceUseCase = new DeleteServiceUseCase(repo);
+  const restoreServiceUseCase = new RestoreServiceUseCase(repo);
+  const controller = new ServiceController(
+    repo,
+    createServiceUseCase,
+    updateServiceUseCase,
+    deleteServiceUseCase,
+    restoreServiceUseCase,
+  );
 
   return createServiceRouter({ serviceController: controller, authenticate: deps?.authenticate });
 };
@@ -81,7 +111,10 @@ export const buildUserRouter = () => {
   });
 
   const emailService = new NodemailerEmailService();
-  const userController = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
+  const emailChangeVerifier = new EmailChangeVerifier();
+  const updateUserProfile = new UpdateUserProfileUseCase(userRepository, passwordHasher, emailChangeVerifier);
+  const changePassword = new ChangePasswordUseCase(userRepository, passwordHasher, refreshTokenRepository);
+  const userController = new UserController(userRepository, emailService, updateUserProfile, changePassword);
   const authenticate = createAuthenticate(tokenService);
 
   return createUserRouter({ authenticate, userController });
@@ -98,7 +131,7 @@ export const buildUploadRouter = () => {
 };
 
 export { buildMembershipRouter } from './membership';
-export { buildPaymentRepository, buildMercadoPagoService, buildPaymentDependencies, buildPaymentRouter, buildCreatePaymentUseCase, buildCreateSubscriptionUseCase } from './payment';
+export { buildPaymentRepository, buildMercadoPagoService, buildPaymentDependencies, buildPaymentRouter, buildCreatePaymentUseCase } from './payment';
 export { buildProductRouter } from './product';
 export { buildOrderRouter } from './order';
 

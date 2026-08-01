@@ -13,6 +13,7 @@ export type Config = {
   mongoUri: string;
   frontendUrl: string;
   resetTokenExpirationMin: number;
+  emailProvider: 'ethereal' | 'brevo';
   smtp: {
     host: string;
     port: number;
@@ -30,6 +31,13 @@ export type Config = {
   mpWebhookSecret: string | undefined;
   mpNotificationUrl: string | undefined;
   membershipPriceUyu: number;
+  awsRegion: string;
+  awsAccessKeyId: string | undefined;
+  awsSecretAccessKey: string | undefined;
+  awsSessionToken: string | undefined;
+  geminiApiKey: string | undefined;
+  openaiApiKey: string | undefined;
+  orphanPaymentCutoffHours: number;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -83,6 +91,14 @@ function parseBoolEnv(name: string, defaultValue: boolean): boolean {
   return raw === 'true' || raw === '1';
 }
 
+function parseEmailProvider(): 'ethereal' | 'brevo' {
+  const raw = (process.env.EMAIL_PROVIDER || 'brevo').trim().toLowerCase();
+  if (raw !== 'ethereal' && raw !== 'brevo') {
+    throw new Error(`EMAIL_PROVIDER inválido ("${raw}"). Valores permitidos: "ethereal" o "brevo".`);
+  }
+  return raw;
+}
+
 export function loadConfig(): Config {
   dotenv.config();
 
@@ -115,6 +131,7 @@ export function loadConfig(): Config {
     mongoUri: requireEnv('MONGO_URI'),
     frontendUrl: optionalEnv('FRONTEND_URL', ''),
     resetTokenExpirationMin: parseIntEnv('RESET_TOKEN_EXPIRATION_MIN', 60),
+    emailProvider: parseEmailProvider(),
     smtp: {
       host: optionalEnv('SMTP_HOST', 'localhost'),
       port: parseIntEnv('SMTP_PORT', 587),
@@ -132,6 +149,13 @@ export function loadConfig(): Config {
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
+    awsRegion: optionalEnv('AWS_REGION', 'us-east-1'),
+    awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
+    awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
+    awsSessionToken: process.env.AWS_SESSION_TOKEN || undefined,
+    geminiApiKey: process.env.GEMINI_API_KEY || undefined,
+    openaiApiKey: process.env.OPENAI_API_KEY || undefined,
+    orphanPaymentCutoffHours: parseIntEnv('ORPHAN_PAYMENT_CUTOFF_HOURS', 72),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },
@@ -163,10 +187,27 @@ export function getConfig(): Config {
   return _config;
 }
 
+const EMAIL_FROM_WITH_NAME_REGEX = /^.+\s<[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+>$/;
+
 export function validateEnv(): Config {
   try {
     const config = loadConfig();
     console.log('Variables de entorno validadas correctamente.');
+
+    if (config.emailProvider === 'brevo') {
+      const rawFrom = (process.env.EMAIL_FROM || '').trim();
+      if (!rawFrom) {
+        throw new Error('EMAIL_FROM es requerido cuando EMAIL_PROVIDER=brevo (debe ser un sender verificado en Brevo).');
+      }
+      if (!EMAIL_FROM_WITH_NAME_REGEX.test(rawFrom)) {
+        throw new Error(
+          'EMAIL_FROM debe tener el formato "Nombre <email@dominio>" cuando EMAIL_PROVIDER=brevo. Ejemplo: "Barbería Santiago Abbona <noreply@barberiasantiagoabbona.com>".'
+        );
+      }
+      console.log(`[EMAIL] Proveedor: Brevo. Remitente: ${rawFrom}`);
+    } else {
+      console.log('[EMAIL] Proveedor: Ethereal (modo test, los mails no se entregan de verdad).');
+    }
 
     if (config.mpAccessToken) {
       const isTestToken = config.mpAccessToken.startsWith('TEST-');
@@ -210,6 +251,16 @@ export function validateEnv(): Config {
       console.log('[GEMINI] Texto libre habilitado (modelo: ' + config.gemini.model + ').');
     } else {
       console.log('[GEMINI] Deshabilitado (GEMINI_API_KEY no configurada). El bot solo usará botones.');
+    }
+
+    if (!config.awsAccessKeyId || !config.awsSecretAccessKey) {
+      console.warn('[ANALISIS-IA] Credenciales de AWS no configuradas. La validación de foto (Rekognition) no estará disponible.');
+    }
+    if (!config.geminiApiKey) {
+      console.warn('[ANALISIS-IA] GEMINI_API_KEY no configurada. La recomendación de corte (Gemini) no estará disponible.');
+    }
+    if (!config.openaiApiKey) {
+      console.warn('[ANALISIS-IA] OPENAI_API_KEY no configurada. La imagen de ejemplo del corte (OpenAI) no estará disponible.');
     }
 
     return config;

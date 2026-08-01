@@ -87,22 +87,18 @@ describe('DeleteBarberUseCase', () => {
   });
 
   it('debe restaurar el cupón de membresía al cancelar un turno confirmado pagado con memberPass', async () => {
-    const membership = {
-      id: 'membership-1',
-      restoreCoupon: jest.fn(),
-    };
-    membershipRepository.findActiveByUser.mockResolvedValue(membership);
+    const currentAppointment = makeAppointment({ paymentMethod: 'memberPass', status: 'Confirmado', couponRedeemed: true, membershipId: 'membership-1' });
+    membershipRepository.atomicRestoreCoupon.mockResolvedValue(true);
     appointmentRepository.findMany.mockResolvedValue({
       data: [makeAppointment({ paymentMethod: 'memberPass', status: 'Confirmado' })],
       total: 1, page: 1, totalPages: 1, limit: 100,
     } as any);
     appointmentRepository.updateStatus.mockResolvedValue(makeAppointment({ status: 'Cancelado' }));
+    appointmentRepository.findById.mockResolvedValue(currentAppointment);
 
     await useCase.execute('barber-1');
 
-    expect(membershipRepository.findActiveByUser).toHaveBeenCalledWith('client-1', capturedSession);
-    expect(membership.restoreCoupon).toHaveBeenCalledTimes(1);
-    expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledWith('membership-1', -1, capturedSession);
+    expect(membershipRepository.atomicRestoreCoupon).toHaveBeenCalledWith('membership-1', capturedSession);
   });
 
   it('NO debe restaurar el cupón si el turno se pagó con método local', async () => {

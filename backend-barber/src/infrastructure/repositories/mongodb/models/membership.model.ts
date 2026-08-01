@@ -11,10 +11,9 @@ export interface IMembershipDocument extends Document {
   couponsUsed: number;
   productDiscount: number;
   durationDays: number;
-  billingCycle: 'monthly' | 'onetime' | null;
+  billingCycle: 'onetime' | null;
   createdBy: MembershipSource;
   adminId?: mongoose.Types.ObjectId;
-  mpPreapprovalId?: string;
   paymentMethod: 'mercadopago' | 'local' | null;
   paymentId?: string;
   approvedBy?: string;
@@ -45,7 +44,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     durationDays: { type: Number, required: true, default: 30 },
     billingCycle: {
       type: String,
-      enum: ['monthly', 'onetime', null],
+      enum: ['onetime', null],
       default: null,
     },
     createdBy: {
@@ -56,10 +55,6 @@ const membershipSchema = new Schema<IMembershipDocument>(
     adminId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-    },
-    mpPreapprovalId: {
-      type: String,
-      required: false,
     },
     paymentMethod: {
       type: String,
@@ -86,6 +81,5 @@ membershipSchema.index(
   { userId: 1, status: 1 },
   { unique: true, partialFilterExpression: { status: 'active' } }
 );
-membershipSchema.index({ mpPreapprovalId: 1 });
 
 export const MembershipModel = mongoose.model<IMembershipDocument>('Membership', membershipSchema);

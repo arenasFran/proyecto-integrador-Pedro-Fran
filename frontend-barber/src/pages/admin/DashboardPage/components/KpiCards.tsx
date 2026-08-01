@@ -16,6 +16,7 @@ import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
 import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -24,10 +25,6 @@ interface KpiCardsProps {
   desde: string;
   hasta: string;
   onRefresh: () => void;
-}
-
-function formatCurrency(value: number): string {
-  return '$' + value.toLocaleString('es-UY');
 }
 
 function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; ecommerceData?: { totalRevenue: number; totalOrders: number; averageTicket: number } | null }) {
@@ -392,7 +389,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[14px] font-bold text-[#FF5C00]">${a.servicePrice.toLocaleString('es-UY')}</span>
+                            <span className="text-[14px] font-bold text-[#FF5C00]">{formatCurrency(a.servicePrice)}</span>
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === a.id ? null : a.id)}
@@ -441,7 +438,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[14px] font-bold text-[#FF5C00]">${o.total.toLocaleString('es-UY')}</span>
+                            <span className="text-[14px] font-bold text-[#FF5C00]">{formatCurrency(o.total)}</span>
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === o.id ? null : o.id)}
@@ -487,7 +484,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[14px] font-bold text-[#FF5C00]">${m.price.toLocaleString('es-UY')}</span>
+                            <span className="text-[14px] font-bold text-[#FF5C00]">{formatCurrency(m.price)}</span>
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
@@ -540,7 +537,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-[#1A1A1A] p-3">
                 <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Precio</span>
-                <p className="text-[16px] text-[#FF5C00] font-bold mt-1">${detailMembership.price.toLocaleString('es-UY')}</p>
+                <p className="text-[16px] text-[#FF5C00] font-bold mt-1">{formatCurrency(detailMembership.price)}</p>
               </div>
               <div className="rounded-[10px] bg-[#1A1A1A] p-3">
                 <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Creada</span>

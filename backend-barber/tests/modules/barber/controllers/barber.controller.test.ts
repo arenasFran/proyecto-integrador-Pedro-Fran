@@ -47,18 +47,22 @@ const makeBarberEntity = (overrides?: Partial<BarberProps>) => {
 describe('BarberController', () => {
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let userRepository: ReturnType<typeof makeMockUserRepository>;
-  let passwordHasher: { hash: jest.Mock; compare: jest.Mock };
   let getAvailableSlots: jest.Mocked<GetAvailableSlotsUseCase>;
   let deleteBarber: jest.Mocked<DeleteBarberUseCase>;
+  let createBarber: { execute: jest.Mock };
+  let updateBarber: { execute: jest.Mock };
+  let updateBarberMe: { execute: jest.Mock };
   let emailService: ReturnType<typeof makeMockEmailService>;
   let controller: BarberController;
 
   beforeEach(() => {
     barberRepository = makeMockBarberRepository();
     userRepository = makeMockUserRepository();
-    passwordHasher = { hash: jest.fn(), compare: jest.fn() };
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
+    createBarber = { execute: jest.fn() };
+    updateBarber = { execute: jest.fn() };
+    updateBarberMe = { execute: jest.fn() };
     emailService = makeMockEmailService();
     const blockRepository = {
       findByBarberAndDate: jest.fn(),
@@ -70,23 +74,22 @@ describe('BarberController', () => {
 
     controller = new BarberController(
       barberRepository,
-      userRepository,
-      passwordHasher as any,
       getAvailableSlots,
       deleteBarber,
       blockRepository as any,
-      appointmentRepository as any,
-      emailService
+      emailService,
+      createBarber as any,
+      updateBarber as any,
+      updateBarberMe as any,
+      {} as any,
+      {} as any,
     );
   });
 
   describe('create', () => {
     it('debe responder 201 con el barbero creado', async () => {
-      userRepository.findByEmail.mockResolvedValue(null);
-      userRepository.findByPhone.mockResolvedValue(null);
-      passwordHasher.hash.mockResolvedValue('hashed');
       const barber = makeBarberEntity();
-      barberRepository.createBarber.mockResolvedValue(barber);
+      createBarber.execute.mockResolvedValue(barber.toPrimitives());
 
       const req = createMockReq({
         email: 'new@example.com',
@@ -104,7 +107,7 @@ describe('BarberController', () => {
     });
 
     it('debe manejar error email en uso', async () => {
-      userRepository.findByEmail.mockResolvedValue(makeBarberEntity() as any);
+      createBarber.execute.mockRejectedValue(new AppError('Email en uso.', 409));
 
       const req = createMockReq({
         email: 'used@example.com',
@@ -123,7 +126,7 @@ describe('BarberController', () => {
     });
 
     it('debe manejar error generico y responder 500', async () => {
-      userRepository.findByEmail.mockRejectedValue(new Error('boom'));
+      createBarber.execute.mockRejectedValue(new Error('boom'));
       const req = createMockReq({ email: 'new@example.com' });
       const res = createMockRes();
 
@@ -221,8 +224,7 @@ describe('BarberController', () => {
 
   describe('update', () => {
     it('debe responder 200 con el barbero actualizado', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ name: 'Pedro' }));
+      updateBarber.execute.mockResolvedValue(makeBarberEntity({ name: 'Pedro' }).toPrimitives());
 
       const req = createMockReqFull({ body: { name: 'Pedro' }, params: { id: 'barber-1' } });
       const res = createMockRes();
@@ -296,20 +298,18 @@ describe('BarberController', () => {
       }) as unknown as import('express').Request;
 
     it('debe actualizar nombre/telefono sin pedir contraseña cuando no cambia el email', async () => {
-      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ name: 'Carlos' }));
+      updateBarberMe.execute.mockResolvedValue({ barber: makeBarberEntity({ name: 'Carlos' }).toPrimitives() });
 
       const req = makeReq({ name: 'Carlos' });
       const res = createMockRes();
 
       await controller.updateMe(req, res);
 
-      expect(barberRepository.findBarberById).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe permitir reenviar el mismo email sin pedir contraseña', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity());
+      updateBarberMe.execute.mockResolvedValue({ barber: makeBarberEntity().toPrimitives() });
 
       const req = makeReq({ email: 'barber@example.com' });
       const res = createMockRes();
@@ -321,8 +321,7 @@ describe('BarberController', () => {
     });
 
     it('debe rechazar el cambio de email sin currentPassword', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      userRepository.findByEmail.mockResolvedValue(null);
+      updateBarberMe.execute.mockRejectedValue(new AppError('Se requiere la contraseña actual para cambiar el email.', 400));
 
       const req = makeReq({ email: 'nuevo@example.com' });
       const res = createMockRes();
@@ -330,13 +329,10 @@ describe('BarberController', () => {
       await controller.updateMe(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(barberRepository.updateBarber).not.toHaveBeenCalled();
     });
 
     it('debe rechazar el cambio de email con currentPassword incorrecta', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      userRepository.findByEmail.mockResolvedValue(null);
-      passwordHasher.compare.mockResolvedValue(false);
+      updateBarberMe.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
       const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'wrong' });
       const res = createMockRes();
@@ -345,14 +341,10 @@ describe('BarberController', () => {
 
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Contraseña actual incorrecta.' });
-      expect(barberRepository.updateBarber).not.toHaveBeenCalled();
     });
 
     it('debe cambiar el email con currentPassword correcta y avisar al email viejo', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      userRepository.findByEmail.mockResolvedValue(null);
-      passwordHasher.compare.mockResolvedValue(true);
-      barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ email: 'nuevo@example.com' }));
+      updateBarberMe.execute.mockResolvedValue({ barber: makeBarberEntity({ email: 'nuevo@example.com' }).toPrimitives(), oldEmail: 'barber@example.com' });
 
       const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'CurrentPass1' });
       const res = createMockRes();
@@ -366,8 +358,7 @@ describe('BarberController', () => {
     });
 
     it('debe rechazar el cambio de email si ya está en uso por otro usuario', async () => {
-      barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-      userRepository.findByEmail.mockResolvedValue({ id: 'otro-usuario' } as any);
+      updateBarberMe.execute.mockRejectedValue(new AppError('El email ya está en uso.', 409));
 
       const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'CurrentPass1' });
       const res = createMockRes();
@@ -375,7 +366,6 @@ describe('BarberController', () => {
       await controller.updateMe(req, res);
 
       expect(res.status).toHaveBeenCalledWith(409);
-      expect(barberRepository.updateBarber).not.toHaveBeenCalled();
     });
 
     it('ya no hashea ni procesa un campo password aunque llegue en el body', async () => {
@@ -386,7 +376,7 @@ describe('BarberController', () => {
 
       await controller.updateMe(req, res);
 
-      expect(passwordHasher.hash).not.toHaveBeenCalled();
+      expect(updateBarberMe.execute).toHaveBeenCalled();
     });
   });
 

@@ -7,7 +7,7 @@ import type {
   MembershipWithUser,
   MembershipTransaction,
 } from '../types/membership';
-import type { InitiatePaymentResponse, CreateSubscriptionResponse } from '../types/payment';
+import type { InitiatePaymentResponse } from '../types/payment';
 
 export const membershipApi = createApi({
   reducerPath: 'membershipApi',
@@ -49,12 +49,8 @@ export const membershipApi = createApi({
       providesTags: ['Membership'],
     }),
 
-    createSubscription: builder.mutation<CreateSubscriptionResponse, { userId: string; email: string }>({
-      query: (data) => ({ url: '/api/memberships/create-subscription', method: 'POST', data }),
-    }),
-
-    cancelSubscription: builder.mutation<void, string>({
-      query: (id) => ({ url: `/api/memberships/${id}/cancel-subscription`, method: 'POST' }),
+    cancelMembership: builder.mutation<void, string>({
+      query: (id) => ({ url: `/api/memberships/${id}/cancel`, method: 'POST' }),
       invalidatesTags: ['Membership'],
     }),
 
@@ -90,6 +86,22 @@ export const membershipApi = createApi({
       query: (params) => ({ url: '/api/memberships/transactions', params }),
       providesTags: ['Transactions'],
     }),
+
+    getCouponHistory: builder.query<
+      { membershipId: string; couponsTotal: number; couponsUsed: number; remainingCoupons: number; history: Array<{ appointmentId: string; date: string; startTime: string; serviceName: string; servicePrice: number; status: string; couponRestored: boolean; restoredAt: string | null }> },
+      string
+    >({
+      query: (id) => ({ url: `/api/memberships/${id}/coupon-history` }),
+      providesTags: ['Membership'],
+    }),
+
+    addCoupons: builder.mutation<
+      { membershipId: string; couponsTotal: number; couponsUsed: number; remainingCoupons: number },
+      { id: string; count: number }
+    >({
+      query: ({ id, count }) => ({ url: `/api/memberships/${id}/coupons`, method: 'PUT', data: { count } }),
+      invalidatesTags: ['Membership', 'Memberships'],
+    }),
   }),
 });
 
@@ -101,11 +113,12 @@ export const {
   useGetExpiringSoonQuery,
   useGetMembershipByIdQuery,
   useGetMembershipByUserIdQuery,
-  useCreateSubscriptionMutation,
-  useCancelSubscriptionMutation,
+  useCancelMembershipMutation,
   useInitiateMembershipPaymentMutation,
   useRetryMembershipPaymentMutation,
   useRedeemCouponMutation,
   useApprovePendingMembershipMutation,
   useGetTransactionsQuery,
+  useGetCouponHistoryQuery,
+  useAddCouponsMutation,
 } = membershipApi;

@@ -5,14 +5,11 @@ import { AnimatedContainer } from '../../../../components/common';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { ProductPerformanceEntry } from '../../../../services/analyticsApi';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 interface EcommerceTabProps {
   desde: string;
   hasta: string;
-}
-
-function formatCurrency(value: number): string {
-  return '$' + value.toLocaleString('es-UY');
 }
 
 const STATUS_LABELS: Record<string, string> = {

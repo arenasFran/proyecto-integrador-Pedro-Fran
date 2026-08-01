@@ -8,16 +8,14 @@ import { makeMockRefreshTokenRepository, makeMockHashService } from '../../../te
 describe('AuthController', () => {
   let registerUser: jest.Mocked<RegisterUserUseCase>;
   let refreshTokenUseCase: jest.Mocked<RefreshTokenUseCase>;
-  let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
-  let hashService: ReturnType<typeof makeMockHashService>;
+  let logoutUseCase: { execute: jest.Mock };
   let controller: AuthController;
 
   beforeEach(() => {
     registerUser = { execute: jest.fn() } as unknown as jest.Mocked<RegisterUserUseCase>;
     refreshTokenUseCase = { execute: jest.fn() } as unknown as jest.Mocked<RefreshTokenUseCase>;
-    refreshTokenRepository = makeMockRefreshTokenRepository();
-    hashService = makeMockHashService();
-    controller = new AuthController(registerUser, refreshTokenUseCase, refreshTokenRepository as any, hashService);
+    logoutUseCase = { execute: jest.fn() };
+    controller = new AuthController(registerUser, refreshTokenUseCase, logoutUseCase as any);
   });
 
   it('debe registrar usuario y responder 201', async () => {
@@ -63,20 +61,17 @@ describe('AuthController', () => {
 
   describe('logout', () => {
     it('debe revocar el refresh token en la base cuando viene en el body', async () => {
-      hashService.sha256.mockReturnValue('hashed-token');
       const req = createMockReq({ refreshToken: 'raw-refresh-token' });
       const res = createMockRes();
 
       await controller.logout(req, res);
 
-      expect(hashService.sha256).toHaveBeenCalledWith('raw-refresh-token');
-      expect(refreshTokenRepository.revoke).toHaveBeenCalledWith('hashed-token');
+      expect(logoutUseCase.execute).toHaveBeenCalledWith('raw-refresh-token');
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Sesión cerrada exitosamente' });
     });
 
     it('debe revocar el refresh token cuando viene solo en la cookie', async () => {
-      hashService.sha256.mockReturnValue('hashed-from-cookie');
       const req = {
         body: {},
         headers: { cookie: 'refreshToken=raw-from-cookie; other=1' },
@@ -85,8 +80,7 @@ describe('AuthController', () => {
 
       await controller.logout(req, res);
 
-      expect(hashService.sha256).toHaveBeenCalledWith('raw-from-cookie');
-      expect(refreshTokenRepository.revoke).toHaveBeenCalledWith('hashed-from-cookie');
+      expect(logoutUseCase.execute).toHaveBeenCalledWith('raw-from-cookie');
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
@@ -96,7 +90,7 @@ describe('AuthController', () => {
 
       await controller.logout(req, res);
 
-      expect(refreshTokenRepository.revoke).not.toHaveBeenCalled();
+      expect(logoutUseCase.execute).not.toHaveBeenCalled();
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Sesión cerrada exitosamente' });
     });

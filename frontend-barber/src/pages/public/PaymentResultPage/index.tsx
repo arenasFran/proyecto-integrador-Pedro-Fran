@@ -6,6 +6,7 @@ import { StatusScreen } from '@mercadopago/sdk-react';
 import { Button } from '../../../components/common';
 import { useGetPaymentByIdQuery } from '../../../services/paymentApi';
 import { formatDateTime } from '../../../utils/formatDate';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 const drawCheckmark = {
   hidden: { pathLength: 0, opacity: 0 },
@@ -30,10 +31,6 @@ const detailVariants = {
     transition: { delay: 0.35 + i * 0.08, duration: 0.4, ease: 'easeOut' as const },
   }),
 };
-
-function formatAmount(amount: number): string {
-  return `$${amount.toLocaleString('es-UY')}`;
-}
 
 function formatDate(dateStr: string): string {
   return formatDateTime(dateStr);
@@ -125,7 +122,7 @@ export default function PaymentResultPage() {
   const payment = paymentData?.payment;
   const details: { label: string; value: string }[] = [
     { label: 'Tipo', value: typeLabels[paymentType] || 'Pago' },
-    ...(payment?.amount ? [{ label: 'Monto', value: formatAmount(payment.amount) }] : []),
+    ...(payment?.amount ? [  { label: 'Monto', value: formatCurrency(payment.amount) }] : []),
     ...(payment?.createdAt ? [{ label: 'Fecha', value: formatDate(payment.createdAt) }] : []),
     ...(payment?.mpPaymentId ? [{ label: 'ID MercadoPago', value: payment.mpPaymentId }] : []),
   ];

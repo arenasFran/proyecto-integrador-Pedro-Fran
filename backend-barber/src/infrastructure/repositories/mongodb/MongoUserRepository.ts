@@ -169,10 +169,27 @@ export class MongoUserRepository {
   }
 
   async createRegisteredClient(user: User): Promise<User> {
+    const data = userToRegisteredClientData(user);
+    const expectedId = new mongoose.Types.ObjectId();
+
     try {
-      const doc = await RegisteredClient.create(userToRegisteredClientData(user));
+      const doc = await RegisteredClient.findOneAndUpdate(
+        { email: data.email, kind: 'Registrado' },
+        { $setOnInsert: { ...data, _id: expectedId, kind: 'Registrado' as const } },
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
+      );
+
+      if (!doc) {
+        throw new AppError('Error al crear el usuario.', 500);
+      }
+
+      if (!doc._id.equals(expectedId)) {
+        throw new AppError('El email ya está registrado.', 409);
+      }
+
       return userFromRegisteredClient(doc);
     } catch (error: any) {
+      if (error instanceof AppError) throw error;
       if (error?.code === 11000) {
         if (error?.keyPattern?.phone) {
           throw new AppError('El número de teléfono ya está registrado.', 409);

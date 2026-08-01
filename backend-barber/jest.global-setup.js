@@ -1,24 +1,6 @@
-require('dotenv/config');
-const mongoose = require('mongoose');
-
 module.exports = async () => {
-  const externalUri = process.env.MONGO_URI;
-
-  if (!externalUri) {
-    // Assume mongodb-memory-server will be used by the per-worker setup.
-    process.env.MONGO_READY = 'true';
-    return;
-  }
-
-  try {
-    await mongoose.connect(externalUri);
-    process.env.MONGO_READY = 'true';
-  } catch (error) {
-    process.env.MONGO_READY = 'false';
-    console.warn('Mongo no disponible en globalSetup, se omiten tests de integracion.', error);
-  } finally {
-    if (mongoose.connection.readyState === 1) {
-      await mongoose.disconnect();
-    }
-  }
+  // Cada worker levanta su propia mongodb-memory-server en jest.setup.ts.
+  // Nunca se usa el MONGO_URI de .env para tests, así que la disponibilidad
+  // no depende de ningún servidor externo.
+  process.env.MONGO_READY = 'true';
 };

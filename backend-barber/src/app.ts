@@ -5,9 +5,14 @@ import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
 import { buildBarberRouter, buildMembershipRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter, buildPaymentRouter, buildProductRouter, buildOrderRouter } from "./wiring";
+import { buildAnalisisCorteRouter } from "./wiring/analisisCorte";
 import { buildCartRouter } from "./wiring/cart";
 import { ReportsController } from "./interface-adapters/controllers/reports/ReportsController";
 import { createReportsRouter } from "./interface-adapters/routes/reports.routes";
+import { ExportOrdersCsvUseCase } from "./application/use-cases/reports/ExportOrdersCsvUseCase";
+import { ExportSalesCsvUseCase } from "./application/use-cases/reports/ExportSalesCsvUseCase";
+import { ExportProductsCsvUseCase } from "./application/use-cases/reports/ExportProductsCsvUseCase";
+import { ExportMembershipsCsvUseCase } from "./application/use-cases/reports/ExportMembershipsCsvUseCase";
 import { createAnalyticsRouter } from "./interface-adapters/routes/analytics.routes";
 import { createAuthenticate } from "./interface-adapters/middlewares/auth.middleware";
 import { buildTokenService } from "./wiring/auth";
@@ -101,7 +106,13 @@ app.use("/api/payments", buildPaymentRouter());
 app.use("/api/products", buildProductRouter());
 app.use("/api/orders", buildOrderRouter());
 app.use("/api/cart", buildCartRouter());
-const reportsController = new ReportsController();
+app.use("/api/analisis-corte", buildAnalisisCorteRouter());
+const reportsController = new ReportsController(
+  new ExportOrdersCsvUseCase(),
+  new ExportSalesCsvUseCase(),
+  new ExportProductsCsvUseCase(),
+  new ExportMembershipsCsvUseCase(),
+);
 const reportsAuth = createAuthenticate(tokenService);
 app.use("/api/reports", createReportsRouter({ reportsController, authenticate: reportsAuth }));
 const telegramAuth = createAuthenticate(tokenService);

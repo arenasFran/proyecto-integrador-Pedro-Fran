@@ -22,6 +22,8 @@ export const createMockRes = () => {
 
   (res as any).status = jest.fn().mockImplementation(() => res);
   (res as any).json = jest.fn().mockImplementation(() => res);
+  (res as any).send = jest.fn().mockImplementation(() => res);
+  (res as any).setHeader = jest.fn().mockImplementation(() => res);
   (res as any).cookie = jest.fn().mockImplementation(() => res);
   (res as any).clearCookie = jest.fn().mockImplementation(() => res);
 

@@ -26,6 +26,14 @@ export class UpdateOrderStatusUseCase {
 
     const previousStatus = order.status;
 
+    let paymentForCancellation = null;
+    if (dto.status === 'cancelled' && this.paymentRepository && order.paymentId) {
+      paymentForCancellation = await this.paymentRepository.findById(order.paymentId);
+      if (paymentForCancellation && paymentForCancellation.status === 'approved') {
+        throw new AppError('No se puede cancelar una orden con un pago ya aprobado. Procesá el reembolso en MercadoPago antes de cancelarla.', 409);
+      }
+    }
+
     switch (dto.status) {
       case 'paid':
         order.pay();
@@ -40,22 +48,34 @@ export class UpdateOrderStatusUseCase {
         throw new AppError('Estado inválido.', 400);
     }
 
+    // La orden solo reserva/descuenta stock una vez, en la transición pending → paid/delivered
+    // (el checkout local y el webhook de MP aprobado ya lo hacen por su cuenta). Si esta
+    // aprobación manual es la que hace esa transición por primera vez, hay que descontarlo acá;
+    // si no hay stock suficiente, se marca stock_issue en vez de darla por pagada/entregada.
+    let stockIssue = false;
+    if (previousStatus === 'pending' && (dto.status === 'paid' || dto.status === 'delivered')) {
+      const decreased = await this.orderStockService.decreaseStock(order);
+      if (!decreased) {
+        order.markStockIssue();
+        stockIssue = true;
+      }
+    }
+
     if (dto.status === 'cancelled') {
       await this.orderStockService.restoreStock(order);
-      if (this.paymentRepository && order.paymentId) {
+      if (this.paymentRepository && paymentForCancellation) {
         try {
-          const payment = await this.paymentRepository.findById(order.paymentId);
-          if (payment && payment.status === 'approved') {
-            payment.cancel();
-            await this.paymentRepository.save(payment);
-          }
+          // Ya se descartó más arriba el caso 'approved' (bloquea la cancelación),
+          // así que acá cancel() sí tiene efecto real (ej. deja de estar 'pending').
+          paymentForCancellation.cancel();
+          await this.paymentRepository.save(paymentForCancellation);
         } catch (err) {
           console.error('[UpdateOrderStatusUseCase] Error al actualizar Payment:', err);
         }
       }
     }
 
-    if ((dto.status === 'paid' || dto.status === 'delivered') && this.paymentRepository) {
+    if (!stockIssue && (dto.status === 'paid' || dto.status === 'delivered') && this.paymentRepository) {
       try {
         const existingPayment = await this.paymentRepository.findByReference(order.id, 'product_order');
         if (existingPayment && existingPayment.status === 'pending') {
@@ -77,7 +97,7 @@ export class UpdateOrderStatusUseCase {
     }
 
     const saved = await this.orderRepository.save(order);
-    if (dto.status === 'paid' || dto.status === 'delivered') {
+    if (!stockIssue && (dto.status === 'paid' || dto.status === 'delivered')) {
       await this.revenueTracker?.trackProductOrder(saved.id, saved.total, new Date(), {
         userId: saved.userId,
         paymentId: saved.paymentId,

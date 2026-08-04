@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import type { StringValue } from 'ms';
 import { ITokenService, TokenPayload } from '../../application/ports/ITokenService';
@@ -52,6 +53,7 @@ export class JwtTokenService implements ITokenService {
         iss: this.config.issuer,
         aud: this.config.audience,
         iat: Math.floor(Date.now() / 1000),
+        jti: crypto.randomBytes(16).toString('hex'),
       },
       this.config.refreshSecret,
       {

@@ -11,6 +11,7 @@ import { serviceApi } from '../services/service.api';
 import { productApi } from '../services/productApi';
 import { orderApi } from '../services/orderApi';
 import { paymentApi } from '../services/paymentApi';
+import { telegramApi } from '../services/telegramApi';
 import { analisisCorteApi } from '../services/analisisCorteApi';
 
 export const store = configureStore({
@@ -27,6 +28,7 @@ export const store = configureStore({
     [productApi.reducerPath]: productApi.reducer,
     [orderApi.reducerPath]: orderApi.reducer,
     [paymentApi.reducerPath]: paymentApi.reducer,
+    [telegramApi.reducerPath]: telegramApi.reducer,
     [analisisCorteApi.reducerPath]: analisisCorteApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -39,6 +41,7 @@ export const store = configureStore({
       productApi.middleware,
       orderApi.middleware,
       paymentApi.middleware,
+      telegramApi.middleware,
       analisisCorteApi.middleware
     ),
 });

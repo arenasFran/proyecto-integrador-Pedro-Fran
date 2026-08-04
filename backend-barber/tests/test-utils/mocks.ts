@@ -223,3 +223,14 @@ export const makeMockProductRepository = () => ({
   softDelete: jest.fn(),
   atomicDecreaseStock: jest.fn(),
 });
+
+export const makeMockTelegramLinkRepository = () => ({
+  findByTelegramId: jest.fn(),
+  findByUserId: jest.fn(),
+  upsert: jest.fn(),
+});
+
+export const makeMockTelegramLinkTokenRepository = () => ({
+  create: jest.fn(),
+  verifyAndConsume: jest.fn(),
+});

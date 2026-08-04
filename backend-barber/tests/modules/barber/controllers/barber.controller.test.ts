@@ -53,6 +53,16 @@ describe('BarberController', () => {
   let updateBarber: { execute: jest.Mock };
   let updateBarberMe: { execute: jest.Mock };
   let emailService: ReturnType<typeof makeMockEmailService>;
+  let blockRepository: {
+    findByBarberAndDate: jest.Mock;
+    findByBarberAndDateRange: jest.Mock;
+    findByDateRange: jest.Mock;
+    findById: jest.Mock;
+    create: jest.Mock;
+    deleteById: jest.Mock;
+  };
+  let getBarberOccupancy: { execute: jest.Mock };
+  let createBarberBlock: { execute: jest.Mock };
   let controller: BarberController;
 
   beforeEach(() => {
@@ -64,12 +74,16 @@ describe('BarberController', () => {
     updateBarber = { execute: jest.fn() };
     updateBarberMe = { execute: jest.fn() };
     emailService = makeMockEmailService();
-    const blockRepository = {
+    blockRepository = {
       findByBarberAndDate: jest.fn(),
       findByBarberAndDateRange: jest.fn(),
+      findByDateRange: jest.fn(),
+      findById: jest.fn(),
       create: jest.fn(),
       deleteById: jest.fn(),
     };
+    getBarberOccupancy = { execute: jest.fn() };
+    createBarberBlock = { execute: jest.fn() };
     const appointmentRepository = makeMockAppointmentRepository();
 
     controller = new BarberController(
@@ -81,8 +95,8 @@ describe('BarberController', () => {
       createBarber as any,
       updateBarber as any,
       updateBarberMe as any,
-      {} as any,
-      {} as any,
+      getBarberOccupancy as any,
+      createBarberBlock as any,
     );
   });
 
@@ -392,6 +406,148 @@ describe('BarberController', () => {
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(slotsResult);
+    });
+  });
+
+  describe('getBlocks', () => {
+    it('debe devolver los bloques del barbero en el rango de fechas', async () => {
+      blockRepository.findByBarberAndDateRange.mockResolvedValue([{ id: 'block-1' }]);
+      const req = createMockReqFull({ params: { id: 'barber-1' }, query: { dateFrom: '2026-01-01', dateTo: '2026-01-31' } });
+      const res = createMockRes();
+
+      await controller.getBlocks(req, res);
+
+      expect(blockRepository.findByBarberAndDateRange).toHaveBeenCalledWith('barber-1', '2026-01-01', '2026-01-31');
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ blocks: [{ id: 'block-1' }] }));
+    });
+
+    it('debe responder 500 si falla', async () => {
+      blockRepository.findByBarberAndDateRange.mockRejectedValue(new Error('db down'));
+      const req = createMockReqFull({ params: { id: 'barber-1' }, query: {} });
+      const res = createMockRes();
+
+      await controller.getBlocks(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('createBlock', () => {
+    it('debe crear el bloque y responder 201', async () => {
+      createBarberBlock.execute.mockResolvedValue({ id: 'block-1' });
+      const req = createMockReqFull({ params: { id: 'barber-1' }, body: { date: '2026-01-15', startTime: '10:00', endTime: '11:00' } });
+      (req as any).user = { _id: 'barber-1', kind: 'Empleado' };
+      const res = createMockRes();
+
+      await controller.createBlock(req, res);
+
+      expect(createBarberBlock.execute).toHaveBeenCalledWith(
+        expect.objectContaining({ barberId: 'barber-1', date: '2026-01-15' }),
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it('debe responder según el AppError del caso de uso', async () => {
+      createBarberBlock.execute.mockRejectedValue(new AppError('El bloque se superpone con un turno existente.', 409));
+      const req = createMockReqFull({ params: { id: 'barber-1' }, body: {} });
+      const res = createMockRes();
+
+      await controller.createBlock(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+    });
+  });
+
+  describe('getAllBlocks', () => {
+    it('debe devolver todos los bloques en el rango de fechas', async () => {
+      blockRepository.findByDateRange.mockResolvedValue([{ id: 'block-1' }, { id: 'block-2' }]);
+      const req = createMockReqFull({ query: { dateFrom: '2026-01-01', dateTo: '2026-01-31' } });
+      const res = createMockRes();
+
+      await controller.getAllBlocks(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ blocks: [{ id: 'block-1' }, { id: 'block-2' }] }));
+    });
+
+    it('debe responder 500 si falla', async () => {
+      blockRepository.findByDateRange.mockRejectedValue(new Error('db down'));
+      const req = createMockReqFull({ query: {} });
+      const res = createMockRes();
+
+      await controller.getAllBlocks(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('deleteBlock', () => {
+    it('debe eliminar el bloque si el actor es Admin', async () => {
+      blockRepository.findById.mockResolvedValue({ id: 'block-1', barberId: 'barber-1', createdBy: 'admin-1' });
+      const req = createMockReqFull({ params: { blockId: 'block-1' } });
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      const res = createMockRes();
+
+      await controller.deleteBlock(req, res);
+
+      expect(blockRepository.deleteById).toHaveBeenCalledWith('block-1');
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe eliminar el bloque si el actor es el barbero dueño del bloque', async () => {
+      blockRepository.findById.mockResolvedValue({ id: 'block-1', barberId: 'barber-1', createdBy: 'admin-1' });
+      const req = createMockReqFull({ params: { blockId: 'block-1' } });
+      (req as any).user = { _id: 'barber-1', kind: 'Empleado' };
+      const res = createMockRes();
+
+      await controller.deleteBlock(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('debe responder 404 si el bloque no existe', async () => {
+      blockRepository.findById.mockResolvedValue(null);
+      const req = createMockReqFull({ params: { blockId: 'block-x' } });
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      const res = createMockRes();
+
+      await controller.deleteBlock(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('debe responder 403 si el actor no es admin, ni dueño, ni el barbero del bloque', async () => {
+      blockRepository.findById.mockResolvedValue({ id: 'block-1', barberId: 'barber-1', createdBy: 'admin-1' });
+      const req = createMockReqFull({ params: { blockId: 'block-1' } });
+      (req as any).user = { _id: 'otro-empleado', kind: 'Empleado' };
+      const res = createMockRes();
+
+      await controller.deleteBlock(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(blockRepository.deleteById).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getOccupancy', () => {
+    it('debe devolver la ocupación del barbero en la fecha', async () => {
+      getBarberOccupancy.execute.mockResolvedValue({ occupancyRate: 0.5 });
+      const req = createMockReqFull({ params: { id: 'barber-1' }, query: { date: '2026-01-15' } });
+      const res = createMockRes();
+
+      await controller.getOccupancy(req, res);
+
+      expect(getBarberOccupancy.execute).toHaveBeenCalledWith({ barberId: 'barber-1', date: '2026-01-15' });
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ occupancyRate: 0.5 }));
+    });
+
+    it('debe responder 500 si falla', async () => {
+      getBarberOccupancy.execute.mockRejectedValue(new Error('db down'));
+      const req = createMockReqFull({ params: { id: 'barber-1' }, query: {} });
+      const res = createMockRes();
+
+      await controller.getOccupancy(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
     });
   });
 });

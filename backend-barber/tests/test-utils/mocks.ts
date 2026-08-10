@@ -83,6 +83,8 @@ export const makeMockMembershipRepository = () => ({
   hasActiveMembership: jest.fn(),
   approvePending: jest.fn(),
   expireExpiredMemberships: jest.fn(),
+  findCouponAppointments: jest.fn(),
+  addCouponsTotal: jest.fn(),
 });
 
 export const makeMockMembershipTransactionRepository = () => ({
@@ -193,6 +195,7 @@ export const makeMockPaymentRepository = () => ({
   findByMpPaymentId: jest.fn(),
   findByReference: jest.fn(),
   findByUser: jest.fn(),
+  findAll: jest.fn(),
   save: jest.fn(),
   updateMpPreferenceId: jest.fn().mockResolvedValue(undefined),
   cancelPendingByAppointments: jest.fn(),
@@ -211,6 +214,7 @@ export const makeMockOrderRepository = () => ({
   findAll: jest.fn(),
   save: jest.fn(),
   updateStatus: jest.fn(),
+  delete: jest.fn(),
 });
 
 export const makeMockProductRepository = () => ({
@@ -220,8 +224,11 @@ export const makeMockProductRepository = () => ({
   findByCategory: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  save: jest.fn(),
   softDelete: jest.fn(),
   atomicDecreaseStock: jest.fn(),
+  atomicIncreaseStock: jest.fn(),
+  getCategories: jest.fn(),
 });
 
 export const makeMockTelegramLinkRepository = () => ({

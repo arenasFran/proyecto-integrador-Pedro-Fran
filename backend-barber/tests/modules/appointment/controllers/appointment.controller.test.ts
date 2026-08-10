@@ -194,6 +194,116 @@ describe('AppointmentController', () => {
 
       expect(res.status).toHaveBeenCalledWith(500);
     });
+
+    it('debe enriquecer con datos de barbero cuando includeBarber=true', async () => {
+      appointmentRepository.findMany.mockResolvedValue({
+        data: [{ toPrimitives: () => ({ id: 'a1', barberId: 'barber-1' }) } as any],
+        total: 1, page: 1, totalPages: 1, limit: 20,
+      });
+      barberRepository.findAllBarbers.mockResolvedValue([
+        { id: 'barber-1', name: 'Carlos', lastname: 'Barbero', photoUrl: 'x.jpg' } as any,
+      ]);
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).query = { includeBarber: 'true' };
+      const res = createMockRes();
+
+      await controller.getAll(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ appointments: [expect.objectContaining({ barberName: 'Carlos Barbero' })] }),
+      );
+    });
+
+    it('debe enriquecer con datos de cliente cuando includeClient=true', async () => {
+      appointmentRepository.findMany.mockResolvedValue({
+        data: [{ toPrimitives: () => ({ id: 'a1', barberId: 'barber-1', clientId: 'client-1' }) } as any],
+        total: 1, page: 1, totalPages: 1, limit: 20,
+      });
+      clientRepository.findByIds.mockResolvedValue([
+        { id: 'client-1', photoUrl: 'c.jpg', registeredAt: new Date('2026-01-01') } as any,
+      ]);
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).query = { includeClient: 'true' };
+      const res = createMockRes();
+
+      await controller.getAll(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({ appointments: [expect.objectContaining({ clientPhotoUrl: 'c.jpg' })] }),
+      );
+    });
+  });
+
+  describe('searchClients', () => {
+    it('debe devolver los clientes encontrados', async () => {
+      clientRepository.searchRegistered.mockResolvedValue([
+        { id: 'client-1', name: 'Ana', lastname: 'Gomez', phone: '099', contactEmail: 'a@test.com', photoUrl: null } as any,
+      ]);
+      const req = createMockReq();
+      (req as any).query = { q: 'Ana' };
+      const res = createMockRes();
+
+      await controller.searchClients(req, res);
+
+      expect(clientRepository.searchRegistered).toHaveBeenCalledWith('Ana');
+      expect(res.json).toHaveBeenCalledWith([
+        expect.objectContaining({ id: 'client-1', name: 'Ana' }),
+      ]);
+    });
+
+    it('debe manejar error al buscar clientes', async () => {
+      clientRepository.searchRegistered.mockRejectedValue(new Error('boom'));
+      const req = createMockReq();
+      (req as any).query = { q: 'Ana' };
+      const res = createMockRes();
+
+      await controller.searchClients(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('getSummary', () => {
+    it('debe devolver el resumen de turnos del cliente autenticado', async () => {
+      appointmentRepository.getSummary.mockResolvedValue({ total: 3, byStatus: { Confirmado: 2, Cancelado: 1 } });
+      const req = createMockReq();
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).query = {};
+      const res = createMockRes();
+
+      await controller.getSummary(req, res);
+
+      expect(appointmentRepository.getSummary).toHaveBeenCalledWith(expect.objectContaining({ clientId: 'client-1' }));
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ total: 3, countsByStatus: { Confirmado: 2, Cancelado: 1 } }));
+    });
+
+    it('debe permitir que admin filtre por barberId', async () => {
+      appointmentRepository.getSummary.mockResolvedValue({ total: 0, byStatus: {} });
+      const req = createMockReq();
+      (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+      (req as any).query = { barberId: 'barber-1', status: 'Confirmado' };
+      const res = createMockRes();
+
+      await controller.getSummary(req, res);
+
+      expect(appointmentRepository.getSummary).toHaveBeenCalledWith(
+        expect.objectContaining({ barberId: 'barber-1', status: 'Confirmado' }),
+      );
+    });
+
+    it('debe manejar error al obtener resumen', async () => {
+      appointmentRepository.getSummary.mockRejectedValue(new Error('boom'));
+      const req = createMockReq();
+      (req as any).user = { _id: 'client-1', kind: 'Registrado' };
+      (req as any).query = {};
+      const res = createMockRes();
+
+      await controller.getSummary(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
   });
 
   describe('getById', () => {

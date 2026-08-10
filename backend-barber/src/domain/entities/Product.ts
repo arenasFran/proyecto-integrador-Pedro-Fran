@@ -28,7 +28,7 @@ export class Product {
       stock: data.stock,
       minStock: data.minStock ?? 5,
       imageUrl: data.imageUrl,
-      gallery: data.gallery ?? [],
+      gallery: [...(data.gallery ?? [])],
       category: data.category,
       status: 'active',
       createdAt: now,

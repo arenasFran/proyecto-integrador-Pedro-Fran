@@ -73,17 +73,21 @@ export class CreateManualOrderUseCase {
 
     const saved = await this.orderRepository.save(order);
 
+    // El Payment se asocia a un usuario de Mongo real (userId es un ObjectId en el schema).
+    // Para un walk-in sin cuenta (dto.userId ausente), orderUserId es el string sintético
+    // "manual_<timestamp>", que no es un ObjectId válido: no tiene sentido (ni es seguro)
+    // intentar guardar un Payment con ese id, así que directamente no se crea.
     if (targetStatus === 'paid' || targetStatus === 'delivered') {
       for (const item of resolvedItems) {
         await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
       }
-      if (this.paymentRepository) {
+      if (this.paymentRepository && dto.userId) {
         try {
           const paymentDoc = Payment.create({
             type: 'product_order',
             referenceId: saved.id,
             amount: saved.total,
-            userId: orderUserId,
+            userId: dto.userId,
           });
           paymentDoc.approve('admin_manual');
           await this.paymentRepository.save(paymentDoc);
@@ -91,13 +95,13 @@ export class CreateManualOrderUseCase {
           console.error('[CreateManualOrderUseCase] Error creating PaymentModel:', err);
         }
       }
-    } else if (this.paymentRepository) {
+    } else if (this.paymentRepository && dto.userId) {
       try {
         const paymentDoc = Payment.create({
           type: 'product_order',
           referenceId: saved.id,
           amount: saved.total,
-          userId: orderUserId,
+          userId: dto.userId,
         });
         await this.paymentRepository.save(paymentDoc);
       } catch (err) {

@@ -133,6 +133,9 @@ const registeredClientSchema = new Schema<IRegisteredClient>(
       type: Date,
       default: null,
     },
+    lastLoginAt: {
+      type: Date,
+    },
   },
   {
     _id: false,

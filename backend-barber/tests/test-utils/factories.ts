@@ -6,6 +6,7 @@ import { RegisteredClient } from '../../src/infrastructure/repositories/mongodb/
 import AppointmentModel from '../../src/infrastructure/repositories/mongodb/models/appointment.model';
 import ServiceModel from '../../src/infrastructure/repositories/mongodb/models/service.model';
 import TempLockModel from '../../src/infrastructure/repositories/mongodb/models/tempLock.model';
+import { ProductModel } from '../../src/infrastructure/repositories/mongodb/models/product.model';
 import type { BarberSchedule } from '../../src/domain/entities/Barber';
 
 const SCHEDULE: BarberSchedule = {
@@ -175,6 +176,27 @@ export async function seedTempLock(overrides: {
   return { tempLockId: doc._id.toString() };
 }
 
+export async function seedProduct(overrides?: {
+  name?: string;
+  price?: number;
+  stock?: number;
+  minStock?: number;
+  status?: string;
+  category?: string;
+}): Promise<{ productId: string }> {
+  const doc = await ProductModel.create({
+    name: overrides?.name || 'Cera para barba',
+    description: 'Fija y da brillo',
+    price: overrides?.price ?? 500,
+    stock: overrides?.stock ?? 10,
+    minStock: overrides?.minStock ?? 5,
+    imageUrl: '',
+    category: overrides?.category || 'cuidado',
+    status: overrides?.status ?? 'active',
+  });
+  return { productId: doc._id.toString() };
+}
+
 export function getFutureDate(daysAhead: number, time?: string): string {
   const d = new Date();
   d.setDate(d.getDate() + daysAhead);
@@ -182,6 +204,18 @@ export function getFutureDate(daysAhead: number, time?: string): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+// El webhook de MP responde 200 antes de terminar de procesar la notificación
+// (fire-and-forget), así que los tests deben esperar a que el efecto en la
+// base de datos aparezca en vez de asumir que ya ocurrió al recibir la respuesta HTTP.
+export async function waitFor(check: () => Promise<boolean>, timeoutMs = 2000, intervalMs = 20): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await check()) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  throw new Error(`waitFor: condición no cumplida dentro de ${timeoutMs}ms`);
 }
 
 export const SERVICE_ID = new mongoose.Types.ObjectId().toString();

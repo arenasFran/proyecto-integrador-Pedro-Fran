@@ -15,4 +15,26 @@ export class OrderStockService {
       }
     }
   }
+
+  /**
+   * Descuenta el stock de cada item de forma atómica. Si algún item no tiene
+   * stock suficiente, revierte los que sí se llegaron a descontar y devuelve
+   * false (en vez de dejar la orden a medio descontar).
+   */
+  async decreaseStock(order: Order): Promise<boolean> {
+    const decreased: { productId: string; quantity: number }[] = [];
+
+    for (const item of order.items) {
+      const ok = await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+      if (!ok) {
+        for (const done of decreased) {
+          await this.productRepository.atomicIncreaseStock(done.productId, done.quantity);
+        }
+        return false;
+      }
+      decreased.push({ productId: item.productId, quantity: item.quantity });
+    }
+
+    return true;
+  }
 }

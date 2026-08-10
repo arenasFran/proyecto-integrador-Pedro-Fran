@@ -38,7 +38,7 @@ const services = [
     name: 'Corte a máquina',
     desc: 'Solo máquina, sin tijera. Rápido, parejo y bien definido.',
     price: '$ 350',
-    image: '/foto1.jpg',
+    image: '/corte%20a%20maquina.png',
     bgPosition: '50% 50%',
   },
   {
@@ -374,7 +374,7 @@ export const LandingPage: React.FC = () => {
             Tienda
           </h2>
           <p className="text-[#8A8A8A] mt-3 text-base leading-relaxed">
-            Productos de barbería y cuidado personal. Members reciben 10% de descuento.
+            Productos de barbería y cuidado personal. Miembros reciben 10% de descuento en todos los productos.
           </p>
         </motion.div>
 
@@ -388,7 +388,7 @@ export const LandingPage: React.FC = () => {
             Visitar tienda
           </Button>
           <p className="text-[#8A8A8A] text-sm max-w-[260px]">
-            Shampoos, ceras, peines y más. Todo lo que necesitás para el cuidado diario.
+            Ceras, peines y más. Todo lo que necesitás para el cuidado diario.
           </p>
         </motion.div>
       </section>

@@ -258,6 +258,55 @@ describe('AnalizarCorteUseCase', () => {
     await expect(deps.useCase.execute(dto)).resolves.toEqual({ id: 'a1', ...recomendacion });
   });
 
+  it('genera las imágenes de los cortes recomendados y las persiste junto al resultado', async () => {
+    const deps = buildUseCase();
+    deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);
+    deps.clientRepository.findById.mockResolvedValue(makeClient({ consentimientoAnalisisIA: true }));
+    deps.clientRepository.reservarAnalisisIA.mockResolvedValue(true);
+    deps.faceValidationService.validar.mockResolvedValue({ valido: true });
+    deps.serviceRepository.findAll.mockResolvedValue([makeService('Corte de pelo'), makeService('Barba')]);
+    deps.recommendationService.recomendar.mockResolvedValue(recomendacion);
+
+    const imageGenerationService = {
+      generarEjemploDeCorte: jest.fn().mockResolvedValue({ base64: 'aW1n', mimeType: 'image/png' }),
+    };
+    const cloudinaryService = { uploadImage: jest.fn().mockResolvedValue('https://res.cloudinary.com/demo/cortes-ejemplo/x.png') };
+    deps.analisisCorteRepository.create.mockResolvedValue({
+      id: 'a1',
+      clienteId: 'client-1',
+      resultado: {
+        ...recomendacion,
+        cortesRecomendados: [
+          { ...recomendacion.cortesRecomendados[0], imagenEjemploUrl: 'https://res.cloudinary.com/demo/cortes-ejemplo/x.png' },
+        ],
+      },
+      createdAt: new Date(),
+    });
+    const useCase = new AnalizarCorteUseCase(
+      deps.clientRepository as any,
+      deps.membershipRepository as any,
+      deps.serviceRepository as any,
+      deps.analisisCorteRepository as any,
+      deps.faceValidationService as any,
+      deps.recommendationService as any,
+      imageGenerationService as any,
+      cloudinaryService as any
+    );
+
+    const resultado = await useCase.execute(dto);
+
+    expect(imageGenerationService.generarEjemploDeCorte).toHaveBeenCalledWith('Fade bajo', 'desc');
+    expect(cloudinaryService.uploadImage).toHaveBeenCalledWith(expect.any(Buffer), 'cortes-ejemplo');
+    expect(resultado.cortesRecomendados[0].imagenEjemploUrl).toBe('https://res.cloudinary.com/demo/cortes-ejemplo/x.png');
+    expect(deps.analisisCorteRepository.create).toHaveBeenCalledWith(
+      'client-1',
+      expect.objectContaining({
+        cortesRecomendados: [expect.objectContaining({ imagenEjemploUrl: 'https://res.cloudinary.com/demo/cortes-ejemplo/x.png' })],
+      }),
+      capturedSession
+    );
+  });
+
   it('no descuenta cupo si la foto es inválida', async () => {
     const deps = buildUseCase();
     deps.membershipRepository.hasActiveMembership.mockResolvedValue(true);

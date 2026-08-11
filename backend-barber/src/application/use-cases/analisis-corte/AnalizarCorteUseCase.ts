@@ -5,6 +5,8 @@ import { MongoServiceRepository } from '../../../infrastructure/repositories/mon
 import { MongoAnalisisCorteRepository, AnalisisCorteRecord } from '../../../infrastructure/repositories/mongodb/MongoAnalisisCorteRepository';
 import { IFaceValidationService } from '../../ports/IFaceValidationService';
 import { IRecommendationService } from '../../ports/IRecommendationService';
+import { IImageGenerationService } from '../../ports/IImageGenerationService';
+import { CloudinaryService } from '../../../infrastructure/services/CloudinaryService';
 import { AppError } from '../../../domain/errors/AppError';
 import { calcularCupoAnalisisCorte } from './calcularCupoAnalisisCorte';
 
@@ -22,7 +24,9 @@ export class AnalizarCorteUseCase {
     private readonly serviceRepository: MongoServiceRepository,
     private readonly analisisCorteRepository: MongoAnalisisCorteRepository,
     private readonly faceValidationService: IFaceValidationService,
-    private readonly recommendationService: IRecommendationService
+    private readonly recommendationService: IRecommendationService,
+    private readonly imageGenerationService?: IImageGenerationService,
+    private readonly cloudinaryService?: CloudinaryService
   ) {}
 
   async execute(dto: AnalizarCorteDTO): Promise<AnalisisCorteRecord['resultado'] & { id: string }> {
@@ -76,6 +80,26 @@ export class AnalizarCorteUseCase {
         .map((s) => ({ name: s.name, description: s.description }));
 
       const recomendacion = await this.recommendationService.recomendar(dto.imagenBuffer, dto.mimeType, servicios);
+
+      // Genera las imágenes de ejemplo junto con la recomendación (mientras el
+      // cliente ve el loader de escaneo) para que lleguen listas con el resultado.
+      // Es best-effort: si una imagen falla, el corte se devuelve sin imagen y el
+      // front puede regenerarla con el endpoint /imagen-ejemplo.
+      if (this.imageGenerationService && this.cloudinaryService) {
+        await Promise.all(
+          recomendacion.cortesRecomendados.map(async (corte) => {
+            try {
+              const imagen = await this.imageGenerationService!.generarEjemploDeCorte(corte.nombreCorte, corte.descripcion);
+              corte.imagenEjemploUrl = await this.cloudinaryService!.uploadImage(
+                Buffer.from(imagen.base64, 'base64'),
+                'cortes-ejemplo'
+              );
+            } catch (error) {
+              console.error('[AnalizarCorte] No se pudo generar la imagen del corte recomendado:', error);
+            }
+          })
+        );
+      }
 
       const session = await mongoose.startSession();
       let registro: AnalisisCorteRecord;

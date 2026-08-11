@@ -38,7 +38,9 @@ export const buildAnalisisCorteRouter = () => {
     serviceRepository,
     analisisCorteRepository,
     faceValidationService,
-    recommendationService
+    recommendationService,
+    imageGenerationService,
+    cloudinaryService
   );
 
   const generarImagenEjemplo = new GenerarImagenEjemploUseCase(

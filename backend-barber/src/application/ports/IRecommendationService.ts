@@ -3,6 +3,7 @@ export type CorteRecomendado = {
   descripcion: string;
   razon: string;
   servicioSugerido: string;
+  imagenEjemploUrl?: string;
 };
 
 export type ResultadoRecomendacion = {

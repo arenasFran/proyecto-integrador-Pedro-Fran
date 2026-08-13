@@ -28,18 +28,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [sizeError, setSizeError] = useState<string | null>(null);
+  const [prevUrl, setPrevUrl] = useState(currentUrl);
+
+  if (currentUrl !== prevUrl) {
+    setPrevUrl(currentUrl ?? null);
+    if (currentUrl) setLocalPreview(null);
+  }
 
   const previewUrl = localPreview ?? currentUrl ?? null;
   const displayedError = error ?? sizeError ?? undefined;
 
   const isFileTooLarge = (file: File) => file.size > maxSizeMB * 1024 * 1024;
-
-  useEffect(() => {
-    if (currentUrl) {
-      if (localPreview) URL.revokeObjectURL(localPreview);
-      setLocalPreview(null);
-    }
-  }, [currentUrl]);
 
   useEffect(() => {
     return () => {

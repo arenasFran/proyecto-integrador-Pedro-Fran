@@ -28,13 +28,18 @@ interface PaymentSuccessModalProps {
 
 export default function PaymentSuccessModal({ isOpen, paymentType, amount, onClose }: PaymentSuccessModalProps) {
   const [showCheckmark, setShowCheckmark] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
+    if (isOpen) setShowCheckmark(false);
+  }
 
   useEffect(() => {
     if (isOpen) {
       const t = setTimeout(() => setShowCheckmark(true), 150);
       return () => clearTimeout(t);
     }
-    setShowCheckmark(false);
   }, [isOpen]);
 
   if (!isOpen) return null;

@@ -35,7 +35,7 @@ export default function ProductFormModal({ product, formData, onChange, onSave, 
         category: product.category,
       });
     }
-  }, [product]);
+  }, [product, onChange]);
 
   const handleSubmit = async () => {
     if (!formData.name.trim() || !formData.description.trim() || !formData.price) return;

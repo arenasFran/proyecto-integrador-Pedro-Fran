@@ -11,6 +11,7 @@ import {
   initiateMembershipPaymentSchema,
   membershipIdParamSchema,
   membershipUserIdParamSchema,
+  addCouponsSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -96,6 +97,7 @@ export const createMembershipRouter = (deps: {
     '/:id',
     deps.authenticate,
     authorize('Admin'),
+    validate({ params: membershipIdParamSchema }),
     deps.membershipController.getById
   );
 
@@ -103,6 +105,7 @@ export const createMembershipRouter = (deps: {
     '/:id/cancel',
     membershipMutationLimiter,
     deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
     deps.membershipController.cancel
   );
 
@@ -146,6 +149,7 @@ export const createMembershipRouter = (deps: {
     '/:id/coupon-history',
     membershipLimiter,
     deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
     deps.membershipController.getCouponHistory
   );
 
@@ -154,6 +158,7 @@ export const createMembershipRouter = (deps: {
     membershipMutationLimiter,
     deps.authenticate,
     authorize('Admin'),
+    validate({ params: membershipIdParamSchema, body: addCouponsSchema }),
     deps.membershipController.addCouponsToMembership
   );
 

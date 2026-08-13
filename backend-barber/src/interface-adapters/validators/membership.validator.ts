@@ -39,3 +39,7 @@ export const membershipUserIdParamSchema = Joi.object({
     'any.required': 'userId es requerido',
   }),
 });
+
+export const addCouponsSchema = Joi.object({
+  count: Joi.number().integer().min(1).max(100).required(),
+});

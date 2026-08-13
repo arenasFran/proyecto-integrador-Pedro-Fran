@@ -26,3 +26,12 @@ export const queryOrdersSchema = Joi.object({
 export const updateOrderStatusSchema = Joi.object({
   status: Joi.string().valid('paid', 'delivered', 'cancelled').required(),
 });
+
+export const createManualOrderSchema = Joi.object({
+  items: createOrderSchema.extract('items'),
+  userId: Joi.string().hex().length(24).optional(),
+  clientName: Joi.string().trim().min(1).max(100).optional(),
+  clientEmail: Joi.string().email().optional(),
+  clientPhone: Joi.string().trim().max(20).optional(),
+  status: Joi.string().valid('pending', 'paid', 'delivered', 'cancelled').optional(),
+});

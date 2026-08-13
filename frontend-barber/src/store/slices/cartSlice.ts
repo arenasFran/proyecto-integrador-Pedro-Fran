@@ -21,6 +21,7 @@ function loadCart(): CartItem[] {
       return JSON.parse(saved);
     }
   } catch {
+    // storage no disponible o JSON inválido
   }
   return [];
 }
@@ -29,6 +30,7 @@ function saveCart(items: CartItem[]): void {
   try {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   } catch {
+    // storage no disponible
   }
 }
 

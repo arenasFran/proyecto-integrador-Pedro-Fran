@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FiAward, FiCalendar, FiCheckCircle, FiClock, FiTrendingUp, FiXCircle, FiScissors, FiShoppingBag, FiCreditCard, FiDollarSign, FiRefreshCw } from 'react-icons/fi';
 import { Navigate } from 'react-router-dom';
 import { AnimatedContainer, Spinner, Button, useToast } from '../../../components/common';
@@ -19,15 +19,22 @@ export default function MembershipPage() {
   const [retryPayment, { isLoading: isRetrying }] = useRetryMembershipPaymentMutation();
   const [initiatePayment, { isLoading: isPaying }] = useInitiateMembershipPaymentMutation();
 
+  const active = data?.active;
+  const { data: couponHistory } = useGetCouponHistoryQuery(active?.id ?? '', { skip: !active?.id });
+
   const { showToast } = useToast();
 
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [retryPreferenceId, setRetryPreferenceId] = useState('');
+  const [nowMs] = useState(() => Date.now());
+
+  const daysLeft = useMemo(() => active
+    ? Math.max(0, Math.ceil((new Date(active.endDate).getTime() - nowMs) / (1000 * 60 * 60 * 24)))
+    : 0, [active, nowMs]);
 
   if (!token) return <Navigate to="/login" replace />;
   if (kind === 'Admin' || kind === 'Empleado') return <Navigate to="/admin/membresias" replace />;
 
-  const active = data?.active;
   const pending = data?.pending;
   const history = data?.history ?? [];
 
@@ -37,11 +44,6 @@ export default function MembershipPage() {
   };
 
   const remainingCoupons = active ? active.couponsTotal - active.couponsUsed : 0;
-
-  const { data: couponHistory } = useGetCouponHistoryQuery(active?.id ?? '', { skip: !active?.id });
-  const daysLeft = active
-    ? Math.max(0, Math.ceil((new Date(active.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-    : 0;
 
   const isOnetime = active?.paymentMethod === 'mercadopago';
 
@@ -346,7 +348,7 @@ export default function MembershipPage() {
                   <FiScissors className="text-[#FF5C00]" /> Historial de cupones
                 </h3>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                  {couponHistory.history.map((h: any, i: number) => (
+                  {couponHistory.history.map((h, i: number) => (
                     <div key={i} className="flex justify-between items-center py-2 border-b border-[#2A2A2A] last:border-b-0">
                       <div>
                         <p className="text-[14px] text-white">{h.serviceName}</p>

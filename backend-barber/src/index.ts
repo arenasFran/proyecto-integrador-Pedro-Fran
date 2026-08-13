@@ -15,7 +15,19 @@ import { createJob } from './infrastructure/jobs/jobRunner';
 
 const startServer = async () => {
   await connectDB();
-  await runFullSeed();
+
+  if (config.seedOnStart) {
+    try {
+      await runFullSeed();
+    } catch (error) {
+      console.error(
+        '[SEED] Error ejecutando el seed automático. El servidor continúa igual:',
+        error instanceof Error ? error.message : error
+      );
+    }
+  } else {
+    console.log('[SEED] Seed automático desactivado. Configurá SEED_ON_START=true para activarlo.');
+  }
 
   const membershipRepo = new MongoMembershipRepository();
   const appointmentRepo = new MongoAppointmentRepository();

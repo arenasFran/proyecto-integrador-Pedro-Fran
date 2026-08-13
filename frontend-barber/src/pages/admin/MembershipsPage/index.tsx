@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { FiAward, FiPlus, FiSearch, FiUser, FiCheck, FiClock, FiAlertTriangle, FiDollarSign, FiList } from 'react-icons/fi';
 import { AnimatedContainer, Button, Pagination, Select, Spinner, useToast } from '../../../components/common';
@@ -93,7 +93,11 @@ export default function MembershipsPage() {
   const { data: pendingData } = useGetPendingMembershipsQuery();
   const { data: expiringData } = useGetExpiringSoonQuery({ days: Number(expireDays) });
 
-  const txDesde = txDatePreset ? new Date(Date.now() - Number(txDatePreset) * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined;
+  const [txNow] = useState(() => Date.now());
+  const txDesde = useMemo(
+    () => txDatePreset ? new Date(txNow - Number(txDatePreset) * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : undefined,
+    [txDatePreset, txNow]
+  );
   const { data: txData, isLoading: txLoading } = useGetTransactionsQuery({
     paymentMethod: txPaymentMethod || undefined,
     desde: txDesde,

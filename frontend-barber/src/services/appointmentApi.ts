@@ -3,7 +3,7 @@ import type { Appointment, ClientSearchResult, CreateAppointmentPayload } from '
 import type { PaginatedAppointmentsResponse } from './appointment.service';
 import { axiosBaseQuery } from './baseQuery';
 
-type QueryParams = {
+export type QueryParams = {
   barberId?: string;
   clientId?: string;
   date?: string;

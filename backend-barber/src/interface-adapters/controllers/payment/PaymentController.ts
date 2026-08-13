@@ -104,6 +104,9 @@ export class PaymentController {
       const referenceId = req.params.referenceId as string;
       const type = req.query.type as string;
       const payment = await this.paymentRepository.findByReference(referenceId, type);
+      if (payment) {
+        assertOwnershipOrAdmin(payment.userId, req.user!._id, req.user!.kind, 'pago');
+      }
       return sendSuccess(res, { payment: payment ? payment.toPrimitives() : null });
     } catch (error) {
       return sendError(res, error, 'Error al obtener el pago');

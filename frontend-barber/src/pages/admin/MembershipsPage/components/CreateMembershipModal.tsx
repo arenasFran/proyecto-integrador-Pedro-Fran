@@ -28,6 +28,15 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
 
   const [createMembership, { isLoading }] = useCreateMembershipMutation();
 
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
+    if (isOpen) {
+      setBackendSearch('');
+      setShowList(true);
+    }
+  }
+
   const desde = useMemo(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() - 1);
@@ -52,14 +61,10 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
   const filteredClients = clients as ClienteData[];
 
   useEffect(() => {
-    if (isOpen) {
-      setBackendSearch('');
-      setShowList(true);
-    }
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [isOpen]);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -140,8 +145,9 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
       showToast('Membresía creada correctamente', 'success');
       resetForm();
       onClose();
-    } catch (err: any) {
-      const msg = err?.data?.error ?? err?.data ?? err?.message ?? 'Error al crear la membresía';
+    } catch (err: unknown) {
+      const e = err as { data?: { error?: string } | string; message?: string };
+      const msg = (typeof e.data === 'object' && e.data ? e.data.error : e.data) ?? e.message ?? 'Error al crear la membresía';
       showToast(String(msg), 'error');
     }
   };

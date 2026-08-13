@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiDollarSign, FiInfo, FiSearch, FiTrendingUp, FiUser, FiUserCheck } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { AnimatedContainer } from '../../../components/common';
@@ -36,8 +36,6 @@ export default function ClientsPage() {
       (c.clientEmail ?? '').toLowerCase().includes(q)
     );
   }, [clientes, search]);
-
-  useEffect(() => { setPage(1); }, [search, desde, hasta]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(
@@ -84,7 +82,7 @@ export default function ClientsPage() {
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} skipMountEffect />
+          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); setPage(1); }} skipMountEffect />
           <span
             title="Este rango afecta las estadísticas de reservas y gastado por cliente, no cuáles clientes aparecen en la lista."
             className="text-[#6A6A6A] hover:text-[#8A8A8A] cursor-help shrink-0"
@@ -98,7 +96,7 @@ export default function ClientsPage() {
             type="text"
             placeholder="Buscar por nombre, teléfono o email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-[10px] bg-[#1A1A1A] border border-[#282828] pl-10 pr-3 py-2 text-[13px] text-white placeholder-[#6A6A6A] focus:outline-none focus:border-[#FF5C00]/50"
           />
         </div>

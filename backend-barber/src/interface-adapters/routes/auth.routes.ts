@@ -10,6 +10,7 @@ import {
     completeGoogleProfileSchema,
     googleLoginSchema,
     registerSchema,
+    refreshTokenSchema,
     twoFactorSendSchema,
     twoFactorVerifySchema,
 } from '../validators/auth.validator';
@@ -25,6 +26,20 @@ export const createAuthRouter = (deps: {
   passwordRecoveryController: PasswordRecoveryController;
 }) => {
   const router = express.Router({ mergeParams: true });
+
+  const validateRefreshBody: express.RequestHandler = (req, res, next) => {
+    if (!req.body || Object.keys(req.body).length === 0) return next();
+
+    const { error, value } = refreshTokenSchema.validate(req.body, {
+      abortEarly: false,
+      stripUnknown: true,
+    });
+    if (error) {
+      return res.status(400).json({ error: error.details.map((detail) => detail.message).join(', ') });
+    }
+    req.body = value;
+    next();
+  };
 
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -52,6 +67,7 @@ export const createAuthRouter = (deps: {
 
   router.post(
     '/refresh',
+    validateRefreshBody,
     deps.authController.refresh
   );
 

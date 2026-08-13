@@ -191,6 +191,7 @@ describe('PaymentController', () => {
     it('debe devolver el pago asociado a la referencia', async () => {
       paymentRepository.findByReference.mockResolvedValue(makePayment());
       const req = createMockReqFull({ params: { referenceId: 'order-1' }, query: { type: 'product_order' } });
+      (req as any).user = { _id: 'user-1', kind: 'Registrado' };
       const res = createMockRes();
 
       await controller.getByReference(req, res);

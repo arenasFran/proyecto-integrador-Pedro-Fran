@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import { Client } from '../../../domain/entities/Client';
 import { AppError } from '../../../domain/errors/AppError';
-import { Client as ClientModel, UnregisteredClient } from './models/client.model';
+import { Client as ClientModel, RegisteredClient, UnregisteredClient } from './models/client.model';
+import { CUPO_DIAS_ANALISIS_CORTE } from '../../../application/use-cases/analisis-corte/calcularCupoAnalisisCorte';
 
 export type UnregisteredClientData = {
   name: string;
@@ -9,6 +10,10 @@ export type UnregisteredClientData = {
   phone?: string;
   contactEmail?: string;
 };
+
+// Si un proceso muere entre reservar y liberar el lock, se considera abandonado
+// pasado este tiempo (más que suficiente para Rekognition + Gemini).
+const ANALISIS_LOCK_STALE_MS = 2 * 60 * 1000;
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
@@ -24,9 +29,63 @@ const toClientEntity = (doc: Record<string, any>): Client =>
     kind: doc.kind || 'NoRegistrado',
     photoUrl: doc.photoUrl ?? null,
     registeredAt: (doc._id as mongoose.Types.ObjectId).getTimestamp(),
+    consentimientoAnalisisIA: doc.consentimientoAnalisisIA ?? false,
+    consentimientoAnalisisIAFecha: doc.consentimientoAnalisisIAFecha ?? null,
+    ultimoAnalisisFecha: doc.ultimoAnalisisFecha ?? null,
   });
 
 export class MongoClientRepository {
+  async findById(id: string): Promise<Client | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await ClientModel.findById(id).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
+  async updateAnalisisIA(
+    id: string,
+    data: {
+      consentimientoAnalisisIA?: boolean;
+      consentimientoAnalisisIAFecha?: Date;
+      ultimoAnalisisFecha?: Date;
+      analisisLockedAt?: Date | null;
+    },
+    session?: mongoose.ClientSession
+  ): Promise<void> {
+    await RegisteredClient.findByIdAndUpdate(id, { $set: data }, session ? { session } : {});
+  }
+
+  /**
+   * Reserva atómicamente el cupo mensual de análisis de corte con IA.
+   * Un solo findOneAndUpdate sobre un solo documento: Mongo lo serializa,
+   * así que ante dos requests concurrentes solo una puede matchear el filtro.
+   * Devuelve false si no hay cupo (mes en curso) o si ya hay un análisis en
+   * curso (lock activo y no vencido) para este cliente.
+   */
+  async reservarAnalisisIA(id: string): Promise<boolean> {
+    const cupoDisponibleDesde = new Date();
+    cupoDisponibleDesde.setDate(cupoDisponibleDesde.getDate() - CUPO_DIAS_ANALISIS_CORTE);
+    const lockStaleDesde = new Date(Date.now() - ANALISIS_LOCK_STALE_MS);
+
+    const doc = await RegisteredClient.findOneAndUpdate(
+      {
+        _id: id,
+        $and: [
+          { $or: [{ ultimoAnalisisFecha: null }, { ultimoAnalisisFecha: { $lte: cupoDisponibleDesde } }] },
+          { $or: [{ analisisLockedAt: null }, { analisisLockedAt: { $lte: lockStaleDesde } }] },
+        ],
+      },
+      { $set: { analisisLockedAt: new Date() } }
+    );
+
+    return !!doc;
+  }
+
+  /** Libera el lock sin tocar ultimoAnalisisFecha (no se descuenta cupo). */
+  async liberarLockAnalisisIA(id: string): Promise<void> {
+    await RegisteredClient.findByIdAndUpdate(id, { $set: { analisisLockedAt: null } });
+  }
+
   async findByEmail(email: string): Promise<Client | null> {
     const doc = await UnregisteredClient.findOne({ contactEmail: normalizeEmail(email) }).lean();
     if (!doc) return null;

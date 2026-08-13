@@ -6,6 +6,7 @@ import DateRangeFilter from '../../../../components/common/DateRangeFilter';
 import { ChartContainer } from '../../../../components/common';
 import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { formatFecha, deriveGranularidad } from '../../../../utils/formatFecha';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 function periodToRange(periodo: string): { dateFrom: string; dateTo: string } {
   if (/^\d{4}-\d{2}-\d{2}$/.test(periodo)) {
@@ -86,7 +87,7 @@ export default function GananciasChart() {
               contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
               labelStyle={{ color: '#fff' }}
               labelFormatter={(label) => formatFecha(label)}
-              formatter={(value) => [`$${(value ?? 0).toLocaleString('es-UY')}`, 'Ganancias']}
+              formatter={(value) => [formatCurrency(Number(value ?? 0)), 'Ganancias']}
             />
             <Area
               type="monotone"

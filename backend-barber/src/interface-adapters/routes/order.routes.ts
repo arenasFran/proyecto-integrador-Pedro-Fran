@@ -5,6 +5,7 @@ import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import {
   createOrderSchema,
+  createManualOrderSchema,
   orderIdParamSchema,
   queryOrdersSchema,
   updateOrderStatusSchema,
@@ -27,6 +28,7 @@ export const createOrderRouter = (deps: {
     '/manual',
     deps.authenticate,
     authorize('Admin', 'Empleado'),
+    validate({ body: createManualOrderSchema }),
     deps.orderController.createManual
   );
 

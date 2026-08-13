@@ -2,8 +2,10 @@ import { MongoPaymentRepository } from '../infrastructure/repositories/mongodb/M
 import { MercadoPagoService } from '../infrastructure/services/MercadoPagoService';
 import { getConfig } from '../infrastructure/config/env';
 import { CreatePaymentUseCase } from '../application/use-cases/payment/CreatePaymentUseCase';
-import { CreateSubscriptionUseCase } from '../application/use-cases/payment/CreateSubscriptionUseCase';
 import { ProcessWebhookUseCase } from '../application/use-cases/payment/ProcessWebhookUseCase';
+import { AppointmentPaymentHandler } from '../application/use-cases/payment/handlers/AppointmentPaymentHandler';
+import { MembershipPaymentHandler } from '../application/use-cases/payment/handlers/MembershipPaymentHandler';
+import { ProductOrderPaymentHandler } from '../application/use-cases/payment/handlers/ProductOrderPaymentHandler';
 import { PaymentController } from '../interface-adapters/controllers/payment/PaymentController';
 import { createPaymentRouter } from '../interface-adapters/routes/payment.routes';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
@@ -12,6 +14,8 @@ import { MongoMembershipTransactionRepository } from '../infrastructure/reposito
 import { MongoOrderRepository } from '../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoUserRepository } from '../infrastructure/repositories/mongodb/MongoUserRepository';
+import { MongoRevenueEntryRepository } from '../infrastructure/repositories/mongodb/MongoRevenueEntryRepository';
+import { RevenueTracker } from '../application/services/RevenueTracker';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
 import { buildTokenService } from './auth';
 import { createAuthenticate, createOptionalAuth } from '../interface-adapters/middlewares/auth.middleware';
@@ -34,11 +38,6 @@ export const buildCreatePaymentUseCase = () => {
   return new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
 };
 
-export const buildCreateSubscriptionUseCase = () => {
-  const { mercadoPagoService } = buildPaymentDependencies();
-  return new CreateSubscriptionUseCase(mercadoPagoService);
-};
-
 export const buildPaymentRouter = () => {
   const { paymentRepository, mercadoPagoService } = buildPaymentDependencies();
   const appointmentRepository = new MongoAppointmentRepository();
@@ -49,20 +48,24 @@ export const buildPaymentRouter = () => {
   const emailService = new NodemailerEmailService();
 
   const userRepository = new MongoUserRepository();
+  const revenueEntryRepository = new MongoRevenueEntryRepository();
+  const revenueTracker = new RevenueTracker(revenueEntryRepository);
+
+  const appointmentHandler = new AppointmentPaymentHandler(appointmentRepository, revenueTracker);
+  const membershipHandler = new MembershipPaymentHandler(membershipRepository, transactionRepository, revenueTracker);
+  const productOrderHandler = new ProductOrderPaymentHandler(orderRepository, productRepository, emailService, userRepository, revenueTracker);
 
   const processWebhook = new ProcessWebhookUseCase(
     paymentRepository,
-    appointmentRepository,
-    membershipRepository,
-    transactionRepository,
-    orderRepository,
-    productRepository,
+    appointmentHandler,
+    membershipHandler,
+    productOrderHandler,
     mercadoPagoService,
     emailService,
-    userRepository
+    userRepository,
   );
 
-  const paymentController = new PaymentController(processWebhook, paymentRepository);
+  const paymentController = new PaymentController(processWebhook, paymentRepository, mercadoPagoService);
 
   const tokenService = buildTokenService();
   const authenticate = createAuthenticate(tokenService);

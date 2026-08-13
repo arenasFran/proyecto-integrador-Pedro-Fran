@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { CartController } from '../controllers/cart/CartController';
 import { createAuthenticate } from '../middlewares/auth.middleware';
+import { validate } from '../middlewares/validation.middleware';
+import { syncCartSchema } from '../validators/cart.validator';
 
 export const createCartRouter = (deps: {
   cartController: CartController;
@@ -10,7 +12,7 @@ export const createCartRouter = (deps: {
 
   router.get('/', deps.authenticate, deps.cartController.getCart);
 
-  router.post('/sync', deps.authenticate, deps.cartController.syncCart);
+  router.post('/sync', deps.authenticate, validate({ body: syncCartSchema }), deps.cartController.syncCart);
 
   router.delete('/', deps.authenticate, deps.cartController.clearCart);
 

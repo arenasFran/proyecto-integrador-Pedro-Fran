@@ -27,7 +27,7 @@ export default function ProductImageUpload({ mainImageUrl, galleryUrls, onMainIm
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       return res.data.urls ?? [];
-    } catch (err) {
+    } catch {
       showToast('Error de conexión al subir imágenes.', 'error');
       return [];
     } finally {

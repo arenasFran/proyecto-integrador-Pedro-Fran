@@ -4,6 +4,7 @@ import { Modal, Button, Input, useToast } from '../../../../components/common';
 import { useCreateMembershipMutation } from '../../../../services/membershipApi';
 import { useGetClientesListQuery } from '../../../../services/analyticsApi';
 import type { ClienteData } from '../../../../types/analytics';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 type CreateMembershipModalProps = {
   isOpen: boolean;
@@ -21,12 +22,20 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
   const [couponsTotal, setCouponsTotal] = useState<string>('4');
   const [productDiscount, setProductDiscount] = useState<string>('10');
   const [durationDays, setDurationDays] = useState<string>('30');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'onetime' | ''>('');
   const [showList, setShowList] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [createMembership, { isLoading }] = useCreateMembershipMutation();
+
+  const [prevOpen, setPrevOpen] = useState(isOpen);
+  if (isOpen !== prevOpen) {
+    setPrevOpen(isOpen);
+    if (isOpen) {
+      setBackendSearch('');
+      setShowList(true);
+    }
+  }
 
   const desde = useMemo(() => {
     const d = new Date();
@@ -52,14 +61,10 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
   const filteredClients = clients as ClienteData[];
 
   useEffect(() => {
-    if (isOpen) {
-      setBackendSearch('');
-      setShowList(true);
-    }
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [isOpen]);
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -124,7 +129,6 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
     setCouponsTotal('4');
     setProductDiscount('10');
     setDurationDays('30');
-    setBillingCycle('');
   };
 
   const handleCreate = async () => {
@@ -137,13 +141,13 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
         couponsTotal: Number(couponsTotal),
         productDiscount: Number(productDiscount),
         durationDays: Number(durationDays),
-        billingCycle: billingCycle || undefined,
       }).unwrap();
       showToast('Membresía creada correctamente', 'success');
       resetForm();
       onClose();
-    } catch (err: any) {
-      const msg = err?.data?.error ?? err?.data ?? err?.message ?? 'Error al crear la membresía';
+    } catch (err: unknown) {
+      const e = err as { data?: { error?: string } | string; message?: string };
+      const msg = (typeof e.data === 'object' && e.data ? e.data.error : e.data) ?? e.message ?? 'Error al crear la membresía';
       showToast(String(msg), 'error');
     }
   };
@@ -321,7 +325,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
                 {!isCourtesy && (
                   <div className="flex-1 flex flex-col gap-1">
                     <label className="text-[11px] font-medium text-[#8A8A8A]" htmlFor="membership-price">
-                      Monto ($UYU)
+                      Monto ($)
                     </label>
                     <Input
                       id="membership-price"
@@ -389,35 +393,6 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
                   />
                 </div>
               </div>
-
-              {/* Tipo de cobro */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-medium text-[#8A8A8A]">Tipo de cobro</label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBillingCycle(billingCycle === 'monthly' ? '' : 'monthly')}
-                    className={`flex-1 px-3 py-2.5 rounded-[10px] border text-[12px] font-medium transition-colors min-h-[42px] ${
-                      billingCycle === 'monthly'
-                        ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-[#FF5C00]'
-                        : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A]'
-                    }`}
-                  >
-                    Mensual
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBillingCycle(billingCycle === 'onetime' ? '' : 'onetime')}
-                    className={`flex-1 px-3 py-2.5 rounded-[10px] border text-[12px] font-medium transition-colors min-h-[42px] ${
-                      billingCycle === 'onetime'
-                        ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-[#FF5C00]'
-                        : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A]'
-                    }`}
-                  >
-                    Pago único
-                  </button>
-                </div>
-              </div>
             </div>
           </fieldset>
         </div>
@@ -429,8 +404,6 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
             <span className="text-white text-right">{durationDays} días (vence {endDateEstimate})</span>
             <span className="text-[#8A8A8A]">Beneficios</span>
             <span className="text-white text-right">{couponsTotal} cupones + {productDiscount}% desc.</span>
-            <span className="text-[#8A8A8A]">Tipo de cobro</span>
-            <span className="text-white text-right">{billingCycle === 'monthly' ? 'Cobro mensual' : billingCycle === 'onetime' ? 'Pago único' : '—'}</span>
             <span className="text-[#8A8A8A]">Cliente</span>
             <span className="text-right">
               {selectedClient ? (
@@ -443,7 +416,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
             </span>
             <span className="text-[#8A8A8A]">Total</span>
             <span className={`text-right font-semibold ${isCourtesy ? 'text-[#FFB800]' : 'text-[#22C55E]'}`}>
-              {isCourtesy ? 'Cortesía' : `$UYU ${Number(price).toLocaleString('es-UY')}`}
+              {isCourtesy ? 'Cortesía' : formatCurrency(Number(price))}
             </span>
           </div>
         </div>

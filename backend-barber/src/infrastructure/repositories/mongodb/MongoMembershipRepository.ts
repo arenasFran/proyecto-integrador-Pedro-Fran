@@ -36,21 +36,6 @@ export class MongoMembershipRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  async findByPreapprovalId(preapprovalId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
-    const query = MembershipModel.findOne({ mpPreapprovalId: preapprovalId });
-    if (session) query.session(session);
-    const doc = await query;
-    return doc ? this.toDomain(doc) : null;
-  }
-
-  async findAllWithPreapprovalId(): Promise<Membership[]> {
-    const docs = await MembershipModel.find({
-      mpPreapprovalId: { $exists: true, $ne: null },
-      status: 'cancelled',
-    }).lean();
-    return docs.map((d) => this.toDomain(d as IMembershipDocument));
-  }
-
   async findAll(filter?: { status?: string; search?: string; page?: number; limit?: number }): Promise<{ data: Membership[]; total: number; page: number; totalPages: number; limit: number }> {
     const query: Record<string, unknown> = {};
     if (filter?.status) query.status = filter.status;
@@ -128,7 +113,6 @@ export class MongoMembershipRepository {
       billingCycle: data.billingCycle,
       createdBy: data.createdBy,
       adminId: data.adminId ? new mongoose.Types.ObjectId(data.adminId) : undefined,
-      mpPreapprovalId: data.mpPreapprovalId,
       paymentMethod: data.paymentMethod,
       paymentId: data.paymentId,
       approvedBy: data.approvedBy,
@@ -155,6 +139,32 @@ export class MongoMembershipRepository {
       { returnDocument: 'after', session, updatePipeline: true }
     );
     return doc ? this.toDomain(doc) : null;
+  }
+
+  async atomicConsumeCoupon(id: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    return this.incrementCouponsUsed(id, 1, session);
+  }
+
+  async atomicRestoreCoupon(id: string, session?: mongoose.ClientSession): Promise<Membership | null> {
+    return this.incrementCouponsUsed(id, -1, session);
+  }
+
+  async addCouponsTotal(id: string, count: number, session?: mongoose.ClientSession): Promise<Membership | null> {
+    if (count <= 0) return null;
+    const doc = await MembershipModel.findOneAndUpdate(
+      { _id: id },
+      { $inc: { couponsTotal: count }, $set: { updatedAt: new Date() } },
+      { returnDocument: 'after', session }
+    );
+    return doc ? this.toDomain(doc) : null;
+  }
+
+  async findCouponAppointments(membershipId: string): Promise<any[]> {
+    const { default: AppointmentModel } = await import('./models/appointment.model');
+    return AppointmentModel.find({
+      membershipId: new mongoose.Types.ObjectId(membershipId),
+      paymentMethod: 'memberPass',
+    }).sort({ date: -1, startTime: -1 }).lean();
   }
 
   async hasActiveMembership(userId: string): Promise<boolean> {
@@ -217,10 +227,10 @@ export class MongoMembershipRepository {
     return docs.map((d) => this.toDomain(d as IMembershipDocument));
   }
 
-  async findAnyByUser(userId: string): Promise<Membership | null> {
+  async findAnyByUser(userId: string, session?: mongoose.ClientSession): Promise<Membership | null> {
     const doc = await MembershipModel.findOne({
       userId: new mongoose.Types.ObjectId(userId),
-    }).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 }).session(session || null);
     return doc ? this.toDomain(doc) : null;
   }
 
@@ -289,7 +299,6 @@ export class MongoMembershipRepository {
       billingCycle: (doc as any).billingCycle ?? null,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
-      mpPreapprovalId: doc.mpPreapprovalId ?? undefined,
       paymentMethod: (doc as any).paymentMethod ?? null,
       paymentId: (doc as any).paymentId ?? undefined,
       approvedBy: doc.approvedBy?.toString(),

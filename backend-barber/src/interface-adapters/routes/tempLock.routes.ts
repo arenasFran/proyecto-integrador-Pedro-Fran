@@ -14,6 +14,10 @@ const tempLockSchema = Joi.object({
     .required(),
 });
 
+const tempLockIdParamSchema = Joi.object({
+  tempLockId: Joi.string().trim().min(1).max(100).required(),
+});
+
 const tempLockLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 20,
@@ -34,6 +38,7 @@ export const createTempLockRouter = (deps: {
 
   router.delete(
     '/:tempLockId',
+    validate({ params: tempLockIdParamSchema }),
     deps.tempLockController.release
   );
 

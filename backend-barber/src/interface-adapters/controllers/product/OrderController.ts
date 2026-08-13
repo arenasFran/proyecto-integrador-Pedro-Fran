@@ -1,23 +1,25 @@
 import { Request, Response } from 'express';
 import { CreateOrderUseCase } from '../../../application/use-cases/product/CreateOrderUseCase';
 import { GetOrderUseCase } from '../../../application/use-cases/product/GetOrderUseCase';
+import { UpdateOrderStatusUseCase } from '../../../application/use-cases/product/UpdateOrderStatusUseCase';
+import { CreateManualOrderUseCase } from '../../../application/use-cases/product/CreateManualOrderUseCase';
+import { DeleteOrderUseCase } from '../../../application/use-cases/product/DeleteOrderUseCase';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
-import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { IEmailService } from '../../../application/ports/IEmailService';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../domain/errors/AppError';
 import { Order } from '../../../domain/entities/Order';
-import { Payment } from '../../../domain/entities/Payment';
 
 export class OrderController {
   constructor(
     private readonly createOrderUseCase: CreateOrderUseCase,
     private readonly getOrderUseCase: GetOrderUseCase,
+    private readonly updateOrderStatusUseCase: UpdateOrderStatusUseCase,
+    private readonly createManualOrderUseCase: CreateManualOrderUseCase,
+    private readonly deleteOrderUseCase: DeleteOrderUseCase,
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
-    private readonly paymentRepository?: MongoPaymentRepository,
     private readonly emailService?: IEmailService,
     private readonly userRepository?: MongoUserRepository
   ) {}
@@ -152,16 +154,6 @@ export class OrderController {
     }
   };
 
-  private async restoreStock(order: import('../../../domain/entities/Order').Order): Promise<void> {
-    for (const item of order.items) {
-      const product = await this.productRepository.findById(item.productId);
-      if (product) {
-        product.restoreStock(item.quantity);
-        await this.productRepository.save(product);
-      }
-    }
-  }
-
   private async getUserEmail(userId: string): Promise<string | null> {
     if (!this.userRepository) return null;
     try {
@@ -177,71 +169,20 @@ export class OrderController {
       const { status } = req.body as { status: string };
       const actor = req.user?.kind || 'Admin';
 
-      const order = await this.orderRepository.findById(id as string);
-      if (!order) throw new AppError('Orden no encontrada.', 404);
-
-      const previousStatus = order.status;
-
-      switch (status) {
-        case 'paid':
-          order.pay();
-          break;
-        case 'delivered':
-          order.deliver();
-          break;
-        case 'cancelled':
-          order.cancel(actor);
-          break;
-        default:
-          throw new AppError('Estado inválido.', 400);
-      }
-
-      if (status === 'cancelled') {
-        await this.restoreStock(order);
-        if (this.paymentRepository && order.paymentId) {
-          try {
-            const payment = await this.paymentRepository.findById(order.paymentId);
-            if (payment && payment.status === 'approved') {
-              payment.cancel();
-              await this.paymentRepository.save(payment);
-            }
-          } catch (err) {
-            console.error('[OrderController] Error al actualizar Payment:', err);
-          }
-        }
-      }
-
-      if ((status === 'paid' || status === 'delivered') && this.paymentRepository) {
-        try {
-          const existingPayment = await this.paymentRepository.findByReference(order.id, 'product_order');
-          if (existingPayment && existingPayment.status === 'pending') {
-            existingPayment.approve('admin_manual');
-            await this.paymentRepository.save(existingPayment);
-          } else if (!existingPayment && !order.paymentId) {
-            const paymentDoc = Payment.create({
-              type: 'product_order',
-              referenceId: order.id,
-              amount: order.total,
-              userId: order.userId,
-            });
-            paymentDoc.approve('admin_manual');
-            await this.paymentRepository.save(paymentDoc);
-          }
-        } catch (err) {
-          console.error('[OrderController] Error updating PaymentModel:', err);
-        }
-      }
-
-      const saved = await this.orderRepository.save(order);
+      const { order: saved, previousStatus } = await this.updateOrderStatusUseCase.execute({
+        orderId: id as string,
+        status,
+        actor,
+      });
 
       if (status === 'delivered' && previousStatus !== 'delivered') {
-        const userEmail = await this.getUserEmail(order.userId);
+        const userEmail = await this.getUserEmail(saved.userId);
         if (userEmail && this.emailService) {
           this.emailService.sendMail({
             to: userEmail,
             subject: 'Orden entregada - Barbería SA',
-            html: `<p>Tu orden <strong>#${order.id}</strong> ha sido marcada como entregada.</p>
-<p>Total: $${order.total}</p>
+            html: `<p>Tu orden <strong>#${saved.id}</strong> ha sido marcada como entregada.</p>
+<p>Total: $${saved.total}</p>
 <p>Gracias por tu compra.</p>`,
           }).catch(() => {});
         }
@@ -256,11 +197,7 @@ export class OrderController {
   delete = async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const order = await this.orderRepository.findById(id as string);
-      if (!order) throw new AppError('Orden no encontrada.', 404);
-
-      await this.restoreStock(order);
-      await this.orderRepository.delete(id as string);
+      await this.deleteOrderUseCase.execute({ orderId: id as string });
       return sendSuccess(res, { message: 'Orden eliminada correctamente.' });
     } catch (error) {
       return sendError(res, error, 'Error al eliminar la orden');
@@ -278,92 +215,20 @@ export class OrderController {
         status?: string;
       };
 
-      if (!items || items.length === 0) {
-        throw new AppError('Debe incluir al menos un producto.', 400);
-      }
-
-      if (!userId && !clientName) {
-        throw new AppError('Debe seleccionar un cliente registrado o ingresar el nombre.', 400);
-      }
-
-      const products = await Promise.all(
-        items.map((item) => this.productRepository.findById(item.productId))
-      );
-
-      const resolvedItems: { productId: string; name: string; price: number; quantity: number; imageUrl?: string }[] = [];
-
-      for (let i = 0; i < items.length; i++) {
-        const product = products[i];
-        if (!product) throw new AppError(`Producto no encontrado: ${items[i].productId}`, 404);
-        if (product.status !== 'active') throw new AppError(`"${product.name}" no esta disponible`, 400);
-        if (product.stock < items[i].quantity) throw new AppError(`Stock insuficiente para: ${product.name}`, 400);
-
-        resolvedItems.push({
-          productId: product.id,
-          name: product.name,
-          price: product.price,
-          quantity: items[i].quantity,
-          imageUrl: product.imageUrl || undefined,
-        });
-      }
-
-      const orderUserId = userId || 'manual_' + Date.now();
-
-      const order = Order.create({
-        userId: orderUserId,
-        clientName: clientName || undefined,
-        clientEmail: clientEmail || undefined,
-        clientPhone: clientPhone || undefined,
-        items: resolvedItems,
+      const primitives = await this.createManualOrderUseCase.execute({
+        items,
+        userId,
+        clientName,
+        clientEmail,
+        clientPhone,
+        status,
       });
 
-      const targetStatus = status || 'pending';
-      if (targetStatus === 'paid') {
-        order.pay();
-      } else if (targetStatus === 'delivered') {
-        order.pay();
-        order.deliver();
-      }
+      const result = [primitives];
+      await this.enrichWithUser(result);
+      await this.enrichWithProductImages(result);
 
-      const saved = await this.orderRepository.save(order);
-
-      if (targetStatus === 'paid' || targetStatus === 'delivered') {
-        for (const item of resolvedItems) {
-          await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
-        }
-        if (this.paymentRepository) {
-          try {
-            const paymentDoc = Payment.create({
-              type: 'product_order',
-              referenceId: saved.id,
-              amount: saved.total,
-              userId: orderUserId,
-            });
-            paymentDoc.approve('admin_manual');
-            await this.paymentRepository.save(paymentDoc);
-          } catch (err) {
-            console.error('[OrderController] Error creating PaymentModel for manual order:', err);
-          }
-        }
-      } else if (this.paymentRepository) {
-        try {
-          const paymentDoc = Payment.create({
-            type: 'product_order',
-            referenceId: saved.id,
-            amount: saved.total,
-            userId: orderUserId,
-          });
-          await this.paymentRepository.save(paymentDoc);
-        } catch (err) {
-          console.error('[OrderController] Error creating PaymentModel for manual order:', err);
-        }
-      }
-
-      const primitives = [saved.toPrimitives()];
-      await this.enrichWithUser(primitives);
-      await this.enrichWithProductImages(primitives);
-
-      return sendSuccess(res, { order: primitives[0] }, 201);
+      return sendSuccess(res, { order: result[0] }, 201);
     } catch (error) {
       return sendError(res, error, 'Error al crear orden manual');
     }

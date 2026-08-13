@@ -31,22 +31,22 @@ const services = [
     name: 'Corte de pelo',
     desc: 'Tijera y máquina, terminación prolija, lavado incluido.',
     price: '$ 490',
-    image: '/foto2.jpeg',
-    bgPosition: '50% 72%',
+    image: '/corte%20de%20pelo.jpeg',
+    bgPosition: '50% 25%',
   },
   {
     name: 'Corte a máquina',
     desc: 'Solo máquina, sin tijera. Rápido, parejo y bien definido.',
     price: '$ 350',
-    image: '/foto1.jpg',
+    image: '/corte%20a%20maquina.png',
     bgPosition: '50% 50%',
   },
   {
-    name: 'Barba.',
+    name: 'Barba',
     desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
     price: '$ 250',
-    image: '/foto1.jpg',
-    bgPosition: '50% 85%',
+    image: '/corte%20de%20barba.jpeg',
+    bgPosition: '35% 35%',
   }
 ];
 
@@ -197,7 +197,8 @@ export const LandingPage: React.FC = () => {
               </>
             )}
             <Button onClick={() => navigate('/reservar')} className="text-[13px]">
-              Reservar turno
+              <span className="hidden md:inline">Reservar turno</span>
+              <span className="md:hidden">Reservar</span>
             </Button>
           </div>
         </div>
@@ -209,7 +210,7 @@ export const LandingPage: React.FC = () => {
           <picture>
             <source media="(max-width: 767px)" srcSet="/hero-mobile.jpeg" />
             <img
-              src="/hero.jpg"
+              src="/hero.png"
               alt=""
               className="max-w-full max-h-full object-contain"
             />
@@ -374,7 +375,7 @@ export const LandingPage: React.FC = () => {
             Tienda
           </h2>
           <p className="text-[#8A8A8A] mt-3 text-base leading-relaxed">
-            Productos de barbería y cuidado personal. Members reciben 10% de descuento.
+            Productos de barbería y cuidado personal. Miembros reciben 10% de descuento en todos los productos.
           </p>
         </motion.div>
 
@@ -388,7 +389,7 @@ export const LandingPage: React.FC = () => {
             Visitar tienda
           </Button>
           <p className="text-[#8A8A8A] text-sm max-w-[260px]">
-            Shampoos, ceras, peines y más. Todo lo que necesitás para el cuidado diario.
+            Ceras, peines y más. Todo lo que necesitás para el cuidado diario.
           </p>
         </motion.div>
       </section>

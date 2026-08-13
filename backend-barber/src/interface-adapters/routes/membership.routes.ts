@@ -9,9 +9,9 @@ import {
   redeemCouponSchema,
   queryMembershipsSchema,
   initiateMembershipPaymentSchema,
-  createSubscriptionSchema,
   membershipIdParamSchema,
   membershipUserIdParamSchema,
+  addCouponsSchema,
 } from '../validators/membership.validator';
 
 const membershipLimiter = rateLimit({
@@ -97,23 +97,16 @@ export const createMembershipRouter = (deps: {
     '/:id',
     deps.authenticate,
     authorize('Admin'),
+    validate({ params: membershipIdParamSchema }),
     deps.membershipController.getById
   );
 
   router.post(
-    '/create-subscription',
+    '/:id/cancel',
     membershipMutationLimiter,
     deps.authenticate,
-    authorize('Registrado'),
-    validate({ body: createSubscriptionSchema }),
-    deps.membershipController.createSubscription
-  );
-
-  router.post(
-    '/:id/cancel-subscription',
-    membershipMutationLimiter,
-    deps.authenticate,
-    deps.membershipController.cancelSubscription
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.cancel
   );
 
   router.post(
@@ -150,6 +143,23 @@ export const createMembershipRouter = (deps: {
     authorize('Admin', 'Empleado'),
     validate({ params: membershipIdParamSchema }),
     deps.membershipController.approvePending
+  );
+
+  router.get(
+    '/:id/coupon-history',
+    membershipLimiter,
+    deps.authenticate,
+    validate({ params: membershipIdParamSchema }),
+    deps.membershipController.getCouponHistory
+  );
+
+  router.put(
+    '/:id/coupons',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Admin'),
+    validate({ params: membershipIdParamSchema, body: addCouponsSchema }),
+    deps.membershipController.addCouponsToMembership
   );
 
   return router;

@@ -3,26 +3,28 @@ import { professionalService } from '../services/professional.service';
 import type { SlotsReason } from '../types/professional';
 
 export function useAvailableSlots(barberId: string, date: string, enabled: boolean, excludeAppointmentId?: string) {
+  const active = Boolean(enabled && barberId && date);
   const [slots, setSlots] = useState<string[]>([]);
   const [reason, setReason] = useState<SlotsReason | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(active);
   const [error, setError] = useState(false);
 
+  const fetchKey = active ? `${barberId}|${date}|${excludeAppointmentId ?? ''}` : '';
+  const [lastKey, setLastKey] = useState(fetchKey);
+  if (fetchKey !== lastKey) {
+    setLastKey(fetchKey);
+    if (active) setIsLoading(true);
+  }
+
   useEffect(() => {
-    if (!enabled || !barberId || !date) {
-      setSlots([]);
-      setReason(undefined);
-      setError(false);
-      return;
-    }
+    if (!active) return;
     let cancelled = false;
-    setIsLoading(true);
-    setError(false);
     professionalService.getSlots(barberId, date, excludeAppointmentId)
       .then((res) => {
         if (!cancelled) {
           setSlots(res.slots);
           setReason(res.reason);
+          setError(false);
         }
       })
       .catch(() => {
@@ -36,7 +38,12 @@ export function useAvailableSlots(barberId: string, date: string, enabled: boole
         if (!cancelled) setIsLoading(false);
       });
     return () => { cancelled = true; };
-  }, [barberId, date, enabled, excludeAppointmentId]);
+  }, [active, barberId, date, excludeAppointmentId]);
 
-  return { slots, reason, isLoading, error };
+  return {
+    slots: active ? slots : [],
+    reason: active ? reason : undefined,
+    isLoading: active ? isLoading : false,
+    error: active ? error : false,
+  };
 }

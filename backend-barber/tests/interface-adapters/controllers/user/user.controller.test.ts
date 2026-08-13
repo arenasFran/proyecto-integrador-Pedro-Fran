@@ -19,17 +19,17 @@ describe('UserController', () => {
   };
 
   let userRepository: ReturnType<typeof makeMockUserRepository>;
-  let passwordHasher: ReturnType<typeof makeMockPasswordHasher>;
-  let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
   let emailService: ReturnType<typeof makeMockEmailService>;
+  let updateUserProfile: { execute: jest.Mock };
+  let changePasswordUseCase: { execute: jest.Mock };
   let controller: UserController;
 
   beforeEach(() => {
     userRepository = makeMockUserRepository();
-    passwordHasher = makeMockPasswordHasher();
-    refreshTokenRepository = makeMockRefreshTokenRepository();
     emailService = makeMockEmailService();
-    controller = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
+    updateUserProfile = { execute: jest.fn() };
+    changePasswordUseCase = { execute: jest.fn() };
+    controller = new UserController(userRepository, emailService, updateUserProfile as any, changePasswordUseCase as any);
   });
 
   it('debe retornar el perfil del usuario autenticado', async () => {
@@ -104,22 +104,20 @@ describe('UserController', () => {
 
     it('debe actualizar nombre/telefono sin pedir contraseña cuando no cambia el email', async () => {
       const user = makeUser();
-      userRepository.update.mockResolvedValue(User.create({ ...user.toPrimitives(), name: 'Carlos' }));
+      updateUserProfile.execute.mockResolvedValue({ user: { ...user.toPrimitives(), name: 'Carlos' } });
 
       const req = makeReq({ name: 'Carlos' });
       const res = makeRes();
 
       await controller.updateMe(req, res);
 
-      expect(userRepository.findById).not.toHaveBeenCalled();
-      expect(userRepository.update).toHaveBeenCalledWith('user-1', { name: 'Carlos' });
+      expect(updateUserProfile.execute).toHaveBeenCalledWith('user-1', { name: 'Carlos' });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it('debe permitir reenviar el mismo email sin pedir contraseña', async () => {
       const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      userRepository.update.mockResolvedValue(user);
+      updateUserProfile.execute.mockResolvedValue({ user: user.toPrimitives() });
 
       const req = makeReq({ email: user.email });
       const res = makeRes();
@@ -131,8 +129,7 @@ describe('UserController', () => {
     });
 
     it('debe rechazar el cambio de email sin currentPassword', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
+      updateUserProfile.execute.mockRejectedValue(new AppError('Se requiere la contraseña actual para cambiar el email.', 400));
 
       const req = makeReq({ email: 'nuevo@example.com' });
       const res = makeRes();
@@ -140,53 +137,45 @@ describe('UserController', () => {
       await controller.updateMe(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
-      expect(userRepository.update).not.toHaveBeenCalled();
     });
 
     it('debe rechazar el cambio de email con currentPassword incorrecta', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(false);
+      updateUserProfile.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
       const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'wrong' });
       const res = makeRes();
 
       await controller.updateMe(req, res);
 
-      expect(passwordHasher.compare).toHaveBeenCalledWith('wrong', user.passwordHash);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Contraseña actual incorrecta.' });
-      expect(userRepository.update).not.toHaveBeenCalled();
     });
 
     it('debe cambiar el email con currentPassword correcta y avisar al email viejo', async () => {
       const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(true);
-      userRepository.update.mockResolvedValue(User.create({ ...user.toPrimitives(), email: 'nuevo@example.com' }));
+      updateUserProfile.execute.mockResolvedValue({ user: { ...user.toPrimitives(), email: 'nuevo@example.com' }, oldEmail: 'user@example.com' });
 
       const req = makeReq({ email: 'nuevo@example.com', currentPassword: 'CurrentPass1' });
       const res = makeRes();
 
       await controller.updateMe(req, res);
 
-      expect(userRepository.update).toHaveBeenCalledWith('user-1', { email: 'nuevo@example.com' });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(emailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({ to: 'user@example.com' })
       );
     });
 
-    it('ya no hashea ni procesa un campo password aunque llegue en el body (la validación de la ruta lo filtra antes de esto)', async () => {
+    it('ya no hashea ni procesa un campo password aunque llegue en el body', async () => {
       const user = makeUser();
-      userRepository.update.mockResolvedValue(user);
+      updateUserProfile.execute.mockResolvedValue({ user: user.toPrimitives() });
 
       const req = makeReq({ name: 'Carlos', password: 'Ignorado123' });
       const res = makeRes();
 
       await controller.updateMe(req, res);
 
-      expect(passwordHasher.hash).not.toHaveBeenCalled();
+      expect(updateUserProfile.execute).toHaveBeenCalled();
     });
   });
 
@@ -207,30 +196,26 @@ describe('UserController', () => {
       ({ status: jest.fn().mockReturnThis(), json: jest.fn() }) as unknown as Response;
 
     it('debe cambiar la contraseña exitosamente', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(true);
-      passwordHasher.hash.mockResolvedValue('$2b$10$new_hashed_password');
-      userRepository.updatePassword.mockResolvedValue(undefined);
-      refreshTokenRepository.revokeAllByUserId.mockResolvedValue(undefined);
+      changePasswordUseCase.execute.mockResolvedValue({ email: 'user@example.com' });
 
       const req = makeReq();
       const res = makeRes();
 
       await controller.changePassword(req, res);
 
-      expect(passwordHasher.compare).toHaveBeenCalledWith('CurrentPass1', user.passwordHash);
-      expect(passwordHasher.hash).toHaveBeenCalledWith('NewPass123');
-      expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', '$2b$10$new_hashed_password');
-      expect(refreshTokenRepository.revokeAllByUserId).toHaveBeenCalledWith('user-1');
+      expect(changePasswordUseCase.execute).toHaveBeenCalledWith({
+        userId: 'user-1',
+        currentPassword: 'CurrentPass1',
+        newPassword: 'NewPass123',
+        newPasswordConfirmation: 'NewPass123',
+      });
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'Contraseña actualizada con éxito.' });
-      expect(emailService.sendMail).toHaveBeenCalledWith(
-        expect.objectContaining({ to: user.email, subject: expect.stringMatching(/contraseña/i) })
-      );
     });
 
     it('debe rechazar si las nuevas contraseñas no coinciden', async () => {
+      changePasswordUseCase.execute.mockRejectedValue(new AppError('Las contraseñas nuevas no coinciden.', 400));
+
       const req = makeReq({ newPasswordConfirmation: 'Different123' });
       const res = makeRes();
 
@@ -241,6 +226,8 @@ describe('UserController', () => {
     });
 
     it('debe rechazar si la nueva contraseña es igual a la actual', async () => {
+      changePasswordUseCase.execute.mockRejectedValue(new AppError('La nueva contraseña debe ser diferente a la actual.', 400));
+
       const req = makeReq({ newPassword: 'CurrentPass1', newPasswordConfirmation: 'CurrentPass1' });
       const res = makeRes();
 
@@ -251,6 +238,8 @@ describe('UserController', () => {
     });
 
     it('debe rechazar si la nueva contraseña no cumple la política', async () => {
+      changePasswordUseCase.execute.mockRejectedValue(new AppError('La contraseña debe tener al menos 8 caracteres.', 400));
+
       const req = makeReq({ newPassword: 'short', newPasswordConfirmation: 'short' });
       const res = makeRes();
 
@@ -261,34 +250,19 @@ describe('UserController', () => {
     });
 
     it('debe rechazar si la contraseña actual es incorrecta', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(false);
+      changePasswordUseCase.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
       const req = makeReq();
       const res = makeRes();
 
       await controller.changePassword(req, res);
 
-      expect(passwordHasher.compare).toHaveBeenCalledWith('CurrentPass1', user.passwordHash);
       expect(res.status).toHaveBeenCalledWith(401);
       expect(res.json).toHaveBeenCalledWith({ error: 'Contraseña actual incorrecta.' });
     });
 
-    it('debe retornar 404 si el usuario no existe', async () => {
-      userRepository.findById.mockResolvedValue(null);
-
-      const req = makeReq();
-      const res = makeRes();
-
-      await controller.changePassword(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: 'Usuario no encontrado.' });
-    });
-
     it('debe retornar 500 para errores desconocidos', async () => {
-      userRepository.findById.mockRejectedValue(new Error('error inesperado'));
+      changePasswordUseCase.execute.mockRejectedValue(new Error('error inesperado'));
 
       const req = makeReq();
       const res = makeRes();

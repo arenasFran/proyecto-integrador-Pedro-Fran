@@ -13,6 +13,7 @@ export type Config = {
   mongoUri: string;
   frontendUrl: string;
   resetTokenExpirationMin: number;
+  emailProvider: 'ethereal' | 'brevo';
   smtp: {
     host: string;
     port: number;
@@ -30,12 +31,32 @@ export type Config = {
   mpWebhookSecret: string | undefined;
   mpNotificationUrl: string | undefined;
   membershipPriceUyu: number;
+  awsRegion: string;
+  awsAccessKeyId: string | undefined;
+  awsSecretAccessKey: string | undefined;
+  awsSessionToken: string | undefined;
+  geminiApiKey: string | undefined;
+  openaiApiKey: string | undefined;
+  orphanPaymentCutoffHours: number;
+  seedOnStart: boolean;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
     reset: { max: number; windowMs: number };
     twoFA: { max: number; windowMs: number };
     google: { max: number; windowMs: number };
+  };
+  telegram: {
+    enabled: boolean;
+    botToken: string | undefined;
+    apiBaseUrl: string;
+    botUsername: string;
+    tokenEncKey: string | undefined;
+  };
+  gemini: {
+    enabled: boolean;
+    apiKey: string | undefined;
+    model: string;
   };
 };
 
@@ -71,15 +92,35 @@ function parseBoolEnv(name: string, defaultValue: boolean): boolean {
   return raw === 'true' || raw === '1';
 }
 
+function parseEmailProvider(): 'ethereal' | 'brevo' {
+  const raw = (process.env.EMAIL_PROVIDER || 'brevo').trim().toLowerCase();
+  if (raw !== 'ethereal' && raw !== 'brevo') {
+    throw new Error(`EMAIL_PROVIDER inválido ("${raw}"). Valores permitidos: "ethereal" o "brevo".`);
+  }
+  return raw;
+}
+
 export function loadConfig(): Config {
   dotenv.config();
 
   const jwtAccessSecret = requireEnv('JWT_ACCESS_SECRET');
   const jwtRefreshSecret = requireEnv('JWT_REFRESH_SECRET');
   const jwtPartialSecret = requireEnv('JWT_PARTIAL_SECRET');
+  const port = parseIntEnv('PORT', 3000);
+  const telegramEnabled = parseBoolEnv('TELEGRAM_BOT_ENABLED', false);
+  const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || undefined;
+  const telegramTokenEncKey = process.env.TELEGRAM_TOKEN_ENC_KEY || undefined;
+
+  if (telegramEnabled && !telegramBotToken) {
+    throw new Error('TELEGRAM_BOT_ENABLED=true requiere TELEGRAM_BOT_TOKEN.');
+  }
+
+  if (telegramEnabled && !telegramTokenEncKey) {
+    throw new Error('TELEGRAM_BOT_ENABLED=true requiere TELEGRAM_TOKEN_ENC_KEY.');
+  }
 
   return {
-    port: parseIntEnv('PORT', 3000),
+    port,
     corsOrigin: optionalEnv('CORS_ORIGIN', 'http://localhost:5173'),
     jwtAccessSecret,
     jwtRefreshSecret,
@@ -91,6 +132,7 @@ export function loadConfig(): Config {
     mongoUri: requireEnv('MONGO_URI'),
     frontendUrl: optionalEnv('FRONTEND_URL', ''),
     resetTokenExpirationMin: parseIntEnv('RESET_TOKEN_EXPIRATION_MIN', 60),
+    emailProvider: parseEmailProvider(),
     smtp: {
       host: optionalEnv('SMTP_HOST', 'localhost'),
       port: parseIntEnv('SMTP_PORT', 587),
@@ -108,12 +150,32 @@ export function loadConfig(): Config {
     mpWebhookSecret: process.env.MP_WEBHOOK_SECRET || undefined,
     mpNotificationUrl: process.env.MP_NOTIFICATION_URL || undefined,
     membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 399),
+    awsRegion: optionalEnv('AWS_REGION', 'us-east-1'),
+    awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
+    awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
+    awsSessionToken: process.env.AWS_SESSION_TOKEN || undefined,
+    geminiApiKey: process.env.GEMINI_API_KEY || undefined,
+    openaiApiKey: process.env.OPENAI_API_KEY || undefined,
+    orphanPaymentCutoffHours: parseIntEnv('ORPHAN_PAYMENT_CUTOFF_HOURS', 72),
+    seedOnStart: parseBoolEnv('SEED_ON_START', false),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },
       reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 20), windowMs: 15 * 60 * 1000 },
       twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 30), windowMs: 15 * 60 * 1000 },
       google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 20), windowMs: 15 * 60 * 1000 },
+    },
+    telegram: {
+      enabled: telegramEnabled,
+      botToken: telegramBotToken,
+      apiBaseUrl: optionalEnv('TELEGRAM_BOT_API_BASE_URL', `http://localhost:${port}/api`),
+      botUsername: optionalEnv('TELEGRAM_BOT_USERNAME', ''),
+      tokenEncKey: telegramTokenEncKey,
+    },
+    gemini: {
+      enabled: Boolean(process.env.GEMINI_API_KEY),
+      apiKey: process.env.GEMINI_API_KEY || undefined,
+      model: optionalEnv('GEMINI_MODEL', 'gemini-flash-lite-latest'),
     },
   };
 }
@@ -127,10 +189,27 @@ export function getConfig(): Config {
   return _config;
 }
 
+const EMAIL_FROM_WITH_NAME_REGEX = /^.+\s<[^<>\s@]+@[^<>\s@]+\.[^<>\s@]+>$/;
+
 export function validateEnv(): Config {
   try {
     const config = loadConfig();
     console.log('Variables de entorno validadas correctamente.');
+
+    if (config.emailProvider === 'brevo') {
+      const rawFrom = (process.env.EMAIL_FROM || '').trim();
+      if (!rawFrom) {
+        throw new Error('EMAIL_FROM es requerido cuando EMAIL_PROVIDER=brevo (debe ser un sender verificado en Brevo).');
+      }
+      if (!EMAIL_FROM_WITH_NAME_REGEX.test(rawFrom)) {
+        throw new Error(
+          'EMAIL_FROM debe tener el formato "Nombre <email@dominio>" cuando EMAIL_PROVIDER=brevo. Ejemplo: "Barbería Santiago Abbona <noreply@barberiasantiagoabbona.com>".'
+        );
+      }
+      console.log(`[EMAIL] Proveedor: Brevo. Remitente: ${rawFrom}`);
+    } else {
+      console.log('[EMAIL] Proveedor: Ethereal (modo test, los mails no se entregan de verdad).');
+    }
 
     if (config.mpAccessToken) {
       const isTestToken = config.mpAccessToken.startsWith('TEST-');
@@ -162,6 +241,28 @@ export function validateEnv(): Config {
       } else {
         console.log('[MP-CREDENTIALS] MP_NOTIFICATION_URL: ' + config.mpNotificationUrl);
       }
+    }
+
+    if (config.telegram.enabled) {
+      console.log('[TELEGRAM-BOT] TELEGRAM_BOT_ENABLED=true. El bot se iniciará en modo polling contra ' + config.telegram.apiBaseUrl);
+    } else {
+      console.log('[TELEGRAM-BOT] Deshabilitado (TELEGRAM_BOT_ENABLED=false).');
+    }
+
+    if (config.gemini.enabled) {
+      console.log('[GEMINI] Texto libre habilitado (modelo: ' + config.gemini.model + ').');
+    } else {
+      console.log('[GEMINI] Deshabilitado (GEMINI_API_KEY no configurada). El bot solo usará botones.');
+    }
+
+    if (!config.awsAccessKeyId || !config.awsSecretAccessKey) {
+      console.warn('[ANALISIS-IA] Credenciales de AWS no configuradas. La validación de foto (Rekognition) no estará disponible.');
+    }
+    if (!config.geminiApiKey) {
+      console.warn('[ANALISIS-IA] GEMINI_API_KEY no configurada. La recomendación de corte (Gemini) no estará disponible.');
+    }
+    if (!config.openaiApiKey) {
+      console.warn('[ANALISIS-IA] OPENAI_API_KEY no configurada. La imagen de ejemplo del corte (OpenAI) no estará disponible.');
     }
 
     return config;

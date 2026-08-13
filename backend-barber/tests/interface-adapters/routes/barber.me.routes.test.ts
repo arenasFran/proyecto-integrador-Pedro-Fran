@@ -48,6 +48,7 @@ describe('Barber routes — PUT /api/barbers/me', () => {
   let app: express.Application;
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let userRepository: ReturnType<typeof makeMockUserRepository>;
+  let updateBarberMe: { execute: jest.Mock };
   let passwordHasher: ReturnType<typeof makeMockPasswordHasher>;
 
   const authenticate: express.RequestHandler = (req, _res, next) => {
@@ -59,22 +60,20 @@ describe('Barber routes — PUT /api/barbers/me', () => {
     profileUpdateLimiter.resetKey('barber-1');
     barberRepository = makeMockBarberRepository();
     userRepository = makeMockUserRepository();
-    passwordHasher = makeMockPasswordHasher();
     const emailService = makeMockEmailService();
-    const getAvailableSlots = { execute: jest.fn() } as any;
-    const deleteBarber = { execute: jest.fn() } as any;
-    const blockRepository = {} as any;
-    const appointmentRepository = makeMockAppointmentRepository();
+    updateBarberMe = { execute: jest.fn() };
 
     const controller = new BarberController(
       barberRepository,
-      userRepository,
-      passwordHasher as any,
-      getAvailableSlots,
-      deleteBarber,
-      blockRepository,
-      appointmentRepository as any,
-      emailService
+      {} as any,
+      {} as any,
+      {} as any,
+      emailService,
+      {} as any,
+      {} as any,
+      updateBarberMe as any,
+      {} as any,
+      {} as any,
     );
 
     app = express();
@@ -83,7 +82,7 @@ describe('Barber routes — PUT /api/barbers/me', () => {
   });
 
   it('debe actualizar nombre sin pedir contraseña cuando no cambia el email', async () => {
-    barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ name: 'Carlos' }));
+    updateBarberMe.execute.mockResolvedValue({ barber: makeBarberEntity({ name: 'Carlos' }).toPrimitives() });
 
     const response = await request(app)
       .put('/api/barbers/me')
@@ -99,25 +98,22 @@ describe('Barber routes — PUT /api/barbers/me', () => {
       .send({ password: 'NuevaPass123' });
 
     expect(response.status).toBe(400);
-    expect(barberRepository.updateBarber).not.toHaveBeenCalled();
   });
 
   it('debe rechazar el cambio de email sin currentPassword', async () => {
-    barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-    userRepository.findByEmail.mockResolvedValue(null);
+    const { AppError } = require('../../../src/domain/errors/AppError');
+    updateBarberMe.execute.mockRejectedValue(new AppError('Se requiere la contraseña actual para cambiar el email.', 400));
 
     const response = await request(app)
       .put('/api/barbers/me')
       .send({ email: 'nuevo@example.com' });
 
     expect(response.status).toBe(400);
-    expect(barberRepository.updateBarber).not.toHaveBeenCalled();
   });
 
   it('debe rechazar el cambio de email con currentPassword incorrecta', async () => {
-    barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-    userRepository.findByEmail.mockResolvedValue(null);
-    passwordHasher.compare.mockResolvedValue(false);
+    const { AppError } = require('../../../src/domain/errors/AppError');
+    updateBarberMe.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
     const response = await request(app)
       .put('/api/barbers/me')
@@ -128,10 +124,7 @@ describe('Barber routes — PUT /api/barbers/me', () => {
   });
 
   it('debe cambiar el email con currentPassword correcta', async () => {
-    barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-    userRepository.findByEmail.mockResolvedValue(null);
-    passwordHasher.compare.mockResolvedValue(true);
-    barberRepository.updateBarber.mockResolvedValue(makeBarberEntity({ email: 'nuevo@example.com' }));
+    updateBarberMe.execute.mockResolvedValue({ barber: makeBarberEntity({ email: 'nuevo@example.com' }).toPrimitives(), oldEmail: 'barber@example.com' });
 
     const response = await request(app)
       .put('/api/barbers/me')
@@ -142,9 +135,8 @@ describe('Barber routes — PUT /api/barbers/me', () => {
   });
 
   it('debe aplicar el rate limit de actualización de perfil tras 30 intentos', async () => {
-    barberRepository.findBarberById.mockResolvedValue(makeBarberEntity());
-    userRepository.findByEmail.mockResolvedValue(null);
-    passwordHasher.compare.mockResolvedValue(false);
+    const { AppError } = require('../../../src/domain/errors/AppError');
+    updateBarberMe.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
     for (let i = 0; i < 30; i++) {
       await request(app)

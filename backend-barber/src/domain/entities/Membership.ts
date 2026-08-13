@@ -19,7 +19,6 @@ export class Membership {
     productDiscount?: number;
     durationDays?: number;
     billingCycle?: BillingCycle;
-    mpPreapprovalId?: string;
     status?: MembershipStatus;
     paymentMethod?: PaymentMethod;
     paymentId?: string;
@@ -47,7 +46,6 @@ export class Membership {
       billingCycle: data.billingCycle ?? null,
       createdBy: data.createdBy,
       adminId: data.adminId,
-      mpPreapprovalId: data.mpPreapprovalId,
       paymentMethod: data.paymentMethod ?? null,
       paymentId: data.paymentId,
       approvedBy: undefined,
@@ -76,7 +74,6 @@ export class Membership {
   get billingCycle(): BillingCycle { return this.props.billingCycle; }
   get createdBy(): MembershipSource { return this.props.createdBy; }
   get adminId(): string | undefined { return this.props.adminId; }
-  get mpPreapprovalId(): string | undefined { return this.props.mpPreapprovalId; }
   get paymentMethod(): PaymentMethod { return this.props.paymentMethod; }
   get paymentId(): string | undefined { return this.props.paymentId; }
   get approvedBy(): string | undefined { return this.props.approvedBy; }
@@ -115,15 +112,6 @@ export class Membership {
 
   restoreCoupon(): void {
     this.props.couponsUsed = Math.max(0, this.props.couponsUsed - 1);
-    this.props.updatedAt = new Date();
-  }
-
-  renew(): void {
-    const newEndDate = new Date(this.props.endDate);
-    newEndDate.setDate(newEndDate.getDate() + this.props.durationDays);
-    this.props.endDate = newEndDate;
-    this.props.couponsUsed = 0;
-    this.props.status = 'active';
     this.props.updatedAt = new Date();
   }
 

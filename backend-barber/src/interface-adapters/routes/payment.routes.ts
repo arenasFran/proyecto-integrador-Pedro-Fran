@@ -3,7 +3,13 @@ import rateLimit from 'express-rate-limit';
 import { PaymentController } from '../controllers/payment/PaymentController';
 import { createAuthenticate } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
-import { paymentIdParamSchema } from '../validators/payment.validator';
+import {
+  paymentIdParamSchema,
+  paymentPreferenceParamSchema,
+  paymentQuerySchema,
+  paymentReferenceParamSchema,
+  paymentReferenceQuerySchema,
+} from '../validators/payment.validator';
 
 const webhookLimiter = rateLimit({
   windowMs: 1 * 60 * 1000,
@@ -29,18 +35,21 @@ export const createPaymentRouter = (deps: {
   router.get(
     '/by-preference/:preferenceId',
     deps.optionalAuth,
+    validate({ params: paymentPreferenceParamSchema }),
     deps.paymentController.getByPreferenceId
   );
 
   router.get(
     '/by-reference/:referenceId',
     deps.authenticate,
+    validate({ params: paymentReferenceParamSchema, query: paymentReferenceQuerySchema }),
     deps.paymentController.getByReference
   );
 
   router.get(
     '/',
     deps.authenticate,
+    validate({ query: paymentQuerySchema }),
     deps.paymentController.getAll
   );
 

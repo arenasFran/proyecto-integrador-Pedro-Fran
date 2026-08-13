@@ -47,7 +47,10 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
   const [clients, setClients] = useState<RegisteredClient[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
 
-  const products = (productsData as { products: Product[] })?.products ?? [];
+  const products = useMemo(
+    () => (productsData as { products: Product[] } | undefined)?.products ?? [],
+    [productsData]
+  );
 
   // Fetch clients when modal opens and registered tab is active
   const fetchClients = useCallback(async () => {
@@ -97,7 +100,8 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
       const current = prev[productId] ?? 0;
       const next = Math.max(0, current + delta);
       if (next === 0) {
-        const { [productId]: _, ...rest } = prev;
+        const rest = { ...prev };
+        delete rest[productId];
         return rest;
       }
       return { ...prev, [productId]: next };

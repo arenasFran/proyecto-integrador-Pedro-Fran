@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useGetAppointmentsPaginatedQuery, useGetAppointmentsSummaryQuery } from '../../../services/appointmentApi';
+import { useGetAppointmentsPaginatedQuery, useGetAppointmentsSummaryQuery, type QueryParams } from '../../../services/appointmentApi';
 import { useAppointmentActions } from './useAppointmentActions';
 
 export function useAdminAppointments() {
@@ -75,17 +75,17 @@ export function useAdminAppointments() {
   const totalPages = paginatedData?.totalPages ?? 1;
 
   const { data: summaryData } = useGetAppointmentsSummaryQuery((() => {
-    const q = { ...queryParams } as any;
+    const q: Record<string, string | number | undefined> = { ...queryParams };
     delete q.page;
     delete q.limit;
-    return q;
+    return q as Omit<QueryParams, 'page' | 'limit'>;
   })());
 
-  const fullCounts = summaryData ? {
+  const fullCounts = useMemo(() => summaryData ? {
     confirmed: summaryData.countsByStatus?.Confirmado ?? 0,
     completed: summaryData.countsByStatus?.Completado ?? 0,
     cancelled: summaryData.countsByStatus?.Cancelado ?? 0,
-  } : null;
+  } : null, [summaryData]);
 
   const stats = useMemo(() => {
     const total = totalResults;

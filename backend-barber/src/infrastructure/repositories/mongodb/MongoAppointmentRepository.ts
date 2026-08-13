@@ -75,6 +75,9 @@ const toAppointmentEntity = (doc: Record<string, any>): Appointment =>
     createdBy: doc.createdBy,
     statusHistory: (doc.statusHistory || []),
     version: doc.version ?? 0,
+    membershipId: doc.membershipId?.toString(),
+    couponRedeemed: doc.couponRedeemed,
+    couponRestoredAt: doc.couponRestoredAt,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   });

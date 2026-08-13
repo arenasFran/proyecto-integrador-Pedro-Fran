@@ -23,7 +23,6 @@ import MembershipsPage from './pages/admin/MembershipsPage';
 import ProductsPage from './pages/admin/ProductsPage';
 import OrdersPage from './pages/admin/OrdersPage';
 import MembershipPage from './pages/app/MembershipPage';
-import SubscriptionSuccess from './pages/app/MembershipPage/SubscriptionSuccess';
 import ProfilePage from './pages/app/ProfilePage';
 import { RegisterPage } from './pages/public/RegisterPage';
 import { RecoveryPage } from './pages/public/RecoveryPage';
@@ -33,6 +32,7 @@ import LoginPage from './pages/public/LoginPage';
 import BookingPage from './pages/client/BookingPage';
 import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
 import MyOrdersPage from './pages/client/MyOrdersPage';
+import AiHaircutPage from './pages/client/AiHaircutPage';
 import ShopPage from './pages/public/ShopPage';
 import ProductDetailPage from './pages/public/ProductDetailPage';
 import PaymentResultPage from './pages/public/PaymentResultPage';
@@ -89,7 +89,6 @@ function App() {
             <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
             <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
-            <Route path="/membership/subscription/success" element={<SubscriptionSuccess />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />
@@ -124,6 +123,7 @@ function App() {
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
               <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
+              <Route path="/recomendacion-corte" element={<AiHaircutPage />} />
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />

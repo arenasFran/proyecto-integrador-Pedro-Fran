@@ -34,6 +34,9 @@ export interface IAppointmentDocument extends Document {
   createdBy?: ICreatedBy;
   statusHistory: IStatusHistoryEntry[];
   version: number;
+  membershipId?: mongoose.Types.ObjectId;
+  couponRedeemed?: boolean;
+  couponRestoredAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -151,6 +154,20 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     version: {
       type: Number,
       default: 0,
+    },
+    membershipId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Membership',
+      required: false,
+    },
+    couponRedeemed: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    couponRestoredAt: {
+      type: Date,
+      required: false,
     },
   },
   {

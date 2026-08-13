@@ -168,10 +168,10 @@ describe('CancelAppointmentUseCase', () => {
         couponsUsed: 1,
         couponsTotal: 4,
       };
-      membershipRepository.findActiveByUser.mockResolvedValue(membership);
+      membershipRepository.atomicRestoreCoupon.mockResolvedValue(membership);
 
       appointmentRepository.findById.mockResolvedValue(
-        makeAppointment({ paymentMethod: 'memberPass', status: 'Confirmado' })
+        makeAppointment({ paymentMethod: 'memberPass', status: 'Confirmado', membershipId: 'membership-1', couponRedeemed: true })
       );
       appointmentRepository.updateStatus.mockResolvedValue(
         makeAppointment({ status: 'Cancelado', paymentMethod: 'memberPass' })
@@ -179,9 +179,7 @@ describe('CancelAppointmentUseCase', () => {
 
       const result = await useCase.execute('apt-1', 'client-1', 'Registrado');
 
-      expect(membershipRepository.findActiveByUser).toHaveBeenCalledWith('client-1', capturedSession);
-      expect(membership.restoreCoupon).toHaveBeenCalledTimes(1);
-      expect(membershipRepository.incrementCouponsUsed).toHaveBeenCalledWith('membership-1', -1, capturedSession);
+      expect(membershipRepository.atomicRestoreCoupon).toHaveBeenCalledWith('membership-1', capturedSession);
       expect(result.message).toMatch(/Turno cancelado/);
     });
 
@@ -195,8 +193,7 @@ describe('CancelAppointmentUseCase', () => {
 
       await useCase.execute('apt-1', 'client-1', 'Registrado');
 
-      expect(membershipRepository.findActiveByUser).not.toHaveBeenCalled();
-      expect(membershipRepository.incrementCouponsUsed).not.toHaveBeenCalled();
+      expect(membershipRepository.atomicRestoreCoupon).not.toHaveBeenCalled();
     });
   });
 });

@@ -8,6 +8,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  centered?: boolean;
 }
 
 const sizeClasses = {
@@ -23,6 +24,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   size = 'md',
+  centered = false,
 }) => {
   const scrollYRef = useRef(0);
 
@@ -57,7 +59,11 @@ export const Modal: React.FC<ModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-12">
+    <div
+      className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-black/60 px-4 py-12 ${
+        centered ? 'items-start sm:items-center lg:pl-52' : 'items-start'
+      }`}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}

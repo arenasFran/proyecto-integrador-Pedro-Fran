@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { FiScissors } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { PublicHeader } from '../../../components/client/PublicHeader';
@@ -170,22 +170,17 @@ export const BookingPage: React.FC = () => {
   }, [dispatch]);
 
   const navigate = useNavigate();
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const preferenceId = useAppSelector((state) => state.booking.async.preferenceId);
+  const showPaymentModal = submitSuccess && Boolean(preferenceId);
 
   useEffect(() => {
-    if (submitSuccess) {
-      if (preferenceId) {
-        setShowPaymentModal(true);
-      } else {
-        navigate('/mis-turnos');
-      }
+    if (submitSuccess && !preferenceId) {
+      navigate('/mis-turnos');
     }
   }, [submitSuccess, preferenceId, navigate]);
 
   const handlePaymentClose = () => {
-    setShowPaymentModal(false);
     navigate('/mis-turnos');
   };
 

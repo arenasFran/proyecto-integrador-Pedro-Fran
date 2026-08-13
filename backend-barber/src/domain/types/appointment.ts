@@ -22,3 +22,13 @@ export const STATUS_CATEGORIES = {
   countsAsActivity: ['Confirmado', 'Completado', 'Cancelado', 'NoShow'] as AppointmentStatus[],
   countsAsDuration: ['Confirmado', 'Completado'] as AppointmentStatus[],
 } as const;
+
+export function appointmentCountsAsRevenue(
+  status: AppointmentStatus,
+  paymentStatus: PaymentStatus
+): boolean {
+  return (
+    STATUS_CATEGORIES.countsAsRevenue.includes(status) ||
+    (status === 'Confirmado' && paymentStatus === 'Pagado')
+  );
+}

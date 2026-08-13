@@ -1,10 +1,19 @@
 import { Request, Response } from 'express';
 import { MongoServiceRepository } from '../../../infrastructure/repositories/mongodb/MongoServiceRepository';
+import { CreateServiceUseCase } from '../../../application/use-cases/service/CreateServiceUseCase';
+import { UpdateServiceUseCase } from '../../../application/use-cases/service/UpdateServiceUseCase';
+import { DeleteServiceUseCase } from '../../../application/use-cases/service/DeleteServiceUseCase';
+import { RestoreServiceUseCase } from '../../../application/use-cases/service/RestoreServiceUseCase';
 import { sendSuccess, sendError } from '../../../common/response';
-import { AppError } from '../../../domain/errors/AppError';
 
 export class ServiceController {
-  constructor(private readonly serviceRepository: MongoServiceRepository) {}
+  constructor(
+    private readonly serviceRepository: MongoServiceRepository,
+    private readonly createServiceUseCase: CreateServiceUseCase,
+    private readonly updateServiceUseCase: UpdateServiceUseCase,
+    private readonly deleteServiceUseCase: DeleteServiceUseCase,
+    private readonly restoreServiceUseCase: RestoreServiceUseCase
+  ) {}
 
   getAll = async (req: Request, res: Response) => {
     try {
@@ -27,7 +36,7 @@ export class ServiceController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const service = await this.serviceRepository.create(req.body);
+      const service = await this.createServiceUseCase.execute(req.body);
       return sendSuccess(res, { service: service.toPrimitives() }, 201);
     } catch (error) {
       return sendError(res, error, 'Error al crear servicio');
@@ -37,10 +46,7 @@ export class ServiceController {
   update = async (req: Request, res: Response) => {
     try {
       const id = String(req.params.id);
-      const service = await this.serviceRepository.update(id, req.body);
-      if (!service) {
-        throw new AppError('Servicio no encontrado', 404);
-      }
+      const service = await this.updateServiceUseCase.execute({ id, ...req.body });
       return sendSuccess(res, { service: service.toPrimitives() }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al actualizar servicio');
@@ -50,10 +56,7 @@ export class ServiceController {
   delete = async (req: Request, res: Response) => {
     try {
       const id = String(req.params.id);
-      const service = await this.serviceRepository.softDelete(id);
-      if (!service) {
-        throw new AppError('Servicio no encontrado', 404);
-      }
+      const service = await this.deleteServiceUseCase.execute({ id });
       return sendSuccess(res, { service: service.toPrimitives() }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al eliminar servicio');
@@ -63,10 +66,7 @@ export class ServiceController {
   restore = async (req: Request, res: Response) => {
     try {
       const id = String(req.params.id);
-      const service = await this.serviceRepository.restore(id);
-      if (!service) {
-        throw new AppError('Servicio no encontrado o no está eliminado', 404);
-      }
+      const service = await this.restoreServiceUseCase.execute({ id });
       return sendSuccess(res, { service: service.toPrimitives() }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al restaurar servicio');

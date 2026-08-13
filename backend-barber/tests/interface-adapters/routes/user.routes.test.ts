@@ -23,6 +23,8 @@ describe('User routes', () => {
   let userRepository: ReturnType<typeof makeMockUserRepository>;
   let passwordHasher: ReturnType<typeof makeMockPasswordHasher>;
   let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
+  let updateUserProfile: { execute: jest.Mock };
+  let changePasswordUseCase: { execute: jest.Mock };
 
   const authenticate: express.RequestHandler = (req, _res, next) => {
     (req as any).user = { _id: 'user-1', email: 'test@test.com', kind: 'Registrado' };
@@ -36,7 +38,9 @@ describe('User routes', () => {
     passwordHasher = makeMockPasswordHasher();
     refreshTokenRepository = makeMockRefreshTokenRepository();
     const emailService = makeMockEmailService();
-    const controller = new UserController(userRepository, passwordHasher, refreshTokenRepository, emailService);
+    updateUserProfile = { execute: jest.fn() };
+    changePasswordUseCase = { execute: jest.fn() };
+    const controller = new UserController(userRepository, emailService, updateUserProfile as any, changePasswordUseCase as any);
 
     app = express();
     app.use(express.json());
@@ -81,14 +85,14 @@ describe('User routes', () => {
   describe('PUT /api/user/me', () => {
     it('debe actualizar nombre/telefono sin pedir contraseña cuando no cambia el email', async () => {
       const user = makeUser();
-      userRepository.update.mockResolvedValue(User.create({ ...user.toPrimitives(), name: 'Carlos' }));
+      const primitives = user.toPrimitives();
+      updateUserProfile.execute.mockResolvedValue({ user: { ...primitives, name: 'Carlos' } });
 
       const response = await request(app)
         .put('/api/user/me')
         .send({ name: 'Carlos' });
 
       expect(response.status).toBe(200);
-      expect(userRepository.update).toHaveBeenCalledWith('user-1', { name: 'Carlos' });
     });
 
     it('el campo password ya no está en el contrato: la validación lo rechaza', async () => {
@@ -97,25 +101,22 @@ describe('User routes', () => {
         .send({ password: 'NuevaPass123' });
 
       expect(response.status).toBe(400);
-      expect(userRepository.update).not.toHaveBeenCalled();
     });
 
     it('debe rechazar el cambio de email sin currentPassword', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
+      const AppError = require('../../../src/domain/errors/AppError').AppError;
+      updateUserProfile.execute.mockRejectedValue(new AppError('Se requiere la contraseña actual para cambiar el email.', 400));
 
       const response = await request(app)
         .put('/api/user/me')
         .send({ email: 'nuevo@example.com' });
 
       expect(response.status).toBe(400);
-      expect(userRepository.update).not.toHaveBeenCalled();
     });
 
     it('debe rechazar el cambio de email con currentPassword incorrecta', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(false);
+      const AppError = require('../../../src/domain/errors/AppError').AppError;
+      updateUserProfile.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
       const response = await request(app)
         .put('/api/user/me')
@@ -127,9 +128,8 @@ describe('User routes', () => {
 
     it('debe cambiar el email con currentPassword correcta', async () => {
       const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(true);
-      userRepository.update.mockResolvedValue(User.create({ ...user.toPrimitives(), email: 'nuevo@example.com' }));
+      const primitives = user.toPrimitives();
+      updateUserProfile.execute.mockResolvedValue({ user: { ...primitives, email: 'nuevo@example.com' }, oldEmail: undefined });
 
       const response = await request(app)
         .put('/api/user/me')
@@ -140,9 +140,8 @@ describe('User routes', () => {
     });
 
     it('debe aplicar el rate limit de actualización de perfil tras 30 intentos', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(false);
+      const AppError = require('../../../src/domain/errors/AppError').AppError;
+      updateUserProfile.execute.mockRejectedValue(new AppError('Contraseña actual incorrecta.', 401));
 
       for (let i = 0; i < 30; i++) {
         await request(app)
@@ -166,12 +165,7 @@ describe('User routes', () => {
     };
 
     it('debe cambiar la contraseña exitosamente', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(true);
-      passwordHasher.hash.mockResolvedValue('$2b$10$new_hashed_password');
-      userRepository.updatePassword.mockResolvedValue(undefined);
-      refreshTokenRepository.revokeAllByUserId.mockResolvedValue(undefined);
+      changePasswordUseCase.execute.mockResolvedValue({ email: 'user@example.com' });
 
       const response = await request(app)
         .patch('/api/user/me/password')
@@ -182,6 +176,8 @@ describe('User routes', () => {
     });
 
     it('debe rechazar si las nuevas contraseñas no coinciden', async () => {
+      changePasswordUseCase.execute.mockRejectedValue(new (require('../../../src/domain/errors/AppError').AppError)('Las contraseñas nuevas no coinciden.', 400));
+
       const response = await request(app)
         .patch('/api/user/me/password')
         .send({ ...validBody, newPasswordConfirmation: 'Different123' });
@@ -191,6 +187,8 @@ describe('User routes', () => {
     });
 
     it('debe rechazar si la nueva contraseña es igual a la actual', async () => {
+      changePasswordUseCase.execute.mockRejectedValue(new (require('../../../src/domain/errors/AppError').AppError)('La nueva contraseña debe ser diferente a la actual.', 400));
+
       const response = await request(app)
         .patch('/api/user/me/password')
         .send({ currentPassword: 'CurrentPass1', newPassword: 'CurrentPass1', newPasswordConfirmation: 'CurrentPass1' });
@@ -200,9 +198,7 @@ describe('User routes', () => {
     });
 
     it('debe rechazar si la contraseña actual es incorrecta', async () => {
-      const user = makeUser();
-      userRepository.findById.mockResolvedValue(user);
-      passwordHasher.compare.mockResolvedValue(false);
+      changePasswordUseCase.execute.mockRejectedValue(new (require('../../../src/domain/errors/AppError').AppError)('Contraseña actual incorrecta.', 401));
 
       const response = await request(app)
         .patch('/api/user/me/password')

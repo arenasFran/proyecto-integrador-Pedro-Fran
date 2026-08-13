@@ -7,8 +7,8 @@ export function assertOwnershipOrAdmin(
   resourceName: string = 'recurso'
 ): void {
   const isOwner = resourceOwnerId === userId;
-  const isAdmin = userKind === 'Admin';
-  if (!isOwner && !isAdmin) {
+  const isStaff = userKind === 'Admin' || userKind === 'Empleado';
+  if (!isOwner && !isStaff) {
     throw new AppError(`No tenés permiso para ver este ${resourceName}.`, 403);
   }
 }

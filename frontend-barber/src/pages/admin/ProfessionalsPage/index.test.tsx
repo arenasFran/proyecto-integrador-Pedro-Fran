@@ -3,18 +3,24 @@ import { screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '../../../test/utils';
 import ProfessionalsPage from './index';
 
-vi.mock('../../../services/professional.service', () => ({
-  professionalService: {
+vi.mock('../../../services/professional.service', () => {
+  const professionalService = {
+    getPublic: vi.fn(),
     list: vi.fn(),
     listPaginated: vi.fn(),
+    getById: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
-    updateSchedule: vi.fn(),
+    deactivate: vi.fn(),
+    activate: vi.fn(),
     getSchedule: vi.fn(),
+    updateSchedule: vi.fn(),
     getSlots: vi.fn(),
-  },
-}));
+    getOccupancy: vi.fn().mockResolvedValue(null),
+  };
+  return { professionalService, default: professionalService };
+});
 
 vi.mock('../../../utils/token', () => ({
   getTokenUser: vi.fn(),

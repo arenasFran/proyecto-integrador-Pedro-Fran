@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiDollarSign, FiInfo, FiSearch, FiTrendingUp, FiUser, FiUserCheck } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { AnimatedContainer } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 const PAGE_SIZE = 20;
 
@@ -35,8 +36,6 @@ export default function ClientsPage() {
       (c.clientEmail ?? '').toLowerCase().includes(q)
     );
   }, [clientes, search]);
-
-  useEffect(() => { setPage(1); }, [search, desde, hasta]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paged = useMemo(
@@ -77,13 +76,13 @@ export default function ClientsPage() {
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
           <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiDollarSign size={12} /> Gastado</span>
-          <span className="text-2xl font-bold text-green-400">${stats.totalSpent.toLocaleString('es-UY')}</span>
+          <span className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalSpent)}</span>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex items-center gap-1.5">
-          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} skipMountEffect />
+          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); setPage(1); }} skipMountEffect />
           <span
             title="Este rango afecta las estadísticas de reservas y gastado por cliente, no cuáles clientes aparecen en la lista."
             className="text-[#6A6A6A] hover:text-[#8A8A8A] cursor-help shrink-0"
@@ -97,7 +96,7 @@ export default function ClientsPage() {
             type="text"
             placeholder="Buscar por nombre, teléfono o email..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full rounded-[10px] bg-[#1A1A1A] border border-[#282828] pl-10 pr-3 py-2 text-[13px] text-white placeholder-[#6A6A6A] focus:outline-none focus:border-[#FF5C00]/50"
           />
         </div>
@@ -159,7 +158,7 @@ export default function ClientsPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8A8A8A]">Gastado</span>
-                    <span className="text-green-400 font-medium">${c.totalSpent.toLocaleString('es-UY')}</span>
+                    <span className="text-green-400 font-medium">{formatCurrency(c.totalSpent)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#8A8A8A]">Primera reserva</span>
@@ -215,7 +214,7 @@ export default function ClientsPage() {
                         <span className={c.totalVisits >= 2 ? 'text-white font-medium' : 'text-[#8A8A8A]'}>{c.totalVisits}</span>
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-right text-green-400 font-medium">${c.totalSpent.toLocaleString('es-UY')}</td>
+                    <td className="px-4 py-3 text-right text-green-400 font-medium">{formatCurrency(c.totalSpent)}</td>
                     <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">{c.firstVisit ?? '—'}</td>
                     <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">{c.lastVisit ?? '—'}</td>
                   </tr>

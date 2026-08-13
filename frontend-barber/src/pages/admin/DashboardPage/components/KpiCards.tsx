@@ -16,6 +16,7 @@ import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
 import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -26,8 +27,22 @@ interface KpiCardsProps {
   onRefresh: () => void;
 }
 
-function formatCurrency(value: number): string {
-  return '$' + value.toLocaleString('es-UY');
+function CollapsibleSection({ title, icon: Icon, color: sectionColor, open, onToggle, children }: { title: string; icon: React.ComponentType<{ className?: string; color?: string }>; color: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#242424] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="text-[14px]" color={sectionColor} />
+          <span className="text-[12px] text-[#8A8A8A] uppercase tracking-wider">{title}</span>
+        </div>
+        {open ? <FiChevronDown className="text-[#6A6A6A]" /> : <FiChevronRight className="text-[#6A6A6A]" />}
+      </button>
+      {open && <div className="px-4 pb-3">{children}</div>}
+    </div>
+  );
 }
 
 function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; ecommerceData?: { totalRevenue: number; totalOrders: number; averageTicket: number } | null }) {
@@ -53,22 +68,6 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
   ];
 
   const donutData = segments.filter(s => s.value > 0).map(s => ({ name: s.label, value: s.value, hex: s.hex }));
-
-  const CollapsibleSection = ({ title, icon: Icon, color: sectionColor, open, onToggle, children }: { title: string; icon: React.ComponentType<{ className?: string; color?: string }>; color: string; open: boolean; onToggle: () => void; children: React.ReactNode }) => (
-    <div className="rounded-[12px] bg-[#1A1A1A] border border-[#282828] overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#242424] transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Icon className="text-[14px]" color={sectionColor} />
-          <span className="text-[12px] text-[#8A8A8A] uppercase tracking-wider">{title}</span>
-        </div>
-        {open ? <FiChevronDown className="text-[#6A6A6A]" /> : <FiChevronRight className="text-[#6A6A6A]" />}
-      </button>
-      {open && <div className="px-4 pb-3">{children}</div>}
-    </div>
-  );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Desglose de ingresos`} size="lg">
@@ -258,6 +257,25 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
   );
 }
 
+const getInitials = (name: string, lastname: string) => `${name.charAt(0)}${lastname.charAt(0)}`.toUpperCase();
+
+function Avatar({ name, lastname, photoUrl }: { name: string; lastname: string; photoUrl?: string | null }) {
+  return (
+    <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center shrink-0 overflow-hidden">
+      {photoUrl ? (
+        <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-[12px] font-semibold text-[#8A8A8A]">{getInitials(name, lastname)}</span>
+      )}
+    </div>
+  );
+}
+
+function ClientBadge({ kind }: { kind?: string }) {
+  if (!kind || kind === 'NoRegistrado') return <span className="text-[10px] font-medium text-gray-400 bg-gray-500/10 rounded-full px-2 py-0.5">Anónimo</span>;
+  return <span className="text-[10px] font-medium text-purple-400 bg-purple-500/10 rounded-full px-2 py-0.5">Registrado</span>;
+}
+
 function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; onRefresh: () => void }) {
   const [activeTab, setActiveTab] = useState<'turnos' | 'ordenes' | 'membresias'>('turnos');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -293,24 +311,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
   const formatDate = (iso: string) => { const [y, m, d] = iso.split('-'); return `${d}/${m}/${y}`; };
   const isLoading = apptsLoading || ordersLoading || memLoading;
 
-  const getInitials = (name: string, lastname: string) => `${name.charAt(0)}${lastname.charAt(0)}`.toUpperCase();
-
   const closeMenu = () => setOpenMenuId(null);
-
-  const Avatar = ({ name, lastname, photoUrl }: { name: string; lastname: string; photoUrl?: string | null }) => (
-    <div className="w-10 h-10 rounded-full bg-[#242424] border border-[#333] flex items-center justify-center shrink-0 overflow-hidden">
-      {photoUrl ? (
-        <img src={photoUrl} alt="" className="w-full h-full object-cover" />
-      ) : (
-        <span className="text-[12px] font-semibold text-[#8A8A8A]">{getInitials(name, lastname)}</span>
-      )}
-    </div>
-  );
-
-  const ClientBadge = ({ kind }: { kind?: string }) => {
-    if (!kind || kind === 'NoRegistrado') return <span className="text-[10px] font-medium text-gray-400 bg-gray-500/10 rounded-full px-2 py-0.5">Anónimo</span>;
-    return <span className="text-[10px] font-medium text-purple-400 bg-purple-500/10 rounded-full px-2 py-0.5">Registrado</span>;
-  };
 
   const tabs = [
     { key: 'turnos' as const, label: 'Turnos', count: appointments.length, amount: totalTurnos, color: '#4ade80', icon: FiScissors },
@@ -392,7 +393,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[14px] font-bold text-[#FF5C00]">${a.servicePrice.toLocaleString('es-UY')}</span>
+                            <span className="text-[14px] font-bold text-[#FF5C00]">{formatCurrency(a.servicePrice)}</span>
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === a.id ? null : a.id)}
@@ -441,7 +442,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[14px] font-bold text-[#FF5C00]">${o.total.toLocaleString('es-UY')}</span>
+                            <span className="text-[14px] font-bold text-[#FF5C00]">{formatCurrency(o.total)}</span>
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === o.id ? null : o.id)}
@@ -487,7 +488,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[14px] font-bold text-[#FF5C00]">${m.price.toLocaleString('es-UY')}</span>
+                            <span className="text-[14px] font-bold text-[#FF5C00]">{formatCurrency(m.price)}</span>
                             <div className="relative" onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => setOpenMenuId(openMenuId === m.id ? null : m.id)}
@@ -540,7 +541,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-[10px] bg-[#1A1A1A] p-3">
                 <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Precio</span>
-                <p className="text-[16px] text-[#FF5C00] font-bold mt-1">${detailMembership.price.toLocaleString('es-UY')}</p>
+                <p className="text-[16px] text-[#FF5C00] font-bold mt-1">{formatCurrency(detailMembership.price)}</p>
               </div>
               <div className="rounded-[10px] bg-[#1A1A1A] p-3">
                 <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider">Creada</span>

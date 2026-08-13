@@ -9,6 +9,8 @@ type ImageUploadProps = {
   variant?: 'box' | 'avatar';
   name?: string;
   lastname?: string;
+  maxSizeMB?: number;
+  capture?: 'user' | 'environment';
 };
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -19,18 +21,24 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   variant = 'box',
   name,
   lastname,
+  maxSizeMB = 5,
+  capture,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [sizeError, setSizeError] = useState<string | null>(null);
+  const [prevUrl, setPrevUrl] = useState(currentUrl);
+
+  if (currentUrl !== prevUrl) {
+    setPrevUrl(currentUrl ?? null);
+    if (currentUrl) setLocalPreview(null);
+  }
 
   const previewUrl = localPreview ?? currentUrl ?? null;
+  const displayedError = error ?? sizeError ?? undefined;
 
-  useEffect(() => {
-    if (currentUrl) {
-      if (localPreview) URL.revokeObjectURL(localPreview);
-      setLocalPreview(null);
-    }
-  }, [currentUrl]);
+  const isFileTooLarge = (file: File) => file.size > maxSizeMB * 1024 * 1024;
 
   useEffect(() => {
     return () => {
@@ -42,6 +50,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     e.preventDefault();
     const file = e.dataTransfer.files[0];
     if (file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      if (isFileTooLarge(file)) {
+        setSizeError(`La imagen no puede superar los ${maxSizeMB}MB.`);
+        return;
+      }
+      setSizeError(null);
       onFileSelect(file);
       if (localPreview) URL.revokeObjectURL(localPreview);
       setLocalPreview(URL.createObjectURL(file));
@@ -51,6 +64,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && ['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      if (isFileTooLarge(file)) {
+        setSizeError(`La imagen no puede superar los ${maxSizeMB}MB.`);
+        return;
+      }
+      setSizeError(null);
       onFileSelect(file);
       if (localPreview) URL.revokeObjectURL(localPreview);
       setLocalPreview(URL.createObjectURL(file));
@@ -61,7 +79,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     if (localPreview) URL.revokeObjectURL(localPreview);
     onFileSelect(null);
     setLocalPreview(null);
+    setSizeError(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
 
   const initials = name && lastname
@@ -103,7 +123,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           className="hidden"
           onChange={handleFileSelect}
         />
-        {error && <p className="text-[11px] text-red-500 mt-1 text-center">{error}</p>}
+        {displayedError && <p className="text-[11px] text-red-500 mt-1 text-center">{displayedError}</p>}
         {helperText && <p className="text-[11px] text-[#8A8A8A] mt-1 text-center">{helperText}</p>}
       </div>
     );
@@ -136,8 +156,19 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         ) : (
           <>
             <FiUpload className="w-8 h-8 text-[#8A8A8A] mb-2" />
-            <p className="text-[13px] text-[#8A8A8A]">Arrastrá una imagen o hacé clic para subir</p>
+            <p className="text-[13px] text-[#8A8A8A]">
+              {capture ? 'Tocá para tomar una foto' : 'Arrastrá una imagen o hacé clic para subir'}
+            </p>
             <p className="text-[11px] text-[#555] mt-1">JPG, PNG o WebP</p>
+            {capture && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); galleryInputRef.current?.click(); }}
+                className="mt-2 text-[11px] text-[#FF5C00] underline"
+              >
+                Subir desde galería
+              </button>
+            )}
           </>
         )}
       </div>
@@ -145,10 +176,20 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        capture={capture}
         className="hidden"
         onChange={handleFileSelect}
       />
-      {error && <p className="text-[11px] text-red-500 mt-1">{error}</p>}
+      {capture && (
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+      )}
+      {displayedError && <p className="text-[11px] text-red-500 mt-1">{displayedError}</p>}
     </div>
   );
 };

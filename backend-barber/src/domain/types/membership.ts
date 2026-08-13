@@ -4,7 +4,7 @@ export type MembershipSource = 'client' | 'admin';
 
 export type PaymentMethod = 'mercadopago' | 'local' | null;
 
-export type BillingCycle = 'monthly' | 'onetime' | null;
+export type BillingCycle = 'onetime' | null;
 
 export type MembershipData = {
   id: string;
@@ -20,7 +20,6 @@ export type MembershipData = {
   billingCycle: BillingCycle;
   createdBy: MembershipSource;
   adminId?: string;
-  mpPreapprovalId?: string;
   paymentMethod: PaymentMethod;
   paymentId?: string;
   approvedBy?: string;

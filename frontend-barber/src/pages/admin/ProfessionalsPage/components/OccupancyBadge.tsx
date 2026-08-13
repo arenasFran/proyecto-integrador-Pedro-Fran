@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import professionalService from '../../../../services/professional.service';
 import type { OccupancyResponse } from '../../../../types/professional';
 
@@ -9,34 +9,24 @@ type OccupancyBadgeProps = {
 export const OccupancyBadge: React.FC<OccupancyBadgeProps> = ({ barberId }) => {
   const [occupancy, setOccupancy] = useState<OccupancyResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const cancelled = useRef(false);
-
-  const load = useCallback(async () => {
-    cancelled.current = false;
-    setLoading(true);
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const data = await professionalService.getOccupancy(barberId, today);
-      if (!cancelled.current) {
-        setOccupancy(data);
-      }
-    } catch {
-      if (!cancelled.current) {
-        setOccupancy(null);
-      }
-    } finally {
-      if (!cancelled.current) {
-        setLoading(false);
-      }
-    }
-  }, [barberId]);
 
   useEffect(() => {
-    load();
+    let cancelled = false;
+    const today = new Date().toISOString().split('T')[0];
+    professionalService.getOccupancy(barberId, today)
+      .then((data) => {
+        if (!cancelled) setOccupancy(data);
+      })
+      .catch(() => {
+        if (!cancelled) setOccupancy(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
-      cancelled.current = true;
+      cancelled = true;
     };
-  }, [load]);
+  }, [barberId]);
 
   if (loading) {
     return <span className="text-[11px] text-[#8A8A8A]">Cargando ocupación...</span>;

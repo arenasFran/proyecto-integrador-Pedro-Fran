@@ -91,6 +91,9 @@ const barberSchema = new Schema<IBarberBase>(
       type: Date,
       default: null,
     },
+    lastLoginAt: {
+      type: Date,
+    },
   },
   {
     discriminatorKey: 'kind',

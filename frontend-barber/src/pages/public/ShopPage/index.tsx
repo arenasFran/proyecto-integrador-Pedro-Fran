@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiSearch, FiCreditCard, FiMapPin, FiX } from 'react-icons/fi';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
@@ -11,6 +11,7 @@ import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import type { Product } from '../../../types/product';
 import { Button } from '../../../components/common';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 export default function ShopPage() {
   const dispatch = useAppDispatch();
@@ -34,13 +35,9 @@ export default function ShopPage() {
   const categories = categoriesData?.categories ?? [];
   const products = productsData?.products ?? [];
 
-  useEffect(() => {
-    if (checkoutPrefId) {
-      setPreferenceId(checkoutPrefId);
-      setShowPaymentModal(true);
-      dispatch(clearCheckoutResult());
-    }
-  }, [checkoutPrefId, dispatch]);
+  const isCheckoutPref = !!checkoutPrefId;
+  const effectivePreferenceId = preferenceId || checkoutPrefId || '';
+  const isPaymentModalOpen = showPaymentModal || isCheckoutPref;
 
   const handleAddToCart = (product: Product) => {
     dispatch(addItem({ product }));
@@ -71,12 +68,16 @@ export default function ShopPage() {
         navigate('/mis-ordenes');
       }
     } catch {
+      // El error de creación de orden se ignora: la UI ya muestra el fallo del flujo.
     }
   };
 
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
     setPreferenceId('');
+    if (checkoutPrefId) {
+      dispatch(clearCheckoutResult());
+    }
   };
 
   return (
@@ -96,7 +97,7 @@ export default function ShopPage() {
               </button>
             </div>
             <p className="text-[13px] text-[#8A8A8A] mb-5">
-              <span className="text-white font-medium">{buyNowProduct.name}</span> — ${buyNowProduct.price}
+              <span className="text-white font-medium">{buyNowProduct.name}</span> — {formatCurrency(buyNowProduct.price)}
             </p>
             <div className="flex flex-col gap-2">
               <Button
@@ -187,8 +188,8 @@ export default function ShopPage() {
       </div>
 
       <PaymentModal
-        isOpen={showPaymentModal}
-        preferenceId={preferenceId}
+        isOpen={isPaymentModalOpen}
+        preferenceId={effectivePreferenceId}
         onClose={handlePaymentClose}
         title="Pagar orden"
       />

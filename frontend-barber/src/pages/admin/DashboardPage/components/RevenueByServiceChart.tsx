@@ -3,12 +3,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useGetIngresosPorServicioQuery } from '../../../../services/analyticsApi';
 import { ChartContainer } from '../../../../components/common';
 import DateRangeFilter from '../../../../components/common/DateRangeFilter';
+import { formatCurrency } from '../../../../utils/formatCurrency';
 
 const COLORS = ['#FF5C00', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
-
-function formatCurrency(value: number): string {
-  return '$' + value.toLocaleString('es-UY');
-}
 
 export default function RevenueByServiceChart() {
   const [desde, setDesde] = useState('');

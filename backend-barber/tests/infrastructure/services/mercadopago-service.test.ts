@@ -9,13 +9,6 @@ jest.mock('mercadopago', () => {
   };
   const mockPreference = jest.fn(() => mockPreferenceInstance);
 
-  const mockPreApprovalInstance = {
-    create: jest.fn(),
-    get: jest.fn(),
-    update: jest.fn(),
-  };
-  const mockPreApproval = jest.fn(() => mockPreApprovalInstance);
-
   const MercadoPagoConfig = jest.fn().mockImplementation(({ accessToken }) => ({
     accessToken,
   }));
@@ -26,7 +19,6 @@ jest.mock('mercadopago', () => {
     MercadoPagoConfig,
     Payment: mockPayment,
     Preference: mockPreference,
-    PreApproval: mockPreApproval,
     WebhookSignatureValidator: {
       validate: jest.fn(),
     },
@@ -104,7 +96,6 @@ describe('MercadoPagoService', () => {
         payment_method_id: 'visa',
         payer: { email: 'buyer@test.com' },
         external_reference: 'ref-1',
-        preapproval_id: undefined,
       });
 
       const result = await service.getPayment('123456');
@@ -117,7 +108,6 @@ describe('MercadoPagoService', () => {
         paymentMethodId: 'visa',
         payerEmail: 'buyer@test.com',
         externalReference: 'ref-1',
-        preapprovalId: undefined,
       });
       expect(mockPaymentInstance.get).toHaveBeenCalledWith({ id: '123456' });
     });
@@ -183,67 +173,6 @@ describe('MercadoPagoService', () => {
       await expect(service.createPreference(defaultParams)).rejects.toThrow(
         'MercadoPago no está configurado',
       );
-    });
-  });
-
-  describe('createPreapproval', () => {
-    const mockPreApprovalInstance = new SDK.PreApproval();
-
-    it('debe crear preapproval y retornar datos mapeados', async () => {
-      mockPreApprovalInstance.create.mockResolvedValue({
-        id: 'preapp-1',
-        init_point: 'https://mercadopago.com/preapp',
-      });
-
-      const result = await service.createPreapproval({
-        externalReference: 'user-1',
-        payerEmail: 'buyer@test.com',
-        backUrl: 'http://localhost/back',
-        transactionAmount: 500,
-        reason: 'Membresía barbería',
-      });
-
-      expect(result).toEqual({
-        preapprovalId: 'preapp-1',
-        initPoint: 'https://mercadopago.com/preapp',
-      });
-    });
-  });
-
-  describe('getPreapproval', () => {
-    const mockPreApprovalInstance = new SDK.PreApproval();
-
-    it('debe retornar datos mapeados del preapproval', async () => {
-      mockPreApprovalInstance.get.mockResolvedValue({
-        id: 'preapp-1',
-        status: 'authorized',
-        payer_email: 'buyer@test.com',
-        external_reference: 'user-1',
-      });
-
-      const result = await service.getPreapproval('preapp-1');
-
-      expect(result).toEqual({
-        id: 'preapp-1',
-        status: 'authorized',
-        payerEmail: 'buyer@test.com',
-        externalReference: 'user-1',
-      });
-    });
-  });
-
-  describe('cancelPreapproval', () => {
-    const mockPreApprovalInstance = new SDK.PreApproval();
-
-    it('debe llamar a update con status cancelled', async () => {
-      mockPreApprovalInstance.update.mockResolvedValue(undefined);
-
-      await service.cancelPreapproval('preapp-1');
-
-      expect(mockPreApprovalInstance.update).toHaveBeenCalledWith({
-        id: 'preapp-1',
-        body: { status: 'cancelled' },
-      });
     });
   });
 });

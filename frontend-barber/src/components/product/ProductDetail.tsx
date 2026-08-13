@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FiArrowLeft, FiGrid, FiShoppingCart, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { Button, Spinner } from '../common';
 import { useGetProductByIdQuery } from '../../services/productApi';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface ProductDetailProps {
   productId: string;
@@ -92,7 +93,7 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
             <h1 className="text-[26px] font-extrabold text-white">{product.name}</h1>
           </div>
 
-          <p className="text-[32px] font-bold text-[#FF5C00]">${product.price}</p>
+          <p className="text-[32px] font-bold text-[#FF5C00]">{formatCurrency(product.price)}</p>
 
           <div className="flex items-center gap-2">
             {notAvailable ? (

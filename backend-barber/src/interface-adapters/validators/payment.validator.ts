@@ -20,5 +20,5 @@ export const paymentQuerySchema = Joi.object({
 });
 
 export const paymentReferenceQuerySchema = Joi.object({
-  type: Joi.string().valid('appointment', 'membership', 'product_order').required(),
+  type: Joi.string().valid('appointment', 'membership', 'product_order'),
 });

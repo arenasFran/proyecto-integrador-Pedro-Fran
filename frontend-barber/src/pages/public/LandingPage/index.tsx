@@ -197,7 +197,8 @@ export const LandingPage: React.FC = () => {
               </>
             )}
             <Button onClick={() => navigate('/reservar')} className="text-[13px]">
-              Reservar turno
+              <span className="hidden md:inline">Reservar turno</span>
+              <span className="md:hidden">Reservar</span>
             </Button>
           </div>
         </div>

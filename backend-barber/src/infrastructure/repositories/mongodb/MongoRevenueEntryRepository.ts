@@ -62,6 +62,62 @@ export class MongoRevenueEntryRepository {
     ]);
   }
 
+  async getProductPerformance(desde: Date, hasta: Date): Promise<{
+    productId: string;
+    name: string;
+    totalSold: number;
+    totalRevenue: number;
+    timesOrdered: number;
+  }[]> {
+    return RevenueEntryModel.aggregate([
+      { $match: { date: { $gte: desde, $lte: hasta }, source: 'product_order' } },
+      {
+        $lookup: {
+          from: 'orders',
+          let: { orderId: '$referenceId' },
+          pipeline: [
+            { $match: { $expr: { $eq: [{ $toString: '$_id' }, '$$orderId'] } } },
+            { $project: { total: 1, items: 1 } },
+          ],
+          as: 'order',
+        },
+      },
+      { $unwind: '$order' },
+      { $unwind: '$order.items' },
+      { $set: { lineGross: { $multiply: ['$order.items.price', '$order.items.quantity'] } } },
+      {
+        $set: {
+          allocatedRevenue: {
+            $cond: [
+              { $gt: ['$order.total', 0] },
+              { $multiply: ['$amount', { $divide: ['$lineGross', '$order.total'] }] },
+              0,
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { productId: '$order.items.productId', name: '$order.items.name' },
+          totalSold: { $sum: '$order.items.quantity' },
+          totalRevenue: { $sum: '$allocatedRevenue' },
+          timesOrdered: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          productId: '$_id.productId',
+          name: '$_id.name',
+          totalSold: 1,
+          totalRevenue: 1,
+          timesOrdered: 1,
+        },
+      },
+      { $sort: { totalRevenue: -1 } },
+    ]);
+  }
+
   async getRevenueByBarber(desde: Date, hasta: Date): Promise<{ barberId: string; total: number }[]> {
     return RevenueEntryModel.aggregate([
       { $match: { date: { $gte: desde, $lte: hasta }, source: 'appointment' } },

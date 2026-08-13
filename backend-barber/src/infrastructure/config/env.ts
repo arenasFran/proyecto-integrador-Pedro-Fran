@@ -38,6 +38,7 @@ export type Config = {
   geminiApiKey: string | undefined;
   openaiApiKey: string | undefined;
   orphanPaymentCutoffHours: number;
+  seedOnStart: boolean;
   rateLimit: {
     login: { max: number; windowMs: number };
     register: { max: number; windowMs: number };
@@ -156,6 +157,7 @@ export function loadConfig(): Config {
     geminiApiKey: process.env.GEMINI_API_KEY || undefined,
     openaiApiKey: process.env.OPENAI_API_KEY || undefined,
     orphanPaymentCutoffHours: parseIntEnv('ORPHAN_PAYMENT_CUTOFF_HOURS', 72),
+    seedOnStart: parseBoolEnv('SEED_ON_START', false),
     rateLimit: {
       login: { max: parseIntEnv('RATE_LIMIT_LOGIN_MAX', 50), windowMs: 15 * 60 * 1000 },
       register: { max: parseIntEnv('RATE_LIMIT_REGISTER_MAX', 50), windowMs: 15 * 60 * 1000 },

@@ -29,7 +29,7 @@ const STATUS_OPTIONS: SelectOption[] = (Object.keys(STATUS_CONFIG) as (OrderStat
   label: STATUS_CONFIG[key].label,
 }));
 
-const renderStatusOption = (option: SelectOption, _isSelected: boolean) => {
+const renderStatusOption = (option: SelectOption) => {
   const cfg = STATUS_CONFIG[option.value as OrderStatus | ''] ?? STATUS_CONFIG[''];
   return (
     <span className="inline-flex items-center gap-2">

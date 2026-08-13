@@ -69,7 +69,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
   const handleLogout = async () => {
     try {
       await api.post('/auth/logout');
-    } catch {}
+    } catch { /* ignore */ }
     dispatch(logout());
     navigate('/login');
   };

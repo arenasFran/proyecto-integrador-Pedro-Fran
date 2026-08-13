@@ -48,7 +48,7 @@ test.describe('Membership - Pago unico', () => {
     await page.getByPlaceholder(/Mínimo 8 caracteres/).fill(user.password);
     await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
     
-    const regPromise = page.waitForResponse((res: any) => res.url().includes('/auth/register'));
+    const regPromise = page.waitForResponse((res) => res.url().includes('/auth/register'));
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     const regResponse = await regPromise;
     expect(regResponse.status()).toBe(201);
@@ -61,13 +61,13 @@ test.describe('Membership - Pago unico', () => {
     
     await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
     await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
-    const sendP = page.waitForResponse((res: any) => res.url().includes('/auth/2fa/send'));
+    const sendP = page.waitForResponse((res) => res.url().includes('/auth/2fa/send'));
     await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
     await sendP;
     await page.waitForTimeout(500);
     
     await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
-    const verifyP = page.waitForResponse((res: any) => res.url().includes('/auth/2fa/verify'));
+    const verifyP = page.waitForResponse((res) => res.url().includes('/auth/2fa/verify'));
     await page.getByRole('button', { name: 'Verificar código' }).click();
     await verifyP;
     
@@ -100,7 +100,7 @@ test.describe('Membership - Pago unico', () => {
     await page.getByPlaceholder(/Mínimo 8 caracteres/).fill(user.password);
     await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
     
-    const regPromise = page.waitForResponse((res: any) => res.url().includes('/auth/register'));
+    const regPromise = page.waitForResponse((res) => res.url().includes('/auth/register'));
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await regPromise;
     await page.waitForURL(/\/login/, { timeout: 5000 });
@@ -111,13 +111,13 @@ test.describe('Membership - Pago unico', () => {
     
     await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
     await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
-    const sendP = page.waitForResponse((res: any) => res.url().includes('/auth/2fa/send'));
+    const sendP = page.waitForResponse((res) => res.url().includes('/auth/2fa/send'));
     await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
     await sendP;
     await page.waitForTimeout(500);
     
     await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
-    const verifyP = page.waitForResponse((res: any) => res.url().includes('/auth/2fa/verify'));
+    const verifyP = page.waitForResponse((res) => res.url().includes('/auth/2fa/verify'));
     await page.getByRole('button', { name: 'Verificar código' }).click();
     await verifyP;
     
@@ -402,7 +402,7 @@ test.describe('Membership - Ecommerce discount', () => {
     await page.getByPlaceholder(/Mínimo 8 caracteres/).fill(user.password);
     await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
     
-    const regPromise = page.waitForResponse((res: any) => res.url().includes('/auth/register'));
+    const regPromise = page.waitForResponse((res) => res.url().includes('/auth/register'));
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await regPromise;
     await page.waitForURL(/\/login/, { timeout: 5000 });
@@ -413,13 +413,13 @@ test.describe('Membership - Ecommerce discount', () => {
     
     await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
     await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
-    const sendP = page.waitForResponse((res: any) => res.url().includes('/auth/2fa/send'));
+    const sendP = page.waitForResponse((res) => res.url().includes('/auth/2fa/send'));
     await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
     await sendP;
     await page.waitForTimeout(500);
     
     await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
-    const verifyP = page.waitForResponse((res: any) => res.url().includes('/auth/2fa/verify'));
+    const verifyP = page.waitForResponse((res) => res.url().includes('/auth/2fa/verify'));
     await page.getByRole('button', { name: 'Verificar código' }).click();
     await verifyP;
     

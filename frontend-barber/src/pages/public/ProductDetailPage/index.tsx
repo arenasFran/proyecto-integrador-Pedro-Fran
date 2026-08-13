@@ -62,6 +62,7 @@ export default function ProductDetailPage() {
         navigate('/mis-ordenes');
       }
     } catch {
+      // error del pago ya mostrado en el estado del checkout
     }
   };
 

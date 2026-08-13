@@ -17,7 +17,7 @@ import {
 import { AnimatedContainer, Input, Pagination, Select, Spinner, StatsCards } from '../../../components/common';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { detectPreset } from '../../../components/common/dateRangeUtils';
-import appointmentService from '../../../services/appointment.service';
+import appointmentService, { type AppointmentQueryParams } from '../../../services/appointment.service';
 import { formatDate } from '../../../utils/formatDate';
 import { AppointmentActionModals } from './AppointmentActionModals';
 import { AppointmentActionsMenu } from './AppointmentActionsMenu';
@@ -157,7 +157,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             <button
               onClick={async () => {
                 try {
-                  const paramsForList: Record<string, any> = { ...adminAppointments.queryParams };
+                  const paramsForList = { ...adminAppointments.queryParams } as AppointmentQueryParams;
                   delete paramsForList.page;
                   delete paramsForList.limit;
                   const resp = await appointmentService.list(paramsForList);

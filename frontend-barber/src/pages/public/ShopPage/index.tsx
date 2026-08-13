@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiShoppingCart, FiSearch, FiCreditCard, FiMapPin, FiX } from 'react-icons/fi';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
@@ -35,13 +35,9 @@ export default function ShopPage() {
   const categories = categoriesData?.categories ?? [];
   const products = productsData?.products ?? [];
 
-  useEffect(() => {
-    if (checkoutPrefId) {
-      setPreferenceId(checkoutPrefId);
-      setShowPaymentModal(true);
-      dispatch(clearCheckoutResult());
-    }
-  }, [checkoutPrefId, dispatch]);
+  const isCheckoutPref = !!checkoutPrefId;
+  const effectivePreferenceId = preferenceId || checkoutPrefId || '';
+  const isPaymentModalOpen = showPaymentModal || isCheckoutPref;
 
   const handleAddToCart = (product: Product) => {
     dispatch(addItem({ product }));
@@ -72,12 +68,16 @@ export default function ShopPage() {
         navigate('/mis-ordenes');
       }
     } catch {
+      // El error de creación de orden se ignora: la UI ya muestra el fallo del flujo.
     }
   };
 
   const handlePaymentClose = () => {
     setShowPaymentModal(false);
     setPreferenceId('');
+    if (checkoutPrefId) {
+      dispatch(clearCheckoutResult());
+    }
   };
 
   return (
@@ -188,8 +188,8 @@ export default function ShopPage() {
       </div>
 
       <PaymentModal
-        isOpen={showPaymentModal}
-        preferenceId={preferenceId}
+        isOpen={isPaymentModalOpen}
+        preferenceId={effectivePreferenceId}
         onClose={handlePaymentClose}
         title="Pagar orden"
       />

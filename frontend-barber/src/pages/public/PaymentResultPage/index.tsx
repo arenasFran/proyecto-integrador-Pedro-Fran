@@ -42,18 +42,13 @@ export default function PaymentResultPage() {
   const status = searchParams.get('status');
   const mpPaymentId = searchParams.get('payment_id');
   const externalRef = searchParams.get('external_reference');
-  const [paymentType, setPaymentType] = useState<string>('unknown');
   const [showCheckmark, setShowCheckmark] = useState(false);
 
   const { data: paymentData } = useGetPaymentByIdQuery(externalRef || '', {
     skip: !externalRef,
   });
 
-  useEffect(() => {
-    if (paymentData?.payment?.type) {
-      setPaymentType(paymentData.payment.type);
-    }
-  }, [paymentData]);
+  const paymentType = paymentData?.payment?.type ?? 'unknown';
 
   useEffect(() => {
     if (status === 'success') {

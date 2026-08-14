@@ -10,19 +10,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      mongodb:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --replSet rs0
-          --bind_ip_all
-          --health-cmd="mongosh --eval 'db.runCommand({ ping: 1 })'"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
     defaults:
       run:
         working-directory: backend-barber
@@ -42,26 +29,7 @@ jobs:
         run: |
           echo '${{ secrets.ENV_FILE }}' > .env
 
-      - name: Initialize MongoDB replica set
-        run: |
-          container_id=$(docker ps --filter "ancestor=mongo:7" --format "{{.ID}}" | head -n 1)
-          docker exec "$container_id" mongosh --quiet --eval \
-            "try { rs.initiate({_id: 'rs0', members: [{_id: 0, host: '127.0.0.1:27017'}]}) } catch (error) { print(error) }"
-
-          for attempt in {1..30}; do
-            state=$(docker exec "$container_id" mongosh --quiet --eval "try { rs.status().myState } catch (error) { -1 }" | tail -n 1)
-            if [ "$state" = "1" ]; then
-              exit 0
-            fi
-            sleep 1
-          done
-
-          echo "MongoDB replica set did not become primary" >&2
-          exit 1
-
       - run: npm run test:ci
-        env:
-          MONGO_TEST_URI: mongodb://127.0.0.1:27017/backend-barber-test?replicaSet=rs0
 
   deploy:
     needs: test

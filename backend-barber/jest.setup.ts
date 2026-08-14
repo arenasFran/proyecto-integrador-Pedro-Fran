@@ -13,6 +13,7 @@ import { MongoMemoryReplSet } from 'mongodb-memory-server';
 
 let mongoServer: MongoMemoryReplSet | null = null;
 let mongoReady = false;
+const testMongoUri = process.env.MONGO_TEST_URI;
 
 const clearAllCollections = async () => {
   if (!mongoReady || mongoose.connection.readyState !== 1) {
@@ -37,12 +38,19 @@ beforeAll(async () => {
   }
 
   try {
-    mongoServer = await MongoMemoryReplSet.create({
-      replSet: { count: 1, storageEngine: 'wiredTiger' },
-    });
-    const uri = mongoServer.getUri();
+    if (!testMongoUri) {
+      mongoServer = await MongoMemoryReplSet.create({
+        replSet: { count: 1, storageEngine: 'wiredTiger' },
+      });
+    }
+
+    const uri = testMongoUri || mongoServer?.getUri();
+    if (!uri) {
+      throw new Error('No hay una URI de MongoDB para tests.');
+    }
+
     process.env.MONGO_URI = uri;
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
     // mongoose crea los índices (incluidos los unique) en segundo plano al conectar,
     // sin esperar esa promesa: sin este await, un test puede insertar un duplicado
     // antes de que el índice único termine de construirse y no ver el error esperado.
@@ -61,7 +69,7 @@ beforeEach(() => {
 afterEach(clearAllCollections);
 
 afterAll(async () => {
-  if (mongoose.connection.readyState === 1) {
+  if (mongoose.connection.readyState !== 0) {
     await mongoose.disconnect();
   }
   if (mongoServer) {

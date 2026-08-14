@@ -4,6 +4,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-test-secret-test
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
 process.env.TELEGRAM_TOKEN_ENC_KEY = process.env.TELEGRAM_TOKEN_ENC_KEY || 'a'.repeat(64);
+const mongoDisabled = process.env.MONGO_READY === 'false';
 // mongodb-memory-server descarga el binario 5.0.x por default, que en distros
 // recientes (sin libssl1.1, ej. Arch/CachyOS) no arranca. 7.0.x no depende de esa lib.
 process.env.MONGOMS_VERSION = process.env.MONGOMS_VERSION || '7.0.14';
@@ -32,7 +33,7 @@ const clearAllCollections = async () => {
 // Usa un replica set (no server standalone) porque varios use-cases corren
 // transacciones Mongo (session.startTransaction()), que requieren replica set.
 beforeAll(async () => {
-  if (process.env.MONGO_READY === 'false') {
+  if (mongoDisabled) {
     mongoReady = false;
     return;
   }
@@ -56,8 +57,10 @@ beforeAll(async () => {
     // antes de que el índice único termine de construirse y no ver el error esperado.
     await Promise.all(Object.values(mongoose.models).map((model) => model.init()));
     mongoReady = true;
+    process.env.MONGO_READY = 'true';
   } catch (error) {
     mongoReady = false;
+    process.env.MONGO_READY = 'false';
     console.warn('Mongo en memoria no disponible, se omiten tests de integracion.', error);
   }
 });

@@ -22,6 +22,10 @@ import { buildTelegramRouter } from "./wiring/telegram";
 const app = express();
 app.set('trust proxy', 1);
 const config = getConfig();
+const corsOrigins = config.corsOrigin
+  .split(',')
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
+  .filter(Boolean);
 
 app.use(express.json());
 app.use(
@@ -33,7 +37,7 @@ app.use(
 
 app.use(
   cors({
-    origin: config.corsOrigin.split(",").map((o) => o.trim()),
+    origin: corsOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,

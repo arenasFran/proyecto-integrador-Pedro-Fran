@@ -44,6 +44,9 @@ describeIfMongo('Auth routes', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
+      termsVersion: '1.0',
+      privacyVersion: '1.0',
+      marketingConsent: false,
     });
 
     expect(response.status).toBe(201);

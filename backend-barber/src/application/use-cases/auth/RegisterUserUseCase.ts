@@ -6,6 +6,9 @@ import { Password } from '../../../domain/value-objects/Password';
 import { Phone } from '../../../domain/value-objects/Phone';
 import { AppError } from '../../../domain/errors/AppError';
 
+export const TERMS_VERSION = '1.0';
+export const PRIVACY_VERSION = '1.0';
+
 type RegisterUserDTO = {
   email: string;
   password: string;
@@ -13,6 +16,9 @@ type RegisterUserDTO = {
   name: string;
   lastname: string;
   phone: string;
+  termsVersion?: string;
+  privacyVersion?: string;
+  marketingConsent?: boolean;
 };
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
@@ -26,6 +32,10 @@ export class RegisterUserUseCase {
   async execute(dto: RegisterUserDTO): Promise<{ message: string }> {
     if (dto.password !== dto.repeatPassword) {
       throw new AppError('Las contraseñas no coinciden.', 400);
+    }
+
+    if (dto.termsVersion !== TERMS_VERSION || dto.privacyVersion !== PRIVACY_VERSION) {
+      throw new AppError('Debés aceptar los Términos y Condiciones y la Política de Privacidad vigentes.', 400);
     }
 
     const email = Email.create(dto.email).getValue();
@@ -55,7 +65,12 @@ export class RegisterUserUseCase {
       passwordHash: hash,
     });
 
-    const createdUser = await this.userRepository.createRegisteredClient(user);
+    const createdUser = await this.userRepository.createRegisteredClient(user, {
+      termsVersion: TERMS_VERSION,
+      privacyVersion: PRIVACY_VERSION,
+      acceptedAt: new Date(),
+      marketingConsent: Boolean(dto.marketingConsent),
+    });
 
     // Vincular turnos anónimos con mismo email y teléfono
     this.linkAnonymousAppointments(createdUser.id, email, phone);

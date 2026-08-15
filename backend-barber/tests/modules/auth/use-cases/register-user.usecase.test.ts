@@ -41,6 +41,8 @@ describe('RegisterUserUseCase', () => {
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
+        termsVersion: '1.0',
+        privacyVersion: '1.0',
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -56,6 +58,8 @@ describe('RegisterUserUseCase', () => {
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
+        termsVersion: '1.0',
+        privacyVersion: '1.0',
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -72,6 +76,8 @@ describe('RegisterUserUseCase', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
+      termsVersion: '1.0',
+      privacyVersion: '1.0',
     })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -90,6 +96,8 @@ describe('RegisterUserUseCase', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
+      termsVersion: '1.0',
+      privacyVersion: '1.0',
     });
 
     expect(passwordHasher.hash).toHaveBeenCalledWith('Abcd1234');
@@ -99,6 +107,12 @@ describe('RegisterUserUseCase', () => {
         name: 'Juan',
         lastname: 'Perez',
         phone: '123456789',
+      }),
+      expect.objectContaining({
+        termsVersion: '1.0',
+        privacyVersion: '1.0',
+        acceptedAt: expect.any(Date),
+        marketingConsent: false,
       })
     );
     expect(result.message).toMatch(/Usuario registrado/);

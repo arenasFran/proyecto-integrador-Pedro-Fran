@@ -15,6 +15,9 @@ const validRegister = {
   name: 'Juan',
   lastname: 'Perez',
   phone: '1234567890',
+  termsVersion: '1.0',
+  privacyVersion: '1.0',
+  marketingConsent: false,
 };
 
 const validLogin = {

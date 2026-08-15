@@ -13,6 +13,10 @@ export interface IClientBase extends Document, IClientBaseInput {
   fechaSancion?: Date | null;
   motivoSancion?: string | null;
   sancionadoPor?: string | null;
+  termsVersion?: string;
+  privacyVersion?: string;
+  acceptedAt?: Date | null;
+  marketingConsent?: boolean;
 }
 
 export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
@@ -77,6 +81,22 @@ const clientSchema = new Schema<IClientBase>(
     sancionadoPor: {
       type: String,
       default: null,
+    },
+    termsVersion: {
+      type: String,
+      default: null,
+    },
+    privacyVersion: {
+      type: String,
+      default: null,
+    },
+    acceptedAt: {
+      type: Date,
+      default: null,
+    },
+    marketingConsent: {
+      type: Boolean,
+      default: false,
     },
   },
   {

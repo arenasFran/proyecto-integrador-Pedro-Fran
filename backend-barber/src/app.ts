@@ -87,6 +87,7 @@ const refreshLimiter = rateLimit({
 app.use("/auth/register", registerLimiter);
 app.use("/auth/refresh", refreshLimiter);
 app.use("/auth/request-reset", resetLimiter);
+app.use("/auth/verify-reset-code", resetLimiter);
 app.use("/auth/reset-password", resetLimiter);
 app.use("/auth/2fa/send", twoFALimiter);
 app.use("/auth/2fa/verify", twoFALimiter);

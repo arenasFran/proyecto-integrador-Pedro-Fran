@@ -6,6 +6,7 @@ import { SendTwoFactorCodeUseCase } from '../application/use-cases/auth/SendTwoF
 import { VerifyTwoFactorUseCase } from '../application/use-cases/auth/VerifyTwoFactorUseCase';
 import { LogoutUseCase } from '../application/use-cases/auth/LogoutUseCase';
 import { RequestPasswordResetUseCase } from '../application/use-cases/password/RequestPasswordResetUseCase';
+import { VerifyPasswordResetCodeUseCase } from '../application/use-cases/password/VerifyPasswordResetCodeUseCase';
 import { ResetPasswordUseCase } from '../application/use-cases/password/ResetPasswordUseCase';
 import { MongoAppointmentRepository } from '../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoPasswordResetRepository } from '../infrastructure/repositories/mongodb/MongoPasswordResetRepository';
@@ -91,12 +92,18 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     hashService,
     refreshTokenRepository
   );
+  const verifyPasswordResetCode = new VerifyPasswordResetCodeUseCase(
+    userRepository,
+    passwordResetRepository,
+    hashService
+  );
 
   const authController = new AuthController(registerUser, refreshTokenUseCase, new LogoutUseCase(hashService, refreshTokenRepository));
   const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(
     requestPasswordReset,
+    verifyPasswordResetCode,
     resetPassword
   );
 

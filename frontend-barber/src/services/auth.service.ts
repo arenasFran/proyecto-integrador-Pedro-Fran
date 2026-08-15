@@ -9,7 +9,6 @@ export interface RegisterData {
   phone: string;
   termsVersion: string;
   privacyVersion: string;
-  marketingConsent?: boolean;
 }
 
 export interface LoginData {

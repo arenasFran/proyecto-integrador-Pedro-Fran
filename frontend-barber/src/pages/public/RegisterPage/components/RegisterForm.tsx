@@ -21,7 +21,6 @@ export const RegisterForm: React.FC = () => {
   const [register, { isLoading, error }] = useRegisterMutation();
   const navigate = useNavigate();
   const [acceptedLegal, setAcceptedLegal] = useState(false);
-  const [marketingConsent, setMarketingConsent] = useState(false);
   const [acceptanceError, setAcceptanceError] = useState(false);
 
   const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues);
@@ -46,7 +45,6 @@ export const RegisterForm: React.FC = () => {
         phone: values.phone,
         termsVersion: legalConfig.termsVersion,
         privacyVersion: legalConfig.privacyVersion,
-        marketingConsent,
       }).unwrap();
       navigate('/login', { state: { toast: 'Registro exitoso. Ya podés iniciar sesión.', toastType: 'success' } });
     } catch {
@@ -136,18 +134,6 @@ export const RegisterForm: React.FC = () => {
       {acceptanceError && (
         <p className="text-[12px] text-red-500">Debés aceptar los Términos y Condiciones y la Política de Privacidad.</p>
       )}
-
-      <label className="flex items-start gap-2.5 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={marketingConsent}
-          onChange={(e) => setMarketingConsent(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 accent-[#FF5C00]"
-        />
-        <span className="text-[12px] leading-snug text-[#8A8A8A]">
-          Deseo recibir promociones, novedades y ofertas de la barbería.
-        </span>
-      </label>
 
       {errorMessage && (
         <p className="text-[12px] text-red-500 text-center">{errorMessage}</p>

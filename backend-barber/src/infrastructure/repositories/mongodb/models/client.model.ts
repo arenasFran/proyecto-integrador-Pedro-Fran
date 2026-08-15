@@ -16,7 +16,6 @@ export interface IClientBase extends Document, IClientBaseInput {
   termsVersion?: string;
   privacyVersion?: string;
   acceptedAt?: Date | null;
-  marketingConsent?: boolean;
 }
 
 export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
@@ -93,10 +92,6 @@ const clientSchema = new Schema<IClientBase>(
     acceptedAt: {
       type: Date,
       default: null,
-    },
-    marketingConsent: {
-      type: Boolean,
-      default: false,
     },
   },
   {

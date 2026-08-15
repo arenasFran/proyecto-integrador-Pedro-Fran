@@ -29,7 +29,6 @@ export const registerSchema = Joi.object({
   privacyVersion: Joi.string().required().messages({
     'any.required': 'Debés aceptar la Política de Privacidad',
   }),
-  marketingConsent: Joi.boolean().optional(),
 });
 
 export const loginSchema = Joi.object({

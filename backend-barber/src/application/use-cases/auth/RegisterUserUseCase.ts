@@ -18,7 +18,6 @@ type RegisterUserDTO = {
   phone: string;
   termsVersion?: string;
   privacyVersion?: string;
-  marketingConsent?: boolean;
 };
 import { IPasswordHasher } from '../../ports/IPasswordHasher';
 
@@ -69,7 +68,6 @@ export class RegisterUserUseCase {
       termsVersion: TERMS_VERSION,
       privacyVersion: PRIVACY_VERSION,
       acceptedAt: new Date(),
-      marketingConsent: Boolean(dto.marketingConsent),
     });
 
     // Vincular turnos anónimos con mismo email y teléfono

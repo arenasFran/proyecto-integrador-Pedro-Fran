@@ -30,7 +30,6 @@ export type LegalConsent = {
   termsVersion: string;
   privacyVersion: string;
   acceptedAt: Date;
-  marketingConsent: boolean;
 };
 
 const userFromBarber = (doc: Record<string, any>): User =>
@@ -190,7 +189,6 @@ export class MongoUserRepository {
                   termsVersion: consent.termsVersion,
                   privacyVersion: consent.privacyVersion,
                   acceptedAt: consent.acceptedAt,
-                  marketingConsent: consent.marketingConsent,
                 }
               : {}),
             _id: expectedId,

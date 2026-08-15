@@ -112,7 +112,6 @@ describe('RegisterUserUseCase', () => {
         termsVersion: '1.0',
         privacyVersion: '1.0',
         acceptedAt: expect.any(Date),
-        marketingConsent: false,
       })
     );
     expect(result.message).toMatch(/Usuario registrado/);

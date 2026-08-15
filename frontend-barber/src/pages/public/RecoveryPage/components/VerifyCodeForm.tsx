@@ -4,38 +4,41 @@ import { FiArrowRight } from 'react-icons/fi';
 import { Input, Button } from '../../../../components/common';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
-import { useRequestResetMutation } from '../../../../services/authApi';
-import type { RequestResetFormData } from '../../../../types/auth';
+import { useVerifyResetCodeMutation } from '../../../../services/authApi';
+import type { VerifyResetCodeFormData } from '../../../../types/auth';
 
-interface RequestResetFormProps {
-  onSuccess?: (email: string) => void;
+interface VerifyCodeFormProps {
+  email: string;
+  onSuccess?: (code: string) => void;
 }
 
-const initialValues: RequestResetFormData = {
+const initialValues: VerifyResetCodeFormData = {
   email: '',
+  code: '',
 };
 
-export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess }) => {
-  const [requestReset, { isLoading, error }] = useRequestResetMutation();
-  const submittedEmailRef = useRef('');
+export const VerifyCodeForm: React.FC<VerifyCodeFormProps> = ({ email, onSuccess }) => {
+  const [verifyResetCode, { isLoading, error }] = useVerifyResetCodeMutation();
+  const submittedCodeRef = useRef('');
 
-  const { getFieldProps, validateAll, touched, errors, values: formValues } = useFormValidation(initialValues);
+  const formInit = { ...initialValues, email };
+  const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isValid = validateAll();
     if (!isValid) return;
 
-    submittedEmailRef.current = formValues.email;
+    submittedCodeRef.current = values.code;
     try {
-      await requestReset({ email: formValues.email }).unwrap();
-      onSuccess?.(formValues.email);
+      await verifyResetCode({ email: values.email, code: values.code }).unwrap();
+      onSuccess?.(values.code);
     } catch {
       // error handled via mutation result
     }
   };
 
-  const errorMessage = error ? getErrorMessage(error, 'Error al solicitar recuperación') : null;
+  const errorMessage = error ? getErrorMessage(error, 'Error al verificar el código') : null;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
@@ -44,12 +47,14 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
         animate={{ opacity: 1, y: 0 }}
       >
         <Input
-          label="Correo electrónico"
-          type="email"
-          placeholder="Ingresa tu correo electrónico"
-          {...getFieldProps('email')}
+          label="Código de recuperación"
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          placeholder="Ingresa el código de 6 dígitos"
+          {...getFieldProps('code')}
           required
-          error={touched.email ? errors.email : undefined}
+          error={touched.code ? errors.code : undefined}
         />
       </motion.div>
 
@@ -68,13 +73,9 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
           iconPosition="right"
           className="w-full"
         >
-          Enviar instrucciones
+          Verificar código
         </Button>
       </motion.div>
-
-      <p className="text-[12px] text-[#8A8A8A] text-center">
-        Te enviaremos un código de 6 dígitos para restablecer tu contraseña
-      </p>
     </form>
   );
 };

@@ -30,10 +30,15 @@ export interface RequestResetData {
 }
 
 export interface ResetPasswordData {
-  token: string;
+  code: string;
   password: string;
   repeatPassword: string;
   email: string;
+}
+
+export interface VerifyResetCodeData {
+  email: string;
+  code: string;
 }
 
 export interface ChangePasswordData {
@@ -133,11 +138,16 @@ export const authService = {
 
   resetPassword: async (data: ResetPasswordData): Promise<string> => {
     const response = await api.post<{ message: string }>('/auth/reset-password', {
-      token: data.token,
+      code: data.code,
       password: data.password,
       repeatPassword: data.repeatPassword,
       email: data.email,
     });
+    return response.data.message;
+  },
+
+  verifyResetCode: async (data: VerifyResetCodeData): Promise<string> => {
+    const response = await api.post<{ message: string }>('/auth/verify-reset-code', data);
     return response.data.message;
   },
 };

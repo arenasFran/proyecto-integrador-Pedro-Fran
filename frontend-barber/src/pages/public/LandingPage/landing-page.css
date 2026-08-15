@@ -1378,6 +1378,7 @@
 .service-card {
   overflow: hidden;
   border: 1px solid var(--landing-line);
+  border-radius: 28px;
   background: var(--landing-surface);
   transition:
     border-color 260ms ease,

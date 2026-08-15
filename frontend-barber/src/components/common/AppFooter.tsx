@@ -2,6 +2,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getTokenUser } from '../../utils/token';
 import { getAccessToken } from '../../services/api';
+import { openCookiePreferences } from '../../utils/cookieConsent';
 
 export const AppFooter: React.FC = () => {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export const AppFooter: React.FC = () => {
 
   return (
     <footer className="bg-[#1A1A1A] border-t border-[#282828] px-[5vw] pt-6 pb-8">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr] gap-10 pb-11 border-b border-white/10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1fr_1fr] gap-10 pb-11 border-b border-white/10">
         <div>
           <button onClick={() => navigate('/')} className="flex items-center gap-2 mb-3">
             <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-12 w-auto" />
@@ -62,6 +63,24 @@ export const AppFooter: React.FC = () => {
           <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Instagram</a>
           <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">WhatsApp</a>
           <a href="#" className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">Facebook</a>
+        </div>
+        <div>
+          <h4 className="text-[11px] uppercase tracking-wide text-[#8A8A8A] mb-4">Legal</h4>
+          <button onClick={() => navigate('/terminos')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
+            Términos y Condiciones
+          </button>
+          <button onClick={() => navigate('/privacidad')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
+            Política de Privacidad
+          </button>
+          <button onClick={() => navigate('/cancelaciones')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
+            Cancelaciones y Reembolsos
+          </button>
+          <button onClick={() => navigate('/cookies')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
+            Política de Cookies
+          </button>
+          <button onClick={openCookiePreferences} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
+            Preferencias de cookies
+          </button>
         </div>
       </div>
       <div className="flex justify-between items-center pt-6 text-xs text-[#8A8A8A] flex-wrap gap-3">

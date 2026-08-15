@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowRight } from 'react-icons/fi';
 import { Input, Button } from '../../../../components/common';
@@ -19,7 +19,6 @@ const initialValues: VerifyResetCodeFormData = {
 
 export const VerifyCodeForm: React.FC<VerifyCodeFormProps> = ({ email, onSuccess }) => {
   const [verifyResetCode, { isLoading, error }] = useVerifyResetCodeMutation();
-  const submittedCodeRef = useRef('');
 
   const formInit = { ...initialValues, email };
   const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit);
@@ -29,7 +28,6 @@ export const VerifyCodeForm: React.FC<VerifyCodeFormProps> = ({ email, onSuccess
     const isValid = validateAll();
     if (!isValid) return;
 
-    submittedCodeRef.current = values.code;
     try {
       await verifyResetCode({ email: values.email, code: values.code }).unwrap();
       onSuccess?.(values.code);

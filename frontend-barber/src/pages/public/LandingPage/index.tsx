@@ -4,6 +4,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import {
   FiArrowUpRight,
   FiAward,
+  FiBarChart2,
   FiCalendar,
   FiCheck,
   FiChevronDown,
@@ -159,7 +160,62 @@ export const LandingPage: React.FC = () => {
   const token = getAccessToken();
   const tokenUser = getTokenUser(token);
   const isAuthenticated = Boolean(loginToken || (token && tokenUser));
+  const roleKind = user?.kind || tokenUser?.kind || 'Registrado';
+  const isAdmin = roleKind === 'Admin';
+  const isEmployee = roleKind === 'Empleado';
+  const isStaffUser = isAdmin || isEmployee;
   const displayName = user?.name || user?.email || tokenUser?.email || 'Usuario';
+  const adminMenuSections = [
+    {
+      title: 'Dashboard',
+      items: [
+        { label: 'Métricas', to: '/admin/dashboard', icon: FiBarChart2 },
+        { label: 'Turnos', to: '/admin/turnos', icon: FiCalendar },
+        { label: 'Calendario', to: '/admin/calendario', icon: FiCalendar },
+      ],
+    },
+    {
+      title: 'Gestión',
+      items: [
+        { label: 'Profesionales', to: '/admin/profesionales', icon: FiUser },
+        { label: 'Servicios', to: '/admin/servicios', icon: FiCheck },
+        { label: 'Productos', to: '/admin/productos', icon: FiPackage },
+        { label: 'Órdenes', to: '/admin/ordenes', icon: FiShoppingBag },
+      ],
+    },
+    {
+      title: 'Clientes',
+      items: [
+        { label: 'Clientes', to: '/admin/clientes', icon: FiUser },
+        { label: 'Membresías', to: '/admin/membresias', icon: FiAward },
+        { label: 'Perfil', to: '/admin/perfil', icon: FiUser },
+      ],
+    },
+  ];
+  const employeeMenuSections = [
+    {
+      title: 'Operación',
+      items: [
+        { label: 'Turnos', to: '/admin/turnos', icon: FiCalendar },
+        { label: 'Calendario', to: '/admin/calendario', icon: FiCalendar },
+        { label: 'Servicios', to: '/admin/servicios', icon: FiCheck },
+      ],
+    },
+    {
+      title: 'Tienda',
+      items: [
+        { label: 'Productos', to: '/admin/productos', icon: FiPackage },
+        { label: 'Órdenes', to: '/admin/ordenes', icon: FiShoppingBag },
+      ],
+    },
+    {
+      title: 'Perfil',
+      items: [
+        { label: 'Clientes', to: '/admin/clientes', icon: FiUser },
+        { label: 'Perfil', to: '/admin/perfil', icon: FiUser },
+      ],
+    },
+  ];
   const { data: productsData, isLoading: productsLoading } = useGetPublicCatalogQuery({
     category: selectedCategory || undefined,
     limit: 100,
@@ -248,24 +304,71 @@ export const LandingPage: React.FC = () => {
                 </button>
                 {dropdownOpen && (
                   <div className="landing-account-menu">
-                    <button type="button" onClick={() => goTo('/mis-turnos')}><FiCalendar /> Mis turnos</button>
-                    <button type="button" onClick={() => goTo('/tienda')}><FiPackage /> Tienda</button>
-                    <button type="button" onClick={() => goTo('/mis-ordenes')}><FiShoppingBag /> Mis órdenes</button>
-                    <button type="button" onClick={() => goTo('/mi-membresia')}><FiAward /> Mi membresía</button>
+                    {isAdmin && adminMenuSections.map((section) => (
+                      <div className="landing-account-section" key={section.title}>
+                        <span className="landing-account-section-title">{section.title}</span>
+                        {section.items.map((item) => (
+                          <button key={item.to} type="button" onClick={() => goTo(item.to)}>
+                            {React.createElement(item.icon)} {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+
+                    {isEmployee && employeeMenuSections.map((section) => (
+                      <div className="landing-account-section" key={section.title}>
+                        <span className="landing-account-section-title">{section.title}</span>
+                        {section.items.map((item) => (
+                          <button key={item.to} type="button" onClick={() => goTo(item.to)}>
+                            {React.createElement(item.icon)} {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+
+                    {!isStaffUser && (
+                      <>
+                        <div className="landing-account-section">
+                          <span className="landing-account-section-title">Cuenta</span>
+                          <button type="button" onClick={() => goTo('/mis-turnos')}><FiCalendar /> Mis turnos</button>
+                          <button type="button" onClick={() => goTo('/reservar')}><FiCalendar /> Reservar turno</button>
+                        </div>
+
+                        <div className="landing-account-section">
+                          <span className="landing-account-section-title">Tienda</span>
+                          <button type="button" onClick={() => goTo('/tienda')}><FiPackage /> Tienda</button>
+                          <button type="button" onClick={() => goTo('/mis-ordenes')}><FiShoppingBag /> Mis órdenes</button>
+                          <button type="button" onClick={() => goTo('/mi-membresia')}><FiAward /> Mi membresía</button>
+                        </div>
+
+                        <div className="landing-account-section">
+                          <span className="landing-account-section-title">General</span>
+                          <button type="button" onClick={() => goTo('/perfil')}><FiUser /> Perfil</button>
+                          <button type="button" onClick={() => scrollTo('contacto')}><FiMapPin /> Contacto</button>
+                        </div>
+                      </>
+                    )}
+
                     <div className="landing-account-divider" />
                     <button type="button" className="is-danger" onClick={handleLogout}><FiLogOut /> Cerrar sesión</button>
                   </div>
                 )}
               </div>
             ) : (
-              <>
+              <div className="landing-auth-group">
                 <Link to="/login" className="landing-login-link">Iniciar sesión</Link>
                 <Link to="/register" className="landing-register-link">Crear cuenta</Link>
-              </>
+                <button type="button" className="landing-button landing-button-primary landing-header-cta" onClick={() => goTo('/reservar')}>
+                  Reservar
+                </button>
+              </div>
             )}
-            <button type="button" className="landing-button landing-button-primary landing-header-cta" onClick={() => goTo('/reservar')}>
-              Reservar turno <FiArrowUpRight />
-            </button>
+
+            {isAuthenticated && !isStaffUser && (
+              <button type="button" className="landing-button landing-button-primary landing-header-cta" onClick={() => goTo('/reservar')}>
+                Reservar
+              </button>
+            )}
             <button
               type="button"
               className="landing-menu-toggle"
@@ -281,18 +384,51 @@ export const LandingPage: React.FC = () => {
         {mobileMenuOpen && (
           <div className="landing-mobile-menu">
             <div className="landing-container">
-              {['servicios', 'tienda', 'nosotros', 'faqs', 'contacto'].map((id) => (
-                <button type="button" key={id} onClick={() => scrollTo(id)}>
-                  {id === 'faqs' ? 'FAQs' : id[0].toUpperCase() + id.slice(1)}
-                </button>
-              ))}
+              {isAuthenticated && isAdmin && (
+                <>
+                  <button type="button" onClick={() => goTo('/admin/dashboard')}>Métricas</button>
+                  <button type="button" onClick={() => goTo('/admin/profesionales')}>Profesionales</button>
+                  <button type="button" onClick={() => goTo('/admin/turnos')}>Turnos</button>
+                  <button type="button" onClick={() => goTo('/admin/calendario')}>Calendario</button>
+                  <button type="button" onClick={() => goTo('/admin/servicios')}>Servicios</button>
+                  <button type="button" onClick={() => goTo('/admin/productos')}>Productos</button>
+                  <button type="button" onClick={() => goTo('/admin/ordenes')}>Órdenes</button>
+                  <button type="button" onClick={() => goTo('/admin/clientes')}>Clientes</button>
+                  <button type="button" onClick={() => goTo('/admin/membresias')}>Membresías</button>
+                  <button type="button" onClick={() => goTo('/admin/perfil')}>Perfil</button>
+                </>
+              )}
+
+              {isAuthenticated && isEmployee && (
+                <>
+                  <button type="button" onClick={() => goTo('/admin/turnos')}>Turnos</button>
+                  <button type="button" onClick={() => goTo('/admin/calendario')}>Calendario</button>
+                  <button type="button" onClick={() => goTo('/admin/servicios')}>Servicios</button>
+                  <button type="button" onClick={() => goTo('/admin/productos')}>Productos</button>
+                  <button type="button" onClick={() => goTo('/admin/ordenes')}>Órdenes</button>
+                  <button type="button" onClick={() => goTo('/admin/clientes')}>Clientes</button>
+                  <button type="button" onClick={() => goTo('/admin/perfil')}>Perfil</button>
+                </>
+              )}
+
+              {(!isAuthenticated || (!isAdmin && !isEmployee)) && (
+                ['servicios', 'tienda', 'nosotros', 'faqs', 'contacto'].map((id) => (
+                  <button type="button" key={id} onClick={() => scrollTo(id)}>
+                    {id === 'faqs' ? 'FAQs' : id[0].toUpperCase() + id.slice(1)}
+                  </button>
+                ))
+              )}
+
               {!isAuthenticated && (
                 <>
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Iniciar sesión</Link>
                   <Link to="/register" onClick={() => setMobileMenuOpen(false)}>Crear cuenta</Link>
                 </>
               )}
-              <button type="button" className="landing-button landing-button-primary" onClick={() => goTo('/reservar')}>Reservar turno <FiArrowUpRight /></button>
+
+              {!isStaffUser && !isAuthenticated && (
+                <button type="button" className="landing-button landing-button-primary" onClick={() => goTo('/reservar')}>Reservar turno <FiArrowUpRight /></button>
+              )}
             </div>
           </div>
         )}
@@ -362,9 +498,7 @@ export const LandingPage: React.FC = () => {
               </div>
             </motion.div>
           </div>
-          <button type="button" className="hero-scroll-cue" onClick={() => scrollTo('servicios')}>
-            <span className="hero-scroll-line" /> Deslizá para conocer
-          </button>
+
         </section>
 
         <section id="servicios" className="landing-section services-section">

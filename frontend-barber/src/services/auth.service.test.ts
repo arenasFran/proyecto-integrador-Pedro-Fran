@@ -90,17 +90,32 @@ describe('authService', () => {
     mockedApi.post.mockResolvedValueOnce({ data: { message: 'ok' } });
 
     const result = await authService.resetPassword({
-      token: '123456',
+      code: '123456',
       password: '123456',
       repeatPassword: '123456',
       email: 'test@example.com',
     });
 
     expect(mockedApi.post).toHaveBeenCalledWith('/auth/reset-password', {
-      token: '123456',
+      code: '123456',
       password: '123456',
       repeatPassword: '123456',
       email: 'test@example.com',
+    });
+    expect(result).toBe('ok');
+  });
+
+  it('verifyResetCode posts to /auth/verify-reset-code and returns message', async () => {
+    mockedApi.post.mockResolvedValueOnce({ data: { message: 'ok' } });
+
+    const result = await authService.verifyResetCode({
+      email: 'test@example.com',
+      code: '123456',
+    });
+
+    expect(mockedApi.post).toHaveBeenCalledWith('/auth/verify-reset-code', {
+      email: 'test@example.com',
+      code: '123456',
     });
     expect(result).toBe('ok');
   });

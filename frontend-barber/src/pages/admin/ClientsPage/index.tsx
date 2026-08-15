@@ -6,12 +6,23 @@ import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import type { ClienteData } from '../../../types/analytics';
 
 const PAGE_SIZE = 20;
 
 const kindBadge = (kind: string) => {
   if (kind === 'Registrado') return <span className="text-[11px] font-medium bg-purple-500/10 text-purple-400 rounded-full px-2 py-0.5">Registrado</span>;
   return <span className="text-[11px] font-medium bg-gray-500/10 text-gray-400 rounded-full px-2 py-0.5">Anónimo</span>;
+};
+
+const sanctionBadge = (c: ClienteData) => {
+  if (c.sancionado) {
+    return <span className="text-[11px] font-medium bg-red-500/10 text-red-400 rounded-full px-2 py-0.5">Sancionado</span>;
+  }
+  if ((c.noShowCount ?? 0) >= 3) {
+    return <span className="text-[11px] font-medium bg-yellow-500/10 text-yellow-400 rounded-full px-2 py-0.5">{c.noShowCount} inasistencias</span>;
+  }
+  return null;
 };
 
 export default function ClientsPage() {
@@ -137,6 +148,9 @@ export default function ClientsPage() {
                     {c.clientPhone && (
                       <p className="text-[12px] text-[#8A8A8A]">{c.clientPhone}</p>
                     )}
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {sanctionBadge(c)}
+                    </div>
                   </div>
                   {kindBadge(c.kind)}
                 </div>
@@ -203,6 +217,7 @@ export default function ClientsPage() {
                           <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
                         )}
                       </span>
+                      <div className="flex flex-wrap gap-1.5 mt-1">{sanctionBadge(c)}</div>
                     </td>
                     <td className="px-4 py-3 text-[#8A8A8A]">{c.clientPhone ?? '—'}</td>
                     <td className="px-4 py-3 text-[#8A8A8A] max-w-[180px] truncate">{c.clientEmail ?? '—'}</td>

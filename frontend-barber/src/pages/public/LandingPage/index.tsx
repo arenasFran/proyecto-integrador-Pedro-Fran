@@ -612,7 +612,7 @@ export const LandingPage: React.FC = () => {
               </div>
               <div className="section-heading-note">
                 <p>Servicios simples, bien hechos y pensados para que salgas sintiéndote vos, pero mejor.</p>
-                <span className="section-count">03 servicios disponibles</span>
+                
               </div>
             </motion.div>
 
@@ -647,7 +647,7 @@ export const LandingPage: React.FC = () => {
           <div className="landing-container">
             <motion.div className="catalog-heading" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <div>
-                <span className="section-marker"><span className="section-marker-line" /> Cuidado personal</span>
+                
                 <h2>La tienda<br /><em>del barbero.</em></h2>
               </div>
               <p>Productos seleccionados para mantener el resultado en casa. Explorá el catálogo y, para comprar, iniciá sesión.</p>

@@ -189,6 +189,7 @@ export const makeMockBarberBlockRepository = () => ({
 
 export const makeMockPasswordResetRepository = () => ({
   create: jest.fn(),
+  verify: jest.fn(),
   verifyAndConsume: jest.fn(),
 });
 

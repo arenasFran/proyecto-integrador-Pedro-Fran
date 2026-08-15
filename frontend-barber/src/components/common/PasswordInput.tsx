@@ -29,7 +29,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
             type={showPassword ? 'text' : 'password'}
             className={`
               w-full h-[40px] px-3 pr-10 bg-[#1A1A1A] border rounded-[10px] 
-              text-[13px] text-white placeholder:text-[#8A8A8A]
+              text-[13px] text-white placeholder:text-[12px] placeholder:text-[#8A8A8A]
               outline-none transition-all duration-200
               ${error 
                 ? 'border-red-500 focus:border-red-500' 

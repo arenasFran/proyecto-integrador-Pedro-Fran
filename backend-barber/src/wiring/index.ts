@@ -38,6 +38,10 @@ import { getConfig } from '../infrastructure/config/env';
 import { UpdateUserProfileUseCase } from '../application/use-cases/user/UpdateUserProfileUseCase';
 import { ChangePasswordUseCase } from '../application/use-cases/user/ChangePasswordUseCase';
 import { EmailChangeVerifier } from '../application/services/EmailChangeVerifier';
+import { ManageClientSanctionUseCase } from '../application/use-cases/client/ManageClientSanctionUseCase';
+import { MongoClientRepository } from '../infrastructure/repositories/mongodb/MongoClientRepository';
+import { ClientController } from '../interface-adapters/controllers/client/ClientController';
+import { createClientRouter } from '../interface-adapters/routes/client.routes';
 
 export const buildBarberRouter = () => {
   const barberRepository = new MongoBarberRepository();
@@ -140,4 +144,13 @@ export const buildTempLockRouter = () => {
   const tempLockController = new TempLockController(tempLockRepository);
 
   return createTempLockRouter({ tempLockController });
+};
+
+export const buildClientRouter = () => {
+  const clientRepository = new MongoClientRepository();
+  const manageSanction = new ManageClientSanctionUseCase(clientRepository);
+  const clientController = new ClientController(manageSanction);
+  const authenticate = createAuthenticate(buildTokenService());
+
+  return createClientRouter({ authenticate, clientController });
 };

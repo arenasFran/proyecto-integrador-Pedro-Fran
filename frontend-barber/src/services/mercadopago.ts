@@ -1,10 +1,11 @@
-import { initMercadoPago } from '@mercadopago/sdk-react';
-
-let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
 
 export function initializeMercadoPago() {
-  if (isInitialized) return;
+  if (!initializationPromise) {
+    initializationPromise = import('@mercadopago/sdk-react').then(({ initMercadoPago }) => {
+      initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-UY' });
+    });
+  }
 
-  initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-UY' });
-  isInitialized = true;
+  return initializationPromise;
 }

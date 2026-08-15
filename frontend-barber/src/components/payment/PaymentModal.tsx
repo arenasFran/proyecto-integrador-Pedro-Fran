@@ -1,8 +1,14 @@
-import { useEffect, useState } from 'react';
-import { Wallet } from '@mercadopago/sdk-react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AnimatedContainer, Button } from '../common';
 import PaymentSuccessModal from './PaymentSuccessModal';
 import { getAccessToken } from '../../services/api';
+import { initializeMercadoPago } from '../../services/mercadopago';
+
+const MercadoPagoWallet = lazy(async () => {
+  await initializeMercadoPago();
+  const { Wallet } = await import('@mercadopago/sdk-react');
+  return { default: Wallet };
+});
 
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -101,11 +107,13 @@ export default function PaymentModal({ isOpen, preferenceId, onClose, title }: P
                 )}
 
                 <div className={walletReady ? '' : 'opacity-0 absolute pointer-events-none'}>
-                  <Wallet
-                    initialization={{ preferenceId, redirectMode: 'blank' }}
-                    onReady={() => setWalletReady(true)}
-                    onError={() => setError('No se pudo abrir la ventana de pago. Verificá que tu navegador no esté bloqueando ventanas emergentes.')}
-                  />
+                  <Suspense fallback={null}>
+                    <MercadoPagoWallet
+                      initialization={{ preferenceId, redirectMode: 'blank' }}
+                      onReady={() => setWalletReady(true)}
+                      onError={() => setError('No se pudo abrir la ventana de pago. Verificá que tu navegador no esté bloqueando ventanas emergentes.')}
+                    />
+                  </Suspense>
                 </div>
 
                 <div className="mt-4">

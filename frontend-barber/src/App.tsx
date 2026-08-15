@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { initMercadoPago } from '@mercadopago/sdk-react';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
@@ -69,8 +68,6 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
-
-initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-UY' });
 
 function App() {
   return (

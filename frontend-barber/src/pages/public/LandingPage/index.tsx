@@ -143,7 +143,7 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
       )}
       <div className="catalog-card-footer">
         {!isAuthenticated ? (
-          <Link className="catalog-buy-link" to="/login?returnUrl=/tienda">
+          <Link className="landing-button landing-button-primary catalog-buy-link" to="/login?returnUrl=/tienda">
             <FiShoppingCart aria-hidden="true" />
             <span>Comprar</span>
           </Link>
@@ -649,7 +649,7 @@ export const LandingPage: React.FC = () => {
                   <div className="service-card-content">
                     <div className="service-card-title-row"><h3>{service.name}</h3><span>{service.price}</span></div>
                     <p>{service.desc}</p>
-                    <button type="button" className="service-card-detail" onClick={() => goTo('/reservar')}>Reservar <FiArrowUpRight /></button>
+                    <button type="button" className="landing-button landing-button-primary service-card-detail" onClick={() => goTo('/reservar')}>Reservar <FiArrowUpRight /></button>
                   </div>
                 </motion.article>
               ))}

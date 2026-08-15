@@ -484,7 +484,7 @@ export const LandingPage: React.FC = () => {
                   ease="power2.out"
                   trigger="scroll"
                   fillMode="wipe"
-                  fontSize={108}
+                  fontSize={120}
                   letterSpacing={-4}
                   className="hero-stroke-component hero-word-line"
                 />
@@ -500,7 +500,7 @@ export const LandingPage: React.FC = () => {
                   ease="power2.out"
                   trigger="scroll"
                   fillMode="wipe"
-                  fontSize={108}
+                  fontSize={120}
                   letterSpacing={-4}
                   className="hero-stroke-component hero-word-line"
                 />
@@ -516,7 +516,7 @@ export const LandingPage: React.FC = () => {
                   ease="power2.out"
                   trigger="scroll"
                   fillMode="wipe"
-                  fontSize={118}
+                  fontSize={132}
                   fontWeight={400}
                   letterSpacing={-5}
                   className="hero-stroke-component hero-word-line hero-italic-word"
@@ -533,7 +533,7 @@ export const LandingPage: React.FC = () => {
                   ease="power2.out"
                   trigger="scroll"
                   fillMode="wipe"
-                  fontSize={108}
+                  fontSize={120}
                   letterSpacing={-4}
                   className="hero-stroke-component hero-word-line"
                 />
@@ -549,7 +549,7 @@ export const LandingPage: React.FC = () => {
                   ease="power2.out"
                   trigger="scroll"
                   fillMode="wipe"
-                  fontSize={108}
+                  fontSize={120}
                   letterSpacing={-4}
                   className="hero-stroke-component hero-word-line"
                 />

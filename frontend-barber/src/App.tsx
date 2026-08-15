@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
-import { Spinner, ToastProvider } from './components/common';
+import { Spinner, ToastProvider, CookieConsent } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AppSidebar } from './components/sidebar/AppSidebar';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -36,6 +36,10 @@ import AiHaircutPage from './pages/client/AiHaircutPage';
 import ShopPage from './pages/public/ShopPage';
 import ProductDetailPage from './pages/public/ProductDetailPage';
 import PaymentResultPage from './pages/public/PaymentResultPage';
+import { TermsPage } from './pages/legal/TermsPage';
+import { PrivacyPage } from './pages/legal/PrivacyPage';
+import { CancellationsPage } from './pages/legal/CancellationsPage';
+import { CookiesPage } from './pages/legal/CookiesPage';
 import { getTokenKind, isTokenValid } from './utils/token';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
@@ -82,8 +86,7 @@ function App() {
             <div className="absolute top-0 left-1/4 h-72 w-72 rounded-full bg-[#FF5C00]/10 blur-3xl" />
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
           </div>
-          <ErrorBoundary>
-          <Routes>
+          <ErrorBoundary>          <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<OptionalAppLayout><BookingPage /></OptionalAppLayout>} />
             <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
@@ -92,6 +95,10 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPageWrapper />} />
             <Route path="/recovery" element={<RecoveryPage />} />
+            <Route path="/terminos" element={<TermsPage />} />
+            <Route path="/privacidad" element={<PrivacyPage />} />
+            <Route path="/cancelaciones" element={<CancellationsPage />} />
+            <Route path="/cookies" element={<CookiesPage />} />
             <Route
               path="/admin"
               element={
@@ -129,6 +136,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </ErrorBoundary>
+          <CookieConsent />
         </Router>
         </ToastProvider>
       </AppInitializer>

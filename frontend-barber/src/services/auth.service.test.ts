@@ -21,6 +21,9 @@ describe('authService', () => {
       name: 'John',
       lastname: 'Doe',
       phone: '1234567',
+      termsVersion: '1.0',
+      privacyVersion: '1.0',
+      marketingConsent: true,
     });
 
     expect(mockedApi.post).toHaveBeenCalledWith('/auth/register', {
@@ -30,6 +33,9 @@ describe('authService', () => {
       name: 'John',
       lastname: 'Doe',
       phone: '1234567',
+      termsVersion: '1.0',
+      privacyVersion: '1.0',
+      marketingConsent: true,
     });
     expect(result).toBe('ok');
   });

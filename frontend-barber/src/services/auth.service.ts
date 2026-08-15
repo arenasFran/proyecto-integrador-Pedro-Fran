@@ -7,6 +7,9 @@ export interface RegisterData {
   name: string;
   lastname: string;
   phone: string;
+  termsVersion: string;
+  privacyVersion: string;
+  marketingConsent?: boolean;
 }
 
 export interface LoginData {

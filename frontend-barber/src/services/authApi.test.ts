@@ -94,7 +94,7 @@ describe('authApi', () => {
     it('register envía POST a /auth/register', async () => {
       mockApi.mockResolvedValueOnce({ data: { message: 'Registrado' } });
       const store = createStore();
-      const data = { email: 'a@b.com', password: '123', repeatPassword: '123', name: 'A', lastname: 'B', phone: '123' };
+      const data = { email: 'a@b.com', password: '123', repeatPassword: '123', name: 'A', lastname: 'B', phone: '123', termsVersion: '1.0', privacyVersion: '1.0', marketingConsent: false };
       await store.dispatch(authApi.endpoints.register.initiate(data));
       expect(mockApi).toHaveBeenCalledWith({ url: '/auth/register', method: 'POST', data });
     });

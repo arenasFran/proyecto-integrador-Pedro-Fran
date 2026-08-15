@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
-import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
+import { Input, PasswordInput, Button } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 import { useRegisterMutation } from '../../../../services/authApi';
@@ -90,7 +90,6 @@ export const RegisterForm: React.FC = () => {
         required
         error={touched.password ? errors.password : undefined}
       />
-      <PasswordStrength password={values.password} />
 
       <PasswordInput
         label="Confirmar"

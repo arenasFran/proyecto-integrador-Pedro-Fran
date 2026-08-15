@@ -28,6 +28,12 @@ export const createProductRouter = (deps: {
   );
 
   router.get(
+    '/catalog',
+    validate({ query: queryProductsSchema }),
+    deps.productController.getPublicCatalog
+  );
+
+  router.get(
     '/:id',
     validate({ params: productIdParamSchema }),
     deps.productController.getById

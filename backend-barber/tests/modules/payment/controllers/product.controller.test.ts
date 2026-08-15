@@ -63,6 +63,26 @@ describe('ProductController', () => {
     });
   });
 
+  describe('getPublicCatalog', () => {
+    it('debe listar el catálogo sin filtrar productos inactivos', async () => {
+      productRepository.findPublicCatalog.mockResolvedValue({
+        data: [makeProduct()],
+        total: 1,
+        page: 1,
+        totalPages: 1,
+        limit: 100,
+      });
+      const req = createMockReqFull({ query: { limit: '100' } });
+      const res = createMockRes();
+
+      await controller.getPublicCatalog(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(productRepository.findPublicCatalog).toHaveBeenCalledWith(expect.objectContaining({ limit: 100 }));
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ products: expect.any(Array) }));
+    });
+  });
+
   describe('getById', () => {
     it('debe devolver el producto', async () => {
       productRepository.findById.mockResolvedValue(makeProduct());

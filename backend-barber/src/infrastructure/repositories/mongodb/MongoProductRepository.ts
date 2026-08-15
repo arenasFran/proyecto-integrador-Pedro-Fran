@@ -18,6 +18,13 @@ type FindAllResult = {
   limit: number;
 };
 
+export type ProductCatalogParams = {
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
 export class MongoProductRepository {
   async findById(id: string): Promise<Product | null> {
     const doc = await ProductModel.findById(id);
@@ -48,6 +55,38 @@ export class MongoProductRepository {
 
     const page = params.page || 1;
     const limit = params.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const [docs, total] = await Promise.all([
+      ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ProductModel.countDocuments(filter),
+    ]);
+
+    return {
+      data: docs.map((d) => this.toDomain(d)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+    };
+  }
+
+  async findPublicCatalog(params: ProductCatalogParams = {}): Promise<FindAllResult> {
+    const filter: Record<string, unknown> = { status: { $ne: 'deleted' } };
+
+    if (params.category) {
+      filter.category = params.category;
+    }
+
+    if (params.search) {
+      filter.$or = [
+        { name: { $regex: params.search, $options: 'i' } },
+        { description: { $regex: params.search, $options: 'i' } },
+      ];
+    }
+
+    const page = params.page || 1;
+    const limit = params.limit || 100;
     const skip = (page - 1) * limit;
 
     const [docs, total] = await Promise.all([

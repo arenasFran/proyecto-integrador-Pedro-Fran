@@ -539,16 +539,16 @@
 
 .hero-copy h1 {
   max-width: 610px;
-  margin: 28px 0 26px;
+  margin: 0px 0 0px;
   color: var(--landing-paper);
-  font-size: clamp(4.1rem, 7.1vw, 7.4rem);
+  font-size: clamp(4.8rem, 8.4vw, 8.8rem);
   font-weight: 800;
   letter-spacing: -0.095em;
   line-height: 0.81;
   text-transform: uppercase;
 }
 
-.hero-copy h1 span {
+.hero-italic-word {
   display: inline-block;
   color: var(--landing-orange);
   font-family: var(--landing-serif);
@@ -559,11 +559,51 @@
   text-transform: none;
 }
 
+.hero-italic-word svg,
+.hero-italic-word text,
+.hero-italic-word tspan {
+  font-family: var(--landing-serif);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+}
+
+.hero-stroke-word {
+  display: block;
+}
+
+.hero-italic-word {
+  margin-right: 0;
+}
+
+.hero-stroke-component {
+  display: block !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  line-height: 0.68 !important;
+}
+
+.hero-word-line + .hero-word-line {
+  margin-top: -0.2em;
+}
+
+.hero-stroke-component svg {
+  display: block;
+  width: auto;
+  height: 1.08em !important;
+  overflow: visible;
+}
+
 .hero-copy h1 strong {
   display: block;
   font: inherit;
   font-weight: inherit;
   letter-spacing: inherit;
+}
+
+.hero-final-word {
+  display: block !important;
 }
 
 .hero-description {
@@ -578,7 +618,7 @@
   display: flex;
   align-items: center;
   gap: 24px;
-  margin-top: 34px;
+  margin-top: 0px;
 }
 
 .hero-text-link {
@@ -637,6 +677,7 @@
   position: relative;
   width: min(100%, 590px);
   justify-self: end;
+  margin-top: -16px;
 }
 
 .hero-visual-index {
@@ -1799,7 +1840,7 @@
   }
   .landing-hero {
     min-height: auto;
-    padding: 128px 0 88px;
+    padding: 50px 0 88px;
   }
   .hero-layout {
     display: flex;

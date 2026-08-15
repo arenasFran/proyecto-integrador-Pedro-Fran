@@ -28,6 +28,7 @@ import type { Product } from '../../../types/product';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import { getTokenUser } from '../../../utils/token';
 import './landing-page.css';
+import StrokeText from './StrokeText';
 
 const services = [
   {
@@ -461,11 +462,89 @@ export const LandingPage: React.FC = () => {
             >
         
               <motion.h1 id="hero-title" variants={motionItem}>
-                Corte con <span>estilo.</span><strong>Sin vueltas.</strong>
+                <StrokeText
+                  text="Corte"
+                  strokeColor="#ff9d66"
+                  fillColor="#ffffff"
+                  strokeWidth={1}
+                  drawDuration={1.55}
+                  startDelay={0}
+                  fillDelay={0.1}
+                  stagger={0.06}
+                  ease="power2.out"
+                  trigger="scroll"
+                  fillMode="wipe"
+                  fontSize={108}
+                  letterSpacing={-4}
+                  className="hero-stroke-component hero-word-line"
+                />
+                <StrokeText
+                  text="con"
+                  strokeColor="#ff9d66"
+                  fillColor="#ffffff"
+                  strokeWidth={1}
+                  drawDuration={1.35}
+                  startDelay={0.24}
+                  fillDelay={0.08}
+                  stagger={0.06}
+                  ease="power2.out"
+                  trigger="scroll"
+                  fillMode="wipe"
+                  fontSize={108}
+                  letterSpacing={-4}
+                  className="hero-stroke-component hero-word-line"
+                />
+                <StrokeText
+                  text="estilo."
+                  strokeColor="#ff5c00"
+                  fillColor="#ff5c00"
+                  strokeWidth={1}
+                  drawDuration={1.8}
+                  startDelay={0.48}
+                  fillDelay={0.12}
+                  stagger={0.055}
+                  ease="power2.out"
+                  trigger="scroll"
+                  fillMode="wipe"
+                  fontSize={118}
+                  fontWeight={400}
+                  letterSpacing={-5}
+                  className="hero-stroke-component hero-word-line hero-italic-word"
+                />
+                <StrokeText
+                  text="Sin"
+                  strokeColor="#ff9d66"
+                  fillColor="#ffffff"
+                  strokeWidth={1}
+                  drawDuration={1.3}
+                  startDelay={0.78}
+                  fillDelay={0.06}
+                  stagger={0.058}
+                  ease="power2.out"
+                  trigger="scroll"
+                  fillMode="wipe"
+                  fontSize={108}
+                  letterSpacing={-4}
+                  className="hero-stroke-component hero-word-line"
+                />
+                <StrokeText
+                  text="vueltas."
+                  strokeColor="#ff9d66"
+                  fillColor="#ffffff"
+                  strokeWidth={1}
+                  drawDuration={1.62}
+                  startDelay={0.98}
+                  fillDelay={0.09}
+                  stagger={0.057}
+                  ease="power2.out"
+                  trigger="scroll"
+                  fillMode="wipe"
+                  fontSize={108}
+                  letterSpacing={-4}
+                  className="hero-stroke-component hero-word-line"
+                />
               </motion.h1>
-              <motion.p variants={motionItem} className="hero-description">
-                El corte que querés, el horario que te sirve y la tranquilidad de tener todo resuelto antes de llegar.
-              </motion.p>
+
               <motion.div variants={motionItem} className="hero-actions">
                 <button type="button" className="landing-button landing-button-primary" onClick={() => goTo('/reservar')}>
                   Reservar mi turno <FiArrowUpRight />

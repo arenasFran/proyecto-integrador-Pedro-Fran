@@ -15,8 +15,8 @@ import {
   FiMapPin,
   FiMenu,
   FiPackage,
-  FiShoppingCart,
   FiShoppingBag,
+  FiShoppingCart,
   FiTag,
   FiUser,
   FiX
@@ -24,6 +24,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { getAccessToken } from '../../../services/api';
 import { useGetCategoriesQuery, useGetPublicCatalogQuery } from '../../../services/productApi';
+import { useGetServicesQuery } from '../../../services/service.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
 import type { Product } from '../../../types/product';
@@ -232,8 +233,21 @@ export const LandingPage: React.FC = () => {
     limit: 100,
   });
   const { data: categoriesData } = useGetCategoriesQuery();
+  const { data: servicesData } = useGetServicesQuery();
   const products = productsData?.products ?? [];
   const categories = categoriesData?.categories ?? [];
+  const landingServices = services.map((fallbackService, index) => {
+    const service = servicesData?.[index];
+    if (!service) return fallbackService;
+
+    return {
+      ...fallbackService,
+      name: service.name || fallbackService.name,
+      desc: service.description || fallbackService.desc,
+      price: typeof service.price === 'number' ? formatCurrency(service.price) : fallbackService.price,
+      image: service.imageUrl || fallbackService.image,
+    };
+  });
   const motionReveal = reduceMotion
     ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
     : revealVariants;
@@ -617,7 +631,7 @@ export const LandingPage: React.FC = () => {
             </motion.div>
 
             <div className="services-grid">
-              {services.map((service, index) => (
+              {landingServices.map((service, index) => (
                 <motion.article
                   className="service-card"
                   key={service.name}
@@ -629,13 +643,13 @@ export const LandingPage: React.FC = () => {
                 >
                   <div className="service-card-media">
                     <img src={service.image} alt={service.name} style={{ objectPosition: service.position }} loading="lazy" />
-                    <span className="service-card-number">{service.number}</span>
+                   
                     <span className="service-card-arrow"><FiArrowUpRight /></span>
                   </div>
                   <div className="service-card-content">
                     <div className="service-card-title-row"><h3>{service.name}</h3><span>{service.price}</span></div>
                     <p>{service.desc}</p>
-                    <button type="button" className="service-card-detail" onClick={() => goTo('/reservar')}>Elegir este servicio <FiArrowUpRight /></button>
+                    <button type="button" className="service-card-detail" onClick={() => goTo('/reservar')}>Reservar <FiArrowUpRight /></button>
                   </div>
                 </motion.article>
               ))}

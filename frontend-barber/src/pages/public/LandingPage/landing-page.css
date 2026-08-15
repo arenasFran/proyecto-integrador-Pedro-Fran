@@ -1493,24 +1493,34 @@
 }
 
 .service-card-detail {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 0;
-  border: 0;
-  color: rgba(255, 255, 255, 0.6);
-  background: transparent;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 38px;
+  gap: 10px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 92, 0, 0.32);
+  border-radius: 8px;
+  color: var(--landing-orange);
+  background: var(--landing-orange-soft);
   cursor: pointer;
   font: inherit;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transition: color 180ms ease;
+  letter-spacing: 0.04em;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
 }
 
 .service-card-detail:hover {
-  color: var(--landing-paper);
+  border-color: var(--landing-orange);
+  color: var(--landing-ink);
+  background: var(--landing-orange);
+  transform: translateY(-1px);
 }
 
 .service-card-detail svg {

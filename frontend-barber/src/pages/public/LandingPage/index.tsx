@@ -15,7 +15,9 @@ import {
   FiMapPin,
   FiMenu,
   FiPackage,
+  FiShoppingCart,
   FiShoppingBag,
+  FiTag,
   FiUser,
   FiX
 } from 'react-icons/fi';
@@ -121,25 +123,33 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
       ) : (
         <FiGrid aria-hidden="true" />
       )}
+      <span className="catalog-card-category">
+        <FiTag aria-hidden="true" />
+        <span>{product.category || 'Cuidado personal'}</span>
+      </span>
       {unavailable && <span className="catalog-card-badge">{product.stock === 0 ? 'Sin stock' : 'No disponible'}</span>}
     </div>
     <div className="catalog-card-content">
-      <span>{product.category || 'Cuidado personal'}</span>
+      <div className="catalog-card-topline">
+        <strong>{formatCurrency(product.price)}</strong>
+      </div>
       <h3>{product.name}</h3>
-      <strong>{formatCurrency(product.price)}</strong>
       <p>{product.description}</p>
       {gallery.length > 1 && (
         <div className="catalog-card-gallery" aria-label={`Fotos de ${product.name}`}>
           {gallery.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" loading="lazy" />)}
         </div>
       )}
-      {!isAuthenticated ? (
-        <Link className="catalog-login-link" to="/login?returnUrl=/tienda">
-          Iniciar sesión para comprar <FiArrowUpRight />
-        </Link>
-      ) : (
-        <span className="catalog-card-note">Disponible en tienda</span>
-      )}
+      <div className="catalog-card-footer">
+        {!isAuthenticated ? (
+          <Link className="catalog-buy-link" to="/login?returnUrl=/tienda">
+            <FiShoppingCart aria-hidden="true" />
+            <span>Comprar</span>
+          </Link>
+        ) : (
+          <span className="catalog-card-note">Disponible en tienda</span>
+        )}
+      </div>
     </div>
   </article>
   );
@@ -644,12 +654,14 @@ export const LandingPage: React.FC = () => {
             </motion.div>
 
             <div className="catalog-toolbar" aria-label="Filtros del catálogo">
-              <span>{productsData?.total ?? products.length} productos</span>
-              <div className="catalog-filters">
-                <button type="button" className={!selectedCategory ? 'is-selected' : ''} onClick={() => setSelectedCategory('')}>Todos</button>
-                {categories.map((category) => (
-                  <button type="button" className={selectedCategory === category ? 'is-selected' : ''} key={category} onClick={() => setSelectedCategory(category)}>{category}</button>
-                ))}
+              <div className="catalog-filter-group">
+                <span className="catalog-filter-label">Categorías</span>
+                <div className="catalog-filters" role="group" aria-label="Categorías">
+                  <button type="button" aria-pressed={!selectedCategory} className={!selectedCategory ? 'is-selected' : ''} onClick={() => setSelectedCategory('')}>Todos</button>
+                  {categories.map((category) => (
+                    <button type="button" aria-pressed={selectedCategory === category} className={selectedCategory === category ? 'is-selected' : ''} key={category} onClick={() => setSelectedCategory(category)}>{category}</button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -663,12 +675,6 @@ export const LandingPage: React.FC = () => {
               <div className="catalog-state">No hay productos disponibles en esta categoría.</div>
             )}
 
-            {!isAuthenticated && (
-              <div className="catalog-login-note">
-                <span>¿Querés llevar algo?</span>
-                <Link to="/login?returnUrl=/tienda">Iniciá sesión para comprar <FiArrowUpRight /></Link>
-              </div>
-            )}
           </div>
         </section>
 

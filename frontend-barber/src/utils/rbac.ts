@@ -36,12 +36,12 @@ export function canAccessAdminPath(
   return false;
 }
 
-export function getHomeForKind(kind: TokenUser['kind'] | null): string {
-  if (kind === 'Admin') {
+export function getStaffHome(role: string | null | undefined): string {
+  if (role === 'Admin') {
     return ADMIN_HOME;
   }
 
-  if (kind === 'Empleado') {
+  if (role === 'Empleado') {
     return EMPLOYEE_HOME;
   }
 

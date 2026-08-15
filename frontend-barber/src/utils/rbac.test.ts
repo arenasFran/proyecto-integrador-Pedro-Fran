@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAccessAdminPath, getHomeForKind, ADMIN_HOME, EMPLOYEE_HOME, CLIENT_HOME } from './rbac';
+import { canAccessAdminPath, getStaffHome, ADMIN_HOME, EMPLOYEE_HOME, CLIENT_HOME } from './rbac';
 
 describe('canAccessAdminPath', () => {
   it('permite a Admin acceder a cualquier ruta /admin/*', () => {
@@ -34,11 +34,16 @@ describe('canAccessAdminPath', () => {
   });
 });
 
-describe('getHomeForKind', () => {
-  it('retorna el home según el rol', () => {
-    expect(getHomeForKind('Admin')).toBe(ADMIN_HOME);
-    expect(getHomeForKind('Empleado')).toBe(EMPLOYEE_HOME);
-    expect(getHomeForKind('Registrado')).toBe(CLIENT_HOME);
-    expect(getHomeForKind(null)).toBe(CLIENT_HOME);
+describe('getStaffHome', () => {
+  it('retorna el home del panel según el rol de staff', () => {
+    expect(getStaffHome('Admin')).toBe(ADMIN_HOME);
+    expect(getStaffHome('Empleado')).toBe(EMPLOYEE_HOME);
+  });
+
+  it('cae a un fallback seguro para roles de cliente, inválidos o ausentes sin lanzar excepción', () => {
+    expect(getStaffHome('Registrado')).toBe(CLIENT_HOME);
+    expect(getStaffHome(null)).toBe(CLIENT_HOME);
+    expect(getStaffHome(undefined)).toBe(CLIENT_HOME);
+    expect(getStaffHome('Superadmin')).toBe(CLIENT_HOME);
   });
 });

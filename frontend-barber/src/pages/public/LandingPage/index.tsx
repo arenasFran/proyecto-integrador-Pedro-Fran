@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiUser, FiPackage, FiShoppingBag, FiAward } from 'react-icons/fi';
+import { FiCalendar, FiChevronDown, FiInstagram, FiLogOut, FiUser, FiPackage, FiShoppingBag, FiAward, FiGrid } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
 import { AppFooter, Button } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
-import { getTokenUser } from '../../../utils/token';
+import { getTokenKind, getTokenUser } from '../../../utils/token';
+import { getStaffHome } from '../../../utils/rbac';
 import { getAccessToken } from '../../../services/api';
 
 const staggerVariants = {
@@ -89,6 +90,8 @@ export const LandingPage: React.FC = () => {
   const token = getAccessToken();
   const tokenUser = getTokenUser(token);
   const isAuthenticated = Boolean(token && tokenUser);
+  const role = getTokenKind(token);
+  const isStaff = role === 'Admin' || role === 'Empleado';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -147,42 +150,64 @@ export const LandingPage: React.FC = () => {
                 </button>
                   {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-lg">
-                    <button
-                      onClick={() => { setDropdownOpen(false); navigate('/tienda'); }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                    >
-                      <FiPackage className="text-[#FF5C00]" />
-                      Tienda
-                    </button>
-                    <button
-                      onClick={() => { setDropdownOpen(false); navigate('/mis-turnos'); }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                    >
-                      <FiCalendar className="text-[#FF5C00]" />
-                      Mis turnos
-                    </button>
-                    <button
-                      onClick={() => { setDropdownOpen(false); navigate('/mis-ordenes'); }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                    >
-                      <FiShoppingBag className="text-[#FF5C00]" />
-                      Mis órdenes
-                    </button>
-                    <button
-                      onClick={() => { setDropdownOpen(false); navigate('/mi-membresia'); }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
-                    >
-                      <FiAward className="text-[#FF5C00]" />
-                      Mi membresía
-                    </button>
-                    <div className="border-t border-[#282828]" />
-                    <button
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors"
-                    >
-                      <FiLogOut />
-                      Cerrar sesión
-                    </button>
+                    {isStaff ? (
+                      <>
+                        <button
+                          onClick={() => { setDropdownOpen(false); navigate(getStaffHome(role)); }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                        >
+                          <FiGrid className="text-[#FF5C00]" />
+                          Panel
+                        </button>
+                        <div className="border-t border-[#282828]" />
+                        <button
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors"
+                        >
+                          <FiLogOut />
+                          Cerrar sesión
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => { setDropdownOpen(false); navigate('/tienda'); }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                        >
+                          <FiPackage className="text-[#FF5C00]" />
+                          Tienda
+                        </button>
+                        <button
+                          onClick={() => { setDropdownOpen(false); navigate('/mis-turnos'); }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                        >
+                          <FiCalendar className="text-[#FF5C00]" />
+                          Mis turnos
+                        </button>
+                        <button
+                          onClick={() => { setDropdownOpen(false); navigate('/mis-ordenes'); }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                        >
+                          <FiShoppingBag className="text-[#FF5C00]" />
+                          Mis órdenes
+                        </button>
+                        <button
+                          onClick={() => { setDropdownOpen(false); navigate('/mi-membresia'); }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-white hover:bg-[#242424] transition-colors"
+                        >
+                          <FiAward className="text-[#FF5C00]" />
+                          Mi membresía
+                        </button>
+                        <div className="border-t border-[#282828]" />
+                        <button
+                          onClick={handleLogout}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] transition-colors"
+                        >
+                          <FiLogOut />
+                          Cerrar sesión
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

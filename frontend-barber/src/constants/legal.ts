@@ -1,11 +1,11 @@
 export const legalConfig = {
   business: {
-    name: '[A completar: nombre comercial]',
-    legalName: '[A completar: razón social]',
+    name: 'Barbería Santiago Abbona',
+    legalName: 'Santiago Abbona',
     rut: '[A completar: RUT]',
-    address: '[A completar: domicilio, Montevideo, Uruguay]',
-    email: '[A completar: email de contacto]',
-    phone: '[A completar: teléfono de contacto]',
+    address: 'Avenida Artigas 397, Uruguay',
+    email: 'santiagoabbona@gmail.com',
+    phone: '+598 92 757 878',
   },
   termsVersion: '1.0',
   privacyVersion: '1.0',

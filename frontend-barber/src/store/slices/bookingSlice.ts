@@ -139,12 +139,20 @@ export const submitAppointment = createAsyncThunk(
       let message = 'Error al crear la reserva';
       if (error && typeof error === 'object') {
         const errObj = error as Record<string, unknown>;
-        if (typeof errObj.data === 'string') {
-          message = errObj.data;
-        } else if (typeof errObj.error === 'string') {
-          message = errObj.error;
+        const data = errObj.data;
+        if (data && typeof data === 'object') {
+          const payload = data as Record<string, unknown>;
+          if (typeof payload.error === 'string') {
+            message = payload.error;
+          } else if (typeof payload.message === 'string') {
+            message = payload.message;
+          }
+        } else if (typeof data === 'string') {
+          message = data;
         } else if (typeof errObj.message === 'string') {
           message = errObj.message;
+        } else if (typeof errObj.error === 'string') {
+          message = errObj.error;
         }
       }
       return rejectWithValue(message);

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { store } from './store';
@@ -41,6 +41,7 @@ import { PrivacyPage } from './pages/legal/PrivacyPage';
 import { CancellationsPage } from './pages/legal/CancellationsPage';
 import { CookiesPage } from './pages/legal/CookiesPage';
 import { getTokenKind, isTokenValid } from './utils/token';
+import { canAccessAdminPath, EMPLOYEE_HOME } from './utils/rbac';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -146,6 +147,7 @@ function App() {
 
 function RequireAdminRoute({ children }: { children: React.ReactNode }) {
   const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const location = useLocation();
   const token = getAccessToken();
   const role = getTokenKind(token);
 
@@ -159,6 +161,10 @@ function RequireAdminRoute({ children }: { children: React.ReactNode }) {
 
   if (!isTokenValid(token) || (role !== 'Admin' && role !== 'Empleado')) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!canAccessAdminPath(role, location.pathname)) {
+    return <Navigate to={EMPLOYEE_HOME} replace />;
   }
 
   return <>{children}</>;

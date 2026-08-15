@@ -1,10 +1,4 @@
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { type CSSProperties, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 export type StrokeTextTrigger = 'mount' | 'hover' | 'scroll' | 'loop';
 export type StrokeTextFillMode = 'wipe' | 'fade' | 'none';
@@ -138,106 +132,127 @@ const StrokeText = ({
     const root = rootRef.current;
     if (typeof window === 'undefined' || !root || !box || !pageLoaded) return undefined;
 
-    const strokes = gsap.utils.toArray(root.querySelectorAll('[data-stroke-char]'));
-    const fills = gsap.utils.toArray(root.querySelectorAll('[data-fill-char]'));
-    const wipe = wipeRectRef.current;
-    if (!strokes.length) return undefined;
+    let cancelled = false;
+    let cleanupAnimation: (() => void) | undefined;
 
-    const fillEnabled = fillMode !== 'none';
-    const useWipe = fillEnabled && fillMode === 'wipe';
-    const dashLength = Math.max(box.width * 6, fontSize * 20, 1800);
-    const fillDuration = Math.max(0.4, drawDuration * 0.5);
-    const staggerConfig: number | gsap.StaggerVars = reverse ? { each: stagger, from: 'end' as const } : stagger;
-    const targets = [...strokes, ...fills, wipe].filter(Boolean);
+    const setupAnimation = async () => {
+      const [{ gsap }, { ScrollTrigger }] = await Promise.all([
+        import('gsap'),
+        import('gsap/ScrollTrigger'),
+      ]);
 
-    const setStart = () => {
-      gsap.killTweensOf(targets);
-      gsap.set(strokes, { strokeDasharray: `${dashLength} ${dashLength}`, strokeDashoffset: dashLength, strokeOpacity: 1 });
-      gsap.set(fills, { opacity: useWipe ? 1 : 0 });
-      if (wipe) gsap.set(wipe, { attr: { width: 0 } });
-    };
+      if (cancelled) return;
+      gsap.registerPlugin(ScrollTrigger);
 
-    const setEnd = () => {
-      gsap.killTweensOf(targets);
-      gsap.set(strokes, { strokeDasharray: `${dashLength} ${dashLength}`, strokeDashoffset: 0, strokeOpacity: fillEnabled ? 0 : 1 });
-      gsap.set(fills, { opacity: fillEnabled ? 1 : 0 });
-      if (wipe) gsap.set(wipe, { attr: { width: fillEnabled ? box.width : 0 } });
-    };
+      const strokes = gsap.utils.toArray(root.querySelectorAll('[data-stroke-char]'));
+      const fills = gsap.utils.toArray(root.querySelectorAll('[data-fill-char]'));
+      const wipe = wipeRectRef.current;
+      if (!strokes.length) return;
 
-    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    if (prefersReducedMotion) {
-      setEnd();
-      return () => gsap.killTweensOf(targets);
-    }
+      const fillEnabled = fillMode !== 'none';
+      const useWipe = fillEnabled && fillMode === 'wipe';
+      const dashLength = Math.max(box.width * 6, fontSize * 20, 1800);
+      const fillDuration = Math.max(0.4, drawDuration * 0.5);
+      const staggerConfig = reverse ? { each: stagger, from: 'end' as const } : stagger;
+      const targets = [...strokes, ...fills, wipe].filter(Boolean);
 
-    const build = () => {
-      setStart();
-      const tl = gsap.timeline({
-        paused: true,
-        repeat: trigger === 'loop' ? -1 : 0,
-        repeatDelay: trigger === 'loop' ? 0.9 : 0,
-        defaults: { overwrite: 'auto' }
-      });
-
-      tl.to(strokes, { strokeDashoffset: 0, duration: drawDuration, ease, stagger: staggerConfig }, startDelay);
-
-      if (fillEnabled) {
-        tl.to(
-          strokes,
-          { strokeOpacity: 0, duration: fillDuration, ease: 'power2.out', stagger: staggerConfig },
-          startDelay + drawDuration + fillDelay
-        );
-      }
-
-      if (useWipe && wipe) {
-        tl.to(
-          wipe,
-          { attr: { width: box.width }, duration: fillDuration, ease: 'power2.inOut' },
-          startDelay + drawDuration + fillDelay
-        );
-      } else if (fillEnabled) {
-        tl.to(
-          fills,
-          { opacity: 1, duration: fillDuration, ease: 'power2.out', stagger: staggerConfig },
-          startDelay + drawDuration + fillDelay
-        );
-      }
-
-      return tl;
-    };
-
-    let timeline: gsap.core.Timeline | null = null;
-    let scrollTrigger: ReturnType<typeof ScrollTrigger.create> | null = null;
-    let removeHover: (() => void) | null = null;
-
-    if (trigger === 'hover') {
-      setEnd();
-      const play = () => {
-        timeline?.kill();
-        timeline = build();
-        timeline.play(0);
+      const setStart = () => {
+        gsap.killTweensOf(targets);
+        gsap.set(strokes, { strokeDasharray: `${dashLength} ${dashLength}`, strokeDashoffset: dashLength, strokeOpacity: 1 });
+        gsap.set(fills, { opacity: useWipe ? 1 : 0 });
+        if (wipe) gsap.set(wipe, { attr: { width: 0 } });
       };
-      root.addEventListener('pointerenter', play);
-      removeHover = () => root.removeEventListener('pointerenter', play);
-    } else {
-      timeline = build();
-      if (trigger === 'scroll') {
-        scrollTrigger = ScrollTrigger.create({
-          trigger: root,
-          start: 'top 82%',
-          once: true,
-          onEnter: () => timeline?.play(0)
-        });
-      } else {
-        timeline.play(0);
+
+      const setEnd = () => {
+        gsap.killTweensOf(targets);
+        gsap.set(strokes, { strokeDasharray: `${dashLength} ${dashLength}`, strokeDashoffset: 0, strokeOpacity: fillEnabled ? 0 : 1 });
+        gsap.set(fills, { opacity: fillEnabled ? 1 : 0 });
+        if (wipe) gsap.set(wipe, { attr: { width: fillEnabled ? box.width : 0 } });
+      };
+
+      const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReducedMotion) {
+        setEnd();
+        cleanupAnimation = () => gsap.killTweensOf(targets);
+        return;
       }
-    }
+
+      const build = () => {
+        setStart();
+        const tl = gsap.timeline({
+          paused: true,
+          repeat: trigger === 'loop' ? -1 : 0,
+          repeatDelay: trigger === 'loop' ? 0.9 : 0,
+          defaults: { overwrite: 'auto' }
+        });
+
+        tl.to(strokes, { strokeDashoffset: 0, duration: drawDuration, ease, stagger: staggerConfig }, startDelay);
+
+        if (fillEnabled) {
+          tl.to(
+            strokes,
+            { strokeOpacity: 0, duration: fillDuration, ease: 'power2.out', stagger: staggerConfig },
+            startDelay + drawDuration + fillDelay
+          );
+        }
+
+        if (useWipe && wipe) {
+          tl.to(
+            wipe,
+            { attr: { width: box.width }, duration: fillDuration, ease: 'power2.inOut' },
+            startDelay + drawDuration + fillDelay
+          );
+        } else if (fillEnabled) {
+          tl.to(
+            fills,
+            { opacity: 1, duration: fillDuration, ease: 'power2.out', stagger: staggerConfig },
+            startDelay + drawDuration + fillDelay
+          );
+        }
+
+        return tl;
+      };
+
+      let timeline: ReturnType<typeof gsap.timeline> | null = null;
+      let scrollTrigger: ReturnType<typeof ScrollTrigger.create> | null = null;
+      let removeHover: (() => void) | null = null;
+
+      if (trigger === 'hover') {
+        setEnd();
+        const play = () => {
+          timeline?.kill();
+          timeline = build();
+          timeline.play(0);
+        };
+        root.addEventListener('pointerenter', play);
+        removeHover = () => root.removeEventListener('pointerenter', play);
+      } else {
+        timeline = build();
+        if (trigger === 'scroll') {
+          scrollTrigger = ScrollTrigger.create({
+            trigger: root,
+            start: 'top 82%',
+            once: true,
+            onEnter: () => timeline?.play(0)
+          });
+        } else {
+          timeline.play(0);
+        }
+      }
+
+      cleanupAnimation = () => {
+        removeHover?.();
+        scrollTrigger?.kill();
+        timeline?.kill();
+        gsap.killTweensOf(targets);
+      };
+    };
+
+    void setupAnimation();
 
     return () => {
-      removeHover?.();
-      scrollTrigger?.kill();
-      timeline?.kill();
-      gsap.killTweensOf(targets);
+      cancelled = true;
+      cleanupAnimation?.();
     };
   }, [box, drawDuration, startDelay, fillDelay, stagger, ease, trigger, fillMode, reverse, fontSize, pageLoaded]);
 

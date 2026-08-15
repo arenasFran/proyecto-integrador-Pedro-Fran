@@ -101,7 +101,7 @@ export const legalDocuments: LegalDocument[] = [
             items: [
               'La duración del turno depende del servicio seleccionado.',
               'Si llegás tarde, es posible que el turno deba acortarse o reprogramarse según la disponibilidad.',
-              'Si la barbería debe cancelar un turno, te lo comunicaremos a la brevedad y coordinaremos la reprogramación o el reembolso correspondiente.',
+              'Si la barbería debe cancelar un turno, te lo comunicaremos a la brevedad y coordinaremos la reprogramación del mismo.',
             ],
           },
         ],
@@ -112,12 +112,12 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: 'Podés cancelar tu turno dentro del plazo indicado en la "Política de Cancelación y Reembolsos", que forma parte de estos Términos.',
+            text: 'Podés cancelar tu turno dentro del plazo indicado en la "Política de Cancelación, Reprogramación y Reembolsos", que forma parte de estos Términos.',
           },
           {
             kind: 'list',
             items: [
-              'Si ya pagaste y cancelás dentro del plazo, se gestionará el reembolso o crédito correspondiente.',
+              'Los pagos realizados en línea no son reembolsables: si cancelás un turno que ya pagaste, el importe abonado no será devuelto.',
               'La no concurrencia al turno sin aviso (no-show) puede generar consecuencias según la política aplicable.',
               'Las reprogramaciones están sujetas a disponibilidad.',
             ],
@@ -360,7 +360,7 @@ export const legalDocuments: LegalDocument[] = [
     title: 'Política de Cancelación, Reprogramación y Reembolsos',
     version: legalConfig.cancellationsVersion,
     description:
-      'Reglas claras sobre cancelaciones, reprogramaciones y reembolsos de turnos.',
+      'Reglas claras sobre cancelaciones, reprogramaciones y reembolsos de turnos. Los pagos en línea no son reembolsables.',
     sections: [
       {
         id: 'cancelacion-turno',
@@ -372,7 +372,7 @@ export const legalDocuments: LegalDocument[] = [
           },
           {
             kind: 'p',
-            text: `Si cancelás con menos de ${legalConfig.cancelMinHours} horas de anticipación, la cancelación tardía podrá generar las consecuencias indicadas en esta política.`,
+            text: `Si cancelás con menos de ${legalConfig.cancelMinHours} horas de anticipación, la cancelación tardía podrá generar las consecuencias indicadas en esta política. En caso de que el turno haya sido pagado en línea, no se realizará ningún reembolso.`,
           },
           {
             kind: 'p',
@@ -389,7 +389,7 @@ export const legalDocuments: LegalDocument[] = [
             items: [
               'Podés reprogramar tu turno dentro de los plazos y la disponibilidad existente.',
               'Las reprogramaciones están sujetas a la disponibilidad de agenda.',
-              'Si no hay disponibilidad para reprogramar, se te ofrecerá un nuevo turno o el reembolso correspondiente.',
+              'Si no hay disponibilidad para reprogramar, se te ofrecerá un nuevo turno.',
             ],
           },
         ],
@@ -406,7 +406,6 @@ export const legalDocuments: LegalDocument[] = [
             kind: 'list',
             items: [
               'Reprogramar el turno sin costo, o',
-              'Recibir un reembolso del importe abonado, o',
               'Un crédito a favor para futuros servicios.',
             ],
           },
@@ -418,7 +417,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: 'Cuando corresponda un reembolso de un pago realizado en línea, el mismo se procesará a través de Mercado Pago. El plazo efectivo de acreditación del dinero depende de los tiempos de procesamiento de Mercado Pago y de la entidad emisora de la tarjeta.',
+            text: 'Los pagos realizados en línea no son reembolsables. Si cancelás tu turno o no te presentás al mismo, el importe abonado no será devuelto.',
           },
         ],
       },

@@ -990,7 +990,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   background: linear-gradient(
@@ -1005,38 +1005,8 @@
 }
 
 .catalog-filter-group {
-  display: grid;
+  display: block;
   width: 100%;
-  gap: 12px;
-}
-
-.catalog-filter-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.catalog-filter-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.catalog-filter-status {
-  color: var(--landing-paper);
-  font-weight: 700;
-}
-
-.catalog-filter-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--landing-orange);
-  box-shadow: 0 0 0 4px rgba(255, 92, 0, 0.12);
 }
 
 .catalog-filters {

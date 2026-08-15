@@ -669,9 +669,6 @@ export const LandingPage: React.FC = () => {
 
             <div className="catalog-toolbar" aria-label="Filtros del catálogo">
               <div className="catalog-filter-group">
-                <div className="catalog-filter-heading">
-                  <span className="catalog-filter-status"><span className="catalog-filter-dot" /> Categorías</span>
-                </div>
                 <div className="catalog-filters" role="group" aria-label="Categorías">
                   <button type="button" aria-pressed={!selectedCategory} className={!selectedCategory ? 'is-selected' : ''} onClick={() => setSelectedCategory('')}>Todos</button>
                   {categories.map((category) => (

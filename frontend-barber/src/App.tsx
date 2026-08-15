@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Navigate, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { initMercadoPago } from '@mercadopago/sdk-react';
 import { store } from './store';
@@ -9,6 +9,7 @@ import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider, CookieConsent } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { RequireAdminRoute, RequireClientRoute } from './components/guards';
 import { AppSidebar } from './components/sidebar/AppSidebar';
 import AdminLayout from './pages/admin/AdminLayout';
 import AppLayout from './pages/app/AppLayout';
@@ -40,8 +41,7 @@ import { TermsPage } from './pages/legal/TermsPage';
 import { PrivacyPage } from './pages/legal/PrivacyPage';
 import { CancellationsPage } from './pages/legal/CancellationsPage';
 import { CookiesPage } from './pages/legal/CookiesPage';
-import { getTokenKind, isTokenValid } from './utils/token';
-import { canAccessAdminPath, EMPLOYEE_HOME } from './utils/rbac';
+import { isTokenValid } from './utils/token';
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -123,15 +123,23 @@ function App() {
             </Route>
             <Route
               element={
-                <RequireAuthRoute>
+                <RequireClientRoute>
                   <AppLayout />
-                </RequireAuthRoute>
+                </RequireClientRoute>
               }
             >
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
               <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
               <Route path="/recomendacion-corte" element={<AiHaircutPage />} />
+            </Route>
+            <Route
+              element={
+                <RequireAuthRoute>
+                  <AppLayout />
+                </RequireAuthRoute>
+              }
+            >
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
@@ -143,31 +151,6 @@ function App() {
       </AppInitializer>
     </Provider>
   );
-}
-
-function RequireAdminRoute({ children }: { children: React.ReactNode }) {
-  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
-  const location = useLocation();
-  const token = getAccessToken();
-  const role = getTokenKind(token);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!isTokenValid(token) || (role !== 'Admin' && role !== 'Empleado')) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (!canAccessAdminPath(role, location.pathname)) {
-    return <Navigate to={EMPLOYEE_HOME} replace />;
-  }
-
-  return <>{children}</>;
 }
 
 function RequireAuthRoute({ children }: { children: React.ReactNode }) {

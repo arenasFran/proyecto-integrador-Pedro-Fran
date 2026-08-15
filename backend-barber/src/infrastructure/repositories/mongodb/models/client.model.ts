@@ -8,6 +8,11 @@ import {
 export interface IClientBase extends Document, IClientBaseInput {
   kind?: 'Registrado' | 'NoRegistrado';
   photoUrl?: string | null;
+  noShowCount?: number;
+  sancionado?: boolean;
+  fechaSancion?: Date | null;
+  motivoSancion?: string | null;
+  sancionadoPor?: string | null;
 }
 
 export interface IRegisteredClient extends IClientBase, IRegisteredClientInput {
@@ -50,6 +55,26 @@ const clientSchema = new Schema<IClientBase>(
       trim: true,
     },
     photoUrl: {
+      type: String,
+      default: null,
+    },
+    noShowCount: {
+      type: Number,
+      default: 0,
+    },
+    sancionado: {
+      type: Boolean,
+      default: false,
+    },
+    fechaSancion: {
+      type: Date,
+      default: null,
+    },
+    motivoSancion: {
+      type: String,
+      default: null,
+    },
+    sancionadoPor: {
       type: String,
       default: null,
     },

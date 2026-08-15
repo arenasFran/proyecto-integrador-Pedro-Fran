@@ -168,6 +168,36 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
+.landing-guest-actions {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-guest-trigger {
+  min-height: 46px;
+  padding: 0;
+}
+
+.landing-guest-trigger .landing-account-icon {
+  margin-right: 0;
+  width: 36px;
+  height: 36px;
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--landing-muted);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.landing-guest-trigger .landing-account-icon svg {
+  width: 14px;
+}
+
+.landing-guest-menu {
+  min-width: 210px;
+  right: 0;
+}
+
 .landing-login-link,
 .landing-register-link {
   display: inline-flex;
@@ -1757,7 +1787,8 @@
   .landing-login-link,
   .landing-register-link,
   .landing-header-cta,
-  .landing-account {
+  .landing-account,
+  .landing-guest-actions {
     display: none;
   }
   .landing-menu-toggle {

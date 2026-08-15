@@ -355,12 +355,25 @@ export const LandingPage: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="landing-auth-group">
-                <Link to="/login" className="landing-login-link">Iniciar sesión</Link>
-                <Link to="/register" className="landing-register-link">Crear cuenta</Link>
+              <div className="landing-guest-actions" ref={dropdownRef}>
                 <button type="button" className="landing-button landing-button-primary landing-header-cta" onClick={() => goTo('/reservar')}>
                   Reservar
                 </button>
+                <button
+                  type="button"
+                  className="landing-account-trigger landing-guest-trigger"
+                  aria-expanded={dropdownOpen}
+                  aria-label="Abrir opciones de cuenta"
+                  onClick={() => setDropdownOpen((open) => !open)}
+                >
+                  <span className="landing-account-icon"><FiMenu /></span>
+                </button>
+                {dropdownOpen && (
+                  <div className="landing-account-menu landing-guest-menu">
+                    <button type="button" onClick={() => goTo('/login')}><FiUser /> Iniciar sesión</button>
+                    <button type="button" onClick={() => goTo('/register')}><FiUser /> Crear cuenta</button>
+                  </div>
+                )}
               </div>
             )}
 

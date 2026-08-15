@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
-import api from '../../../services/api';
+import api, { getAccessToken } from '../../../services/api';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
 import type { Appointment, BarberBlock } from '../../../types/booking';
+import { getTokenUser } from '../../../utils/token';
 import { AppointmentActionModals } from '../AppointmentsPage/AppointmentActionModals';
 import { useAppointmentActions } from '../AppointmentsPage/useAppointmentActions';
 import { BlockModal } from './BlockModal';
@@ -83,12 +84,16 @@ export const CalendarPage: React.FC = () => {
   const dateFrom = toISODate(days[0]);
   const dateTo = toISODate(days[days.length - 1]);
 
+  const tokenUser = getTokenUser(getAccessToken());
+  const employeeBarberId = tokenUser?.kind === 'Empleado' ? tokenUser.id : undefined;
+
   const { data: appointments = [], isLoading } = useGetAppointmentsQuery({
     dateFrom,
     dateTo,
     limit: 100,
     includeBarber: 'true',
     includeClient: 'true',
+    ...(employeeBarberId ? { barberId: employeeBarberId } : {}),
   });
 
   const appointmentActions = useAppointmentActions();
@@ -117,8 +122,11 @@ export const CalendarPage: React.FC = () => {
           params: { dateFrom, dateTo },
         });
         if (cancelled) return;
+        const blocks = employeeBarberId
+          ? response.data.blocks.filter((b) => b.barberId === employeeBarberId)
+          : response.data.blocks;
         const map = new Map<string, BarberBlock[]>();
-        for (const block of response.data.blocks) {
+        for (const block of blocks) {
           const existing = map.get(block.date) ?? [];
           existing.push(block);
           map.set(block.date, existing);

@@ -23,15 +23,20 @@ export class RequestPasswordResetUseCase {
     const user = await this.userRepository.findByEmail(email);
 
     if (user && user.authProvider === 'local') {
-      const token = crypto.randomBytes(32).toString('hex');
-      const tokenHash = this.hashService.sha256(token);
+      const code = String(crypto.randomInt(100000, 1000000));
+      const codeHash = this.hashService.sha256(code);
       const expiresAt = new Date(
         new Date().getTime() + this.expirationMinutes * 60 * 1000
       );
 
-      const url = `${this.frontendUrl}/recovery?token=${token}&email=${encodeURIComponent(user.email)}`;
-      const subject = 'Restablece tu contraseña';
-      const html = `<p>Para restablecer tu contraseña haz clic <a href="${url}">aquí</a>.</p>`;
+      const recoveryUrl = `${this.frontendUrl}/recovery`;
+      const subject = 'Tu código para restablecer la contraseña';
+      const html = [
+        '<p>Recibimos una solicitud para restablecer tu contraseña.</p>',
+        `<p>Tu código de verificación es: <strong>${code}</strong></p>`,
+        `<p>Ingresalo en <a href="${recoveryUrl}">${recoveryUrl}</a> dentro de los próximos ${this.expirationMinutes} minutos.`,
+        'Si no solicitaste el cambio, podés ignorar este correo.</p>',
+      ].join(' ');
 
       let lastError: unknown;
       let sent = false;
@@ -62,12 +67,12 @@ export class RequestPasswordResetUseCase {
         );
       }
 
-      await this.passwordResetRepository.create(user.id, tokenHash, expiresAt);
+      await this.passwordResetRepository.create(user.id, codeHash, expiresAt);
     }
 
     return {
       message:
-        'Si el email existe, recibirás instrucciones para restablecer la contraseña.',
+        'Si el email existe, recibirás un código para restablecer la contraseña.',
     };
   }
 }

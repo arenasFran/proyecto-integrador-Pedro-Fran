@@ -39,21 +39,16 @@ describe('ResetPasswordForm', () => {
     mockNavigate.mockReset();
   });
 
-  it('renders token and password fields', () => {
-    renderWithProviders(<ResetPasswordForm email="test@example.com" />);
-    expect(screen.getByLabelText(/token de recuperación/i)).toBeInTheDocument();
+  it('renders only password fields', () => {
+    renderWithProviders(<ResetPasswordForm email="test@example.com" code="123456" />);
+    expect(screen.queryByLabelText(/código de recuperación/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText(/nueva contraseña/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/confirmar contraseña/i)).toBeInTheDocument();
   });
 
-  it('prefills the token field when initialToken is provided', () => {
-    renderWithProviders(<ResetPasswordForm email="test@example.com" initialToken="token-from-email" />);
-    expect(screen.getByLabelText(/token de recuperación/i)).toHaveValue('token-from-email');
-  });
-
   it('does not submit when form is invalid', async () => {
     const user = userEvent.setup();
-    renderWithProviders(<ResetPasswordForm email="test@example.com" />);
+    renderWithProviders(<ResetPasswordForm email="test@example.com" code="123456" />);
 
     await user.click(screen.getByRole('button', { name: /restablecer contraseña/i }));
     expect(mockResetPasswordFn).not.toHaveBeenCalled();
@@ -62,14 +57,19 @@ describe('ResetPasswordForm', () => {
   it('shows success on valid submit', async () => {
     mockResetPasswordFn.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'ok' }) });
     const user = userEvent.setup({ delay: 50 });
-    renderWithProviders(<ResetPasswordForm email="test@example.com" />);
+    renderWithProviders(<ResetPasswordForm email="test@example.com" code="123456" />);
 
-    await user.type(screen.getByLabelText(/token de recuperación/i), 'abc123');
     await user.type(screen.getByLabelText(/nueva contraseña/i), 'NewPass1!');
     await user.type(screen.getByLabelText(/confirmar contraseña/i), 'NewPass1!');
     await user.click(screen.getByRole('button', { name: /restablecer contraseña/i }));
 
     await waitFor(() => {
+      expect(mockResetPasswordFn).toHaveBeenCalledWith({
+        code: '123456',
+        password: 'NewPass1!',
+        repeatPassword: 'NewPass1!',
+        email: 'test@example.com',
+      });
       expect(mockNavigate).toHaveBeenCalledWith('/login', {
         state: { toast: expect.stringMatching(/contraseña/i), toastType: 'success' },
       });
@@ -77,20 +77,19 @@ describe('ResetPasswordForm', () => {
   });
 
   it('shows error on failure', async () => {
-    mockResetPasswordFn.mockReturnValue({ unwrap: () => Promise.reject(new Error('Token inválido')) });
+    mockResetPasswordFn.mockReturnValue({ unwrap: () => Promise.reject(new Error('Código inválido')) });
     const user = userEvent.setup({ delay: 50 });
-    const { rerender } = renderWithProviders(<ResetPasswordForm email="test@example.com" />);
+    const { rerender } = renderWithProviders(<ResetPasswordForm email="test@example.com" code="123456" />);
 
-    await user.type(screen.getByLabelText(/token de recuperación/i), 'abc123');
     await user.type(screen.getByLabelText(/nueva contraseña/i), 'NewPass1!');
     await user.type(screen.getByLabelText(/confirmar contraseña/i), 'NewPass1!');
     await user.click(screen.getByRole('button', { name: /restablecer contraseña/i }));
 
-    mockUseResetPasswordMutation.mockReturnValue([mockResetPasswordFn, { isLoading: false, error: new Error('Token inválido') }]);
-    rerender(<ResetPasswordForm email="test@example.com" />);
+    mockUseResetPasswordMutation.mockReturnValue([mockResetPasswordFn, { isLoading: false, error: new Error('Código inválido') }]);
+    rerender(<ResetPasswordForm email="test@example.com" code="123456" />);
 
     await waitFor(() => {
-      expect(screen.getByText('Token inválido')).toBeInTheDocument();
+      expect(screen.getByText('Código inválido')).toBeInTheDocument();
     });
   });
 });

@@ -6,9 +6,11 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
-import { Spinner, ToastProvider } from './components/common';
+import { Spinner, ToastProvider, CookieConsent } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { getTokenKind, isTokenValid } from './utils/token';
+import { RequireAdminRoute, RequireClientRoute } from './components/guards';
+import { logout } from './store/slices/authSlice';
+import { isTokenValid } from './utils/token';
 
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
 const BookingPage = lazy(() => import('./pages/client/BookingPage'));
@@ -21,6 +23,10 @@ const RegisterPage = lazy(() =>
 );
 const RecoveryPage = lazy(() => import('./pages/public/RecoveryPage'));
 const NotFoundPage = lazy(() => import('./pages/public/NotFoundPage'));
+const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/legal/PrivacyPage'));
+const CancellationsPage = lazy(() => import('./pages/legal/CancellationsPage'));
+const CookiesPage = lazy(() => import('./pages/legal/CookiesPage'));
 
 const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
 const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
@@ -58,6 +64,8 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       const refreshed = await silentRefresh();
       if (refreshed) {
         await dispatch(authApi.endpoints.getProfile.initiate());
+      } else if (token) {
+        dispatch(logout());
       }
       dispatch(setInitialized());
     };
@@ -114,6 +122,10 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/recovery" element={<RecoveryPage />} />
+            <Route path="/terminos" element={<TermsPage />} />
+            <Route path="/privacidad" element={<PrivacyPage />} />
+            <Route path="/cancelaciones" element={<CancellationsPage />} />
+            <Route path="/cookies" element={<CookiesPage />} />
             <Route
               path="/admin"
               element={
@@ -137,21 +149,30 @@ function App() {
             </Route>
             <Route
               element={
-                <RequireAuthRoute>
+                <RequireClientRoute>
                   <AppLayout />
-                </RequireAuthRoute>
+                </RequireClientRoute>
               }
             >
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
               <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
               <Route path="/recomendacion-corte" element={<AiHaircutPage />} />
+            </Route>
+            <Route
+              element={
+                <RequireAuthRoute>
+                  <AppLayout />
+                </RequireAuthRoute>
+              }
+            >
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </Suspense>
           </ErrorBoundary>
+          <CookieConsent />
         </Router>
         </ToastProvider>
       </AppInitializer>
@@ -165,26 +186,6 @@ function RouteFallback() {
       <Spinner size="lg" />
     </div>
   );
-}
-
-function RequireAdminRoute({ children }: { children: React.ReactNode }) {
-  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
-  const token = getAccessToken();
-  const role = getTokenKind(token);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!isTokenValid(token) || (role !== 'Admin' && role !== 'Empleado')) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
 }
 
 function RequireAuthRoute({ children }: { children: React.ReactNode }) {

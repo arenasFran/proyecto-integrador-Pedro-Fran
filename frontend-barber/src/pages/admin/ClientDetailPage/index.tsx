@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   FiArrowLeft, FiPhone, FiMail, FiCalendar, FiDollarSign, FiTrendingUp,
   FiAward, FiUser, FiClock, FiScissors, FiCreditCard, FiUserCheck,
-  FiActivity, FiPercent, FiTag,
+  FiActivity, FiPercent, FiTag, FiAlertTriangle, FiAlertOctagon, FiUserX, FiX,
 } from 'react-icons/fi';
 import { Spinner, Button, BarberAvatar } from '../../../components/common';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
+import { useSancionarClienteMutation, useLevantarSancionMutation } from '../../../services/clientApi';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
 import { useGetMembershipByUserIdQuery } from '../../../services/membershipApi';
 import { useAppointmentActions } from '../AppointmentsPage/useAppointmentActions';
@@ -100,16 +101,22 @@ export default function ClientDetailPage() {
   const location = useLocation();
   const actions = useAppointmentActions();
 
+  const [sancionarOpen, setSancionarOpen] = useState(false);
+  const [motivo, setMotivo] = useState('');
+
   // El state pasado por ClientsPage es solo un placeholder para el primer render:
   // refleja los totales del rango de fechas que tenía seleccionado ClientsPage,
   // no los totales de por vida, y puede haber quedado desactualizado (ej. un
   // turno recién completado). La fuente real siempre es el fetch de abajo.
   const stateClient = (location.state as { client?: ClienteData } | null)?.client;
 
-  const { data: clientesList, isLoading: isLoadingList } = useGetClientesListQuery(
+  const { data: clientesList, isLoading: isLoadingList, refetch: refetchClientes } = useGetClientesListQuery(
     allTimeRange(),
     { refetchOnMountOrArgChange: true }
   );
+
+  const [sancionarCliente, { isLoading: isSancionando }] = useSancionarClienteMutation();
+  const [levantarSancion, { isLoading: isLevantando }] = useLevantarSancionMutation();
 
   // El link de ClientsPage manda la clave compuesta ("reg_"/"anon_" + id).
   // El link de AppointmentDetailModal no puede armar esa clave (el backend
@@ -147,6 +154,20 @@ export default function ClientDetailPage() {
 
     return { noShowRate, avgTicket, favoriteService, favoriteBarber };
   }, [sortedAppointments, client]);
+
+  const handleSancionar = async () => {
+    if (!client?.clientId) return;
+    await sancionarCliente({ clientId: client.clientId, motivo: motivo.trim() || 'Inasistencias reiteradas' });
+    setSancionarOpen(false);
+    setMotivo('');
+    refetchClientes();
+  };
+
+  const handleLevantarSancion = async () => {
+    if (!client?.clientId) return;
+    await levantarSancion(client.clientId);
+    refetchClientes();
+  };
 
   if (!stateClient && isLoadingList) {
     return (
@@ -215,6 +236,48 @@ export default function ClientDetailPage() {
         )}
       </div>
 
+      {client.sancionado ? (
+        <div className="rounded-[12px] border border-red-500/30 bg-red-500/10 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <FiAlertOctagon className="text-red-400 shrink-0" size={20} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-medium text-red-400">Cliente sancionado por inasistencias</p>
+            <p className="text-[12px] text-red-400/80">
+              No puede reservar turnos.
+              {client.motivoSancion ? ` Motivo: ${client.motivoSancion}.` : ''}
+              {client.fechaSancion ? ` Sancionado el ${formatDate(client.fechaSancion)}.` : ''}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="shrink-0 border-red-500/40 text-red-400 hover:border-red-500/70 hover:text-red-300"
+            loading={isLevantando}
+            onClick={handleLevantarSancion}
+          >
+            Levantar sanción
+          </Button>
+        </div>
+      ) : client.noShowCount >= 3 ? (
+        <div className="rounded-[12px] border border-yellow-500/30 bg-yellow-500/10 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <FiAlertTriangle className="text-yellow-400 shrink-0" size={20} />
+          <div className="flex-1 min-w-0">
+            <p className="text-[14px] font-medium text-yellow-400">
+              Este cliente acumuló {client.noShowCount} inasistencias
+            </p>
+            <p className="text-[12px] text-yellow-400/80">
+              Podés sancionarlo para que no pueda reservar turnos hasta que levantes la sanción.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="shrink-0 border-yellow-500/40 text-yellow-400 hover:border-yellow-500/70 hover:text-yellow-300"
+            icon={FiUserX}
+            onClick={() => setSancionarOpen(true)}
+          >
+            Sancionar cliente
+          </Button>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4">
           <h4 className="text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A] mb-3">Contacto</h4>
@@ -239,7 +302,7 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <StatTile icon={FiTrendingUp} label="Total reservas" value={String(client.totalVisits)} />
         <StatTile icon={FiDollarSign} label="Total gastado" value={formatCurrency(client.totalSpent)} valueClassName="text-green-400" />
         <StatTile icon={FiCalendar} label="Primera reserva" value={client.firstVisit ? formatDate(client.firstVisit) : '—'} />
@@ -260,6 +323,12 @@ export default function ClientDetailPage() {
           label="Tasa de inasistencia"
           value={insights.noShowRate !== null ? `${insights.noShowRate.toFixed(0)}%` : '—'}
           valueClassName={insights.noShowRate !== null && insights.noShowRate >= 20 ? 'text-red-400' : undefined}
+        />
+        <StatTile
+          icon={FiAlertTriangle}
+          label="Inasistencias"
+          value={String(client.noShowCount ?? 0)}
+          valueClassName={client.sancionado ? 'text-red-400' : (client.noShowCount ?? 0) >= 3 ? 'text-yellow-400' : undefined}
         />
         <StatTile
           icon={FiAward}
@@ -338,6 +407,41 @@ export default function ClientDetailPage() {
       </div>
 
       <AppointmentActionModals {...actions} />
+
+      {sancionarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setSancionarOpen(false)}>
+          <div
+            className="w-full max-w-md rounded-[16px] border border-[#282828] bg-[#121212] p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2.5">
+                <FiAlertOctagon className="text-red-400" size={18} />
+                <h2 className="text-[16px] font-bold text-white">Sancionar cliente</h2>
+              </div>
+              <button className="text-[#6A6A6A] hover:text-white transition-colors" onClick={() => setSancionarOpen(false)}>
+                <FiX size={18} />
+              </button>
+            </div>
+            <p className="text-[13px] text-[#8A8A8A] mb-4">
+              {client.clientName} {client.clientLastname} acumuló {client.noShowCount ?? 0} inasistencias y no podrá reservar
+              turnos hasta que levantes la sanción.
+            </p>
+            <label className="block text-[12px] text-[#6A6A6A] mb-1.5">Motivo (opcional)</label>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              rows={3}
+              placeholder="Ej. 3 inasistencias sin aviso"
+              className="w-full rounded-[10px] bg-[#1A1A1A] border border-[#282828] px-3 py-2.5 text-[13px] text-white placeholder-[#6A6A6A] focus:outline-none focus:border-[#FF5C00]/50 resize-none mb-5"
+            />
+            <div className="flex justify-end gap-2.5">
+              <Button variant="ghost" onClick={() => setSancionarOpen(false)}>Cancelar</Button>
+              <Button variant="danger" loading={isSancionando} onClick={handleSancionar}>Sancionar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

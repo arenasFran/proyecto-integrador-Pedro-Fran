@@ -735,5 +735,75 @@ describe('CreateAppointmentUseCase', () => {
       expect(result.message).toMatch(/Turno creado/);
     });
   });
+
+  describe('No-Show — bloqueo de clientes sancionados', () => {
+    const setupBaseMocks = () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber());
+      serviceRepository.findById.mockResolvedValue(makeService());
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+      appointmentRepository.findByClientId.mockResolvedValue([]);
+      appointmentRepository.create.mockResolvedValue(makeAppointment());
+    };
+
+    const makeSanctionedClient = () =>
+      Client.create({ ...makeClient().toPrimitives(), noShowCount: 3, sancionado: true, fechaSancion: new Date(), motivoSancion: '3 inasistencias', sancionadoPor: 'admin@test.com' });
+
+    it('debe bloquear la reserva de un cliente registrado sancionado', async () => {
+      setupBaseMocks();
+      clientRepository.findById.mockResolvedValue(makeSanctionedClient());
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientId: 'client-1',
+        })
+      ).rejects.toThrow(AppError);
+
+      expect(appointmentRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('debe bloquear la reserva de un cliente anónimo sancionado encontrado por teléfono', async () => {
+      setupBaseMocks();
+      clientRepository.findByPhone.mockResolvedValue(makeSanctionedClient());
+      clientRepository.findById.mockResolvedValue(makeSanctionedClient());
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientPhone: '+59899123456',
+          clientEmail: 'juan@test.com',
+        })
+      ).rejects.toThrow(AppError);
+
+      expect(appointmentRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('debe permitir la reserva de un cliente no sancionado', async () => {
+      setupBaseMocks();
+      clientRepository.findById.mockResolvedValue(makeClient());
+
+      const result = await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+      });
+
+      expect(result.message).toMatch(/Turno creado/);
+    });
+  });
 });
 

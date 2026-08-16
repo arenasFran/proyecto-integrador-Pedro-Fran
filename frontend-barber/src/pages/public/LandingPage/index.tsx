@@ -34,7 +34,7 @@ import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
 import type { Product } from '../../../types/product';
 import { formatCurrency } from '../../../utils/formatCurrency';
-import { getTokenUser } from '../../../utils/token';
+import { getTokenUser, isTokenValid } from '../../../utils/token';
 import './landing-page.css';
 import FoldText from './FoldText';
 import ShinyText from './ShinyText';
@@ -271,9 +271,10 @@ export const LandingPage: React.FC = () => {
   const shopInView = useInView(shopSectionRef, { once: true, amount: 0.05 });
 
   const token = getAccessToken();
-  const tokenUser = getTokenUser(token);
-  const isAuthenticated = Boolean(loginToken || (token && tokenUser));
-  const roleKind = user?.kind || tokenUser?.kind || 'Registrado';
+  const validToken = isTokenValid(token);
+  const tokenUser = validToken ? getTokenUser(token) : null;
+  const isAuthenticated = Boolean(validToken && (loginToken || tokenUser));
+  const roleKind = tokenUser?.kind || user?.kind || 'Registrado';
   const isAdmin = roleKind === 'Admin';
   const isEmployee = roleKind === 'Empleado';
   const isStaffUser = isAdmin || isEmployee;
@@ -311,20 +312,17 @@ export const LandingPage: React.FC = () => {
       items: [
         { label: 'Turnos', to: '/admin/turnos', icon: FiCalendar },
         { label: 'Calendario', to: '/admin/calendario', icon: FiCalendar },
-        { label: 'Servicios', to: '/admin/servicios', icon: FiCheck },
       ],
     },
     {
       title: 'Tienda',
       items: [
-        { label: 'Productos', to: '/admin/productos', icon: FiPackage },
         { label: 'Órdenes', to: '/admin/ordenes', icon: FiShoppingBag },
       ],
     },
     {
       title: 'Perfil',
       items: [
-        { label: 'Clientes', to: '/admin/clientes', icon: FiUser },
         { label: 'Perfil', to: '/admin/perfil', icon: FiUser },
       ],
     },
@@ -622,10 +620,7 @@ export const LandingPage: React.FC = () => {
                 <>
                   <button type="button" onClick={() => goTo('/admin/turnos')}>Turnos</button>
                   <button type="button" onClick={() => goTo('/admin/calendario')}>Calendario</button>
-                  <button type="button" onClick={() => goTo('/admin/servicios')}>Servicios</button>
-                  <button type="button" onClick={() => goTo('/admin/productos')}>Productos</button>
                   <button type="button" onClick={() => goTo('/admin/ordenes')}>Órdenes</button>
-                  <button type="button" onClick={() => goTo('/admin/clientes')}>Clientes</button>
                   <button type="button" onClick={() => goTo('/admin/perfil')}>Perfil</button>
                 </>
               )}

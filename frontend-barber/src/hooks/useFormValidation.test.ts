@@ -10,6 +10,7 @@ const initialValues = {
   lastname: '',
   phone: '',
   token: '',
+  code: '',
 };
 
 const validValues = {
@@ -20,6 +21,7 @@ const validValues = {
   lastname: 'Doe',
   phone: '598 91 234 567',
   token: '123456',
+  code: '123456',
 };
 
 const createChangeEvent = (value: string) => ({
@@ -102,6 +104,7 @@ describe('useFormValidation', () => {
       lastname: true,
       phone: true,
       token: true,
+      code: true,
     });
     expect(result.current.errors.email).toBe(ERROR_MESSAGES.required);
     expect(result.current.errors.password).toBe(ERROR_MESSAGES.required);
@@ -186,6 +189,7 @@ describe('useFormValidation', () => {
         lastname: 'Do',
         phone: 'abc',
         token: '123',
+        code: '12ab',
       });
     });
 
@@ -200,5 +204,36 @@ describe('useFormValidation', () => {
     expect(result.current.errors.lastname).toBe(ERROR_MESSAGES.lastname);
     expect(result.current.errors.phone).toBe(ERROR_MESSAGES.phone);
     expect(result.current.errors.token).toBe(ERROR_MESSAGES.token);
+    expect(result.current.errors.code).toBe(ERROR_MESSAGES.code);
+  });
+
+  it('acepta un code de 6 dígitos', () => {
+    const { result } = renderHook(() => useFormValidation(initialValues));
+
+    act(() => {
+      result.current.setValues({ ...validValues, code: '654321' });
+    });
+
+    let isValid = false;
+    act(() => {
+      isValid = result.current.validateAll();
+    });
+
+    expect(isValid).toBe(true);
+    expect(result.current.errors.code).toBeUndefined();
+  });
+
+  it('rechaza un code que no son 6 dígitos', () => {
+    const { result } = renderHook(() => useFormValidation(initialValues));
+
+    act(() => {
+      result.current.setValues({ ...validValues, code: '123' });
+    });
+
+    act(() => {
+      result.current.validateAll();
+    });
+
+    expect(result.current.errors.code).toBe(ERROR_MESSAGES.code);
   });
 });

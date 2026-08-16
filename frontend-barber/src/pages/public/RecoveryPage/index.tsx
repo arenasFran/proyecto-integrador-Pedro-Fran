@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft, FiLock } from 'react-icons/fi';
 import { RequestResetForm } from './components/RequestResetForm';
+import { VerifyCodeForm } from './components/VerifyCodeForm';
 import { ResetPasswordForm } from './components/ResetPasswordForm';
 import { StepIndicator } from './components/StepIndicator';
 
@@ -28,16 +29,28 @@ const itemVariants = {
 
 export const RecoveryPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const tokenFromUrl = searchParams.get('token') ?? '';
+  const codeFromUrl = searchParams.get('code') ?? '';
   const emailFromUrl = searchParams.get('email') ?? '';
 
-  const [currentStep, setCurrentStep] = useState(tokenFromUrl ? 2 : 1);
+  const [currentStep, setCurrentStep] = useState(codeFromUrl ? 3 : 1);
   const [resetEmail, setResetEmail] = useState(emailFromUrl);
+  const [verifiedCode, setVerifiedCode] = useState(codeFromUrl);
 
   const handleRequestSuccess = (email: string) => {
     setResetEmail(email);
     setCurrentStep(2);
   };
+
+  const handleCodeVerified = (code: string) => {
+    setVerifiedCode(code);
+    setCurrentStep(3);
+  };
+
+  const steps = [
+    { label: 'Solicitar' },
+    { label: 'Verificar código' },
+    { label: 'Nueva contraseña' },
+  ];
 
   return (
     <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6">
@@ -67,17 +80,16 @@ export const RecoveryPage: React.FC = () => {
           <p className="text-[14px] text-[#8A8A8A]">
             {currentStep === 1
               ? 'Ingresa tu email para recibir instrucciones'
-              : 'Ingresa el token y nueva contraseña'}
+              : currentStep === 2
+                ? 'Ingresa el código de 6 dígitos que te enviamos'
+                : 'Define tu nueva contraseña'}
           </p>
         </motion.div>
 
         <motion.div variants={itemVariants}>
           <StepIndicator
             currentStep={currentStep}
-            steps={[
-              { label: 'Solicitar' },
-              { label: 'Restablecer' },
-            ]}
+            steps={steps}
           />
         </motion.div>
 
@@ -85,10 +97,16 @@ export const RecoveryPage: React.FC = () => {
           variants={itemVariants}
           className="bg-[#121212] border border-[#282828] rounded-[24px] p-6"
         >
-          {currentStep === 1 ? (
+          {currentStep === 1 && (
             <RequestResetForm onSuccess={handleRequestSuccess} />
-          ) : (
-            <ResetPasswordForm email={resetEmail} initialToken={tokenFromUrl} />
+          )}
+
+          {currentStep === 2 && (
+            <VerifyCodeForm email={resetEmail} onSuccess={handleCodeVerified} />
+          )}
+
+          {currentStep === 3 && (
+            <ResetPasswordForm email={resetEmail} code={verifiedCode} />
           )}
         </motion.div>
 

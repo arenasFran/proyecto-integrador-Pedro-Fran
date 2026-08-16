@@ -205,6 +205,19 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
               <p className="text-[12px] text-red-400 mb-4">{confirmError}</p>
             )}
 
+            <p className="mb-4 text-[12px] leading-snug text-[#8A8A8A]">
+              Al confirmar aceptás la{' '}
+              <a
+                href="/cancelaciones"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#FF5C00] hover:underline"
+              >
+                Política de Cancelación y Reembolsos
+              </a>
+              .
+            </p>
+
             <div className="mb-5">
               <p className="text-[13px] font-medium text-white mb-3">Método de pago</p>
               <div className="flex flex-col gap-2">

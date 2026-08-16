@@ -355,5 +355,20 @@ describe('bookingSlice', () => {
       expect(state.async.confirmError).toBe('Bloqueo fallido');
       expect(mockReleaseLock).not.toHaveBeenCalled();
     });
+
+    it('rejected por sanción muestra el mensaje del servidor (error.data.error)', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 403,
+          error: 'Rejected',
+          originalStatus: 403,
+          data: { error: 'Estás sancionado por inasistencias y no podés reservar turnos.' },
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Estás sancionado por inasistencias y no podés reservar turnos.');
+    });
   });
 });

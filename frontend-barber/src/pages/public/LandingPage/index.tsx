@@ -194,7 +194,7 @@ const heroCtaVariants = {
   },
 };
 
-const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean }> = ({ product, isAuthenticated }) => {
+const LandingProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const gallery = [product.imageUrl, ...product.gallery].filter(Boolean).slice(0, 4);
   const unavailable = product.status !== 'active' || product.stock === 0;
   const reduceMotion = useReducedMotion();
@@ -233,14 +233,10 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
         </div>
       )}
       <div className="catalog-card-footer">
-        {!isAuthenticated ? (
-          <Link className="landing-button landing-button-primary catalog-buy-link" to="/login?returnUrl=/tienda">
-            <span>Comprar</span>
-            <FiShoppingCart aria-hidden="true" />
-          </Link>
-        ) : (
-          <span className="catalog-card-note">Disponible en tienda</span>
-        )}
+        <Link className="landing-button landing-button-primary catalog-buy-link" to="/tienda">
+          <span>Comprar</span>
+          <FiShoppingCart aria-hidden="true" />
+        </Link>
       </div>
     </div>
   </motion.article>
@@ -336,14 +332,24 @@ export const LandingPage: React.FC = () => {
   const products = productsData?.products ?? [];
   const categories = categoriesData?.categories ?? [];
   const landingServices = servicesData
-    ? servicesData.map((service) => ({
-      number: '',
-      name: service.name,
-      desc: service.description,
-      price: formatCurrency(service.price),
-      image: service.imageUrl || '/hero-mobile-horizontal.webp',
-      position: '50% 50%',
-    }))
+    ? servicesData.map((service, index) => {
+      const normalizedName = service.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const artworkIndex = normalizedName.includes('barba')
+        ? 2
+        : normalizedName.includes('maquina')
+          ? 1
+          : index;
+      const artwork = services[artworkIndex] ?? services[0];
+
+      return {
+        number: '',
+        name: service.name,
+        desc: service.description,
+        price: formatCurrency(service.price),
+        image: artwork.image,
+        position: artwork.position,
+      };
+    })
     : services;
   const motionReveal = reduceMotion
     ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
@@ -1030,7 +1036,7 @@ export const LandingPage: React.FC = () => {
               </div>
             ) : products.length > 0 ? (
               <div className="catalog-grid">
-                {products.map((product) => <LandingProductCard key={product.id} product={product} isAuthenticated={isAuthenticated} />)}
+                {products.map((product) => <LandingProductCard key={product.id} product={product} />)}
               </div>
             ) : (
               <div className="catalog-state">No hay productos disponibles en esta categoría.</div>

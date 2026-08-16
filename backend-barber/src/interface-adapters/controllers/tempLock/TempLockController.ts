@@ -10,8 +10,8 @@ export class TempLockController {
 
   create = async (req: Request, res: Response) => {
     try {
-      const tempLockId = await this.tempLockRepository.create(req.body);
-      return sendSuccess(res, { message: 'Slot apartado temporalmente', tempLockId }, 201);
+      const { id: tempLockId, ownerToken } = await this.tempLockRepository.create(req.body);
+      return sendSuccess(res, { message: 'Slot apartado temporalmente', tempLockId, ownerToken }, 201);
     } catch (error: any) {
       if (error?.message?.includes('ya fue apartado')) {
         return sendError(res, new AppError('El horario ya fue apartado por otro usuario.', 409), 'Error al apartar el horario');
@@ -23,9 +23,14 @@ export class TempLockController {
   release = async (req: Request, res: Response) => {
     try {
       const tempLockId = req.params.tempLockId as string;
-      const lock = await this.tempLockRepository.findById(tempLockId);
-      if (lock) {
-        await this.tempLockRepository.deleteById(tempLockId);
+      const ownerToken = req.body?.ownerToken as string;
+      if (!ownerToken) {
+        return sendError(res, new AppError('Falta el token del horario.', 400), 'Error al liberar el horario');
+      }
+
+      const result = await this.tempLockRepository.release(tempLockId, ownerToken);
+      if (result === 'forbidden') {
+        return sendError(res, new AppError('No tenés permiso para liberar este horario.', 403), 'Error al liberar el horario');
       }
       return sendSuccess(res, { message: 'TempLock liberado' });
     } catch (error) {

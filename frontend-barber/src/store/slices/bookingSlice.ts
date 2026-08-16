@@ -109,6 +109,7 @@ export const submitAppointment = createAsyncThunk(
   'booking/submitAppointment',
   async (_, { getState, rejectWithValue, dispatch }) => {
     let tempLockId: string | undefined;
+    let ownerToken: string | undefined;
     try {
       const { flow } = (getState() as { booking: BookingState }).booking;
       const barberId = flow.selectedBarber!.id;
@@ -116,6 +117,7 @@ export const submitAppointment = createAsyncThunk(
       const startTime = flow.selectedTime!;
       const lockResult = await dispatch(appointmentApi.endpoints.acquireTempLock.initiate({ barberId, date, startTime })).unwrap();
       tempLockId = lockResult.tempLockId;
+      ownerToken = lockResult.ownerToken;
       const payload: CreateAppointmentPayload = {
         barberId,
         serviceId: flow.selectedService!.id,
@@ -157,8 +159,8 @@ export const submitAppointment = createAsyncThunk(
       }
       return rejectWithValue(message);
     } finally {
-      if (tempLockId) {
-        dispatch(appointmentApi.endpoints.releaseTempLock.initiate(tempLockId));
+      if (tempLockId && ownerToken) {
+        dispatch(appointmentApi.endpoints.releaseTempLock.initiate({ tempLockId, ownerToken }));
       }
     }
   }

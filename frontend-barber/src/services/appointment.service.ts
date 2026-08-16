@@ -60,12 +60,12 @@ export type PaginatedAppointmentsResponse = {
 };
 
 export const tempLockService = {
-  acquire: async (barberId: string, date: string, startTime: string): Promise<string> => {
-    const response = await api.post<{ message: string; tempLockId: string }>('/api/appointments/temp-lock', { barberId, date, startTime });
-    return response.data.tempLockId;
+  acquire: async (barberId: string, date: string, startTime: string): Promise<{ tempLockId: string; ownerToken: string }> => {
+    const response = await api.post<{ message: string; tempLockId: string; ownerToken: string }>('/api/appointments/temp-lock', { barberId, date, startTime });
+    return { tempLockId: response.data.tempLockId, ownerToken: response.data.ownerToken };
   },
-  release: async (tempLockId: string): Promise<void> => {
-    await api.delete(`/api/appointments/temp-lock/${tempLockId}`);
+  release: async (tempLockId: string, ownerToken: string): Promise<void> => {
+    await api.delete(`/api/appointments/temp-lock/${tempLockId}`, { data: { ownerToken } });
   },
 };
 

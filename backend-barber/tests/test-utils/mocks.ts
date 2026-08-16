@@ -20,6 +20,7 @@ export const makeMockTempLockRepository = () => ({
   deleteById: jest.fn(),
   findByBarberAndDate: jest.fn(),
   findById: jest.fn(),
+  release: jest.fn(),
 });
 
 export const makeMockAppointmentRepository = () => ({

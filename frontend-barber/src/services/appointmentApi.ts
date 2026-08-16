@@ -26,7 +26,7 @@ export const appointmentApi = createApi({
   baseQuery: axiosBaseQuery,
   tagTypes: ['Appointments', 'Appointment'],
   endpoints: (builder) => ({
-    acquireTempLock: builder.mutation<{ tempLockId: string }, { barberId: string; date: string; startTime: string }>({
+    acquireTempLock: builder.mutation<{ tempLockId: string; ownerToken: string }, { barberId: string; date: string; startTime: string }>({
       query: (data) => ({
         url: '/api/appointments/temp-lock',
         method: 'POST',
@@ -34,10 +34,11 @@ export const appointmentApi = createApi({
       }),
     }),
 
-    releaseTempLock: builder.mutation<void, string>({
-      query: (tempLockId) => ({
+    releaseTempLock: builder.mutation<void, { tempLockId: string; ownerToken: string }>({
+      query: ({ tempLockId, ownerToken }) => ({
         url: `/api/appointments/temp-lock/${tempLockId}`,
         method: 'DELETE',
+        data: { ownerToken },
       }),
     }),
 

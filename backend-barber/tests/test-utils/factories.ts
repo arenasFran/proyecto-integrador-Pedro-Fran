@@ -167,11 +167,13 @@ export async function seedTempLock(overrides: {
   barberId: string;
   date?: string;
   startTime?: string;
+  ownerToken?: string;
 }): Promise<{ tempLockId: string }> {
   const doc = await TempLockModel.create({
     barberId: new mongoose.Types.ObjectId(overrides.barberId),
     date: overrides.date || getFutureDate(30),
     startTime: overrides.startTime || '10:00',
+    ownerToken: overrides.ownerToken || 'a'.repeat(64),
   });
   return { tempLockId: doc._id.toString() };
 }

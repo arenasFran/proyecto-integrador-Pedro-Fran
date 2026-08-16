@@ -20,11 +20,12 @@ describeIfMongo('MongoTempLockRepository', () => {
     await TempLockModel.deleteMany({});
   });
 
-  it('debe crear un tempLock y devolver su id', async () => {
-    const id = await repository.create({ barberId, date, startTime });
+  it('debe crear un tempLock y devolver su id y ownerToken', async () => {
+    const result = await repository.create({ barberId, date, startTime });
 
-    expect(id).toBeDefined();
-    const doc = await TempLockModel.findById(id);
+    expect(result.id).toBeDefined();
+    expect(result.ownerToken).toMatch(/^[a-f0-9]{64}$/);
+    const doc = await TempLockModel.findById(result.id);
     expect(doc).not.toBeNull();
     expect(doc!.barberId.toString()).toBe(barberId);
     expect(doc!.date).toBe(date);
@@ -40,7 +41,7 @@ describeIfMongo('MongoTempLockRepository', () => {
   });
 
   it('debe encontrar un tempLock por id', async () => {
-    const id = await repository.create({ barberId, date, startTime, clientId: 'client-1' });
+    const { id } = await repository.create({ barberId, date, startTime, clientId: 'client-1' });
 
     const found = await repository.findById(id);
 
@@ -50,6 +51,7 @@ describeIfMongo('MongoTempLockRepository', () => {
     expect(found!.date).toBe(date);
     expect(found!.startTime).toBe(startTime);
     expect(found!.clientId).toBe('client-1');
+    expect((found as any).ownerToken).toBeUndefined();
   });
 
   it('debe devolver null si no encuentra tempLock por id', async () => {
@@ -59,12 +61,38 @@ describeIfMongo('MongoTempLockRepository', () => {
   });
 
   it('debe eliminar un tempLock por id', async () => {
-    const id = await repository.create({ barberId, date, startTime });
+    const { id } = await repository.create({ barberId, date, startTime });
 
     await repository.deleteById(id);
 
     const doc = await TempLockModel.findById(id);
     expect(doc).toBeNull();
+  });
+
+  it('debe liberar un tempLock cuando el ownerToken coincide', async () => {
+    const { id, ownerToken } = await repository.create({ barberId, date, startTime });
+
+    const result = await repository.release(id, ownerToken);
+
+    expect(result).toBe('released');
+    const doc = await TempLockModel.findById(id);
+    expect(doc).toBeNull();
+  });
+
+  it('debe devolver forbidden si el ownerToken no coincide', async () => {
+    const { id } = await repository.create({ barberId, date, startTime });
+
+    const result = await repository.release(id, 'b'.repeat(64));
+
+    expect(result).toBe('forbidden');
+    const doc = await TempLockModel.findById(id);
+    expect(doc).not.toBeNull();
+  });
+
+  it('debe devolver not_found si el tempLock no existe', async () => {
+    const result = await repository.release(new mongoose.Types.ObjectId().toString(), 'a'.repeat(64));
+
+    expect(result).toBe('not_found');
   });
 
   it('debe eliminar un tempLock por barberId, date y startTime', async () => {

@@ -103,7 +103,7 @@ function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
 describe('bookingSlice', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123' }) }));
+    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) }) }));
     mockReleaseLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve(undefined) }));
   });
 
@@ -315,7 +315,7 @@ describe('bookingSlice', () => {
         clientName: 'Juan', clientLastname: 'Pérez', clientPhone: '123456789', clientEmail: 'juan@test.com',
         paymentMethod: 'local', tempLockId: 'lock-123',
       });
-      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     });
 
     it('rejected libera temp lock y asigna error', async () => {
@@ -327,7 +327,7 @@ describe('bookingSlice', () => {
       const state = store.getState().booking;
       expect(state.async.isConfirming).toBe(false);
       expect(state.async.confirmError).toBe('Horario no disponible');
-      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     });
 
     it('rejected sin temp lock no intenta liberar', async () => {

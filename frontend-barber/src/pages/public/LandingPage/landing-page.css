@@ -927,8 +927,15 @@
 
 .about-section,
 .faq-section {
-  border-top: 1px solid var(--landing-line);
   border-bottom: 1px solid var(--landing-line);
+}
+
+.about-section {
+  background: var(--landing-ink);
+}
+
+.faq-section {
+  border-top: 1px solid var(--landing-line);
   background: var(--landing-surface);
 }
 
@@ -941,14 +948,15 @@
 }
 
 .services-section .section-heading-split {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
   align-items: start;
   gap: 14px;
   margin-bottom: 42px;
 }
 
 .services-section .section-heading {
-  grid-column: span 2;
+  width: 50%;
+  flex: 1 1 0;
 }
 
 .section-heading h2,
@@ -993,7 +1001,8 @@
 
 .services-heading-note {
   display: flex;
-  grid-column: 3;
+  width: 50%;
+  flex: 1 1 0;
   align-self: stretch;
   padding-top: 25px;
   padding-bottom: 0;
@@ -1052,7 +1061,7 @@
 .services-heading-media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 
   transition:
@@ -2311,15 +2320,17 @@
     gap: 30px;
   }
   .services-section .section-heading-split {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: 30px;
     margin-bottom: 42px;
   }
   .services-section .section-heading {
-    grid-column: auto;
+    width: 100%;
+    flex: none;
   }
   .services-section .services-heading-note {
-    grid-column: auto;
+    width: 100%;
+    flex: none;
     padding-top: 0;
   }
   .catalog-heading {

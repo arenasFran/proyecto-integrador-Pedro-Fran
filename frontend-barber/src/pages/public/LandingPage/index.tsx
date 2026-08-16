@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
@@ -170,6 +170,7 @@ export const LandingPage: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -692,40 +693,6 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="tienda" className="landing-section shop-section">
-          <div className="landing-container">
-            <motion.div className="catalog-heading" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <div>
-                
-                <h2>La tienda<br /><em>del barbero.</em></h2>
-              </div>
-              <p>Productos seleccionados para mantener el resultado en casa. Explorá el catálogo y, para comprar, iniciá sesión.</p>
-            </motion.div>
-
-            <div className="catalog-toolbar" aria-label="Filtros del catálogo">
-              <div className="catalog-filter-group">
-                <div className="catalog-filters" role="group" aria-label="Categorías">
-                  <button type="button" aria-pressed={!selectedCategory} className={!selectedCategory ? 'is-selected' : ''} onClick={() => setSelectedCategory('')}>Todos</button>
-                  {categories.map((category) => (
-                    <button type="button" aria-pressed={selectedCategory === category} className={selectedCategory === category ? 'is-selected' : ''} key={category} onClick={() => setSelectedCategory(category)}>{category}</button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {productsLoading ? (
-              <div className="catalog-state">Cargando catálogo...</div>
-            ) : products.length > 0 ? (
-              <div className="catalog-grid">
-                {products.map((product) => <LandingProductCard key={product.id} product={product} isAuthenticated={isAuthenticated} />)}
-              </div>
-            ) : (
-              <div className="catalog-state">No hay productos disponibles en esta categoría.</div>
-            )}
-
-          </div>
-        </section>
-
         <section id="nosotros" className="landing-section about-section">
           <div className="landing-container about-grid">
             <motion.div className="about-visual" initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7 }}>
@@ -749,6 +716,7 @@ export const LandingPage: React.FC = () => {
             <motion.div className="about-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <h2>Nosotros<br /><em>de verdad.</em></h2>
               <p>Somos una barbería de barrio donde el oficio importa y cada visita tiene su propio ritmo. Escuchamos lo que buscás, cuidamos el detalle y hacemos que volver sea fácil.</p>
+              <p className="about-tagline"><span className="about-tagline-text">Vení por el corte, quedate por el ambiente.</span></p>
               <div className="about-stats" aria-label="Datos destacados de Barbería SA">
                 {aboutStats.map((stat) => (
                   <div className="about-stat" key={stat.label}>
@@ -771,24 +739,51 @@ export const LandingPage: React.FC = () => {
                   <div className="contact-detail-item"><FiClock aria-hidden="true" /><strong>Lunes a sábados: 09:00 a 19:00</strong></div>
                   <div className="contact-detail-item"><FiPhone aria-hidden="true" /><strong>+598 92 757 877</strong></div>
                 </div>
-                <p className="contact-tagline">
-                  <span className="contact-tagline-text">Vení por el corte, quedate por el ambiente.</span>
-                </p>
                 <div className="contact-links">
                   <a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"><FaWhatsapp aria-hidden="true" /></a>
                   <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram"><FiInstagram aria-hidden="true" /></a>
+                  {!isMapOpen && (
+                    <button
+                      type="button"
+                      className="map-trigger contact-map-trigger"
+                      aria-label="Abrir mapa de Barbería SA"
+                      aria-expanded="false"
+                      onClick={() => setIsMapOpen(true)}
+                    >
+                      <span className="map-trigger-icon" aria-hidden="true"><FiMapPin /></span>
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
-            <motion.div className="contact-map-card" variants={motionItem} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <iframe
-                className="contact-map-frame"
-                title="Ubicación de Barbería SA en Avenida Artigas 397"
-                src="https://www.google.com/maps?q=Avenida+Artigas+397,+Montevideo,+Uruguay&output=embed"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              />
-            </motion.div>
+            <div className="contact-map-slot" aria-hidden={!isMapOpen}>
+              <AnimatePresence initial={false} mode="wait">
+                {isMapOpen && (
+                  <motion.div
+                    className="contact-map-card is-open"
+                    initial={{ opacity: 0, y: 18, scale: 0.92, filter: 'blur(5px)' }}
+                    animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+                    exit={{ opacity: 0, y: 14, scale: 0.94, filter: 'blur(4px)' }}
+                    transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.22, 1, 0.36, 1] as const }}
+                    style={{ transformOrigin: 'right center' }}
+                  >
+                    <div className="contact-map-toolbar">
+                      <span>Cómo llegar</span>
+                      <button type="button" className="map-close" aria-label="Cerrar mapa" onClick={() => setIsMapOpen(false)}>
+                        <FiX aria-hidden="true" />
+                      </button>
+                    </div>
+                    <iframe
+                      className="contact-map-frame"
+                      title="Ubicación de Barbería SA en Avenida Artigas 397"
+                      src="https://www.google.com/maps?q=Avenida+Artigas+397,+Montevideo,+Uruguay&output=embed"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </section>
 
@@ -814,6 +809,38 @@ export const LandingPage: React.FC = () => {
                 );
               })}
             </div>
+          </div>
+        </section>
+
+        <section id="tienda" className="landing-section shop-section">
+          <div className="landing-container">
+            <motion.div className="catalog-heading" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
+              <div>
+                <h2>La tienda<br /><em>del barbero.</em></h2>
+              </div>
+              <p>Productos seleccionados para mantener el resultado en casa. Explorá el catálogo y, para comprar, iniciá sesión.</p>
+            </motion.div>
+
+            <div className="catalog-toolbar" aria-label="Filtros del catálogo">
+              <div className="catalog-filter-group">
+                <div className="catalog-filters" role="group" aria-label="Categorías">
+                  <button type="button" aria-pressed={!selectedCategory} className={!selectedCategory ? 'is-selected' : ''} onClick={() => setSelectedCategory('')}>Todos</button>
+                  {categories.map((category) => (
+                    <button type="button" aria-pressed={selectedCategory === category} className={selectedCategory === category ? 'is-selected' : ''} key={category} onClick={() => setSelectedCategory(category)}>{category}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {productsLoading ? (
+              <div className="catalog-state">Cargando catálogo...</div>
+            ) : products.length > 0 ? (
+              <div className="catalog-grid">
+                {products.map((product) => <LandingProductCard key={product.id} product={product} isAuthenticated={isAuthenticated} />)}
+              </div>
+            ) : (
+              <div className="catalog-state">No hay productos disponibles en esta categoría.</div>
+            )}
           </div>
         </section>
 

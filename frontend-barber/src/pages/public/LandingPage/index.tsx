@@ -649,7 +649,7 @@ export const LandingPage: React.FC = () => {
                   <div className="service-card-content">
                     <div className="service-card-title-row"><h3>{service.name}</h3><span>{service.price}</span></div>
                     <p>{service.desc}</p>
-                    <button type="button" className="landing-button landing-button-primary service-card-detail" onClick={() => goTo('/reservar')}>Reservar <FiArrowUpRight /></button>
+                    <button type="button" className="landing-button landing-button-primary service-card-detail" onClick={() => goTo('/reservar')}>Reservar <FiCalendar aria-hidden="true" /></button>
                   </div>
                 </motion.article>
               ))}

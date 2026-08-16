@@ -172,6 +172,162 @@
   letter-spacing: 0.13em;
 }
 
+.landing-section-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.landing-header-actions {
+  margin-left: auto;
+}
+
+.landing-section-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--landing-radius);
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: border-color 220ms ease, color 220ms ease, background 220ms ease, transform 220ms var(--landing-ease-out);
+}
+
+.landing-section-menu-trigger:hover,
+.landing-section-menu-trigger:focus-visible {
+  border-color: rgba(255, 92, 0, 0.5);
+  color: var(--landing-paper);
+  background: var(--landing-orange-soft);
+  transform: translateY(-1px);
+}
+
+.landing-section-menu-trigger > svg {
+  width: 13px;
+  color: var(--landing-muted);
+  transition: transform 180ms ease, color 180ms ease;
+}
+
+.landing-section-menu-trigger > svg.is-open {
+  color: var(--landing-orange);
+  transform: rotate(180deg);
+}
+
+.landing-header-booking {
+  width: 46px;
+  min-width: 46px;
+  padding: 0;
+  gap: 0;
+  border-radius: 14px;
+  transition:
+    background 220ms ease,
+    border-color 220ms ease,
+    box-shadow 280ms var(--landing-ease-out),
+    color 220ms ease,
+    transform 280ms var(--landing-ease-out);
+}
+
+.landing-header-booking svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+  transition: transform 320ms var(--landing-ease-out), filter 280ms ease;
+}
+
+.landing-header-booking:hover,
+.landing-header-booking:focus-visible {
+  box-shadow: 0 16px 30px rgba(255, 92, 0, 0.32), 0 0 0 3px rgba(255, 92, 0, 0.1);
+  transform: translateY(-3px) scale(1.035);
+}
+
+.landing-header-booking:hover svg,
+.landing-header-booking:focus-visible svg {
+  filter: drop-shadow(0 3px 5px rgba(45, 14, 0, 0.28));
+  transform: translateY(-1px) rotate(-8deg) scale(1.1);
+}
+
+.landing-header-booking:active {
+  transform: translateY(0) scale(0.96);
+}
+
+.landing-section-menu-panel {
+  right: 0;
+  width: 224px;
+  padding: 8px;
+}
+
+.landing-section-menu-panel .landing-account-section {
+  gap: 5px;
+  padding: 2px 0;
+}
+
+.landing-section-menu-item {
+  position: relative;
+  min-height: 43px;
+  overflow: hidden;
+  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  background: transparent !important;
+  transition:
+    color 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease,
+    transform 260ms var(--landing-ease-out),
+    box-shadow 260ms ease !important;
+}
+
+.landing-section-menu-item::before {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 0;
+  width: 2px;
+  content: "";
+  background: var(--landing-orange);
+  opacity: 0;
+  transform: scaleY(0.35);
+  transform-origin: center;
+  transition: opacity 220ms ease, transform 260ms var(--landing-ease-out);
+}
+
+.landing-section-menu-item > svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex: 0 0 16px;
+  color: var(--landing-orange) !important;
+  stroke-width: 1.8;
+  transition: transform 260ms var(--landing-ease-out), color 220ms ease;
+}
+
+.landing-section-menu-item:hover,
+.landing-section-menu-item:focus-visible {
+  border-color: rgba(255, 92, 0, 0.3) !important;
+  color: var(--landing-paper) !important;
+  background: linear-gradient(100deg, rgba(255, 92, 0, 0.15), rgba(255, 255, 255, 0.04)) !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  transform: translateX(4px);
+}
+
+.landing-section-menu-item:hover::before,
+.landing-section-menu-item:focus-visible::before {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.landing-section-menu-item:hover > svg,
+.landing-section-menu-item:focus-visible > svg {
+  color: #ff9d66 !important;
+  transform: translateX(2px) rotate(-6deg) scale(1.08);
+}
+
 .landing-nav {
   display: flex;
   align-items: center;
@@ -299,9 +455,12 @@
 
 .landing-login-link {
   color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .landing-login-link:hover {
+  border-color: rgba(255, 255, 255, 0.32);
   background: rgba(255, 255, 255, 0.04);
 }
 
@@ -389,6 +548,40 @@
 
 .landing-button-primary:active {
   box-shadow: 0 7px 18px rgba(255, 92, 0, 0.2);
+}
+
+/* Keep the icon CTA compact after the shared button rules are applied. */
+.landing-header-booking {
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  min-height: 46px;
+  flex: 0 0 46px;
+  gap: 0;
+  padding: 0 !important;
+  border-radius: var(--landing-radius);
+}
+
+.landing-header-booking > svg {
+  width: 26px !important;
+  height: 26px !important;
+  stroke-width: 2;
+}
+
+.landing-header-booking:hover,
+.landing-header-booking:focus-visible {
+  box-shadow: 0 16px 30px rgba(255, 92, 0, 0.32), 0 0 0 3px rgba(255, 92, 0, 0.1);
+  transform: translateY(-3px) scale(1.035);
+}
+
+.landing-header-booking:hover > svg,
+.landing-header-booking:focus-visible > svg {
+  filter: drop-shadow(0 3px 5px rgba(45, 14, 0, 0.28));
+  transform: translateY(-1px) rotate(-8deg) scale(1.1);
+}
+
+.landing-header-booking:active {
+  transform: translateY(0) scale(0.96);
 }
 
 .landing-button-secondary {
@@ -2571,6 +2764,7 @@
   .landing-header-inner {
     min-height: 68px;
   }
+  .landing-section-menu,
   .landing-nav,
   .landing-login-link,
   .landing-register-link,

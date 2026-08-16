@@ -11,6 +11,7 @@ import {
   FiClock,
   FiCoffee,
   FiGrid,
+  FiHelpCircle,
   FiInstagram,
   FiLogOut,
   FiMapPin,
@@ -19,8 +20,10 @@ import {
   FiPhone,
   FiShoppingBag,
   FiShoppingCart,
+  FiScissors,
   FiTag,
   FiUser,
+  FiUsers,
   FiX
 } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -92,6 +95,14 @@ const faqItems = [
     q: '¿Qué incluye la membresía?',
     a: 'Incluye 4 cortes mensuales y 10% de descuento en productos de la tienda. Es una forma simple de mantener tu rutina resuelta.',
   },
+];
+
+const landingNavigation = [
+  { label: 'Servicios', id: 'servicios', icon: FiScissors },
+  { label: 'Nosotros', id: 'nosotros', icon: FiUsers },
+  { label: 'Tienda', id: 'tienda', icon: FiShoppingBag },
+  { label: 'FAQs', id: 'faqs', icon: FiHelpCircle },
+  { label: 'Contacto', id: 'contacto', icon: FiMapPin },
 ];
 
 const revealVariants = {
@@ -243,6 +254,7 @@ export const LandingPage: React.FC = () => {
   const user = useAppSelector((state) => state.auth.user);
   const loginToken = useAppSelector((state) => state.auth.loginToken);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [sectionMenuOpen, setSectionMenuOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [headerScrolled, setHeaderScrolled] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -251,6 +263,7 @@ export const LandingPage: React.FC = () => {
   const landingRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const sectionMenuRef = useRef<HTMLDivElement>(null);
   const contactInView = useInView(contactRef, { once: true, amount: 0.2 });
 
   const token = getAccessToken();
@@ -357,6 +370,9 @@ export const LandingPage: React.FC = () => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
       }
+      if (sectionMenuRef.current && !sectionMenuRef.current.contains(event.target as Node)) {
+        setSectionMenuOpen(false);
+      }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
@@ -372,11 +388,13 @@ export const LandingPage: React.FC = () => {
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
     setMobileMenuOpen(false);
+    setSectionMenuOpen(false);
   };
 
   const goTo = (path: string) => {
     setMobileMenuOpen(false);
     setDropdownOpen(false);
+    setSectionMenuOpen(false);
     navigate(path);
   };
 
@@ -421,22 +439,34 @@ export const LandingPage: React.FC = () => {
             </span>
           </Link>
 
-          <nav className="landing-nav" aria-label="Navegación principal">
-            <button type="button" onClick={() => scrollTo('servicios')}>Servicios</button>
-            <button type="button" onClick={() => scrollTo('nosotros')}>Nosotros</button>
-            <button type="button" onClick={() => scrollTo('tienda')}>Tienda</button>
-            <button type="button" onClick={() => scrollTo('faqs')}>FAQs</button>
-            <button type="button" onClick={() => scrollTo('contacto')}>Contacto</button>
-          </nav>
-
           <div className="landing-header-actions">
+            {(!isAuthenticated || !isStaffUser) && (
+              <button
+                type="button"
+                className="landing-button landing-button-primary landing-header-cta landing-header-booking"
+                aria-label="Reservar turno"
+                title="Reservar turno"
+                onClick={() => goTo('/reservar')}
+              >
+                <FiCalendar aria-hidden="true" />
+              </button>
+            )}
+            {!isAuthenticated && (
+              <>
+                <Link className="landing-login-link" to="/login">Iniciar sesión</Link>
+                <Link className="landing-register-link" to="/register">Crear cuenta</Link>
+              </>
+            )}
             {isAuthenticated ? (
               <div className="landing-account" ref={dropdownRef}>
                 <button
                   type="button"
                   className="landing-account-trigger"
                   aria-expanded={dropdownOpen}
-                  onClick={() => setDropdownOpen((open) => !open)}
+                  onClick={() => {
+                    setDropdownOpen((open) => !open);
+                    setSectionMenuOpen(false);
+                  }}
                 >
                   <span className="landing-account-icon"><FiUser /></span>
                   <span className="landing-account-name">{displayName}</span>
@@ -502,42 +532,51 @@ export const LandingPage: React.FC = () => {
                   )}
                 </AnimatePresence>
               </div>
-            ) : (
-              <div className="landing-guest-actions" ref={dropdownRef}>
-                <button type="button" className="landing-button landing-button-primary landing-header-cta" onClick={() => goTo('/reservar')}>
-                  Reservar
-                </button>
-                <button
-                  type="button"
-                  className="landing-account-trigger landing-guest-trigger"
-                  aria-expanded={dropdownOpen}
-                  aria-label="Abrir opciones de cuenta"
-                  onClick={() => setDropdownOpen((open) => !open)}
-                >
-                  <span className="landing-account-icon"><FiMenu /></span>
-                </button>
-                <AnimatePresence initial={false}>
-                  {dropdownOpen && (
+            ) : null}
+
+            <div className="landing-section-menu" ref={sectionMenuRef}>
+              <button
+                type="button"
+                className="landing-section-menu-trigger"
+                aria-expanded={sectionMenuOpen}
+                aria-haspopup="menu"
+                onClick={() => {
+                  setSectionMenuOpen((open) => !open);
+                  setDropdownOpen(false);
+                }}
+              >
+                <span>Menú</span>
+                <FiChevronDown className={sectionMenuOpen ? 'is-open' : ''} />
+              </button>
+              <AnimatePresence initial={false}>
+                {sectionMenuOpen && (
                   <motion.div
-                    className="landing-account-menu landing-guest-menu"
+                    className="landing-account-menu landing-section-menu-panel"
+                    role="menu"
                     variants={popoverVariants}
                     initial={reduceMotion ? false : 'hidden'}
                     animate={reduceMotion ? undefined : 'visible'}
                     exit={reduceMotion ? undefined : 'exit'}
                   >
-                    <button type="button" onClick={() => goTo('/login')}><FiUser /> Iniciar sesión</button>
-                    <button type="button" onClick={() => goTo('/register')}><FiUser /> Crear cuenta</button>
+                    <div className="landing-account-section">
+                      {landingNavigation.map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          className="landing-section-menu-item"
+                          role="menuitem"
+                          onClick={() => scrollTo(item.id)}
+                        >
+                          {React.createElement(item.icon)}
+                          <span>{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
+                )}
+              </AnimatePresence>
+            </div>
 
-            {isAuthenticated && !isStaffUser && (
-              <button type="button" className="landing-button landing-button-primary landing-header-cta" onClick={() => goTo('/reservar')}>
-                Reservar
-              </button>
-            )}
             <button
               type="button"
               className="landing-menu-toggle"

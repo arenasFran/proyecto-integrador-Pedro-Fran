@@ -39,13 +39,11 @@ export class ProcessWebhookUseCase {
   ): Promise<void> {
 
     if (!notification || !notification.data?.id) {
-      console.log('[MP-DEBUG-WEBHOOK] Webhook recibido SIN data.id — no se puede procesar');
-      console.log('[MP-DEBUG-WEBHOOK] body raw:', JSON.stringify(notification));
+      console.log('[MP-WEBHOOK] Webhook recibido SIN data.id — no se puede procesar');
       return;
     }
 
     const topic = notification.type || notification.topic;
-    console.log('[MP-DEBUG-WEBHOOK] topic:', topic, '| action:', notification.action, '| data.id:', notification.data.id);
 
     if (topic === 'payment') {
       await this.processPaymentNotification(notification.data.id);
@@ -66,8 +64,6 @@ export class ProcessWebhookUseCase {
   }
 
   private async processPaymentNotification(mpPaymentId: string): Promise<void> {
-    console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', mpPaymentId);
-
     const mpPayment = await this.mercadoPagoService.getPayment(mpPaymentId);
     if (!mpPayment) {
       console.log(`[MP-DEBUG-WEBHOOK] Pago ${mpPaymentId} no encontrado en MercadoPago — ignorando.`);

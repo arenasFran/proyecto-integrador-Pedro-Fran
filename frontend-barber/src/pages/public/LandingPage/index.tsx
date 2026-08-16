@@ -632,7 +632,6 @@ export const LandingPage: React.FC = () => {
                     <strong>Bebida incluida</strong>
                   </div>
                 </div>
-                <p>En cada servicio, una bebida incluida para disfrutar el momento sin apuro.</p>
               </div>
             </motion.div>
 

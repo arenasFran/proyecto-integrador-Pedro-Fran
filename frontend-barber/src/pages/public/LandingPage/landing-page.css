@@ -961,12 +961,16 @@
 }
 
 .services-heading-note {
+  display: flex;
+  align-self: stretch;
   padding-bottom: 0;
 }
 
 .services-heading-media {
   position: relative;
-  height: 156px;
+  flex: 1;
+  min-height: 156px;
+  height: auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
@@ -1020,13 +1024,6 @@
   font-size: 20px;
   font-weight: 500;
   letter-spacing: -0.05em;
-}
-
-.services-heading-note p {
-  max-width: 330px;
-  margin: 14px 0 0;
-  font-size: 13px;
-  line-height: 1.55;
 }
 
 .section-count {

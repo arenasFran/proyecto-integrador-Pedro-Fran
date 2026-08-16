@@ -9,6 +9,7 @@ import {
   FiCheck,
   FiChevronDown,
   FiClock,
+  FiCoffee,
   FiGrid,
   FiInstagram,
   FiLogOut,
@@ -651,8 +652,8 @@ export const LandingPage: React.FC = () => {
                  
                   <img src="/hero-mobile.jpeg" alt="Interior de Barbería SA" loading="lazy" />
                   <div className="services-heading-media-copy">
-                    <span>Un detalle de la casa</span>
-                    <strong>Bebida incluida</strong>
+                     <span>Con cada<br />servicio...</span>
+                     <strong>Bebida incluida <FiCoffee className="services-heading-media-icon" aria-hidden="true" /></strong>
                   </div>
                 </div>
               </div>

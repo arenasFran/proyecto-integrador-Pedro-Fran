@@ -62,10 +62,11 @@ const services = [
   },
 ];
 
-const aboutPoints = [
-  'Turnos claros y horarios reales',
-  'Barberos que escuchan antes de cortar',
-  'Un espacio para volver cada semana',
+
+const aboutStats = [
+  { value: '+XX', label: 'clientes' },
+  { value: '+10', label: 'años de experiencia' },
+  { value: '+4.5', label: 'stars en Google Reviews' },
 ];
 
 const faqItems = [
@@ -727,15 +728,55 @@ export const LandingPage: React.FC = () => {
         <section id="nosotros" className="landing-section about-section">
           <div className="landing-container about-grid">
             <motion.div className="about-visual" initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7 }}>
-              <img src="/imagen-corte.jpeg" alt="Barbero trabajando en Barbería SA" loading="lazy" />
-              <span>Oficio<br /><strong>desde 2018</strong></span>
+              <div className="about-image-frame">
+                <img src="/ChatGPT%20Image%2015%20ago%202026,%2020_48_25.png" alt="Fachada de Barbería SA" loading="lazy" />
+                <div className="about-image-shade" />
+              </div>
+              <div className="about-info-card">
+          
+                <div className="about-info-row">
+                  <div className="about-info-icon-wrap">
+                    <FiMapPin className="about-info-icon" />
+                  </div>
+                  <div className="about-info-copy">
+                    <strong>+10 años</strong>
+                    <span>de oficio y dedicación</span>
+                  </div>
+                </div>
+              </div>
             </motion.div>
             <motion.div className="about-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <span className="section-marker"><span className="section-marker-line" /> Quiénes somos</span>
               <h2>Nosotros<br /><em>de verdad.</em></h2>
               <p>Somos una barbería de barrio donde el oficio importa y cada visita tiene su propio ritmo. Escuchamos lo que buscás, cuidamos el detalle y hacemos que volver sea fácil.</p>
-              <ul>{aboutPoints.map((point) => <li key={point}><FiCheck /> {point}</li>)}</ul>
-              <button type="button" className="landing-button landing-button-secondary" onClick={() => goTo('/reservar')}>Conocé la agenda <FiArrowUpRight /></button>
+              <div className="about-stats" aria-label="Datos destacados de Barbería SA">
+                {aboutStats.map((stat) => (
+                  <div className="about-stat" key={stat.label}>
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        <section id="contacto" className="landing-contact">
+          <div className="contact-map" aria-hidden="true"><div className="contact-map-grid" /><div className="contact-map-route" /><div className="contact-map-pin"><span /> Barbería SA</div><span className="contact-map-label contact-map-label-one">Centro</span><span className="contact-map-label contact-map-label-two">Artigas</span></div>
+          <div className="landing-container contact-grid">
+            <motion.div className="contact-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
+              <span className="section-marker"><span className="section-marker-line" /> Encontranos</span>
+              <h2>Nos vemos<br /><em>en la silla.</em></h2>
+              <p>Avenida Artigas 397. Vení por el corte, quedate por el ambiente.</p>
+              <div className="contact-links">
+                <a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer"><FaWhatsapp /> WhatsApp <FiArrowUpRight /></a>
+                <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer"><FiInstagram /> Instagram <FiArrowUpRight /></a>
+              </div>
+            </motion.div>
+            <motion.div className="contact-details" variants={motionItem} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
+              <div className="contact-detail-item"><FiMapPin /><div><small>Dirección</small><strong>Avenida Artigas 397</strong></div></div>
+              <div className="contact-detail-item"><FiClock /><div><small>Horario</small><strong>Lun. a sáb. · 09:00 a 19:00</strong></div></div>
+              <div className="contact-detail-item"><FiCalendar /><div><small>Teléfono</small><strong>+598 92 757 877</strong></div></div>
+              <button type="button" className="landing-button" onClick={() => goTo('/reservar')}>Reservar turno <FiArrowUpRight /></button>
             </motion.div>
           </div>
         </section>
@@ -765,26 +806,6 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="contacto" className="landing-contact">
-          <div className="contact-map" aria-hidden="true"><div className="contact-map-grid" /><div className="contact-map-route" /><div className="contact-map-pin"><span /> Barbería SA</div><span className="contact-map-label contact-map-label-one">Centro</span><span className="contact-map-label contact-map-label-two">Artigas</span></div>
-          <div className="landing-container contact-grid">
-            <motion.div className="contact-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <span className="section-marker"><span className="section-marker-line" /> Encontranos</span>
-              <h2>Nos vemos<br /><em>en la silla.</em></h2>
-              <p>Avenida Artigas 397. Vení por el corte, quedate por el ambiente.</p>
-              <div className="contact-links">
-                <a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer"><FaWhatsapp /> WhatsApp <FiArrowUpRight /></a>
-                <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer"><FiInstagram /> Instagram <FiArrowUpRight /></a>
-              </div>
-            </motion.div>
-            <motion.div className="contact-details" variants={motionItem} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <div className="contact-detail-item"><FiMapPin /><div><small>Dirección</small><strong>Avenida Artigas 397</strong></div></div>
-              <div className="contact-detail-item"><FiClock /><div><small>Horario</small><strong>Lun. a sáb. · 09:00 a 19:00</strong></div></div>
-              <div className="contact-detail-item"><FiCalendar /><div><small>Teléfono</small><strong>+598 92 757 877</strong></div></div>
-              <button type="button" className="landing-button" onClick={() => goTo('/reservar')}>Reservar turno <FiArrowUpRight /></button>
-            </motion.div>
-          </div>
-        </section>
       </main>
 
       <footer className="landing-footer">

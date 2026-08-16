@@ -1023,11 +1023,12 @@
 .services-heading-media-copy {
   position: absolute;
   z-index: 1;
+  top: 16px;
   right: 18px;
-  bottom: 16px;
-  left: 18px;
+  left: auto;
   display: grid;
   gap: 4px;
+  text-align: right;
 }
 
 .services-heading-media-copy span {

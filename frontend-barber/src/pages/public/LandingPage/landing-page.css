@@ -996,9 +996,11 @@
   inset: 0;
   content: "";
   background: linear-gradient(
-    to top,
-    rgba(5, 5, 5, 0.82),
-    rgba(5, 5, 5, 0.08) 72%
+    to bottom,
+    rgba(5, 5, 5, 0.22),
+    transparent 18%,
+    transparent 72%,
+    rgba(5, 5, 5, 0.62)
   );
 }
 

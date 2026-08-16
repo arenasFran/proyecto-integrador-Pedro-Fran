@@ -622,7 +622,7 @@ export const LandingPage: React.FC = () => {
             <motion.div className="section-heading-split" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <div className="section-heading">
                 <span className="section-marker"><span className="section-marker-line" /> Lo que hacemos</span>
-                <h2>Un buen corte<br /><em>empieza acá.</em></h2>
+                <h2>Un buen<br />corte<br /><em>empieza acá.</em></h2>
               </div>
               <div className="section-heading-note services-heading-note">
                 <div className="services-heading-media">

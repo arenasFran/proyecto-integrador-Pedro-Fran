@@ -177,6 +177,7 @@ describe('BookingPage', () => {
   beforeEach(() => {
     mockDispatch.mockClear();
     mockReduxState = {};
+    sessionStorage.clear();
   });
 
   it('renders heading and description', () => {
@@ -187,7 +188,7 @@ describe('BookingPage', () => {
     expect(screen.getByText(/Elegí barbero, servicio y horario/i)).toBeInTheDocument();
   });
 
-  it('renders step 1 (barber) expanded by default', () => {
+  it('renders only the active barber step by default', () => {
     mockReduxState = buildState();
     renderPage();
 
@@ -196,11 +197,8 @@ describe('BookingPage', () => {
     expect(step1).toHaveAttribute('data-completed', 'false');
     expect(step1).toHaveAttribute('data-locked', 'false');
 
-    const step2 = screen.getByTestId('accordion-Servicio');
-    expect(step2).toHaveAttribute('data-locked', 'true');
-
-    const step3 = screen.getByTestId('accordion-Fecha y hora');
-    expect(step3).toHaveAttribute('data-locked', 'true');
+    expect(screen.queryByTestId('accordion-Servicio')).toBeNull();
+    expect(screen.queryByTestId('accordion-Fecha y hora')).toBeNull();
   });
 
   it('renders BarberSelectionStep with barbers from state', () => {
@@ -221,7 +219,7 @@ describe('BookingPage', () => {
     });
     renderPage();
 
-    expect(screen.getByTestId('accordion-Tu barbero')).toHaveAttribute('data-completed', 'true');
+    expect(screen.queryByTestId('accordion-Tu barbero')).toBeNull();
     expect(screen.getByTestId('accordion-Servicio')).toHaveAttribute('data-expanded', 'true');
     expect(screen.getByTestId('service-selection-step')).toBeInTheDocument();
   });
@@ -235,7 +233,7 @@ describe('BookingPage', () => {
     });
     renderPage();
 
-    expect(screen.getByTestId('step-summary')).toHaveTextContent('Carlos López');
+    expect(screen.getByText('Carlos López')).toBeInTheDocument();
   });
 
   it('renders ServiceSelectionStep when service step is active', () => {
@@ -263,8 +261,8 @@ describe('BookingPage', () => {
     });
     renderPage();
 
-    const summaries = screen.getAllByTestId('step-summary');
-    expect(summaries[1]).toHaveTextContent('Corte · $1500');
+    expect(screen.getByText('Corte')).toBeInTheDocument();
+    expect(screen.getByText('$1500')).toBeInTheDocument();
   });
 
   it('renders DateTimeStep with barberId when barber and service are selected', () => {
@@ -341,23 +339,23 @@ describe('BookingPage', () => {
     expect(screen.queryByTestId('success-modal')).toBeNull();
   });
 
-  it('dispatches setCurrentStep when accordion toggle is clicked', async () => {
+  it('navigates to a completed step from the top stepper', async () => {
     const user = userEvent.setup();
     mockReduxState = buildState({
       booking: {
         async: { barbers: [barberStub] },
         flow: {
           selectedBarber: barberStub,
-          currentStep: 'barber',
+          currentStep: 'service',
         },
       },
     });
     renderPage();
 
-    await user.click(screen.getByRole('button', { name: 'Servicio' }));
+    await user.click(screen.getByRole('button', { name: 'Barbero, completado' }));
 
     expect(mockDispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'booking/setCurrentStep', payload: 'service' })
+      expect.objectContaining({ type: 'booking/setCurrentStep', payload: 'barber' })
     );
   });
 

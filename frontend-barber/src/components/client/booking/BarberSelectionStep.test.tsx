@@ -44,11 +44,12 @@ const defaultProps = {
 };
 
 describe('BarberSelectionStep', () => {
-  it('renders loading skeleton when loading with no barbers', () => {
+  it('does not render intermediate content while barbers are loading', () => {
     const { container } = render(
       <BarberSelectionStep {...defaultProps} barbers={[]} isLoading={true} />
     );
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders error message when error and no barbers', () => {

@@ -54,7 +54,7 @@ describe('DateTimeStep', () => {
         isLoadingSlots={true}
       />
     );
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+    expect(container.querySelector('[class*="bg-[#242424]"]')).toBeInTheDocument();
   });
 
   it('shows "Sin horarios disponibles" when date selected but no slots', () => {

@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import React, { useEffect, useRef, useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 import {
@@ -33,6 +33,7 @@ import type { Product } from '../../../types/product';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import { getTokenUser } from '../../../utils/token';
 import './landing-page.css';
+import FoldText from './FoldText';
 import ShinyText from './ShinyText';
 import StrokeText from './StrokeText';
 
@@ -116,12 +117,87 @@ const itemVariants = {
   },
 };
 
+const popoverVariants = {
+  hidden: { opacity: 0, y: -8, scale: 0.97, filter: 'blur(4px)' },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: { duration: 0.32, ease: [0.22, 1, 0.36, 1] as const },
+  },
+  exit: {
+    opacity: 0,
+    y: -5,
+    scale: 0.98,
+    filter: 'blur(3px)',
+    transition: { duration: 0.18, ease: [0.4, 0, 1, 1] as const },
+  },
+};
+
+const mobileMenuVariants = {
+  hidden: { opacity: 0, height: 0 },
+  visible: {
+    opacity: 1,
+    height: 'auto',
+    transition: {
+      height: { duration: 0.42, ease: [0.22, 1, 0.36, 1] as const },
+      opacity: { duration: 0.22, delay: 0.06 },
+    },
+  },
+  exit: {
+    opacity: 0,
+    height: 0,
+    transition: {
+      height: { duration: 0.3, ease: [0.4, 0, 1, 1] as const },
+      opacity: { duration: 0.14 },
+    },
+  },
+};
+
+const LandingFoldLine: React.FC<{ text: string }> = ({ text }) => (
+  <FoldText
+    text={text}
+    splitBy="word"
+    hinge="top"
+    duration={0.72}
+    stagger={0.055}
+    ease="power3.out"
+    perspective={720}
+    creaseShading={0.38}
+    trigger="scroll"
+    fontSize="inherit"
+    fontWeight="inherit"
+    color="currentColor"
+    className="landing-fold-title-line"
+  />
+);
+
+const heroCtaVariants = {
+  hidden: { opacity: 0, y: 18, scale: 0.94 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.62, delay: 0.12, ease: [0.22, 1, 0.36, 1] as const },
+  },
+};
+
 const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean }> = ({ product, isAuthenticated }) => {
   const gallery = [product.imageUrl, ...product.gallery].filter(Boolean).slice(0, 4);
   const unavailable = product.status !== 'active' || product.stock === 0;
+  const reduceMotion = useReducedMotion();
 
   return (
-  <article className="catalog-card">
+  <motion.article
+    className="catalog-card"
+    initial={reduceMotion ? false : { opacity: 0, y: 22, scale: 0.985 }}
+    whileInView={reduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
+    whileHover={reduceMotion ? undefined : { y: -4, scale: 1.005 }}
+    whileTap={reduceMotion ? undefined : { scale: 0.995 }}
+    viewport={{ once: true, amount: 0.12 }}
+    transition={reduceMotion ? { duration: 0 } : { duration: 0.58, ease: [0.22, 1, 0.36, 1] }}
+  >
     <div className="catalog-card-media">
       {product.imageUrl ? (
         <img src={product.imageUrl} alt={product.name} loading="lazy" />
@@ -156,7 +232,7 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
         )}
       </div>
     </div>
-  </article>
+  </motion.article>
   );
 };
 
@@ -172,7 +248,10 @@ export const LandingPage: React.FC = () => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
+  const landingRef = useRef<HTMLDivElement>(null);
+  const contactRef = useRef<HTMLElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const contactInView = useInView(contactRef, { once: true, amount: 0.2 });
 
   const token = getAccessToken();
   const tokenUser = getTokenUser(token);
@@ -261,7 +340,16 @@ export const LandingPage: React.FC = () => {
     : itemVariants;
 
   useEffect(() => {
-    const handleScroll = () => setHeaderScrolled(window.scrollY > 24);
+    let scrollFrame = 0;
+    const handleScroll = () => {
+      if (scrollFrame) return;
+      scrollFrame = window.requestAnimationFrame(() => {
+        scrollFrame = 0;
+        const scrollProgress = Math.min(window.scrollY / Math.max(window.innerHeight, 1), 1);
+        landingRef.current?.style.setProperty('--landing-scroll', String(scrollProgress));
+        setHeaderScrolled(window.scrollY > 24);
+      });
+    };
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
@@ -270,9 +358,11 @@ export const LandingPage: React.FC = () => {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     document.addEventListener('mousedown', handleClickOutside);
+    handleScroll();
     return () => {
       window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('mousedown', handleClickOutside);
+      if (scrollFrame) window.cancelAnimationFrame(scrollFrame);
     };
   }, []);
 
@@ -301,7 +391,7 @@ export const LandingPage: React.FC = () => {
   };
 
   return (
-    <div className="landing-page">
+    <div className="landing-page" ref={landingRef}>
       <header className={`landing-header ${headerScrolled ? 'is-scrolled' : ''}`}>
         <div className="landing-container landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="Barbería SA, inicio">
@@ -348,8 +438,15 @@ export const LandingPage: React.FC = () => {
                   <span className="landing-account-name">{displayName}</span>
                   <FiChevronDown className={dropdownOpen ? 'is-open' : ''} />
                 </button>
-                {dropdownOpen && (
-                  <div className="landing-account-menu">
+                <AnimatePresence initial={false}>
+                  {dropdownOpen && (
+                  <motion.div
+                    className="landing-account-menu"
+                    variants={popoverVariants}
+                    initial={reduceMotion ? false : 'hidden'}
+                    animate={reduceMotion ? undefined : 'visible'}
+                    exit={reduceMotion ? undefined : 'exit'}
+                  >
                     {isAdmin && adminMenuSections.map((section) => (
                       <div className="landing-account-section" key={section.title}>
                         <span className="landing-account-section-title">{section.title}</span>
@@ -397,8 +494,9 @@ export const LandingPage: React.FC = () => {
 
                     <div className="landing-account-divider" />
                     <button type="button" className="is-danger" onClick={handleLogout}><FiLogOut /> Cerrar sesión</button>
-                  </div>
-                )}
+                  </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <div className="landing-guest-actions" ref={dropdownRef}>
@@ -414,12 +512,20 @@ export const LandingPage: React.FC = () => {
                 >
                   <span className="landing-account-icon"><FiMenu /></span>
                 </button>
-                {dropdownOpen && (
-                  <div className="landing-account-menu landing-guest-menu">
+                <AnimatePresence initial={false}>
+                  {dropdownOpen && (
+                  <motion.div
+                    className="landing-account-menu landing-guest-menu"
+                    variants={popoverVariants}
+                    initial={reduceMotion ? false : 'hidden'}
+                    animate={reduceMotion ? undefined : 'visible'}
+                    exit={reduceMotion ? undefined : 'exit'}
+                  >
                     <button type="button" onClick={() => goTo('/login')}><FiUser /> Iniciar sesión</button>
                     <button type="button" onClick={() => goTo('/register')}><FiUser /> Crear cuenta</button>
-                  </div>
-                )}
+                  </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
@@ -440,8 +546,15 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
 
-        {mobileMenuOpen && (
-          <div className="landing-mobile-menu">
+        <AnimatePresence initial={false}>
+          {mobileMenuOpen && (
+          <motion.div
+            className="landing-mobile-menu"
+            variants={mobileMenuVariants}
+            initial={reduceMotion ? false : 'hidden'}
+            animate={reduceMotion ? undefined : 'visible'}
+            exit={reduceMotion ? undefined : 'exit'}
+          >
             <div className="landing-container">
               {isAuthenticated && isAdmin && (
                 <>
@@ -489,8 +602,9 @@ export const LandingPage: React.FC = () => {
                 <button type="button" className="landing-button landing-button-primary" onClick={() => goTo('/reservar')}>Reservar turno <FiArrowUpRight /></button>
               )}
             </div>
-          </div>
-        )}
+          </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       <main>
@@ -591,9 +705,14 @@ export const LandingPage: React.FC = () => {
               </motion.h1>
 
               <motion.div variants={motionItem} className="hero-actions">
-                <button type="button" className="landing-button landing-button-primary" onClick={() => goTo('/reservar')}>
+                <motion.button
+                  type="button"
+                  className="landing-button landing-button-primary"
+                  variants={reduceMotion ? undefined : heroCtaVariants}
+                  onClick={() => goTo('/reservar')}
+                >
                   Reservar mi turno <FiArrowUpRight />
-                </button>
+                </motion.button>
               </motion.div>
       
             </motion.div>
@@ -643,7 +762,7 @@ export const LandingPage: React.FC = () => {
             <motion.div className="section-heading-split" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <div className="section-heading">
                 <span className="section-marker"><span className="section-marker-line" /> Lo que hacemos</span>
-                <h2>Un buen<br />corte<br /><em>empieza acá.</em></h2>
+                 <h2><LandingFoldLine text="Un buen" /><br /><LandingFoldLine text="corte" /><br /><em><LandingFoldLine text="empieza acá." /></em></h2>
               </div>
               <div className="section-heading-note services-heading-note">
                 <div className="services-heading-media">
@@ -656,6 +775,7 @@ export const LandingPage: React.FC = () => {
                         className="services-heading-media-shiny"
                         color="#b5b5b5"
                         shineColor="#ffffff"
+                        disabled={Boolean(reduceMotion)}
                         speed={2.8}
                         delay={1.2}
                       />
@@ -674,6 +794,7 @@ export const LandingPage: React.FC = () => {
                   variants={motionItem}
                   initial="hidden"
                   whileInView="visible"
+                  whileHover={reduceMotion ? undefined : { y: -5 }}
                   viewport={{ once: true, amount: 0.2 }}
                   transition={reduceMotion ? { duration: 0 } : { delay: index * 0.08 }}
                 >
@@ -712,7 +833,7 @@ export const LandingPage: React.FC = () => {
               </div>
             </motion.div>
             <motion.div className="about-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <h2>Nosotros<br /><em>de verdad.</em></h2>
+               <h2><LandingFoldLine text="Nosotros" /><br /><em><LandingFoldLine text="de verdad." /></em></h2>
               <p>Somos una barbería de barrio donde el oficio importa y cada visita tiene su propio ritmo. Escuchamos lo que buscás, cuidamos el detalle y hacemos que volver sea fácil.</p>
               <p className="about-tagline"><span className="about-tagline-text">Vení por el corte, quedate por el ambiente.</span></p>
               <div className="about-stats" aria-label="Datos destacados de Barbería SA">
@@ -727,10 +848,14 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="contacto" className="landing-contact">
+        <section
+          id="contacto"
+          ref={contactRef}
+          className={`landing-contact ${reduceMotion || contactInView ? 'is-in-view' : ''}`}
+        >
           <div className="landing-container contact-grid">
             <motion.div className="contact-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <h2>Nos vemos<br /><em>en la silla.</em></h2>
+               <h2><LandingFoldLine text="Nos vemos" /><br /><em><LandingFoldLine text="en la silla." /></em></h2>
               <div className="contact-body">
                 <p className="contact-address"><FiMapPin aria-hidden="true" /><span>Avenida Artigas 397.</span></p>
                 <div className="contact-detail-list">
@@ -789,7 +914,7 @@ export const LandingPage: React.FC = () => {
           <div className="landing-container faq-grid">
             <motion.div className="faq-heading" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <span className="section-marker"><span className="section-marker-line" /> FAQs</span>
-              <h2>Todo<br /><em>claro.</em></h2>
+               <h2><LandingFoldLine text="Todo" /><br /><em><LandingFoldLine text="claro." /></em></h2>
               <p>Las respuestas a lo que más nos preguntan. Si te queda alguna duda, escribinos.</p>
             </motion.div>
             <div className="faq-list">
@@ -814,7 +939,7 @@ export const LandingPage: React.FC = () => {
           <div className="landing-container">
             <motion.div className="catalog-heading" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <div>
-                <h2>La tienda<br /><em>del barbero.</em></h2>
+                 <h2><LandingFoldLine text="La tienda" /><br /><em><LandingFoldLine text="del barbero." /></em></h2>
               </div>
               <p>Productos seleccionados para mantener el resultado en casa. Explorá el catálogo y, para comprar, iniciá sesión.</p>
             </motion.div>

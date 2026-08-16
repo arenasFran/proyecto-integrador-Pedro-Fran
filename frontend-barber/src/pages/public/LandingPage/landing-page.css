@@ -1433,41 +1433,46 @@
 }
 
 .services-grid {
-  margin-top: 2rem;
+  margin-top: 3.5rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: clamp(24px, 3vw, 42px);
 }
 
 .service-card {
-  overflow: hidden;
-  border: 1px solid var(--landing-line);
-  border-radius: 28px;
-  background: var(--landing-surface);
+  position: relative;
+  overflow: visible;
+  border-top: 1px solid var(--landing-line-strong);
+  border-radius: 0;
+  background: transparent;
   transition:
-    border-color 260ms ease,
-    background 260ms ease,
     transform 260ms ease;
 }
 
 .service-card:hover {
-  border-color: rgba(255, 92, 0, 0.65);
-  background: var(--landing-surface-soft);
   transform: translateY(-5px);
 }
 
 .service-card-media {
   position: relative;
-  height: 270px;
+  height: 300px;
   overflow: hidden;
-  background: var(--landing-surface-soft);
+  margin-top: 16px;
+  border-radius: 6px 6px 0 0;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 67%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 67%, transparent 100%);
 }
 
 .service-card-media::after {
   position: absolute;
   inset: 0;
   content: "";
-  background: linear-gradient(to top, rgba(5, 5, 5, 0.72), transparent 60%);
+  background: linear-gradient(
+    to bottom,
+    rgba(5, 5, 5, 0.08) 20%,
+    rgba(5, 5, 5, 0.2) 48%,
+    rgba(5, 5, 5, 0.94) 88%
+  );
 }
 
 .service-card-media img {
@@ -1485,48 +1490,19 @@
   transform: scale(1.06);
 }
 
-.service-card-number,
-.service-card-arrow {
-  position: absolute;
-  z-index: 1;
-  top: 18px;
+.service-card-beard .service-card-media {
+  height: 260px;
 }
 
-.service-card-number {
-  left: 18px;
-  color: var(--landing-orange);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-}
-
-.service-card-arrow {
-  right: 18px;
-  display: inline-flex;
-  width: 31px;
-  height: 31px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.42);
-  color: var(--landing-paper);
-  border-radius: 50%;
-  transition:
-    color 220ms ease,
-    background 220ms ease,
-    transform 220ms ease;
-}
-
-.service-card:hover .service-card-arrow {
-  color: var(--landing-ink);
-  background: var(--landing-orange);
-  transform: translate(2px, -2px);
-}
-
-.service-card-arrow svg {
-  width: 13px;
+.service-card-beard .service-card-content {
+  margin-top: -54px;
 }
 
 .service-card-content {
-  padding: 22px 20px 23px;
+  position: relative;
+  z-index: 1;
+  margin-top: -94px;
+  padding: 0 16px 25px;
 }
 
 .service-card-title-row {
@@ -2125,6 +2101,12 @@
   }
   .service-card-media {
     height: 230px;
+  }
+  .service-card-beard .service-card-media {
+    height: 230px;
+  }
+  .service-card-beard .service-card-content {
+    margin-top: -94px;
   }
   .catalog-toolbar {
     gap: 14px;

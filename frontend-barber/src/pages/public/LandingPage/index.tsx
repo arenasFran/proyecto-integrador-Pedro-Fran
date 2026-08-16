@@ -626,7 +626,7 @@ export const LandingPage: React.FC = () => {
                         <div className="services-grid">
               {landingServices.map((service, index) => (
                 <motion.article
-                  className="service-card"
+                  className={`service-card${service.number === '03' ? ' service-card-beard' : ''}`}
                   key={service.name}
                   variants={motionItem}
                   initial="hidden"
@@ -636,8 +636,6 @@ export const LandingPage: React.FC = () => {
                 >
                   <div className="service-card-media">
                     <img src={service.image} alt={service.name} style={{ objectPosition: service.position }} loading="lazy" />
-                   
-                    <span className="service-card-arrow"><FiArrowUpRight /></span>
                   </div>
                   <div className="service-card-content">
                     <div className="service-card-title-row"><h3>{service.name}</h3><span>{service.price}</span></div>

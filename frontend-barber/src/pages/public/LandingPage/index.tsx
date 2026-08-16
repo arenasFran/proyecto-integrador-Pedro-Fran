@@ -623,19 +623,7 @@ export const LandingPage: React.FC = () => {
               <div className="section-heading">
                 <span className="section-marker"><span className="section-marker-line" /> Lo que hacemos</span>
                 <h2>Un buen<br />corte<br /><em>empieza acá.</em></h2>
-              </div>
-              <div className="section-heading-note services-heading-note">
-                <div className="services-heading-media">
-                  <img src="/hero-mobile.jpeg" alt="Interior de Barbería SA" loading="lazy" />
-                  <div className="services-heading-media-copy">
-                    <span>Un detalle de la casa</span>
-                    <strong>Bebida incluida</strong>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            <div className="services-grid">
+                        <div className="services-grid">
               {landingServices.map((service, index) => (
                 <motion.article
                   className="service-card"
@@ -659,6 +647,20 @@ export const LandingPage: React.FC = () => {
                 </motion.article>
               ))}
             </div>
+              </div>
+              <div className="section-heading-note services-heading-note">
+                <div className="services-heading-media">
+                 
+                  <img src="/hero-mobile.jpeg" alt="Interior de Barbería SA" loading="lazy" />
+                  <div className="services-heading-media-copy">
+                    <span>Un detalle de la casa</span>
+                    <strong>Bebida incluida</strong>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+    
           </div>
         </section>
 

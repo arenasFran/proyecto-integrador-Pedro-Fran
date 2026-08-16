@@ -32,6 +32,7 @@ import type { Product } from '../../../types/product';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import { getTokenUser } from '../../../utils/token';
 import './landing-page.css';
+import ShinyText from './ShinyText';
 import StrokeText from './StrokeText';
 
 const services = [
@@ -303,7 +304,23 @@ export const LandingPage: React.FC = () => {
           <Link to="/" className="landing-brand" aria-label="Barbería SA, inicio">
             <img src="/logo-barberia-notittle.PNG" alt="" className="landing-brand-mark" />
             <span>
-              <strong>Barbería SA</strong>
+              <strong>
+                <StrokeText
+                  text="BARBERÍA SA"
+                  strokeColor="#ff9d66"
+                  fillColor="#ffffff"
+                  strokeWidth={0.8}
+                  drawDuration={1.25}
+                  fillDelay={0.08}
+                  stagger={0.04}
+                  trigger="mount"
+                  fillMode="wipe"
+                  fontSize={16}
+                  fontWeight={800}
+                  letterSpacing={-0.55}
+                  className="landing-brand-stroke"
+                />
+              </strong>
             </span>
           </Link>
 
@@ -652,8 +669,18 @@ export const LandingPage: React.FC = () => {
                  
                   <img src="/hero-mobile.jpeg" alt="Interior de Barbería SA" loading="lazy" />
                   <div className="services-heading-media-copy">
-                     <span>Con cada<br />servicio...</span>
-                     <strong>Bebida incluida <FiCoffee className="services-heading-media-icon" aria-hidden="true" /></strong>
+                     <span className="services-heading-media-kicker">Con cada<br />servicio...</span>
+                     <strong>
+                       <ShinyText
+                         text="Bebida incluida"
+                         className="services-heading-media-shiny"
+                         color="#b5b5b5"
+                         shineColor="#ffffff"
+                         speed={2.8}
+                         delay={1.2}
+                       />
+                       <FiCoffee className="services-heading-media-icon" aria-hidden="true" />
+                     </strong>
                   </div>
                 </div>
               </div>

@@ -1868,6 +1868,32 @@
   background: var(--landing-orange);
 }
 
+.landing-contact::before {
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(62%, 900px);
+  content: "";
+  background-image:
+    linear-gradient(
+      to right,
+      var(--landing-orange) 0%,
+      rgba(255, 92, 0, 0.84) 18%,
+      rgba(255, 92, 0, 0) 52%
+    ),
+    url("/backSilla.png");
+  background-position:
+    center,
+    right center;
+  background-repeat: no-repeat;
+  background-size:
+    100% 100%,
+    cover;
+  pointer-events: none;
+}
+
 .landing-contact .section-marker {
   color: rgba(5, 5, 5, 0.62);
 }
@@ -1876,8 +1902,8 @@
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: 1fr 0.72fr;
-  gap: 80px;
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 0.72fr);
+  gap: 40px;
 }
 
 .contact-copy h2,
@@ -1885,12 +1911,51 @@
   color: var(--landing-ink);
 }
 
+.contact-body {
+  padding-left: clamp(12px, 2vw, 24px);
+}
+
 .contact-copy p {
   max-width: 390px;
-  margin: 28px 0 32px;
   color: rgba(5, 5, 5, 0.66);
   font-size: 15px;
   line-height: 1.7;
+}
+
+.contact-copy .contact-address {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 30px 0 0;
+}
+
+.contact-address > span {
+  color: rgba(5, 5, 5, 0.76);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.contact-address svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--landing-ink);
+}
+
+.contact-copy .contact-tagline {
+  margin: 0 0 32px;
+}
+
+.contact-tagline-text {
+  display: inline-block;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 1.04em;
+  font-style: italic !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.075em !important;
+  text-transform: none !important;
+  white-space: nowrap !important;
 }
 
 .contact-links {
@@ -1901,10 +1966,14 @@
 
 .contact-links a {
   display: inline-flex;
+  width: 52px;
+  height: 52px;
   align-items: center;
+  justify-content: center;
   gap: 9px;
-  padding: 11px 14px;
-  border: 1px solid rgba(5, 5, 5, 0.26);
+  padding: 0;
+  border: 3px solid rgba(5, 5, 5, 0.58);
+  border-radius: 50%;
   color: var(--landing-ink);
   font-size: 10px;
   font-weight: 700;
@@ -1922,23 +1991,21 @@
 }
 
 .contact-links a > svg:first-child {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
 }
 
-.contact-details {
-  align-self: end;
-  padding: 28px;
-  border: 1px solid rgba(5, 5, 5, 0.25);
-  border-radius: var(--landing-radius);
-  background: rgba(5, 5, 5, 0.08);
+.contact-detail-list {
+  max-width: 390px;
+  margin: 20px 0 30px;
+  border-top: 1px solid rgba(5, 5, 5, 0.19);
 }
 
 .contact-detail-item {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 17px 0;
+  padding: 12px 0;
   border-bottom: 1px solid rgba(5, 5, 5, 0.19);
 }
 
@@ -1946,111 +2013,39 @@
   width: 17px;
   height: 17px;
   margin-top: 2px;
-}
-
-.contact-detail-item small,
-.contact-detail-item strong {
-  display: block;
-}
-
-.contact-detail-item small {
-  margin-bottom: 6px;
-  color: rgba(5, 5, 5, 0.55);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
-.contact-detail-item strong {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.contact-details .landing-button {
-  width: 100%;
-  margin-top: 25px;
-  color: var(--landing-paper);
-  background: var(--landing-ink);
-}
-
-.contact-details .landing-button:hover {
-  background: var(--landing-surface-soft);
-}
-
-.contact-map {
-  position: absolute;
-  right: -5%;
-  bottom: -28%;
-  width: 55%;
-  height: 90%;
-  opacity: 0.3;
-  border: 1px solid rgba(5, 5, 5, 0.32);
-  transform: rotate(-12deg);
-}
-
-.contact-map-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(5, 5, 5, 0.26) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(5, 5, 5, 0.26) 1px, transparent 1px);
-  background-size: 58px 44px;
-}
-
-.contact-map-route {
-  position: absolute;
-  top: 47%;
-  left: -10%;
-  width: 120%;
-  height: 4px;
-  background: var(--landing-ink);
-  box-shadow:
-    0 35px 0 rgba(5, 5, 5, 0.36),
-    0 -58px 0 rgba(5, 5, 5, 0.36);
-  transform: rotate(-15deg);
-}
-
-.contact-map-pin {
-  position: absolute;
-  top: 44%;
-  left: 45%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-shrink: 0;
   color: var(--landing-ink);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  transform: rotate(12deg);
 }
 
-.contact-map-pin span {
+.contact-detail-item strong {
+  color: rgba(5, 5, 5, 0.76);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.contact-map-card {
+  display: flex;
+  width: calc(100% - 64px);
+  min-height: 330px;
+  justify-self: start;
+  transform: translateX(-30px);
+  overflow: hidden;
+  padding: 10px;
+  border: 1px solid rgba(5, 5, 5, 0.25);
+  border-radius: 18px;
+  background: var(--landing-ink);
+  box-shadow: 0 22px 45px rgba(5, 5, 5, 0.18);
+}
+
+.contact-map-frame {
   display: block;
-  width: 16px;
-  height: 16px;
-  border: 4px solid var(--landing-ink);
-  border-radius: 50%;
-  box-shadow: 0 0 0 8px rgba(5, 5, 5, 0.1);
-}
-
-.contact-map-label {
-  position: absolute;
-  color: rgba(5, 5, 5, 0.54);
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.contact-map-label-one {
-  top: 25%;
-  left: 18%;
-}
-.contact-map-label-two {
-  right: 16%;
-  bottom: 28%;
+  flex: 1 1 auto;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 10px;
 }
 
 .landing-footer {
@@ -2235,12 +2230,18 @@
   .contact-grid {
     gap: 56px;
   }
-  .contact-details {
-    width: min(100%, 450px);
+  .landing-contact::before {
+    top: 38%;
+    bottom: 0;
+    width: 100%;
+    background-position:
+      center,
+      right center;
   }
-  .contact-map {
-    right: -20%;
-    width: 90%;
+  .contact-map-card {
+    width: 100%;
+    min-height: 340px;
+    transform: none;
   }
   .landing-footer-main {
     grid-template-columns: 1fr 1fr;
@@ -2373,14 +2374,9 @@
   .landing-contact {
     padding: 92px 0 70px;
   }
-  .contact-details {
-    padding: 20px;
-  }
-  .contact-map {
-    right: -60%;
-    bottom: -8%;
-    width: 130%;
-    height: 48%;
+  .contact-map-card,
+  .contact-map-frame {
+    min-height: 300px;
   }
   .landing-footer {
     padding-top: 45px;

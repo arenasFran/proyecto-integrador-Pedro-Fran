@@ -16,6 +16,7 @@ import {
   FiMapPin,
   FiMenu,
   FiPackage,
+  FiPhone,
   FiShoppingBag,
   FiShoppingCart,
   FiTag,
@@ -761,22 +762,32 @@ export const LandingPage: React.FC = () => {
         </section>
 
         <section id="contacto" className="landing-contact">
-          <div className="contact-map" aria-hidden="true"><div className="contact-map-grid" /><div className="contact-map-route" /><div className="contact-map-pin"><span /> Barbería SA</div><span className="contact-map-label contact-map-label-one">Centro</span><span className="contact-map-label contact-map-label-two">Artigas</span></div>
           <div className="landing-container contact-grid">
             <motion.div className="contact-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <span className="section-marker"><span className="section-marker-line" /> Encontranos</span>
               <h2>Nos vemos<br /><em>en la silla.</em></h2>
-              <p>Avenida Artigas 397. Vení por el corte, quedate por el ambiente.</p>
-              <div className="contact-links">
-                <a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer"><FaWhatsapp /> WhatsApp <FiArrowUpRight /></a>
-                <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer"><FiInstagram /> Instagram <FiArrowUpRight /></a>
+              <div className="contact-body">
+                <p className="contact-address"><FiMapPin aria-hidden="true" /><span>Avenida Artigas 397.</span></p>
+                <div className="contact-detail-list">
+                  <div className="contact-detail-item"><FiClock aria-hidden="true" /><strong>Lunes a sábados: 09:00 a 19:00</strong></div>
+                  <div className="contact-detail-item"><FiPhone aria-hidden="true" /><strong>+598 92 757 877</strong></div>
+                </div>
+                <p className="contact-tagline">
+                  <span className="contact-tagline-text">Vení por el corte, quedate por el ambiente.</span>
+                </p>
+                <div className="contact-links">
+                  <a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp"><FaWhatsapp aria-hidden="true" /></a>
+                  <a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer" aria-label="Visitar Instagram"><FiInstagram aria-hidden="true" /></a>
+                </div>
               </div>
             </motion.div>
-            <motion.div className="contact-details" variants={motionItem} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-              <div className="contact-detail-item"><FiMapPin /><div><small>Dirección</small><strong>Avenida Artigas 397</strong></div></div>
-              <div className="contact-detail-item"><FiClock /><div><small>Horario</small><strong>Lun. a sáb. · 09:00 a 19:00</strong></div></div>
-              <div className="contact-detail-item"><FiCalendar /><div><small>Teléfono</small><strong>+598 92 757 877</strong></div></div>
-              <button type="button" className="landing-button" onClick={() => goTo('/reservar')}>Reservar turno <FiArrowUpRight /></button>
+            <motion.div className="contact-map-card" variants={motionItem} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
+              <iframe
+                className="contact-map-frame"
+                title="Ubicación de Barbería SA en Avenida Artigas 397"
+                src="https://www.google.com/maps?q=Avenida+Artigas+397,+Montevideo,+Uruguay&output=embed"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </motion.div>
           </div>
         </section>

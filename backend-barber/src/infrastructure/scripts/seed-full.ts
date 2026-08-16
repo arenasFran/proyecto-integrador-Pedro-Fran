@@ -347,9 +347,8 @@ export async function runFullSeed() {
   console.log(`[SEED] ${revCount} revenue_entries creados (backfill)`);
   console.log('[SEED] Seed completo.');
   console.log('[SEED] Credenciales:');
-  console.log(`  Admin: ${adminEmail} / ${process.env.SEED_ADMIN_PASSWORD || 'Admin123!'}`);
+  console.log(`  Admin: ${adminEmail}`);
   console.log('  Clientes: santiago@test.com, valentina@test.com, mateo@test.com, camila@test.com, joaquin@test.com');
-  console.log('  Clave clientes: Cliente123!');
   console.log('  Barbers: carlos@barberia.com, martin@barberia.com, lucia@barberia.com');
-  console.log('  Clave barbers: Barber123!');
+  console.log('  La contraseña del admin se define con SEED_ADMIN_PASSWORD (default: ver script).');
 }

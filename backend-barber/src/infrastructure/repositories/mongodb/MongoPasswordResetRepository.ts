@@ -14,6 +14,20 @@ export class MongoPasswordResetRepository {
     await doc.save();
   }
 
+  async verify(tokenHash: string): Promise<PasswordResetToken | null> {
+    const doc = await PasswordReset.findOne({
+      tokenHash,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    }).lean();
+
+    if (!doc) {
+      return null;
+    }
+
+    return toPasswordResetEntity(doc);
+  }
+
   async verifyAndConsume(tokenHash: string): Promise<PasswordResetToken | null> {
     const doc = await PasswordReset.findOneAndUpdate(
       { tokenHash, used: false, expiresAt: { $gt: new Date() } },

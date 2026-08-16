@@ -53,7 +53,7 @@ export const buildAppointmentRouter = () => {
     appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository
   );
   const updateAppointmentStatus = new UpdateAppointmentStatusUseCase(
-    appointmentRepository, membershipRepository, emailService, cancelMinHoursBefore, barberRepository, revenueTracker
+    appointmentRepository, membershipRepository, emailService, clientRepository, cancelMinHoursBefore, barberRepository, revenueTracker
   );
   const rescheduleAppointment = new RescheduleAppointmentUseCase(
     appointmentRepository,

@@ -3,7 +3,7 @@ import { UpdateAppointmentStatusUseCase } from '../../../../src/application/use-
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
 import { Appointment, AppointmentProps } from '../../../../src/domain/entities/Appointment';
-import { makeMockAppointmentRepository, makeMockMembershipRepository, makeMockEmailService, makeMockBarberRepository } from '../../../test-utils/mocks';
+import { makeMockAppointmentRepository, makeMockMembershipRepository, makeMockEmailService, makeMockBarberRepository, makeMockClientRepository } from '../../../test-utils/mocks';
 
 describe('UpdateAppointmentStatusUseCase', () => {
   const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
@@ -34,6 +34,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   let membershipRepository: ReturnType<typeof makeMockMembershipRepository>;
   let emailService: jest.Mocked<IEmailService>;
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
+  let clientRepository: ReturnType<typeof makeMockClientRepository>;
   let useCase: UpdateAppointmentStatusUseCase;
   let capturedSession: any;
 
@@ -52,8 +53,10 @@ describe('UpdateAppointmentStatusUseCase', () => {
     barberRepository.findBarberById.mockImplementation((id: string) =>
       Promise.resolve(staffDirectory[id] ?? null)
     );
+    clientRepository = makeMockClientRepository();
+    clientRepository.incrementarNoShow.mockResolvedValue(undefined);
 
-    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, 0, barberRepository as any);
+    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, clientRepository as any, 0, barberRepository as any);
 
     capturedSession = {
       startTransaction: jest.fn(),
@@ -176,7 +179,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   });
 
   it('debe rechazar cancelacion con menos de 2h de anticipacion (fecha pasada)', async () => {
-    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, 2, barberRepository as any);
+    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, clientRepository as any, 2, barberRepository as any);
     appointmentRepository.findById.mockResolvedValue(
       makeAppointment({ status: 'Confirmado', date: '2020-01-01', startTime: '10:00' })
     );
@@ -187,7 +190,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   });
 
   it('debe permitir cancelacion con suficiente anticipacion (fecha futura)', async () => {
-    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, 2, barberRepository as any);
+    const strictUseCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, clientRepository as any, 2, barberRepository as any);
     appointmentRepository.findById.mockResolvedValue(
       makeAppointment({ status: 'Confirmado', date: '2099-01-01', startTime: '10:00' })
     );
@@ -228,6 +231,47 @@ describe('UpdateAppointmentStatusUseCase', () => {
       const result = await useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin');
 
       expect(result.message).toMatch(/Completado/);
+    });
+  });
+
+  describe('contador de inasistencias (NoShow)', () => {
+    it('debe incrementar el contador de noShowCount del cliente al marcar NoShow', async () => {
+      appointmentRepository.findById.mockResolvedValue(
+        makeAppointment({ status: 'Confirmado', barberId: 'empleado-1', clientId: 'client-1', date: '2020-01-01', startTime: '10:00' })
+      );
+      appointmentRepository.updateStatus.mockResolvedValue(
+        makeAppointment({ status: 'NoShow', barberId: 'empleado-1', clientId: 'client-1' })
+      );
+
+      await useCase.execute('apt-1', { status: 'NoShow' }, 'empleado-1', 'Empleado');
+
+      expect(clientRepository.incrementarNoShow).toHaveBeenCalledWith('client-1', capturedSession);
+    });
+
+    it('NO debe incrementar el contador si el turno no tiene clientId', async () => {
+      appointmentRepository.findById.mockResolvedValue(
+        makeAppointment({ status: 'Confirmado', barberId: 'empleado-1', date: '2020-01-01', startTime: '10:00' })
+      );
+      appointmentRepository.updateStatus.mockResolvedValue(
+        makeAppointment({ status: 'NoShow', barberId: 'empleado-1' })
+      );
+
+      await useCase.execute('apt-1', { status: 'NoShow' }, 'empleado-1', 'Empleado');
+
+      expect(clientRepository.incrementarNoShow).not.toHaveBeenCalled();
+    });
+
+    it('NO debe incrementar el contador al completar o cancelar', async () => {
+      appointmentRepository.findById.mockResolvedValue(
+        makeAppointment({ status: 'Confirmado', barberId: 'empleado-1', clientId: 'client-1' })
+      );
+      appointmentRepository.updateStatus.mockResolvedValue(
+        makeAppointment({ status: 'Completado', barberId: 'empleado-1', clientId: 'client-1' })
+      );
+
+      await useCase.execute('apt-1', { status: 'Completado' }, 'empleado-1', 'Empleado');
+
+      expect(clientRepository.incrementarNoShow).not.toHaveBeenCalled();
     });
   });
 

@@ -1,5 +1,6 @@
 import {
   requestResetSchema,
+  verifyResetCodeSchema,
   resetPasswordSchema,
   default as recoverySchemas,
 } from '../../../src/interface-adapters/validators/recovery.validator';
@@ -9,7 +10,7 @@ const validRequestReset = {
 };
 
 const validResetPassword = {
-  token: 'reset-token-abc',
+  code: '123456',
   password: 'NewPass1',
   repeatPassword: 'NewPass1',
   email: 'test@example.com',
@@ -43,14 +44,19 @@ describe('resetPasswordSchema', () => {
     expect(error).toBeUndefined();
   });
 
-  it('debe rechazar token ausente', () => {
-    const { token, ...payload } = validResetPassword;
+  it('debe rechazar codigo ausente', () => {
+    const { code, ...payload } = validResetPassword;
     const { error } = resetPasswordSchema.validate(payload);
     expect(error).toBeDefined();
   });
 
-  it('debe rechazar token vacio', () => {
-    const { error } = resetPasswordSchema.validate({ ...validResetPassword, token: '' });
+  it('debe rechazar codigo vacio', () => {
+    const { error } = resetPasswordSchema.validate({ ...validResetPassword, code: '' });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar codigo que no son 6 digitos', () => {
+    const { error } = resetPasswordSchema.validate({ ...validResetPassword, code: '123' });
     expect(error).toBeDefined();
   });
 
@@ -103,9 +109,32 @@ describe('resetPasswordSchema', () => {
   });
 });
 
+describe('verifyResetCodeSchema', () => {
+  it('debe aceptar un payload valido', () => {
+    const { error } = verifyResetCodeSchema.validate({ email: 'test@example.com', code: '123456' });
+    expect(error).toBeUndefined();
+  });
+
+  it('debe rechazar codigo ausente', () => {
+    const { error } = verifyResetCodeSchema.validate({ email: 'test@example.com' });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar codigo con formato invalido', () => {
+    const { error } = verifyResetCodeSchema.validate({ email: 'test@example.com', code: 'abc123' });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar email invalido', () => {
+    const { error } = verifyResetCodeSchema.validate({ email: 'no-es-email', code: '123456' });
+    expect(error).toBeDefined();
+  });
+});
+
 describe('default export', () => {
-  it('debe contener requestResetSchema y resetPasswordSchema', () => {
+  it('debe contener requestResetSchema, verifyResetCodeSchema y resetPasswordSchema', () => {
     expect(recoverySchemas.requestResetSchema).toBe(requestResetSchema);
+    expect(recoverySchemas.verifyResetCodeSchema).toBe(verifyResetCodeSchema);
     expect(recoverySchemas.resetPasswordSchema).toBe(resetPasswordSchema);
   });
 });

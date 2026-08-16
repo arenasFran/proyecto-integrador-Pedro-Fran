@@ -25,7 +25,7 @@ describeIfMongo('Auth routes — rate limiting de recuperación de contraseña (
 
     const blockedResetPassword = await request(app)
       .post('/auth/reset-password')
-      .send({ token: 'x'.repeat(64), newPassword: 'Abcd1234' });
+      .send({ email: 'nadie@example.com', code: '123456', password: 'Abcd1234', repeatPassword: 'Abcd1234' });
     expect(blockedResetPassword.status).toBe(429);
   });
 });

@@ -109,6 +109,17 @@ export class CreateAppointmentUseCase {
       dto.clientId = unregisteredClient.id;
     }
 
+    // No-Show: un cliente sancionado por inasistencias no puede reservar
+    if (dto.clientId) {
+      const client = await this.clientRepository.findById(dto.clientId);
+      if (client?.sancionado) {
+        throw new AppError(
+          'Estás sancionado por inasistencias y no podés reservar turnos. Contactate con la barbería.',
+          403
+        );
+      }
+    }
+
     const now = getNowDateInTimezone();
     const paymentMethod = dto.paymentMethod || 'local';
     const creationActor = await this.resolveCreationActor(dto);

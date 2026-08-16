@@ -75,8 +75,12 @@ export class AppointmentController {
     try {
       const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; paymentStatus?: PaymentStatus; searchTerm?: string; page?: number; limit?: number; sortBy?: 'date' | 'startTime'; sortDir?: 'asc' | 'desc' } = {};
 
-      if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
+      if (req.user?.kind === 'Admin') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
+        if (req.query.clientId) query.clientId = req.query.clientId as string;
+      } else if (req.user?.kind === 'Empleado') {
+        // El barbero solo ve los turnos propios: ignorar cualquier barberId enviado.
+        query.barberId = req.user._id;
         if (req.query.clientId) query.clientId = req.query.clientId as string;
       } else {
         query.clientId = req.user?._id;
@@ -141,8 +145,11 @@ export class AppointmentController {
     try {
       const query: { barberId?: string; clientId?: string; date?: string; dateFrom?: string; dateTo?: string; status?: AppointmentStatus; paymentMethod?: string; paymentStatus?: PaymentStatus; searchTerm?: string } = {};
 
-      if (req.user?.kind === 'Admin' || req.user?.kind === 'Empleado') {
+      if (req.user?.kind === 'Admin') {
         if (req.query.barberId) query.barberId = req.query.barberId as string;
+        if (req.query.clientId) query.clientId = req.query.clientId as string;
+      } else if (req.user?.kind === 'Empleado') {
+        query.barberId = req.user._id;
         if (req.query.clientId) query.clientId = req.query.clientId as string;
       } else {
         query.clientId = req.user?._id;
@@ -175,8 +182,9 @@ export class AppointmentController {
         throw new AppError('Turno no encontrado.', 404);
       }
       const isOwner = appointment.clientId === req.user!._id;
-      const isAdminOrBarber = req.user!.kind === 'Admin' || req.user!.kind === 'Empleado';
-      if (!isOwner && !isAdminOrBarber) {
+      const isAdmin = req.user!.kind === 'Admin';
+      const isBarberOwner = req.user!.kind === 'Empleado' && appointment.barberId === req.user!._id;
+      if (!isOwner && !isAdmin && !isBarberOwner) {
         throw new AppError('No tenés permiso para ver este turno.', 403);
       }
 

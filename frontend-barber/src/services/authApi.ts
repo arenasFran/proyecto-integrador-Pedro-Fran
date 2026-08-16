@@ -10,6 +10,7 @@ import type {
   RefreshTokenResponse,
   RegisterData,
   RequestResetData,
+  VerifyResetCodeData,
   ResetPasswordData,
   UserProfile,
 } from './auth.service';
@@ -95,6 +96,14 @@ export const authApi = createApi({
       }),
     }),
 
+    verifyResetCode: builder.mutation<{ message: string }, VerifyResetCodeData>({
+      query: (data) => ({
+        url: '/auth/verify-reset-code',
+        method: 'POST',
+        data,
+      }),
+    }),
+
     changePassword: builder.mutation<{ message: string }, { currentPassword: string; newPassword: string; newPasswordConfirmation: string }>({
       query: (data) => ({
         url: '/api/users/me/password',
@@ -116,6 +125,7 @@ export const {
   useRegisterMutation,
   useRequestResetMutation,
   useResetPasswordMutation,
+  useVerifyResetCodeMutation,
   useLogoutMutation,
   useChangePasswordMutation,
 } = authApi;

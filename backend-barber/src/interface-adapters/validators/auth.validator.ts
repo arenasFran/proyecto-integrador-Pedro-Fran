@@ -23,6 +23,12 @@ export const registerSchema = Joi.object({
   name: Joi.string().min(3).required(),
   lastname: Joi.string().min(3).required(),
   phone: Joi.string().required(),
+  termsVersion: Joi.string().required().messages({
+    'any.required': 'Debés aceptar los Términos y Condiciones',
+  }),
+  privacyVersion: Joi.string().required().messages({
+    'any.required': 'Debés aceptar la Política de Privacidad',
+  }),
 });
 
 export const loginSchema = Joi.object({

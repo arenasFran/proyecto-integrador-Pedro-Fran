@@ -32,6 +32,11 @@ const toClientEntity = (doc: Record<string, any>): Client =>
     consentimientoAnalisisIA: doc.consentimientoAnalisisIA ?? false,
     consentimientoAnalisisIAFecha: doc.consentimientoAnalisisIAFecha ?? null,
     ultimoAnalisisFecha: doc.ultimoAnalisisFecha ?? null,
+    noShowCount: doc.noShowCount ?? 0,
+    sancionado: doc.sancionado ?? false,
+    fechaSancion: doc.fechaSancion ?? null,
+    motivoSancion: doc.motivoSancion ?? null,
+    sancionadoPor: doc.sancionadoPor ?? null,
   });
 
 export class MongoClientRepository {
@@ -138,5 +143,55 @@ export class MongoClientRepository {
       .limit(limit)
       .lean();
     return docs.map(toClientEntity);
+  }
+
+  async incrementarNoShow(clientId: string, session?: mongoose.ClientSession): Promise<void> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return;
+    await ClientModel.findByIdAndUpdate(
+      clientId,
+      { $inc: { noShowCount: 1 } },
+      session ? { session } : {}
+    );
+  }
+
+  async aplicarSancion(
+    clientId: string,
+    data: { motivo: string; sancionadoPor: string },
+    session?: mongoose.ClientSession
+  ): Promise<Client | null> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return null;
+    const doc = await ClientModel.findByIdAndUpdate(
+      clientId,
+      {
+        $set: {
+          sancionado: true,
+          fechaSancion: new Date(),
+          motivoSancion: data.motivo,
+          sancionadoPor: data.sancionadoPor,
+        },
+      },
+      { returnDocument: 'after', ...(session ? { session } : {}) }
+    ).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
+  async levantarSancion(clientId: string, session?: mongoose.ClientSession): Promise<Client | null> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return null;
+    const doc = await ClientModel.findByIdAndUpdate(
+      clientId,
+      {
+        $set: {
+          sancionado: false,
+          fechaSancion: null,
+          motivoSancion: null,
+          sancionadoPor: null,
+          noShowCount: 0,
+        },
+      },
+      { returnDocument: 'after', ...(session ? { session } : {}) }
+    ).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
   }
 }

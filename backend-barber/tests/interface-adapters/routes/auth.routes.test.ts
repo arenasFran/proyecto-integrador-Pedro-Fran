@@ -44,6 +44,8 @@ describeIfMongo('Auth routes', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
+      termsVersion: '1.0',
+      privacyVersion: '1.0',
     });
 
     expect(response.status).toBe(201);
@@ -121,27 +123,78 @@ describeIfMongo('Auth routes', () => {
       authProvider: 'local',
     });
 
-    const token = 'token-reset';
-    const tokenHash = hashService.sha256(token);
+    const code = '123456';
+    const codeHash = hashService.sha256(code);
     const expiresAt = new Date(Date.now() + 60 * 1000);
 
     await PasswordReset.create({
       userId: user._id,
-      tokenHash,
+      tokenHash: codeHash,
       expiresAt,
       used: false,
     });
 
     const response = await request(app).post('/auth/reset-password').send({
-      token,
+      email: 'reset2@example.com',
+      code,
       password: 'Abcd1234',
       repeatPassword: 'Abcd1234',
-      email: 'reset2@example.com',
     });
 
     expect(response.status).toBe(200);
     const updated = await RegisteredClient.findById(user._id);
     expect(updated?.password).not.toBeNull();
+  });
+
+  it('debe verificar un código de reset válido sin consumirlo', async () => {
+    const user = await RegisteredClient.create({
+      email: 'reset3@example.com',
+      password: await bcrypt.hash('123456', 10),
+      name: 'Juan',
+      lastname: 'Perez',
+      phone: '777777',
+      authProvider: 'local',
+    });
+
+    const code = '654321';
+    const codeHash = hashService.sha256(code);
+    const expiresAt = new Date(Date.now() + 60 * 1000);
+
+    await PasswordReset.create({
+      userId: user._id,
+      tokenHash: codeHash,
+      expiresAt,
+      used: false,
+    });
+
+    const response = await request(app).post('/auth/verify-reset-code').send({
+      email: 'reset3@example.com',
+      code,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.message).toMatch(/verificado/i);
+
+    const stillValid = await PasswordReset.findOne({ tokenHash: codeHash });
+    expect(stillValid?.used).toBe(false);
+  });
+
+  it('debe rechazar un código de reset inválido', async () => {
+    await RegisteredClient.create({
+      email: 'reset4@example.com',
+      password: await bcrypt.hash('123456', 10),
+      name: 'Juan',
+      lastname: 'Perez',
+      phone: '888888',
+      authProvider: 'local',
+    });
+
+    const response = await request(app).post('/auth/verify-reset-code').send({
+      email: 'reset4@example.com',
+      code: '000000',
+    });
+
+    expect(response.status).toBe(400);
   });
 
   it('debe autenticar con Google (nuevo usuario → requiresProfileCompletion)', async () => {

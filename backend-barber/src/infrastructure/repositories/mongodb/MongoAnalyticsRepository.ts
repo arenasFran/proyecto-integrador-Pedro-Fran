@@ -836,6 +836,10 @@ export class MongoAnalyticsRepository {
           membershipStatus: {
             $cond: [{ $gt: [{ $size: '$membership' }, 0] }, 'active', null],
           },
+          noShowCount: { $ifNull: ['$noShowCount', 0] },
+          sancionado: { $ifNull: ['$sancionado', false] },
+          fechaSancion: { $ifNull: ['$fechaSancion', null] },
+          motivoSancion: { $ifNull: ['$motivoSancion', null] },
         },
       },
       { $sort: { lastVisit: -1, registeredAt: -1 } },

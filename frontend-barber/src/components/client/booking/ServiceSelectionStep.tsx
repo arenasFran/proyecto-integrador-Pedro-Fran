@@ -51,7 +51,6 @@ export const ServiceSelectionStep: React.FC<ServiceSelectionStepProps> = ({
   return (
     <AnimatedContainer animation="fadeIn" duration={0.3}>
       <div data-testid="service-selection-step" data-count={services.length} className="space-y-5 p-5 sm:p-6">
-        <span className="sr-only" aria-hidden="true">Seleccioná el servicio que querés</span>
         {error && services.length > 0 && <div className="rounded-[12px] border border-red-500/20 bg-red-500/[0.05] px-3 py-2"><p className="text-[12px] text-red-400">{error}</p></div>}
         {services.length === 0 ? (
           <div className="rounded-[16px] border border-[#2A2A2A] bg-[#111111] p-6 text-center">

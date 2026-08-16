@@ -46,7 +46,7 @@ const services = [
     name: 'Corte clásico',
     desc: 'Tijera y máquina, lavado incluido y una terminación prolija.',
     price: '$ 490',
-    image: '/corte%20de%20pelo.jpeg',
+    image: '/service-hair.webp',
     position: '50% 25%',
   },
   {
@@ -54,7 +54,7 @@ const services = [
     name: 'Corte a máquina',
     desc: 'Rápido, parejo y bien definido para salir listo en poco tiempo.',
     price: '$ 350',
-    image: '/corte%20a%20maquina.png',
+    image: '/service-machine.webp',
     position: '50% 50%',
   },
   {
@@ -62,7 +62,7 @@ const services = [
     name: 'Barba',
     desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
     price: '$ 250',
-    image: '/corte%20de%20barba.jpeg',
+    image: '/service-beard.webp',
     position: '35% 35%',
   },
 ];
@@ -211,7 +211,7 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
   >
     <div className="catalog-card-media">
       {product.imageUrl ? (
-        <img src={product.imageUrl} alt={product.name} loading="lazy" />
+        <img src={product.imageUrl} alt={product.name} width={640} height={475} loading="lazy" decoding="async" />
       ) : (
         <FiGrid aria-hidden="true" />
       )}
@@ -229,7 +229,7 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
       <p>{product.description}</p>
       {gallery.length > 1 && (
         <div className="catalog-card-gallery" aria-label={`Fotos de ${product.name}`}>
-          {gallery.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" loading="lazy" />)}
+          {gallery.map((image, index) => <img key={`${image}-${index}`} src={image} alt="" width={160} height={119} loading="lazy" decoding="async" />)}
         </div>
       )}
       <div className="catalog-card-footer">
@@ -262,9 +262,13 @@ export const LandingPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const landingRef = useRef<HTMLDivElement>(null);
   const contactRef = useRef<HTMLElement>(null);
+  const servicesSectionRef = useRef<HTMLElement>(null);
+  const shopSectionRef = useRef<HTMLElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const sectionMenuRef = useRef<HTMLDivElement>(null);
   const contactInView = useInView(contactRef, { once: true, amount: 0.2 });
+  const servicesInView = useInView(servicesSectionRef, { once: true, amount: 0.05 });
+  const shopInView = useInView(shopSectionRef, { once: true, amount: 0.05 });
 
   const token = getAccessToken();
   const tokenUser = getTokenUser(token);
@@ -325,26 +329,24 @@ export const LandingPage: React.FC = () => {
       ],
     },
   ];
-  const { data: productsData, isLoading: productsLoading } = useGetPublicCatalogQuery({
+  const { data: productsData, isLoading: productsLoading, isError: productsError, refetch: refetchProducts } = useGetPublicCatalogQuery({
     category: selectedCategory || undefined,
     limit: 100,
-  });
-  const { data: categoriesData } = useGetCategoriesQuery();
-  const { data: servicesData } = useGetServicesQuery();
+  }, { skip: !shopInView });
+  const { data: categoriesData } = useGetCategoriesQuery(undefined, { skip: !shopInView });
+  const { data: servicesData } = useGetServicesQuery(undefined, { skip: !servicesInView });
   const products = productsData?.products ?? [];
   const categories = categoriesData?.categories ?? [];
-  const landingServices = services.map((fallbackService, index) => {
-    const service = servicesData?.[index];
-    if (!service) return fallbackService;
-
-    return {
-      ...fallbackService,
-      name: service.name || fallbackService.name,
-      desc: service.description || fallbackService.desc,
-      price: typeof service.price === 'number' ? formatCurrency(service.price) : fallbackService.price,
-      image: service.imageUrl || fallbackService.image,
-    };
-  });
+  const landingServices = servicesData
+    ? servicesData.map((service) => ({
+      number: '',
+      name: service.name,
+      desc: service.description,
+      price: formatCurrency(service.price),
+      image: service.imageUrl || '/hero-mobile-horizontal.webp',
+      position: '50% 50%',
+    }))
+    : services;
   const motionReveal = reduceMotion
     ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
     : revealVariants;
@@ -363,7 +365,8 @@ export const LandingPage: React.FC = () => {
         const pageProgress = Math.min(window.scrollY / maxPageScroll, 1);
         landingRef.current?.style.setProperty('--landing-scroll', String(viewportProgress));
         landingRef.current?.style.setProperty('--landing-scroll-progress', String(pageProgress));
-        setHeaderScrolled(window.scrollY > 24);
+      const nextHeaderScrolled = window.scrollY > 24;
+      setHeaderScrolled((current) => current === nextHeaderScrolled ? current : nextHeaderScrolled);
       });
     };
     const handleClickOutside = (event: MouseEvent) => {
@@ -409,6 +412,7 @@ export const LandingPage: React.FC = () => {
     }
     dispatch(logout());
     setDropdownOpen(false);
+    setMobileMenuOpen(false);
   };
 
   return (
@@ -417,7 +421,7 @@ export const LandingPage: React.FC = () => {
         <div className="landing-scroll-progress" aria-hidden="true" />
         <div className="landing-container landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="Barbería SA, inicio">
-            <img src="/logo-barberia-notittle.PNG" alt="" className="landing-brand-mark" />
+            <img src="/logo-barberia-notittle.webp" alt="" width={50} height={50} className="landing-brand-mark" decoding="async" />
             <span>
               <strong>
                 <StrokeText
@@ -626,6 +630,17 @@ export const LandingPage: React.FC = () => {
                 </>
               )}
 
+              {isAuthenticated && !isStaffUser && (
+                <>
+                  <button type="button" onClick={() => goTo('/mis-turnos')}>Mis turnos</button>
+                  <button type="button" onClick={() => goTo('/reservar')}>Reservar turno</button>
+                  <button type="button" onClick={() => goTo('/tienda')}>Tienda</button>
+                  <button type="button" onClick={() => goTo('/mis-ordenes')}>Mis órdenes</button>
+                  <button type="button" onClick={() => goTo('/mi-membresia')}>Mi membresía</button>
+                  <button type="button" onClick={() => goTo('/perfil')}>Perfil</button>
+                </>
+              )}
+
               {(!isAuthenticated || (!isAdmin && !isEmployee)) && (
                 ['servicios', 'tienda', 'nosotros', 'faqs', 'contacto'].map((id) => (
                   <button type="button" key={id} onClick={() => scrollTo(id)}>
@@ -639,6 +654,10 @@ export const LandingPage: React.FC = () => {
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Iniciar sesión</Link>
                   <Link to="/register" onClick={() => setMobileMenuOpen(false)}>Crear cuenta</Link>
                 </>
+              )}
+
+              {isAuthenticated && (
+                <button type="button" className="is-danger" onClick={handleLogout}>Cerrar sesión</button>
               )}
 
               {!isStaffUser && !isAuthenticated && (
@@ -769,8 +788,9 @@ export const LandingPage: React.FC = () => {
             
               <div className="hero-image-frame">
                 <picture>
-                  <source media="(max-width: 640px)" srcSet="/hero-mobile.jpeg" />
-                  <img src="/hero.png" alt="Interior y ambiente de Barbería SA" />
+                  <source media="(max-width: 640px)" type="image/webp" srcSet="/hero-mobile-480.webp 480w, /hero-mobile.webp 768w" sizes="(max-width: 640px) calc(100vw - 32px), 560px" />
+                  <source type="image/webp" srcSet="/hero-640.webp 640w, /hero.webp 1200w" sizes="(max-width: 1180px) 50vw, 590px" />
+                  <img src="/hero.png" alt="Interior y ambiente de Barbería SA" width={1672} height={941} fetchPriority="high" decoding="async" />
                 </picture>
                 <div className="hero-image-shade" />
            
@@ -800,7 +820,7 @@ export const LandingPage: React.FC = () => {
 
         </section>
 
-        <section id="servicios" className="landing-section services-section">
+        <section id="servicios" ref={servicesSectionRef} className="landing-section services-section">
           <div className="landing-container">
             <motion.div className="section-heading-split" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <div className="section-heading">
@@ -809,7 +829,10 @@ export const LandingPage: React.FC = () => {
               </div>
               <div className="section-heading-note services-heading-note">
                 <div className="services-heading-media">
-                  <img src="/hero-mobile-horizontal.jpeg" alt="Interior de Barbería SA" loading="lazy" />
+                  <picture>
+                    <source type="image/webp" srcSet="/hero-mobile-horizontal.webp" />
+                    <img src="/hero-mobile-horizontal.jpeg" alt="Interior de Barbería SA" width={1536} height={1024} loading="lazy" decoding="async" />
+                  </picture>
                   <div className="services-heading-media-copy">
                     <span className="services-heading-media-kicker">Con cada<br />servicio...</span>
                     <strong>
@@ -833,7 +856,7 @@ export const LandingPage: React.FC = () => {
               {landingServices.map((service, index) => (
                 <motion.article
                   className="service-card"
-                  key={service.name}
+                  key={`${service.name}-${index}`}
                   variants={motionItem}
                   initial="hidden"
                   whileInView="visible"
@@ -842,7 +865,7 @@ export const LandingPage: React.FC = () => {
                   transition={reduceMotion ? { duration: 0 } : { delay: index * 0.08 }}
                 >
                   <div className="service-card-media">
-                    <img src={service.image} alt={service.name} style={{ objectPosition: service.position }} loading="lazy" />
+                    <img src={service.image} alt={service.name} width={760} height={1020} style={{ objectPosition: service.position }} loading="lazy" decoding="async" />
                   </div>
                   <div className="service-card-content">
                     <div className="service-card-title-row"><h3>{service.name}</h3><span>{service.price}</span></div>
@@ -859,7 +882,10 @@ export const LandingPage: React.FC = () => {
           <div className="landing-container about-grid">
             <motion.div className="about-visual" initial={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.7 }}>
               <div className="about-image-frame">
-                <img src="/ChatGPT%20Image%2015%20ago%202026,%2020_48_25.png" alt="Fachada de Barbería SA" loading="lazy" />
+                <picture>
+                  <source type="image/webp" srcSet="/barbershop-facade.webp" />
+                  <img src="/ChatGPT%20Image%2015%20ago%202026,%2020_48_25.png" alt="Fachada de Barbería SA" width={941} height={1672} loading="lazy" decoding="async" />
+                </picture>
                 <div className="about-image-shade" />
               </div>
               <div className="about-info-card">
@@ -978,7 +1004,7 @@ export const LandingPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="tienda" className="landing-section shop-section">
+        <section id="tienda" ref={shopSectionRef} className="landing-section shop-section">
           <div className="landing-container">
             <motion.div className="catalog-heading" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
               <div>
@@ -1000,6 +1026,13 @@ export const LandingPage: React.FC = () => {
 
             {productsLoading ? (
               <div className="catalog-state">Cargando catálogo...</div>
+            ) : productsError ? (
+              <div className="catalog-state">
+                <p>No pudimos cargar el catálogo.</p>
+                <button type="button" className="landing-button landing-button-secondary" onClick={() => { void refetchProducts(); }}>
+                  Reintentar
+                </button>
+              </div>
             ) : products.length > 0 ? (
               <div className="catalog-grid">
                 {products.map((product) => <LandingProductCard key={product.id} product={product} isAuthenticated={isAuthenticated} />)}
@@ -1015,7 +1048,7 @@ export const LandingPage: React.FC = () => {
       <footer className="landing-footer">
         <div className="landing-container">
           <div className="landing-footer-main">
-            <div><Link to="/" className="landing-brand"><img src="/logo-barberia.PNG" alt="" className="landing-brand-mark" /><span><strong>Barbería SA</strong><small>Oficio de barrio</small></span></Link><p>Oficio de barbero, agenda de hoy. Reservá tu turno en menos de un minuto.</p></div>
+            <div><Link to="/" className="landing-brand"><img src="/logo-barberia.webp" alt="" width={50} height={50} className="landing-brand-mark" decoding="async" /><span><strong>Barbería SA</strong><small>Oficio de barrio</small></span></Link><p>Oficio de barbero, agenda de hoy. Reservá tu turno en menos de un minuto.</p></div>
             <div><h3>Navegar</h3><button type="button" onClick={() => scrollTo('servicios')}>Servicios</button><button type="button" onClick={() => scrollTo('tienda')}>Tienda</button><button type="button" onClick={() => scrollTo('nosotros')}>Nosotros</button><button type="button" onClick={() => scrollTo('contacto')}>Contacto</button></div>
             <div><h3>Seguinos</h3><a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer">Instagram <FiArrowUpRight /></a><a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer">WhatsApp <FiArrowUpRight /></a></div>
           </div>

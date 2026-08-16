@@ -56,15 +56,12 @@ describe('ServiceSelectionStep', () => {
     expect(screen.getByText('No hay servicios disponibles')).toBeInTheDocument();
   });
 
-  it('renders services list when services provided', () => {
+  it('renders services list when services are provided', () => {
     render(<ServiceSelectionStep {...defaultProps} />);
     expect(screen.getByText('Corte')).toBeInTheDocument();
     expect(screen.getByText('Barba')).toBeInTheDocument();
     expect(screen.getByText('$1500')).toBeInTheDocument();
     expect(screen.getByText('$800')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Seleccioná el servicio que querés/i)
-    ).toBeInTheDocument();
   });
 
   it('renders error banner alongside services when error and services exist', () => {

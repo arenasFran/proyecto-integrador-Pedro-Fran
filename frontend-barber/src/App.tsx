@@ -62,7 +62,26 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       dispatch(setInitialized());
     };
 
-    init();
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
+    const scheduleInit = () => {
+      if (window.location.pathname !== '/') {
+        void init();
+        return;
+      }
+
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(() => void init(), { timeout: 1200 });
+      } else {
+        timeoutId = window.setTimeout(() => void init(), 0);
+      }
+    };
+
+    scheduleInit();
+    return () => {
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, [dispatch]);
 
   useEffect(() => {

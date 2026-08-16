@@ -231,6 +231,26 @@ describe('BarberController', () => {
       });
       expect(getAvailableSlots.execute).toHaveBeenCalledWith('barber-2', expect.any(String));
     });
+
+    it('debe conservar los barberos disponibles si falla la disponibilidad de otro', async () => {
+      const available = makeBarberEntity({ id: 'barber-1' });
+      const failed = makeBarberEntity({ id: 'barber-2' });
+      barberRepository.findAllBarbers.mockResolvedValue([available, failed]);
+      getAvailableSlots.execute.mockImplementation(async (barberId) => {
+        if (barberId === 'barber-2') throw new Error('db down');
+        return { date: '2026-01-01', slots: ['09:00'] };
+      });
+
+      const req = createMockReq();
+      const res = createMockRes();
+
+      await controller.getAllPublic(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        barbers: [expect.objectContaining({ id: 'barber-1' })],
+      });
+    });
   });
 
   describe('getById', () => {

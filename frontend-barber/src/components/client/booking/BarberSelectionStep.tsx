@@ -57,7 +57,6 @@ export const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
     <AnimatedContainer animation="fadeIn" duration={0.3} delay={0.4}>
       <div data-testid="barber-selection-step" data-count={barbers.length} className="space-y-6 p-5 sm:p-6">
         {onSelectAny && <button type="button" tabIndex={-1} className="sr-only" onClick={onSelectAny}>{anyBarber ? 'Sin preferencia (elegimos el mejor horario)' : 'No tengo preferencia'}</button>}
-        <span className="sr-only" aria-hidden="true">Elegí tu barbero preferido</span>
         {error && barbers.length > 0 && (
           <div className="rounded-[12px] border border-red-500/20 bg-red-500/[0.05] px-3 py-2">
             <p className="text-[12px] text-red-400">{error}</p>

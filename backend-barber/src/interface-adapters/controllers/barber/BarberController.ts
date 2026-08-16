@@ -78,12 +78,22 @@ export class BarberController {
     try {
       const barbers = await this.barberRepository.findAllBarbers();
       const activeBarbers = barbers.filter((b) => b.isActive);
-      const availability = await Promise.all(
+      const availabilityResults = await Promise.allSettled(
         activeBarbers.map(async (barber) => ({
           barber,
           hasBookableSlot: await this.hasBookableSlot(barber),
         }))
       );
+      const availability = availabilityResults.flatMap((result, index) => {
+        if (result.status === 'fulfilled') return [result.value];
+        console.error(`[BarberController] No se pudo consultar disponibilidad de ${activeBarbers[index].id}:`, result.reason);
+        return [];
+      });
+
+      if (activeBarbers.length > 0 && availability.length === 0) {
+        throw new Error('No se pudo consultar la disponibilidad de los barberos');
+      }
+
       const publicBarbers = availability
         .filter(({ hasBookableSlot }) => hasBookableSlot)
         .map(({ barber: b }) => ({

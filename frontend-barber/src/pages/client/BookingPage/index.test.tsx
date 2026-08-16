@@ -180,12 +180,12 @@ describe('BookingPage', () => {
     sessionStorage.clear();
   });
 
-  it('renders heading and description', () => {
+  it('renders the booking progress and first step', () => {
     mockReduxState = buildState();
     renderPage();
 
-    expect(screen.getByText('Agendá tu cita en segundos')).toBeInTheDocument();
-    expect(screen.getByText(/Elegí barbero, servicio y horario/i)).toBeInTheDocument();
+    expect(screen.getByText('Tu barbero')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Barbero, actual' })).toBeInTheDocument();
   });
 
   it('renders only the active barber step by default', () => {
@@ -299,6 +299,17 @@ describe('BookingPage', () => {
 
     const overlay = screen.getByTestId('client-overlay');
     expect(overlay).toHaveAttribute('data-open', 'true');
+  });
+
+  it('clears the booking flow when leaving the page', () => {
+    mockReduxState = buildState();
+    const { unmount } = renderPage();
+
+    unmount();
+
+    expect(mockDispatch).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'booking/resetBookingFlow' })
+    );
   });
 
   it('shows success modal when submitSuccess is true', () => {

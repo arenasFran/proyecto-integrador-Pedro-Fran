@@ -32,11 +32,9 @@ describe('DateTimeStep', () => {
     mockDispatch.mockClear();
   });
 
-  it('renders calendar and time slot grid with prompt', () => {
+  it('renders calendar and time slot grid', () => {
     render(<DateTimeStep {...defaultProps} />);
-    expect(
-      screen.getByText(/Elegí la fecha y el horario/i)
-    ).toBeInTheDocument();
+    expect(screen.getByTestId('datetime-step')).toBeInTheDocument();
     expect(screen.getByText('Horarios')).toBeInTheDocument();
     expect(screen.getByText(/2026/)).toBeInTheDocument();
   });

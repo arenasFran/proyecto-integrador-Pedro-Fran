@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { FiCalendar, FiCheckCircle, FiScissors, FiUser } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
@@ -7,12 +7,14 @@ import { AccordionStep, BarberSelectionStep, ClientDataOverlay, DateTimeStep, Se
 import { StepIndicator as BookingProgress } from '../../../components/client/booking/StepIndicator';
 import { AppFooter } from '../../../components/common';
 import PaymentModal from '../../../components/payment/PaymentModal';
+import { getAccessToken } from '../../../services/api';
 import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchPublicBarbers, resetBooking, restoreBookingFlow, setClientData, setCurrentStep, setPaymentMethod, setSelectedBarber, setSelectedDate, setSelectedService, setSelectedTime, setServices, submitAppointment } from '../../../store/slices/bookingSlice';
-import type { BarberPublic, BookingStep, PaymentMethod, Service } from '../../../types/booking';
+import { fetchPublicBarbers, resetBooking, resetBookingFlow, restoreBookingFlow, setClientData, setCurrentStep, setPaymentMethod, setSelectedBarber, setSelectedDate, setSelectedService, setSelectedTime, setServices, submitAppointment } from '../../../store/slices/bookingSlice';
+import type { BarberPublic, BookingStep, PaymentMethod } from '../../../types/booking';
 import { formatDate } from '../../../utils/formatDate';
+import { getTokenUser } from '../../../utils/token';
 
 const getTodayString = (): string => {
   const d = new Date();
@@ -21,36 +23,81 @@ const getTodayString = (): string => {
 
 const areStepsComplete = (barber: unknown, service: unknown, date: unknown, time: unknown): boolean => Boolean(barber) && Boolean(service) && Boolean(date) && Boolean(time);
 
-const BOOKING_DRAFT_STORAGE_KEY = 'barber-booking-draft';
+const BOOKING_DRAFT_STORAGE_PREFIX = 'barber-booking-draft:v2';
+const LEGACY_BOOKING_DRAFT_STORAGE_KEY = 'barber-booking-draft';
+const BOOKING_DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
 
 type PersistedBookingDraft = {
   flow: {
     currentStep: BookingStep;
-    selectedBarber: BarberPublic | null;
-    selectedService: Service | null;
+    selectedBarberId: string | null;
+    selectedServiceId: string | null;
     selectedDate: string | null;
     selectedTime: string | null;
-    clientName: string;
-    clientLastname: string;
-    clientPhone: string;
-    clientEmail: string;
     paymentMethod: PaymentMethod;
   };
   showClientForm: boolean;
+  savedAt: number;
 };
 
-const readBookingDraft = (): PersistedBookingDraft | null => {
+const isRecord = (value: unknown): value is Record<string, unknown> => Boolean(value) && typeof value === 'object';
+
+const isNullableString = (value: unknown): value is string | null => value === null || typeof value === 'string';
+
+const isBookingStep = (value: unknown): value is BookingStep => value === 'barber' || value === 'service' || value === 'datetime';
+
+const isPaymentMethod = (value: unknown): value is PaymentMethod => value === 'local' || value === 'online' || value === 'memberPass';
+
+const getBookingDraftStorageKey = (): string => {
+  const tokenUser = getTokenUser(getAccessToken());
+  return `${BOOKING_DRAFT_STORAGE_PREFIX}:${tokenUser?.id ?? 'guest'}`;
+};
+
+const readBookingDraft = (storageKey: string): PersistedBookingDraft | null => {
   try {
-    const stored = sessionStorage.getItem(BOOKING_DRAFT_STORAGE_KEY);
+    const stored = sessionStorage.getItem(storageKey);
     if (!stored) return null;
     const parsed: unknown = JSON.parse(stored);
-    if (!parsed || typeof parsed !== 'object') return null;
-    const draft = parsed as { flow?: unknown; showClientForm?: unknown };
-    if (!draft.flow || typeof draft.flow !== 'object' || typeof draft.showClientForm !== 'boolean') return null;
-    return parsed as PersistedBookingDraft;
+    if (!isRecord(parsed) || !isRecord(parsed.flow)) return null;
+
+    const flow = parsed.flow;
+    if (
+      !isBookingStep(flow.currentStep) ||
+      !isNullableString(flow.selectedBarberId) ||
+      !isNullableString(flow.selectedServiceId) ||
+      !isNullableString(flow.selectedDate) ||
+      !isNullableString(flow.selectedTime) ||
+      !isPaymentMethod(flow.paymentMethod) ||
+      typeof parsed.showClientForm !== 'boolean' ||
+      typeof parsed.savedAt !== 'number' ||
+      Date.now() - parsed.savedAt > BOOKING_DRAFT_TTL_MS
+    ) return null;
+
+    return {
+      flow: {
+        currentStep: flow.currentStep,
+        selectedBarberId: flow.selectedBarberId,
+        selectedServiceId: flow.selectedServiceId,
+        selectedDate: flow.selectedDate,
+        selectedTime: flow.selectedTime,
+        paymentMethod: flow.paymentMethod,
+      },
+      showClientForm: parsed.showClientForm,
+      savedAt: parsed.savedAt,
+    };
   } catch {
     return null;
   }
+};
+
+const isDateInBarberWindow = (date: string, maxAdvanceDays: number): boolean => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const today = new Date(`${getTodayString()}T12:00:00`);
+  const selected = new Date(`${date}T12:00:00`);
+  if (Number.isNaN(selected.getTime())) return false;
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + maxAdvanceDays);
+  return selected >= today && selected <= maxDate;
 };
 
 export const BookingPage: React.FC = () => {
@@ -65,16 +112,64 @@ export const BookingPage: React.FC = () => {
   const hasActiveMembership = activeMembership ? activeMembership.status === 'active' && new Date(activeMembership.endDate) > new Date() : false;
   const remainingCoupons = activeMembership ? Math.max(0, activeMembership.couponsTotal - activeMembership.couponsUsed) : 0;
   const allStepsComplete = areStepsComplete(selectedBarber, selectedService, selectedDate, selectedTime);
-  const [initialDraft] = React.useState<PersistedBookingDraft | null>(readBookingDraft);
-  const [showClientForm, setShowClientForm] = React.useState(initialDraft?.showClientForm ?? allStepsComplete);
+  const bookingDraftStorageKey = getBookingDraftStorageKey();
+  const [initialDraft] = React.useState<PersistedBookingDraft | null>(() => {
+    try {
+      sessionStorage.removeItem(LEGACY_BOOKING_DRAFT_STORAGE_KEY);
+    } catch {
+      // Ignore storage failures in restricted browsers.
+    }
+    return readBookingDraft(bookingDraftStorageKey);
+  });
+  const [showClientForm, setShowClientForm] = React.useState(!initialDraft && allStepsComplete);
   const skipDraftPersistence = React.useRef(true);
+  const draftIdentityRef = React.useRef(bookingDraftStorageKey);
 
-  useLayoutEffect(() => {
-    if (initialDraft) dispatch(restoreBookingFlow(initialDraft.flow));
-  }, [dispatch, initialDraft]);
+  const { data: rtkServices, refetch: refetchServices, isLoading: isLoadingServicesQuery } = useGetServicesQuery();
+
+  useEffect(() => {
+    if (draftIdentityRef.current === bookingDraftStorageKey) return;
+    draftIdentityRef.current = bookingDraftStorageKey;
+    dispatch(resetBookingFlow());
+    setShowClientForm(false);
+  }, [bookingDraftStorageKey, dispatch]);
+
+  useEffect(() => {
+    if (!initialDraft || isLoadingBarbers || isLoadingServicesQuery || !rtkServices) return;
+
+    const draft = initialDraft.flow;
+    const barber = draft.selectedBarberId ? barbers.find((item) => item.id === draft.selectedBarberId && item.isActive) : null;
+    const service = draft.selectedServiceId ? rtkServices.find((item) => item.id === draft.selectedServiceId && item.status === 'active') : null;
+    const hasValidSelection = Boolean(barber && service);
+    const hasValidDate = !draft.selectedDate || (barber ? isDateInBarberWindow(draft.selectedDate, barber.maxAdvanceDays) : false);
+
+    if (!hasValidSelection || !hasValidDate) {
+      dispatch(resetBookingFlow());
+      try {
+        sessionStorage.removeItem(bookingDraftStorageKey);
+      } catch {
+        // Ignore storage failures so booking remains usable.
+      }
+      return;
+    }
+
+    dispatch(restoreBookingFlow({
+      currentStep: draft.currentStep,
+      selectedBarber: barber,
+      selectedService: service,
+      selectedDate: draft.selectedDate,
+      // A stored time must be revalidated against fresh availability.
+      selectedTime: null,
+      paymentMethod: draft.paymentMethod === 'memberPass' ? 'local' : draft.paymentMethod,
+    }));
+  }, [barbers, bookingDraftStorageKey, dispatch, initialDraft, isLoadingBarbers, isLoadingServicesQuery, rtkServices]);
 
   useEffect(() => {
     dispatch(fetchPublicBarbers());
+    return () => {
+      // Do not retain contact data in the global store after leaving booking.
+      dispatch(resetBookingFlow());
+    };
   }, [dispatch]);
 
   useEffect(() => {
@@ -83,27 +178,23 @@ export const BookingPage: React.FC = () => {
       return;
     }
     try {
-      sessionStorage.setItem(BOOKING_DRAFT_STORAGE_KEY, JSON.stringify({
+      sessionStorage.setItem(bookingDraftStorageKey, JSON.stringify({
+        savedAt: Date.now(),
         showClientForm,
         flow: {
           currentStep,
-          selectedBarber,
-          selectedService,
+          selectedBarberId: selectedBarber?.id ?? null,
+          selectedServiceId: selectedService?.id ?? null,
           selectedDate,
           selectedTime,
-          clientName,
-          clientLastname,
-          clientPhone,
-          clientEmail,
           paymentMethod,
         },
       }));
     } catch {
       // Ignore storage failures so booking remains usable in restricted browsers.
     }
-  }, [clientEmail, clientLastname, clientName, clientPhone, currentStep, paymentMethod, selectedBarber, selectedDate, selectedService, selectedTime, showClientForm]);
+  }, [bookingDraftStorageKey, currentStep, paymentMethod, selectedBarber, selectedDate, selectedService, selectedTime, showClientForm]);
 
-  const { data: rtkServices, refetch: refetchServices, isLoading: isLoadingServicesQuery } = useGetServicesQuery();
   useEffect(() => { if (rtkServices) dispatch(setServices(rtkServices)); }, [rtkServices, dispatch]);
   useEffect(() => {
     if (authUser && !clientName && !clientLastname && !clientPhone && !clientEmail) dispatch(setClientData({ name: authUser.name || '', lastname: authUser.lastname || '', phone: authUser.phone || '', email: authUser.email || '' }));
@@ -114,7 +205,7 @@ export const BookingPage: React.FC = () => {
   useEffect(() => {
     if (!submitSuccess) return;
     try {
-      sessionStorage.removeItem(BOOKING_DRAFT_STORAGE_KEY);
+      sessionStorage.removeItem(bookingDraftStorageKey);
     } catch {
       // Ignore storage failures after a successful booking.
     }
@@ -122,7 +213,7 @@ export const BookingPage: React.FC = () => {
       dispatch(resetBooking());
       navigate('/mis-turnos');
     }
-  }, [dispatch, navigate, preferenceId, submitSuccess]);
+  }, [bookingDraftStorageKey, dispatch, navigate, preferenceId, submitSuccess]);
 
   const handleStepToggle = useCallback((step: BookingStep) => {
     if (showClientForm) { setShowClientForm(false); return; }
@@ -182,8 +273,6 @@ export const BookingPage: React.FC = () => {
       <motion.div initial={reduceMotion ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.45, ease: [0.22, 1, 0.36, 1] }} className="relative min-h-screen overflow-hidden bg-[#080808] text-white">
         <div className="pointer-events-none absolute -left-32 top-[-180px] h-[460px] w-[460px] rounded-full bg-[#FF5C00]/[0.045] blur-[110px]" />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-8 sm:pt-12 lg:px-10 lg:pb-28">
-          <span className="sr-only" aria-hidden="true">Agendá tu cita en segundos</span>
-          <span className="sr-only" aria-hidden="true">Elegí barbero, servicio y horario. Nosotros nos ocupamos del resto.</span>
           <motion.div initial={false} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduceMotion ? 0 : 0.38, ease: 'easeOut' }} className="mx-auto mb-6 w-full rounded-[18px] border border-[#242424] bg-[#0D0D0D] px-3 py-3 sm:px-6 sm:py-4"><BookingProgress currentStep={currentStep} completedSteps={[...(selectedBarber ? ['barber' as const] : []), ...(selectedService ? ['service' as const] : []), ...(isStep3Complete ? ['datetime' as const] : [])]} onStepClick={handleStepToggle} /></motion.div>
 
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_310px] lg:gap-8">

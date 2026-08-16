@@ -18,6 +18,8 @@ type FindAllResult = {
   limit: number;
 };
 
+const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 export type ProductCatalogParams = {
   category?: string;
   search?: string;
@@ -79,14 +81,15 @@ export class MongoProductRepository {
     }
 
     if (params.search) {
+      const search = escapeRegex(params.search);
       filter.$or = [
-        { name: { $regex: params.search, $options: 'i' } },
-        { description: { $regex: params.search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
       ];
     }
 
-    const page = params.page || 1;
-    const limit = params.limit || 100;
+    const page = Math.min(Math.max(params.page ?? 1, 1), 10000);
+    const limit = Math.min(Math.max(params.limit ?? 100, 1), 100);
     const skip = (page - 1) * limit;
 
     const [docs, total] = await Promise.all([

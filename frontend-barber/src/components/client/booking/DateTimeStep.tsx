@@ -13,6 +13,7 @@ interface DateTimeStepProps {
   selectedTime: string | null;
   availableSlots: string[];
   slotsReason?: SlotsReason;
+  slotsError?: string | null;
   isLoadingSlots: boolean;
   onSelectDate: (date: string) => void;
   onSelectTime: (time: string) => void;
@@ -26,6 +27,7 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
   selectedTime,
   availableSlots,
   slotsReason,
+  slotsError,
   isLoadingSlots,
   onSelectDate,
   onSelectTime,
@@ -35,32 +37,17 @@ export const DateTimeStep: React.FC<DateTimeStepProps> = ({
   useEffect(() => {
     if (selectedDate && barberId) {
       const promise = dispatch(fetchAvailableSlots({ barberId, date: selectedDate }));
-      return () => {
-        promise.abort();
-      };
+      return () => promise.abort();
     }
   }, [dispatch, barberId, selectedDate]);
 
   return (
-    <AnimatedContainer animation="fadeInUp">
-      <div className="p-6 space-y-5">
-        <p className="text-[13px] text-[#8A8A8A]">Elegí la fecha y el horario</p>
-        <div className="grid gap-4 md:grid-cols-[1fr_1.2fr]">
-          <Calendar
-            selectedDate={selectedDate}
-            onSelectDate={onSelectDate}
-            maxAdvanceDays={maxAdvanceDays}
-            schedule={schedule}
-          />
-
-          <TimeSlotGrid
-            slots={availableSlots}
-            selectedTime={selectedTime}
-            selectedDate={selectedDate}
-            isLoading={isLoadingSlots}
-            reason={slotsReason}
-            onSelect={onSelectTime}
-          />
+    <AnimatedContainer animation="fadeIn" duration={0.3}>
+      <div data-testid="datetime-step" data-barber-id={barberId} data-max-days={maxAdvanceDays} className="p-5 sm:p-6">
+        <span className="sr-only" aria-hidden="true">Elegí la fecha y el horario</span>
+        <div className="grid gap-3 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] md:items-stretch">
+          <Calendar selectedDate={selectedDate} onSelectDate={onSelectDate} maxAdvanceDays={maxAdvanceDays} schedule={schedule} />
+          <TimeSlotGrid slots={availableSlots} selectedTime={selectedTime} selectedDate={selectedDate} isLoading={isLoadingSlots} error={Boolean(slotsError)} reason={slotsReason} onSelect={onSelectTime} />
         </div>
       </div>
     </AnimatedContainer>

@@ -12,6 +12,21 @@ import { sendSuccess, sendError } from '../../../common/response';
 import { MongoBarberBlockRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberBlockRepository';
 import { AppError } from '../../../domain/errors/AppError';
 import { IEmailService } from '../../../application/ports/IEmailService';
+import { getNowInTimezone } from '../../../domain/utils/time';
+
+const buildBookingDateRange = (maxAdvanceDays: number): string[] => {
+  const { date: today } = getNowInTimezone();
+  const currentDate = new Date(`${today}T12:00:00Z`);
+  const dates: string[] = [];
+
+  for (let offset = 0; offset <= maxAdvanceDays; offset += 1) {
+    const date = new Date(currentDate);
+    date.setUTCDate(currentDate.getUTCDate() + offset);
+    dates.push(date.toISOString().slice(0, 10));
+  }
+
+  return dates;
+};
 
 export class BarberController {
   private toResponse(barber: Barber) {
@@ -48,12 +63,30 @@ export class BarberController {
     private readonly createBarberBlock: CreateBarberBlockUseCase
   ) {}
 
+  private async hasBookableSlot(barber: Barber): Promise<boolean> {
+    const dates = buildBookingDateRange(barber.maxAdvanceDays);
+
+    for (const date of dates) {
+      const result = await this.getAvailableSlots.execute(barber.id, date);
+      if (result.slots.length > 0) return true;
+    }
+
+    return false;
+  }
+
   getAllPublic = async (_req: Request, res: Response) => {
     try {
       const barbers = await this.barberRepository.findAllBarbers();
-      const publicBarbers = barbers
-        .filter((b) => b.isActive)
-        .map((b) => ({
+      const activeBarbers = barbers.filter((b) => b.isActive);
+      const availability = await Promise.all(
+        activeBarbers.map(async (barber) => ({
+          barber,
+          hasBookableSlot: await this.hasBookableSlot(barber),
+        }))
+      );
+      const publicBarbers = availability
+        .filter(({ hasBookableSlot }) => hasBookableSlot)
+        .map(({ barber: b }) => ({
           id: b.id,
           name: b.name,
           lastname: b.lastname,

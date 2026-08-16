@@ -626,7 +626,7 @@ export const LandingPage: React.FC = () => {
                         <div className="services-grid">
               {landingServices.map((service, index) => (
                 <motion.article
-                  className={`service-card${service.number === '03' ? ' service-card-beard' : ''}`}
+                  className="service-card"
                   key={service.name}
                   variants={motionItem}
                   initial="hidden"

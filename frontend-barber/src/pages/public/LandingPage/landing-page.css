@@ -1442,6 +1442,8 @@
 .service-card {
   position: relative;
   overflow: visible;
+  display: flex;
+  flex-direction: column;
   border-top: 1px solid var(--landing-line-strong);
   border-radius: 0;
   background: transparent;
@@ -1490,17 +1492,12 @@
   transform: scale(1.06);
 }
 
-.service-card-beard .service-card-media {
-  height: 260px;
-}
-
-.service-card-beard .service-card-content {
-  margin-top: -54px;
-}
-
 .service-card-content {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   margin-top: -94px;
   padding: 0 16px 25px;
 }
@@ -1537,6 +1534,7 @@
   width: 100%;
   min-height: 36px;
   gap: 12px;
+  margin-top: auto;
   padding: 0 12px;
 }
 
@@ -2101,12 +2099,6 @@
   }
   .service-card-media {
     height: 230px;
-  }
-  .service-card-beard .service-card-media {
-    height: 230px;
-  }
-  .service-card-beard .service-card-content {
-    margin-top: -94px;
   }
   .catalog-toolbar {
     gap: 14px;

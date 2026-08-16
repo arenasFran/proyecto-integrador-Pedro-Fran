@@ -624,9 +624,15 @@ export const LandingPage: React.FC = () => {
                 <span className="section-marker"><span className="section-marker-line" /> Lo que hacemos</span>
                 <h2>Un buen corte<br /><em>empieza acá.</em></h2>
               </div>
-              <div className="section-heading-note">
-                <p>Servicios simples, bien hechos y pensados para que salgas sintiéndote vos, pero mejor.</p>
-                
+              <div className="section-heading-note services-heading-note">
+                <div className="services-heading-media">
+                  <img src="/hero-mobile.jpeg" alt="Interior de Barbería SA" loading="lazy" />
+                  <div className="services-heading-media-copy">
+                    <span>Un detalle de la casa</span>
+                    <strong>Bebida incluida</strong>
+                  </div>
+                </div>
+                <p>En cada servicio, una bebida incluida para disfrutar el momento sin apuro.</p>
               </div>
             </motion.div>
 

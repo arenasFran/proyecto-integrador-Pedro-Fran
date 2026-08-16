@@ -24,6 +24,7 @@
 
 .landing-page {
   --landing-scroll: 0;
+  --landing-scroll-progress: 0;
   position: relative;
   z-index: 1;
   min-height: 100vh;
@@ -70,6 +71,28 @@
   background: rgba(5, 5, 5, 0.88);
   backdrop-filter: blur(18px);
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
+}
+
+.landing-scroll-progress {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.landing-scroll-progress::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background: var(--landing-orange);
+  box-shadow: 0 0 14px rgba(255, 92, 0, 0.55);
+  transform: scaleX(var(--landing-scroll-progress));
+  transform-origin: left center;
+  will-change: transform;
 }
 
 .landing-header-inner {

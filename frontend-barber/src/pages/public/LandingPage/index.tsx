@@ -345,8 +345,11 @@ export const LandingPage: React.FC = () => {
       if (scrollFrame) return;
       scrollFrame = window.requestAnimationFrame(() => {
         scrollFrame = 0;
-        const scrollProgress = Math.min(window.scrollY / Math.max(window.innerHeight, 1), 1);
-        landingRef.current?.style.setProperty('--landing-scroll', String(scrollProgress));
+        const viewportProgress = Math.min(window.scrollY / Math.max(window.innerHeight, 1), 1);
+        const maxPageScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+        const pageProgress = Math.min(window.scrollY / maxPageScroll, 1);
+        landingRef.current?.style.setProperty('--landing-scroll', String(viewportProgress));
+        landingRef.current?.style.setProperty('--landing-scroll-progress', String(pageProgress));
         setHeaderScrolled(window.scrollY > 24);
       });
     };
@@ -393,6 +396,7 @@ export const LandingPage: React.FC = () => {
   return (
     <div className="landing-page" ref={landingRef}>
       <header className={`landing-header ${headerScrolled ? 'is-scrolled' : ''}`}>
+        <div className="landing-scroll-progress" aria-hidden="true" />
         <div className="landing-container landing-header-inner">
           <Link to="/" className="landing-brand" aria-label="Barbería SA, inicio">
             <img src="/logo-barberia-notittle.PNG" alt="" className="landing-brand-mark" />

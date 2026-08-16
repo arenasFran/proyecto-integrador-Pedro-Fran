@@ -144,8 +144,8 @@ const LandingProductCard: React.FC<{ product: Product; isAuthenticated: boolean 
       <div className="catalog-card-footer">
         {!isAuthenticated ? (
           <Link className="landing-button landing-button-primary catalog-buy-link" to="/login?returnUrl=/tienda">
-            <FiShoppingCart aria-hidden="true" />
             <span>Comprar</span>
+            <FiShoppingCart aria-hidden="true" />
           </Link>
         ) : (
           <span className="catalog-card-note">Disponible en tienda</span>

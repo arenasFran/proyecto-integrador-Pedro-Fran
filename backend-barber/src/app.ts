@@ -96,6 +96,15 @@ app.use("/auth/2fa/verify", twoFALimiter);
 app.use("/auth/google", googleLimiter);
 app.use("/auth/google/complete-profile", googleLimiter);
 
+const globalApiLimiter = rateLimit({
+  windowMs: config.rateLimit.api.windowMs,
+  max: config.rateLimit.api.max,
+  message: { error: 'Demasiadas solicitudes. Esperá un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api", globalApiLimiter);
+
 app.use("/auth", buildAuthRouter());
 app.use("/api/barbers", buildBarberRouter());
 const tokenService = buildTokenService();

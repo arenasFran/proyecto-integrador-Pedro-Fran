@@ -3,6 +3,17 @@ import rateLimit from 'express-rate-limit';
 import { UploadController } from '../controllers/upload/UploadController';
 import { authorize } from '../middlewares/auth.middleware';
 import { uploadAvatar, uploadProductImages, handleUploadErrors, assertImageContent } from '../middlewares/upload.middleware';
+import { getConfig } from '../../infrastructure/config/env';
+
+const config = getConfig();
+
+const uploadAvatarLimiter = rateLimit({
+  windowMs: config.rateLimit.upload.windowMs,
+  max: config.rateLimit.upload.max,
+  message: { error: 'Demasiadas subidas de imágenes, esperá un momento' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const uploadImagesLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -22,6 +33,7 @@ export const createUploadRouter = (deps: {
 
   router.post(
     '/',
+    uploadAvatarLimiter,
     handleUploadErrors(uploadAvatar),
     assertImageContent,
     deps.uploadController.uploadAvatar

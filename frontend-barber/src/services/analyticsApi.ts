@@ -14,6 +14,7 @@ import type {
   OverviewData,
   ReservasGananciasEntry,
 } from '../types/analytics';
+import type { Appointment } from '../types/booking';
 
 export const analyticsApi = createApi({
   reducerPath: 'analyticsApi',
@@ -23,6 +24,13 @@ export const analyticsApi = createApi({
     getOverview: builder.query<OverviewData, { preset?: string; desde?: string; hasta?: string }>({
       query: (params) => ({
         url: '/api/analytics/overview',
+        params,
+      }),
+    }),
+
+    getAppointmentDetails: builder.query<{ appointments: Appointment[]; total: number }, { desde: string; hasta: string }>({
+      query: (params) => ({
+        url: '/api/analytics/appointments',
         params,
       }),
     }),
@@ -146,6 +154,7 @@ export type ProductPerformanceEntry = {
 
 export const {
   useGetOverviewQuery,
+  useGetAppointmentDetailsQuery,
   useGetHeatmapQuery,
   useGetReservasGananciasQuery,
   useGetDistribucionQuery,

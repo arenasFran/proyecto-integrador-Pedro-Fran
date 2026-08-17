@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Select } from '../../../../components/common/Select';
-import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+import DayActivityDetailModal from './DayActivityDetailModal';
 
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -21,9 +21,11 @@ function generateYearGrid(year: number): { date: string; dayOfWeek: number }[] {
   return days;
 }
 
-function getIntensity(cantidad: number, ingresos: number, max: number): string {
+function getIntensity(cantidad: number, ingresos: number, maxCantidad: number, maxIngresos: number): string {
   if (cantidad === 0 && ingresos === 0) return 'bg-[#161616]';
-  const ratio = max > 0 ? (ingresos > 0 ? ingresos / max : cantidad / max) : 0;
+  const activityRatio = maxCantidad > 0 ? cantidad / maxCantidad : 0;
+  const revenueRatio = maxIngresos > 0 ? ingresos / maxIngresos : 0;
+  const ratio = Math.max(activityRatio, revenueRatio);
   if (ratio <= 0.25) return 'bg-[#3D1A00]';
   if (ratio <= 0.5) return 'bg-[#7A3B00]';
   if (ratio <= 0.75) return 'bg-[#C25E00]';
@@ -52,11 +54,12 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
   }, [mostRecentYear, selectedYear]);
 
   const controlled = desde !== undefined && hasta !== undefined;
+  const displayYear = controlled && desde ? Number(desde.slice(0, 4)) : selectedYear;
   const params = controlled
     ? { desde, hasta }
     : selectedYear ? { year: selectedYear } : { lastYear: true as const };
   const { data = [], isFetching, isLoading, error: rtkError } = useGetHeatmapQuery(params, {
-    skip: selectedYear === undefined,
+    skip: controlled ? !desde || !hasta : selectedYear === undefined,
   });
 
   const error = rtkError
@@ -67,11 +70,12 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
   const loading = isLoading || yearsLoading;
 
   const yearGrid = useMemo(() => {
-    if (selectedYear === undefined) return [];
-    return generateYearGrid(selectedYear);
-  }, [selectedYear]);
+    if (displayYear === undefined || Number.isNaN(displayYear)) return [];
+    return generateYearGrid(displayYear);
+  }, [displayYear]);
 
-  const maxValue = useMemo(() => Math.max(...data.map((d) => d.ingresos ?? d.cantidad), 1), [data]);
+  const maxCantidad = useMemo(() => Math.max(...data.map((d) => d.cantidad), 1), [data]);
+  const maxIngresos = useMemo(() => Math.max(...data.map((d) => d.ingresos ?? 0), 1), [data]);
   const dataMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of data) {
@@ -147,7 +151,7 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
               </div>
             ))}
           </div>
-        ) : selectedYear === undefined ? (
+        ) : displayYear === undefined ? (
           <div className="flex items-center justify-center h-40">
             <p className="text-[#8A8A8A] text-sm">No hay datos disponibles</p>
           </div>
@@ -184,7 +188,7 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
                     {week.map((day, di) => (
                       <div
                         key={`${wi}-${di}`}
-                        className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, revenueMap.get(day.date) ?? 0, maxValue) : 'transparent'} cursor-pointer relative focus:outline-none focus:ring-2 focus:ring-[#FF5C00]`}
+                        className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, revenueMap.get(day.date) ?? 0, maxCantidad, maxIngresos) : 'transparent'} cursor-pointer relative focus:outline-none focus:ring-2 focus:ring-[#FF5C00]`}
                         role={day.date ? 'button' : undefined}
                         tabIndex={day.date ? 0 : -1}
                         aria-label={day.date ? `${formatDate(day.date)}: ${day.cantidad} reservas, ${formatCurrency(revenueMap.get(day.date) ?? 0)} cobrados` : undefined}
@@ -242,11 +246,11 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
         <span className="text-[#8A8A8A] text-xs">Más</span>
       </div>
 
-      <AppointmentListModal
+      <DayActivityDetailModal
         isOpen={modalDate !== null}
         onClose={() => setModalDate(null)}
-        title={`Turnos del ${modalDate ? formatDate(modalDate) : ''}`}
-        params={{ dateFrom: modalDate ?? undefined, dateTo: modalDate ?? undefined }}
+        date={modalDate}
+        revenueBySource={data.find((entry) => entry.fecha === modalDate)?.porOrigen}
       />
     </div>
   );

@@ -151,13 +151,12 @@ export class MongoAnalyticsRepository {
     };
   }
 
-  private async getPendingRevenue(desde: Date, hasta: Date): Promise<number> {
+  private async getPendingRevenue(desde: Date, hasta: Date, dateDesde: string, dateHasta: string): Promise<number> {
     const [appointments, orders, memberships] = await Promise.all([
       AppointmentModel.aggregate([
-        DATE_CONVERSION_STAGE,
         {
           $match: {
-            dateObj: { $gte: desde, $lte: hasta },
+            date: { $gte: dateDesde, $lte: dateHasta },
             paymentStatus: 'Pendiente',
             status: { $in: STATUS_CATEGORIES.countsAsDuration },
           },
@@ -245,8 +244,7 @@ export class MongoAnalyticsRepository {
       (revenueMap.get('product_order') ?? 0);
 
     const facetPipeline = [
-      DATE_CONVERSION_STAGE,
-      { $match: { dateObj: { $gte: desdeDate, $lte: hastaDate } } },
+      { $match: { date: { $gte: desde, $lte: hasta } } },
       {
         $facet: {
           totalReservas: [{ $count: 'count' }],
@@ -263,7 +261,7 @@ export class MongoAnalyticsRepository {
 
     const [facetResult, ingresosPendientes] = await Promise.all([
       AppointmentModel.aggregate(facetPipeline),
-      this.getPendingRevenue(desdeDate, hastaDate),
+      this.getPendingRevenue(desdeDate, hastaDate, desde, hasta),
     ]);
     const data = facetResult[0] || { totalReservas: [], duracionTotalMinutos: [], ingresosPendientes: [], estadisticasPorEstado: [] };
 
@@ -326,34 +324,36 @@ export class MongoAnalyticsRepository {
   }
 
   async getHeatmap(param: { year?: number; lastYear?: boolean; desde?: string; hasta?: string }): Promise<HeatmapEntry[]> {
-    let gte: Date;
-    let lte: Date;
+    let dateFrom: string;
+    let dateTo: string;
 
     if (param.desde && param.hasta) {
-      const range = parseLocalDateRange(param.desde, param.hasta);
-      gte = range.desdeDate;
-      lte = range.hastaDate;
+      dateFrom = param.desde;
+      dateTo = param.hasta;
     } else if (param.lastYear) {
       const now = new Date();
-      lte = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      gte = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+      const toDateOnly = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      dateFrom = toDateOnly(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()));
+      dateTo = toDateOnly(now);
     } else {
       const year = param.year ?? new Date().getFullYear();
-      gte = parseLocalDate(`${year}-01-01`);
-      lte = parseLocalDate(`${year}-12-31`);
+      dateFrom = `${year}-01-01`;
+      dateTo = `${year}-12-31`;
     }
 
+    const revenueFrom = new Date(`${dateFrom}T00:00:00.000Z`);
+    const revenueTo = new Date(`${dateTo}T23:59:59.999Z`);
+
     const activityPipeline = [
-      DATE_CONVERSION_STAGE,
       {
         $match: {
-          dateObj: { $gte: gte, $lte: lte },
+          date: { $gte: dateFrom, $lte: dateTo },
           status: { $in: STATUS_CATEGORIES.countsAsActivity },
         },
       },
       {
         $group: {
-          _id: { $dateToString: { format: '%Y-%m-%d', date: '$dateObj' } },
+          _id: '$date',
           cantidad: { $sum: 1 },
         },
       },
@@ -364,7 +364,7 @@ export class MongoAnalyticsRepository {
     const activity = await AppointmentModel.aggregate(activityPipeline);
     if (!param.desde || !param.hasta) return activity;
 
-    const revenue = await this.revenueEntryRepo.getRevenueByDay(gte, lte);
+    const revenue = await this.revenueEntryRepo.getRevenueByDay(revenueFrom, revenueTo);
 
     const activityMap = new Map(activity.map((entry) => [entry.fecha, entry.cantidad]));
     const dates = new Set([...activityMap.keys(), ...revenue.map((entry) => entry.fecha)]);
@@ -376,6 +376,26 @@ export class MongoAnalyticsRepository {
         cantidad: activityMap.get(fecha) ?? 0,
         ingresos: revenueEntry?.ingresos ?? 0,
         porOrigen: revenueEntry?.porOrigen ?? {},
+      };
+    });
+  }
+
+  async getAppointmentDetails(desde: string, hasta: string): Promise<Record<string, unknown>[]> {
+    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+    const appointments = await AppointmentModel.aggregate([
+      { $match: { date: { $gte: desde, $lte: hasta } } },
+      { $sort: { date: 1, startTime: 1 } },
+      { $limit: 100 },
+    ] as mongoose.PipelineStage[]);
+
+    return appointments.map((appointment) => {
+      const { _id, dateObj: _dateObj, barberId, clientId, membershipId, ...rest } = appointment as Record<string, unknown> & { _id: mongoose.Types.ObjectId; barberId: mongoose.Types.ObjectId; clientId?: mongoose.Types.ObjectId; membershipId?: mongoose.Types.ObjectId };
+      return {
+        ...rest,
+        id: _id.toString(),
+        barberId: barberId.toString(),
+        ...(clientId ? { clientId: clientId.toString() } : {}),
+        ...(membershipId ? { membershipId: membershipId.toString() } : {}),
       };
     });
   }
@@ -1049,8 +1069,8 @@ export class MongoAnalyticsRepository {
     const entries = await this.revenueEntryRepo.getRevenueByPeriod(desdeDate, hastaDate, {
       field: 'month',
       format: '%Y-%m',
-    }, 'membership');
+    }, 'membership', undefined, true);
 
-    return entries.map(e => ({ periodo: e.period, ganancias: e.revenue, cantidadReservas: 0 }));
+    return entries.map(e => ({ periodo: e.period, ganancias: e.revenue, cantidadReservas: e.count ?? 0 }));
   }
 }

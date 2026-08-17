@@ -77,6 +77,19 @@ export class AnalyticsController {
     }
   };
 
+  getAppointmentDetailsHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const appointments = await this.repository.getAppointmentDetails(desde, hasta);
+      return sendSuccess(res, { appointments, total: appointments.length });
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener detalle de reservas');
+    }
+  };
+
   getHeatmapHandler = async (req: Request, res: Response) => {
     try {
       const { year, lastYear, desde, hasta } = req.query as Record<string, string | undefined>;

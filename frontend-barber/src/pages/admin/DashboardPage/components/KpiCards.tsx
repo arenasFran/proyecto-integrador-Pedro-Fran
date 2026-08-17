@@ -1,11 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAward, FiScissors, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAward, FiScissors, FiCalendar, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
-import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
+import { useGetAppointmentDetailsQuery, useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
+import { useGetAppointmentsQuery, useGetAppointmentsPaginatedQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
 import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
 import type { OverviewData } from '../../../../types/analytics';
@@ -14,7 +14,6 @@ import type { MembershipWithUser } from '../../../../types/membership';
 import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
 import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
-import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
 import { formatCurrency } from '../../../../utils/formatCurrency';
 
@@ -51,20 +50,26 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
   const [showMemberships, setShowMemberships] = useState(false);
 
   const { data: distData, isLoading: distLoading } = useGetDistribucionQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-  const { data: membershipRevenue } = useGetMembershipRevenueQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-  const { data: productPerformance } = useGetProductPerformanceQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useGetAppointmentsPaginatedQuery(
+    { dateFrom: desde, dateTo: hasta, includeBarber: 'true', includeClient: 'true', limit: 100 },
+    { skip: !isOpen || !desde || !hasta },
+  );
+  const { data: membershipRevenue, isLoading: membershipLoading } = useGetMembershipRevenueQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data: productPerformance, isLoading: productsLoading } = useGetProductPerformanceQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
 
   const entries = distData?.byBarber ?? [];
-  const totalAppointments = entries.reduce((s, e) => s + e.ingresos, 0);
+  const totalAppointmentRevenue = entries.reduce((s, e) => s + e.ingresos, 0);
+  const totalAppointmentCount = appointmentsData?.total ?? entries.reduce((s, e) => s + e.cantidad, 0);
   const totalProducts = ecommerceData?.totalRevenue ?? 0;
   const totalMemberships = membershipRevenue?.reduce((s, e) => s + e.ganancias, 0) ?? 0;
-  const totalCombined = totalAppointments + totalProducts + totalMemberships;
-  const isLoading = distLoading;
+  const totalMembershipCount = membershipRevenue?.reduce((s, e) => s + e.cantidadReservas, 0) ?? 0;
+  const totalCombined = totalAppointmentRevenue + totalProducts + totalMemberships;
+  const isLoading = distLoading || appointmentsLoading || membershipLoading || productsLoading;
 
   const segments = [
-    { label: 'Turnos', value: totalAppointments, color: 'bg-green-400', hex: '#4ade80', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointments / totalCombined) * 100) : 0 },
-    { label: 'Productos', value: totalProducts, color: 'bg-[#FF5C00]', hex: '#FF5C00', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
-    { label: 'Membresias', value: totalMemberships, color: 'bg-purple-400', hex: '#c084fc', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
+    { label: 'Turnos', value: totalAppointmentRevenue, count: totalAppointmentCount, color: 'bg-green-400', hex: '#4ade80', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointmentRevenue / totalCombined) * 100) : 0 },
+    { label: 'Productos', value: totalProducts, count: ecommerceData?.totalOrders ?? 0, color: 'bg-[#FF5C00]', hex: '#FF5C00', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
+    { label: 'Membresias', value: totalMemberships, count: totalMembershipCount, color: 'bg-purple-400', hex: '#c084fc', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
   ];
 
   const donutData = segments.filter(s => s.value > 0).map(s => ({ name: s.label, value: s.value, hex: s.hex }));
@@ -108,7 +113,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
                   <div key={seg.label} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: seg.hex }} />
                     <span className="text-[11px] text-[#8A8A8A] w-[80px] shrink-0">{seg.label}</span>
-                    <span className="text-[12px] text-white font-medium w-[80px] text-right">{formatCurrency(seg.value)}</span>
+                    <span className="text-[12px] text-white font-medium w-[104px] text-right">{formatCurrency(seg.value)} · {seg.count}</span>
                     <span className="text-[11px] text-[#6A6A6A] w-9 text-right">{seg.pct}%</span>
                   </div>
                 ))}
@@ -257,6 +262,85 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
   );
 }
 
+const ORDER_STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Pendiente', className: 'bg-yellow-500/10 text-yellow-400' },
+  paid: { label: 'Pagada', className: 'bg-green-500/10 text-green-400' },
+  delivered: { label: 'Entregada', className: 'bg-blue-500/10 text-blue-400' },
+  cancelled: { label: 'Cancelada', className: 'bg-red-500/10 text-red-400' },
+  refunded: { label: 'Reembolsada', className: 'bg-purple-500/10 text-purple-400' },
+  disputed: { label: 'En disputa', className: 'bg-orange-500/10 text-orange-400' },
+  stock_issue: { label: 'Problema de stock', className: 'bg-red-500/10 text-red-400' },
+};
+
+function OrdersKpiModal({ isOpen, onClose, desde, hasta, status }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; status?: 'pending' }) {
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const { data, isLoading, isFetching } = useGetAllOrdersQuery(
+    { status, desde, hasta, limit: 100 },
+    { skip: !isOpen || !desde || !hasta },
+  );
+  const orders = data?.orders ?? [];
+  const title = status === 'pending' ? 'Órdenes pendientes' : 'Órdenes del período';
+
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
+        <DateRangeBadge desde={desde} hasta={hasta} />
+        {isLoading ? (
+          <div className="flex justify-center py-10"><Spinner size="lg" /></div>
+        ) : orders.length === 0 ? (
+          <p className="py-10 text-center text-sm text-[#8A8A8A]">No hay órdenes para este período.</p>
+        ) : (
+          <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1">
+            {orders.map((order) => (
+              <button key={order.id} type="button" onClick={() => setDetailOrder(order)} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] p-3 text-left transition-colors hover:border-[#FF5C00]/40">
+                <FiShoppingCart className="shrink-0 text-[#FF5C00]" size={16} aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-[13px] font-medium text-white">{order.userName ?? order.clientName ?? `Orden #${order.id.slice(-6)}`}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${ORDER_STATUS_BADGES[order.status]?.className ?? 'bg-gray-500/10 text-gray-400'}`}>
+                      {ORDER_STATUS_BADGES[order.status]?.label ?? order.status}
+                    </span>
+                  </span>
+                  <span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{order.items.length} producto(s) · {order.createdAt.slice(0, 10)}</span>
+                </span>
+                <span className="shrink-0 text-sm font-semibold text-white">{formatCurrency(order.total)}</span>
+              </button>
+            ))}
+            {isFetching && <div className="flex justify-center py-2"><Spinner size="sm" /></div>}
+          </div>
+        )}
+      </Modal>
+      {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />}
+    </>
+  );
+}
+
+function ReservationsKpiModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
+  const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
+  const { data, isLoading, error } = useGetAppointmentDetailsQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const appointments = data?.appointments ?? [];
+
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title="Reservas del período" size="lg">
+        <DateRangeBadge desde={desde} hasta={hasta} />
+        {isLoading ? <div className="flex justify-center py-10"><Spinner size="lg" /></div> : error ? <p className="py-8 text-center text-sm text-[#FF5C00]">No se pudieron cargar las reservas del período.</p> : appointments.length === 0 ? <p className="py-10 text-center text-sm text-[#8A8A8A]">No se encontraron reservas para este período.</p> : (
+          <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1">
+            {appointments.map((appointment) => (
+              <button key={appointment.id} type="button" onClick={() => setDetailAppointment(appointment)} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] p-3 text-left transition-colors hover:border-[#FF5C00]/40">
+                <FiCalendar className="shrink-0 text-blue-400" size={16} aria-hidden="true" />
+                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-white">{appointment.clientName} {appointment.clientLastname}</span><span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{appointment.date} · {appointment.startTime.slice(0, 5)} · {appointment.serviceName}</span></span>
+                <span className="shrink-0 text-sm font-semibold text-white">{formatCurrency(appointment.servicePrice)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+      {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} isOpen onClose={() => setDetailAppointment(null)} />}
+    </>
+  );
+}
+
 const getInitials = (name: string, lastname: string) => `${name.charAt(0)}${lastname.charAt(0)}`.toUpperCase();
 
 function Avatar({ name, lastname, photoUrl }: { name: string; lastname: string; photoUrl?: string | null }) {
@@ -284,11 +368,11 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
   const [detailMembership, setDetailMembership] = useState<MembershipWithUser | null>(null);
 
   const { data: appointments = [], isLoading: apptsLoading } = useGetAppointmentsQuery(
-    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50, includeBarber: 'true', includeClient: 'true' },
+    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 100, includeBarber: 'true', includeClient: 'true' },
     { skip: !isOpen || !desde || !hasta },
   );
   const { data: ordersData, isLoading: ordersLoading } = useGetAllOrdersQuery(
-    { status: 'pending', desde, hasta, limit: 50 },
+    { status: 'pending', desde, hasta, limit: 100 },
     { skip: !isOpen || !desde || !hasta },
   );
   const { data: pendingMemberships, isLoading: memLoading } = useGetPendingMembershipsQuery(undefined, { skip: !isOpen });
@@ -301,7 +385,10 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
   const [approveMembership] = useApprovePendingMembershipMutation();
 
   const pendingOrders = ordersData?.orders ?? [];
-  const memberships = pendingMemberships?.data ?? [];
+  const memberships = (pendingMemberships?.data ?? []).filter((membership) => {
+    const createdDate = membership.createdAt.slice(0, 10);
+    return createdDate >= desde && createdDate <= hasta;
+  });
 
   const totalTurnos = appointments.reduce((s, a) => s + a.servicePrice, 0);
   const totalOrdenes = pendingOrders.reduce((s, o) => s + o.total, 0);
@@ -576,7 +663,7 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
   const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
-  const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
+  const [orderModalStatus, setOrderModalStatus] = useState<'all' | 'pending' | null>(null);
 
   const { data: ecommerceData } = useGetEcommerceOverviewQuery(
     { desde, hasta },
@@ -619,27 +706,27 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
         setShowNewClientsModal(true);
         break;
       case 'ordenes':
-        navigate('/admin/ordenes');
+        setOrderModalStatus('all');
         break;
       case 'ordenesPendientes':
-        navigate('/admin/ordenes?status=pending');
+        setOrderModalStatus('pending');
         break;
     }
   };
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 items-stretch">
         {CARDS_CONFIG.map((card, idx) => {
           if (!card.clickable) {
             return (
               <div
                 key={card.key}
-                className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3"
+                className="h-full min-h-[132px] bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between gap-3"
                 title={card.tooltip}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>
+                <div className="flex min-h-[40px] items-start justify-between gap-2">
+                  <span className="text-[#8A8A8A] text-sm font-medium leading-5">{card.label}</span>
                   <card.icon className="text-[#FF5C00] text-xl" />
                 </div>
                 <span className="text-white text-2xl font-bold">
@@ -658,11 +745,11 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
             <button
               key={card.key}
               onClick={() => handleCardClick(card.key)}
-              className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3 text-left hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
+              className="h-full min-h-[132px] bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between gap-3 text-left hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
               title={card.tooltip}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>
+                <div className="flex min-h-[40px] items-start justify-between gap-2">
+                  <span className="text-[#8A8A8A] text-sm font-medium leading-5">{card.label}</span>
                 <card.icon className="text-[#FF5C00] text-xl" />
               </div>
               <span className="text-white text-2xl font-bold">
@@ -681,14 +768,8 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
        <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
        <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
        <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
-       <AppointmentListModal
-         isOpen={showAppointmentsModal}
-         onClose={() => setShowAppointmentsModal(false)}
-         title="Reservas del período"
-         params={{ dateFrom: desde, dateTo: hasta, includeBarber: 'true', includeClient: 'true', limit: 100 }}
-         onAppointmentClick={(appointment) => { setShowAppointmentsModal(false); setDetailAppointment(appointment); }}
-       />
-       {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} isOpen onClose={() => setDetailAppointment(null)} />}
+       <OrdersKpiModal isOpen={orderModalStatus !== null} onClose={() => setOrderModalStatus(null)} desde={desde} hasta={hasta} status={orderModalStatus === 'pending' ? 'pending' : undefined} />
+       <ReservationsKpiModal isOpen={showAppointmentsModal} onClose={() => setShowAppointmentsModal(false)} desde={desde} hasta={hasta} />
      </>
   );
 }

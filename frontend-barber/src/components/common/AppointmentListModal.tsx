@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FiClock, FiUser, FiScissors } from 'react-icons/fi';
 import { useGetAppointmentsQuery } from '../../services/appointmentApi';
 import type { AppointmentQueryParams } from '../../services/appointment.service';
@@ -27,9 +27,19 @@ function formatTime(time: string) {
 }
 
 export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOpen, onClose, title, params, onAppointmentClick }) => {
-  const { data: appointments = [], isLoading, isFetching } = useGetAppointmentsQuery(params, {
+  const { dateFrom, dateTo, date, ...serverFilters } = params;
+  const { data: fetchedAppointments = [], isLoading, isFetching, error } = useGetAppointmentsQuery({
+    ...serverFilters,
+    limit: params.limit ?? 100,
+  }, {
     skip: !isOpen,
   });
+  const appointments = useMemo(() => fetchedAppointments.filter((appointment) => {
+    const appointmentDate = appointment.date.slice(0, 10);
+    return (!date || appointmentDate === date)
+      && (!dateFrom || appointmentDate >= dateFrom)
+      && (!dateTo || appointmentDate <= dateTo);
+  }), [date, dateFrom, dateTo, fetchedAppointments]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
@@ -37,6 +47,8 @@ export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOp
         <div className="flex items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
+      ) : error ? (
+        <p className="py-8 text-center text-sm text-[#FF5C00]">No se pudieron cargar las reservas del período.</p>
       ) : appointments.length === 0 ? (
         <p className="text-[14px] text-[#8A8A8A] text-center py-8">No se encontraron turnos para este período.</p>
       ) : (

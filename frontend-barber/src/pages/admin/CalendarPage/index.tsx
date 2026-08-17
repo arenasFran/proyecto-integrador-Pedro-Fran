@@ -138,7 +138,7 @@ export const CalendarPage: React.FC = () => {
     };
     fetchBlocks();
     return () => { cancelled = true; };
-  }, [dateFrom, dateTo, blocksRefreshKey]);
+  }, [dateFrom, dateTo, employeeBarberId, blocksRefreshKey]);
 
   const goPrev = useCallback(() => {
     setStartDate(prev => addDays(prev, -DAYS_TO_SHOW));

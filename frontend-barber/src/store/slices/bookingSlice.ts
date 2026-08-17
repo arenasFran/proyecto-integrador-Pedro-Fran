@@ -53,7 +53,7 @@ const initialState: BookingState = {
     services: [],
     availableSlots: [],
     slotsReason: undefined,
-    isLoadingBarbers: false,
+    isLoadingBarbers: true,
     isLoadingServices: false,
     isLoadingSlots: false,
     isConfirming: false,
@@ -174,12 +174,16 @@ const bookingSlice = createSlice({
     setCurrentStep: (state, action: PayloadAction<BookingStep>) => {
       state.flow.currentStep = action.payload;
     },
+    restoreBookingFlow: (state, action: PayloadAction<Partial<BookingFlowState>>) => {
+      state.flow = { ...state.flow, ...action.payload };
+    },
     setSelectedBarber: (state, action: PayloadAction<BarberPublic | null>) => {
       state.flow.selectedBarber = action.payload;
       state.flow.selectedDate = null;
       state.flow.selectedTime = null;
       state.async.availableSlots = [];
       state.async.slotsReason = undefined;
+      state.async.isLoadingSlots = false;
       if (action.payload) {
         state.flow.currentStep = 'service';
       }
@@ -196,6 +200,7 @@ const bookingSlice = createSlice({
       state.flow.selectedTime = null;
       state.async.availableSlots = [];
       state.async.slotsReason = undefined;
+      state.async.isLoadingSlots = Boolean(action.payload);
     },
     setSelectedTime: (state, action: PayloadAction<string | null>) => {
       state.flow.selectedTime = action.payload;
@@ -286,6 +291,7 @@ const bookingSlice = createSlice({
 export const {
   setServices,
   setCurrentStep,
+  restoreBookingFlow,
   setSelectedBarber,
   setSelectedService,
   setSelectedDate,

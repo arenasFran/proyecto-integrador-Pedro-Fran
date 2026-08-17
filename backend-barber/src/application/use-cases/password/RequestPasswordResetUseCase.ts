@@ -14,7 +14,6 @@ export class RequestPasswordResetUseCase {
     private readonly passwordResetRepository: MongoPasswordResetRepository,
     private readonly emailService: IEmailService,
     private readonly hashService: IHashService,
-    private readonly frontendUrl: string,
     private readonly expirationMinutes: number
   ) {}
 
@@ -29,13 +28,12 @@ export class RequestPasswordResetUseCase {
         new Date().getTime() + this.expirationMinutes * 60 * 1000
       );
 
-      const recoveryUrl = `${this.frontendUrl}/recovery`;
       const subject = 'Tu código para restablecer la contraseña';
       const html = [
         '<p>Recibimos una solicitud para restablecer tu contraseña.</p>',
         `<p>Tu código de verificación es: <strong>${code}</strong></p>`,
-        `<p>Ingresalo en <a href="${recoveryUrl}">${recoveryUrl}</a> dentro de los próximos ${this.expirationMinutes} minutos.`,
-        'Si no solicitaste el cambio, podés ignorar este correo.</p>',
+        `<p>Ingresalo dentro de los próximos ${this.expirationMinutes} minutos.</p>`,
+        '<p>Si no solicitaste el cambio, podés ignorar este correo.</p>',
       ].join(' ');
 
       let lastError: unknown;

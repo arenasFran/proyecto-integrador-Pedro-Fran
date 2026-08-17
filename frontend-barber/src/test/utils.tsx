@@ -1,6 +1,6 @@
 import React, { type PropsWithChildren } from 'react';
 import { Provider } from 'react-redux';
-import { configureStore } from '@reduxjs/toolkit';
+import { combineReducers, configureStore } from '@reduxjs/toolkit';
 import { render, type RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ToastProvider } from '../components/common';
@@ -18,13 +18,15 @@ interface ExtendedRenderOptions extends Omit<RenderOptions, 'queries'> {
 type TestRootState = Pick<RootState, 'auth' | 'barbers' | 'authApi' | 'paymentApi'>;
 
 function createTestStore(preloadedState?: Partial<TestRootState>) {
+  const reducer = combineReducers({
+    auth: authReducer,
+    barbers: barbersReducer,
+    [authApi.reducerPath]: authApi.reducer,
+    [paymentApi.reducerPath]: paymentApi.reducer,
+  });
+
   return configureStore({
-    reducer: {
-      auth: authReducer,
-      barbers: barbersReducer,
-      [authApi.reducerPath]: authApi.reducer,
-      [paymentApi.reducerPath]: paymentApi.reducer,
-    } as any,
+    reducer,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware().concat(authApi.middleware, paymentApi.middleware),
     preloadedState,

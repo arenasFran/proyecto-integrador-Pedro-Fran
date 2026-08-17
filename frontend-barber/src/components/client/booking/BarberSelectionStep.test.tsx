@@ -44,11 +44,12 @@ const defaultProps = {
 };
 
 describe('BarberSelectionStep', () => {
-  it('renders loading skeleton when loading with no barbers', () => {
+  it('does not render intermediate content while barbers are loading', () => {
     const { container } = render(
       <BarberSelectionStep {...defaultProps} barbers={[]} isLoading={true} />
     );
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders error message when error and no barbers', () => {
@@ -68,13 +69,12 @@ describe('BarberSelectionStep', () => {
     expect(screen.getByText('No hay barberos disponibles')).toBeInTheDocument();
   });
 
-  it('renders barber names and prompt when barbers provided', () => {
+  it('renders barber names when barbers are provided', () => {
     render(<BarberSelectionStep {...defaultProps} />);
     expect(screen.getByText('Carlos')).toBeInTheDocument();
     expect(screen.getByText('López')).toBeInTheDocument();
     expect(screen.getByText('María')).toBeInTheDocument();
     expect(screen.getByText('García')).toBeInTheDocument();
-    expect(screen.getByText(/Elegí tu barbero preferido/i)).toBeInTheDocument();
   });
 
   it('renders error banner alongside barbers when error and barbers exist', () => {

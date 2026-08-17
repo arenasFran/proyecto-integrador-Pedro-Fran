@@ -1,12 +1,18 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiXCircle, FiX, FiClock } from 'react-icons/fi';
-import { StatusScreen } from '@mercadopago/sdk-react';
 import { Button } from '../../../components/common';
 import { useGetPaymentByIdQuery } from '../../../services/paymentApi';
+import { initializeMercadoPago } from '../../../services/mercadopago';
 import { formatDateTime } from '../../../utils/formatDate';
 import { formatCurrency } from '../../../utils/formatCurrency';
+
+const MercadoPagoStatusScreen = lazy(async () => {
+  await initializeMercadoPago();
+  const { StatusScreen } = await import('@mercadopago/sdk-react');
+  return { default: StatusScreen };
+});
 
 const drawCheckmark = {
   hidden: { pathLength: 0, opacity: 0 },
@@ -61,7 +67,9 @@ export default function PaymentResultPage() {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center px-4">
         <div className="w-full max-w-md">
-          <StatusScreen initialization={{ paymentId: mpPaymentId }} />
+          <Suspense fallback={<div className="h-32" aria-busy="true" />}>
+            <MercadoPagoStatusScreen initialization={{ paymentId: mpPaymentId }} />
+          </Suspense>
           <div className="mt-6 text-center">
             <Button onClick={() => navigate('/')} variant="ghost">Volver al inicio</Button>
           </div>

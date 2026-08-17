@@ -4,11 +4,26 @@ import { FiX } from 'react-icons/fi';
 import { getStoredConsent, saveConsent, subscribeCookiePreferencesOpen } from '../../utils/cookieConsent';
 import { legalConfig } from '../../constants/legal';
 
+const CONSENT_APPEAR_DELAY_MS = 3000;
+
 export const CookieConsent: React.FC = () => {
-  const [visible, setVisible] = useState<boolean>(() => !getStoredConsent());
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    return subscribeCookiePreferencesOpen(() => setVisible(true));
+    let timeoutId: number | undefined;
+    if (!getStoredConsent()) {
+      timeoutId = window.setTimeout(() => setVisible(true), CONSENT_APPEAR_DELAY_MS);
+    }
+
+    const unsubscribe = subscribeCookiePreferencesOpen(() => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      setVisible(true);
+    });
+
+    return () => {
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
   const choose = (analytics: boolean, marketing: boolean) => {
@@ -28,7 +43,7 @@ export const CookieConsent: React.FC = () => {
     <div
       role="dialog"
       aria-label="Consentimiento de cookies"
-      className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-2xl rounded-[16px] border border-[#282828] bg-[#121212] p-5 shadow-2xl sm:bottom-6 sm:left-6 sm:right-6"
+      className="fixed bottom-4 left-4 right-4 z-[100] mx-auto max-w-2xl rounded-[16px] border border-[#282828] bg-[#121212] p-4 shadow-2xl sm:bottom-6 sm:left-6 sm:right-6"
     >
       <button
         type="button"
@@ -39,7 +54,8 @@ export const CookieConsent: React.FC = () => {
         <FiX size={18} />
       </button>
 
-      <p className="pr-8 text-[13px] leading-relaxed text-[#C9C9C9]">
+      <div className="flex flex-col gap-3 pr-7 sm:flex-row sm:items-center sm:gap-4">
+        <p className="flex-1 text-[13px] leading-snug text-[#C9C9C9]">
         Usamos cookies necesarias para el funcionamiento de la plataforma y, si
         lo aceptás, cookies de análisis y publicidad para mejorar tu experiencia.
         Podés ver más en nuestra{' '}
@@ -47,23 +63,24 @@ export const CookieConsent: React.FC = () => {
           Política de Cookies
         </Link>
         .
-      </p>
+        </p>
 
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <div className="flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <button
           type="button"
           onClick={() => choose(false, false)}
-          className="rounded-[10px] border border-[#282828] px-4 py-2 text-[13px] font-medium text-white/85 transition-colors hover:border-[#555]"
+          className="rounded-[10px] border border-[#282828] px-4 py-1.5 text-[13px] font-medium text-white/85 transition-colors hover:border-[#555]"
         >
           Solo necesarias
         </button>
         <button
           type="button"
           onClick={() => choose(true, true)}
-          className="rounded-[10px] bg-[#FF5C00] px-4 py-2 text-[13px] font-semibold text-white transition-colors hover:bg-[#FF5C00]/90"
+          className="rounded-[10px] bg-[#FF5C00] px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-[#FF5C00]/90"
         >
           Aceptar todas
         </button>
+        </div>
       </div>
     </div>
   );

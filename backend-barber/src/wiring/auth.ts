@@ -71,7 +71,6 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     passwordResetRepository,
     emailService,
     hashService,
-    config.frontendUrl,
     config.resetTokenExpirationMin
   );
   const refreshTokenUseCase = new RefreshTokenUseCase(

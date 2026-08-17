@@ -22,7 +22,7 @@ export class MongoServiceRepository {
 
   async findAllAdmin(includeDeleted: boolean = false): Promise<Service[]> {
     // TODO: deuda técnica — falta paginación si el sistema escala
-    const filter = includeDeleted ? {} : { status: { $ne: 'deleted' } };
+    const filter = includeDeleted ? {} : { status: { $ne: 'deleted' as ServiceStatus } };
     const docs = await ServiceModel.find(filter).lean();
     return docs.map((doc) => toServiceEntity(doc));
   }

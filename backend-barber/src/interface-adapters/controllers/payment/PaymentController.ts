@@ -5,6 +5,7 @@ import { IPaymentService } from '../../../application/ports/IPaymentService';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { assertOwnershipOrAdmin } from '../../../common/ownership';
+import type { PaymentType } from '../../../domain/types/payment.types';
 export class PaymentController {
   constructor(
     private readonly processWebhook: ProcessWebhookUseCase,
@@ -102,7 +103,7 @@ export class PaymentController {
   getByReference = async (req: Request, res: Response) => {
     try {
       const referenceId = req.params.referenceId as string;
-      const type = req.query.type as string;
+      const type = req.query.type as PaymentType;
       const payment = await this.paymentRepository.findByReference(referenceId, type);
       if (payment) {
         assertOwnershipOrAdmin(payment.userId, req.user!._id, req.user!.kind, 'pago');

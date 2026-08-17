@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { MongoOrderRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoOrderRepository';
 import { OrderModel } from '../../../../src/infrastructure/repositories/mongodb/models/order.model';
 import { Order } from '../../../../src/domain/entities/Order';
+import type { OrderStatus } from '../../../../src/domain/types/order.types';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
@@ -9,7 +10,7 @@ const describeIfMongo = isMongoReady ? describe : describe.skip;
 describeIfMongo('MongoOrderRepository', () => {
   let repository: MongoOrderRepository;
 
-  const createOrderDoc = async (overrides: Partial<{ userId: string; status: string; createdAt: Date; total: number }> = {}) => {
+  const createOrderDoc = async (overrides: Partial<{ userId: string; status: OrderStatus; createdAt: Date; total: number }> = {}) => {
     const doc = await OrderModel.create({
       userId: overrides.userId ?? 'user-1',
       items: [{ productId: 'prod-1', name: 'Cera', price: 100, quantity: 1 }],

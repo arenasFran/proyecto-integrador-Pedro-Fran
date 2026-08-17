@@ -8,6 +8,8 @@ import ServiceModel from '../../src/infrastructure/repositories/mongodb/models/s
 import TempLockModel from '../../src/infrastructure/repositories/mongodb/models/tempLock.model';
 import { ProductModel } from '../../src/infrastructure/repositories/mongodb/models/product.model';
 import type { BarberSchedule } from '../../src/domain/entities/Barber';
+import type { ServiceStatus } from '../../src/domain/entities/Service';
+import type { ProductStatus } from '../../src/domain/types/product.types';
 
 const SCHEDULE: BarberSchedule = {
   monday: { startTime: '09:00', endTime: '18:00', breaks: [] },
@@ -118,7 +120,7 @@ export async function seedService(overrides?: {
   description?: string;
   price?: number;
   imageUrl?: string;
-  status?: string;
+  status?: ServiceStatus;
 }): Promise<{ _id: mongoose.Types.ObjectId; serviceId: string }> {
   const doc = await ServiceModel.create({
     name: overrides?.name || 'Corte de pelo',
@@ -183,7 +185,7 @@ export async function seedProduct(overrides?: {
   price?: number;
   stock?: number;
   minStock?: number;
-  status?: string;
+  status?: ProductStatus;
   category?: string;
 }): Promise<{ productId: string }> {
   const doc = await ProductModel.create({

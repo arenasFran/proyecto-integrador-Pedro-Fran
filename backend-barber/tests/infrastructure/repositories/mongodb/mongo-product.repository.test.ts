@@ -80,6 +80,18 @@ describeIfMongo('MongoProductRepository', () => {
       expect(result.total).toBe(1);
     });
 
+    it('debe tratar caracteres especiales de regex como texto literal (ReDoS safety)', async () => {
+      await createProductDoc({ name: 'Cera (especial)' });
+      await createProductDoc({ name: 'Shampoo' });
+
+      const start = Date.now();
+      const result = await repository.findAll({ search: '(a+)+$' });
+      const elapsed = Date.now() - start;
+
+      expect(result.total).toBe(0);
+      expect(elapsed).toBeLessThan(2000);
+    });
+
     it('debe paginar los resultados', async () => {
       for (let i = 0; i < 3; i++) await createProductDoc({ name: `Producto ${i}` });
 

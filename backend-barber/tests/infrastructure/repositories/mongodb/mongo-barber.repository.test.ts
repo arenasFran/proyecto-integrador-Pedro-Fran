@@ -130,6 +130,17 @@ describeIfMongo('MongoBarberRepository', () => {
     expect(found).toBeNull();
   });
 
+  it('debe tratar caracteres especiales de regex como texto literal (ReDoS safety)', async () => {
+    await repository.createBarber(makeBarber());
+
+    const start = Date.now();
+    const result = await repository.findAllBarbersPaginated(1, 50, '(a+)+$');
+    const elapsed = Date.now() - start;
+
+    expect(result.total).toBe(0);
+    expect(elapsed).toBeLessThan(2000);
+  });
+
   it('debe actualizar el horario de un empleado', async () => {
     const created = await repository.createBarber(makeBarber());
 

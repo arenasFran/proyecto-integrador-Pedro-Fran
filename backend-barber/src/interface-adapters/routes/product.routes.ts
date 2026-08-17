@@ -8,6 +8,7 @@ import {
   createProductSchema,
   updateProductSchema,
   productIdParamSchema,
+  publicCatalogQuerySchema,
   queryProductsSchema,
 } from '../validators/product.validator';
 
@@ -36,6 +37,12 @@ export const createProductRouter = (deps: {
     '/categories',
     productsLimiter,
     deps.productController.getCategories
+  );
+
+  router.get(
+    '/catalog',
+    validate({ query: publicCatalogQuerySchema }),
+    deps.productController.getPublicCatalog
   );
 
   router.get(

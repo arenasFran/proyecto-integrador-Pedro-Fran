@@ -4,12 +4,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { TimeSlotGrid } from './TimeSlotGrid';
 
 describe('TimeSlotGrid', () => {
-  it('debe mostrar skeleton loading cuando isLoading es true', () => {
+  it('debe mostrar la carga animada cuando isLoading es true', () => {
     const { container } = render(
       <TimeSlotGrid slots={[]} selectedTime={null} selectedDate={null} isLoading={true} onSelect={vi.fn()} />
     );
     expect(screen.getByText('Horarios')).toBeInTheDocument();
-    expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
+    expect(screen.getByText(/Buscando horarios/i)).toBeInTheDocument();
+    expect(container.querySelector('[class*="bg-[#242424]"]')).toBeInTheDocument();
   });
 
   it('debe mostrar mensaje de seleccionar fecha cuando no hay fecha seleccionada ni slots', () => {

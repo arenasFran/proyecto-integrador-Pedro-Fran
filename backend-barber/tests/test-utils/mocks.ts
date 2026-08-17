@@ -226,6 +226,7 @@ export const makeMockProductRepository = () => ({
   findById: jest.fn(),
   findByIds: jest.fn(),
   findAll: jest.fn(),
+  findPublicCatalog: jest.fn(),
   findByCategory: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),

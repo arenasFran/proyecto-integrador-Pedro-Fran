@@ -69,6 +69,7 @@ describe('BarberController', () => {
     barberRepository = makeMockBarberRepository();
     userRepository = makeMockUserRepository();
     getAvailableSlots = { execute: jest.fn() } as unknown as jest.Mocked<GetAvailableSlotsUseCase>;
+    getAvailableSlots.execute.mockResolvedValue({ date: '2026-01-01', slots: ['09:00'] });
     deleteBarber = { execute: jest.fn() } as unknown as jest.Mocked<DeleteBarberUseCase>;
     createBarber = { execute: jest.fn() };
     updateBarber = { execute: jest.fn() };
@@ -207,6 +208,47 @@ describe('BarberController', () => {
 
       expect(res.json).toHaveBeenCalledWith({
         barbers: [expect.objectContaining({ schedule: expect.any(Object) })],
+      });
+    });
+
+    it('debe excluir barberos activos sin slots reservables en toda su ventana de anticipación', async () => {
+      const available = makeBarberEntity({ id: 'barber-1' });
+      const fullyBooked = makeBarberEntity({ id: 'barber-2', maxAdvanceDays: 1 });
+      barberRepository.findAllBarbers.mockResolvedValue([available, fullyBooked]);
+      getAvailableSlots.execute.mockImplementation(async (barberId) => (
+        barberId === 'barber-1'
+          ? { date: '2026-01-01', slots: ['09:00'] }
+          : { date: '2026-01-01', slots: [], reason: 'fully-booked' }
+      ));
+
+      const req = createMockReq();
+      const res = createMockRes();
+
+      await controller.getAllPublic(req, res);
+
+      expect(res.json).toHaveBeenCalledWith({
+        barbers: [expect.objectContaining({ id: 'barber-1' })],
+      });
+      expect(getAvailableSlots.execute).toHaveBeenCalledWith('barber-2', expect.any(String));
+    });
+
+    it('debe conservar los barberos disponibles si falla la disponibilidad de otro', async () => {
+      const available = makeBarberEntity({ id: 'barber-1' });
+      const failed = makeBarberEntity({ id: 'barber-2' });
+      barberRepository.findAllBarbers.mockResolvedValue([available, failed]);
+      getAvailableSlots.execute.mockImplementation(async (barberId) => {
+        if (barberId === 'barber-2') throw new Error('db down');
+        return { date: '2026-01-01', slots: ['09:00'] };
+      });
+
+      const req = createMockReq();
+      const res = createMockRes();
+
+      await controller.getAllPublic(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        barbers: [expect.objectContaining({ id: 'barber-1' })],
       });
     });
   });

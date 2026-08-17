@@ -27,8 +27,15 @@ export const productIdParamSchema = Joi.object({
 
 export const queryProductsSchema = Joi.object({
   status: Joi.string().valid('active', 'inactive', 'deleted').optional(),
-  category: Joi.string().optional(),
-  search: Joi.string().optional(),
-  page: Joi.number().integer().min(1).optional(),
+  category: Joi.string().max(100).optional(),
+  search: Joi.string().max(100).optional(),
+  page: Joi.number().integer().min(1).max(10000).optional(),
+  limit: Joi.number().integer().min(1).max(100).optional(),
+});
+
+export const publicCatalogQuerySchema = Joi.object({
+  category: Joi.string().max(100).optional(),
+  search: Joi.string().max(100).optional(),
+  page: Joi.number().integer().min(1).max(10000).optional(),
   limit: Joi.number().integer().min(1).max(100).optional(),
 });

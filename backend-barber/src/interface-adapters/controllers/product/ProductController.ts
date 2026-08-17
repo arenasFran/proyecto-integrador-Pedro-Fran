@@ -39,6 +39,28 @@ export class ProductController {
     }
   };
 
+  getPublicCatalog = async (req: Request, res: Response) => {
+    try {
+      const { category, search, page, limit } = req.query as Record<string, string>;
+      const result = await this.productRepository.findPublicCatalog({
+        category,
+        search,
+        page: page ? parseInt(page, 10) : undefined,
+        limit: limit ? parseInt(limit, 10) : undefined,
+      });
+
+      return sendSuccess(res, {
+        products: result.data.map((p) => p.toPrimitives()),
+        total: result.total,
+        page: result.page,
+        totalPages: result.totalPages,
+        limit: result.limit,
+      });
+    } catch (error) {
+      return sendError(res, error, 'Error al listar el catálogo público');
+    }
+  };
+
   getById = async (req: Request, res: Response) => {
     try {
       const product = await this.productRepository.findById(req.params.id as string);

@@ -4,6 +4,7 @@ import type { PaymentMethod } from '../../types/booking';
 import reducer, {
   setServices,
   setCurrentStep,
+  restoreBookingFlow,
   setSelectedBarber,
   setSelectedService,
   setSelectedDate,
@@ -23,7 +24,7 @@ const initialState = {
     barbers: [],
     services: [],
     availableSlots: [],
-    isLoadingBarbers: false,
+    isLoadingBarbers: true,
     isLoadingServices: false,
     isLoadingSlots: false,
     isConfirming: false,
@@ -119,6 +120,18 @@ describe('bookingSlice', () => {
       expect(state.flow.currentStep).toBe('datetime');
     });
 
+    it('restoreBookingFlow recupera el borrador sin tocar el estado async', () => {
+      const state = reducer(
+        { ...initialState, async: { ...initialState.async, barbers: [mockBarber] } },
+        restoreBookingFlow({ currentStep: 'service', selectedBarber: mockBarber, clientName: 'Juan' })
+      );
+
+      expect(state.flow.currentStep).toBe('service');
+      expect(state.flow.selectedBarber).toEqual(mockBarber);
+      expect(state.flow.clientName).toBe('Juan');
+      expect(state.async.barbers).toEqual([mockBarber]);
+    });
+
     it('setSelectedBarber selecciona barbero y avanza a service', () => {
       const state = reducer(initialState, setSelectedBarber(mockBarber));
       expect(state.flow.selectedBarber).toEqual(mockBarber);
@@ -126,6 +139,7 @@ describe('bookingSlice', () => {
       expect(state.flow.selectedDate).toBeNull();
       expect(state.flow.selectedTime).toBeNull();
       expect(state.async.availableSlots).toEqual([]);
+      expect(state.async.isLoadingSlots).toBe(false);
     });
 
     it('setSelectedBarber con null mantiene el paso actual', () => {
@@ -154,6 +168,7 @@ describe('bookingSlice', () => {
       expect(state.flow.selectedDate).toBe('2025-06-16');
       expect(state.flow.selectedTime).toBeNull();
       expect(state.async.availableSlots).toEqual([]);
+      expect(state.async.isLoadingSlots).toBe(true);
     });
 
     it('setSelectedTime asigna la hora', () => {

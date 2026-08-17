@@ -10,45 +10,33 @@ interface BarberCardProps {
   onSelect: (barber: BarberPublic) => void;
 }
 
+export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSelect }) => (
+  <motion.button
+    onClick={() => onSelect(barber)}
+    type="button"
+    aria-pressed={isSelected}
+    aria-label={`Elegir a ${barber.name} ${barber.lastname}`}
+    whileHover={{ y: -4 }}
+    whileTap={{ scale: 0.985 }}
+    className={`group relative w-full overflow-hidden rounded-[18px] border bg-[#151515] p-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-300 focus-visible:ring-2 focus-visible:ring-[#FF5C00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] ${
+      isSelected
+        ? 'border-[#FF5C00] bg-[#1B1714] shadow-[0_16px_35px_rgba(255,92,0,0.12)]'
+        : 'border-[#292929] hover:border-[#FF5C00]/60 hover:bg-[#191919]'
+    }`}
+  >
+    <div className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-colors ${isSelected ? 'bg-[#FF5C00]' : 'bg-white/[0.06] group-hover:bg-[#FF5C00]/50'}`} />
+    <span className={`absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full border transition-all duration-300 ${isSelected ? 'border-[#FF5C00] bg-[#FF5C00] text-white shadow-[0_4px_14px_rgba(255,92,0,0.3)]' : 'border-[#4A4A4A] bg-[#202020] text-transparent group-hover:border-[#FF5C00]/70'}`}>
+      {isSelected && <motion.span initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 24 }}><FiCheck className="h-3 w-3" /></motion.span>}
+    </span>
 
-export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSelect }) => {
-  // Removed synthetic reviews/rating — show only real data when available.
-
-  return (
-    <motion.button
-      onClick={() => onSelect(barber)}
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className={`
-        relative w-full rounded-[12px] border bg-[#1A1A1A] p-5 text-center transition-all duration-200 overflow-hidden
-        ${isSelected
-          ? 'border-[#FF5C00] shadow-[0_0_12px_rgba(255,92,0,0.15)]'
-          : 'border-[#282828] hover:border-[#FF5C00]/50'
-        }
-      `}
-    >
-      {isSelected && (
-        <div className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF5C00]">
-          <FiCheck className="w-2.5 h-2.5 text-white" />
-        </div>
-      )}
-
-      <div className="flex flex-col items-center gap-2">
-        <BarberAvatar
-          name={barber.name}
-          lastname={barber.lastname}
-          photoUrl={barber.photoUrl}
-          size="2xl"
-        />
-
-        <div className="min-w-0 w-full">
-          <h3 className="text-[14px] font-semibold text-white leading-tight">
-            <span className="block">{barber.name}</span>
-            <span className="block">{barber.lastname}</span>
-          </h3>
-          {/* Rating removed to avoid displaying synthetic data */}
-        </div>
+    <div className="flex flex-col items-center gap-4 py-2">
+      <BarberAvatar name={barber.name} lastname={barber.lastname} photoUrl={barber.photoUrl} size="xl" />
+      <div className="w-full min-w-0 text-center">
+        <h3 className="text-[15px] font-semibold leading-tight text-white">
+          <span className="block">{barber.name}</span>
+          <span className="block">{barber.lastname}</span>
+        </h3>
       </div>
-    </motion.button>
-  );
-};
+    </div>
+  </motion.button>
+);

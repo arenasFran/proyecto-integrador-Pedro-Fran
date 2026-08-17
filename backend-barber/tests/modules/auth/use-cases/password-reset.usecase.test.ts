@@ -66,7 +66,6 @@ describe('Password reset use cases', () => {
         passwordResetRepository,
         emailService,
         hashService,
-        'http://localhost:5173',
         60
       );
 
@@ -85,7 +84,6 @@ describe('Password reset use cases', () => {
         passwordResetRepository,
         emailService,
         hashService,
-        'http://localhost:5173',
         60
       );
 
@@ -106,7 +104,6 @@ describe('Password reset use cases', () => {
         passwordResetRepository,
         emailService,
         hashService,
-        'http://localhost:5173',
         60
       );
 
@@ -116,6 +113,9 @@ describe('Password reset use cases', () => {
       const codeInEmail = /(\d{6})/.exec(sentEmail.html ?? '');
       expect(codeInEmail).not.toBeNull();
       expect(codeInEmail![1]).toMatch(/^\d{6}$/);
+      expect(sentEmail.html).not.toContain('href=');
+      expect(sentEmail.html).not.toContain('localhost');
+      expect(sentEmail.html).toContain('60 minutos');
 
       expect(passwordResetRepository.create).toHaveBeenCalledWith(
         'user-1',

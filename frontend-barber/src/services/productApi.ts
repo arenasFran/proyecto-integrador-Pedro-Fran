@@ -15,6 +15,14 @@ export const productApi = createApi({
       providesTags: ['Products'],
     }),
 
+    getPublicCatalog: builder.query<ProductsResponse, { category?: string; search?: string; page?: number; limit?: number } | void>({
+      query: (params) => ({
+        url: '/api/products/catalog',
+        params: params ?? undefined,
+      }),
+      providesTags: ['Products'],
+    }),
+
     getProductById: builder.query<{ product: Product }, string>({
       query: (id) => ({ url: `/api/products/${id}` }),
       providesTags: (_result, _error, id) => [{ type: 'Product', id }],
@@ -54,6 +62,7 @@ export const productApi = createApi({
 
 export const {
   useGetProductsQuery,
+  useGetPublicCatalogQuery,
   useGetProductByIdQuery,
   useGetCategoriesQuery,
   useCreateProductMutation,

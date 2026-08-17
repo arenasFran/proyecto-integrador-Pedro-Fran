@@ -96,6 +96,12 @@ export class MongoClientRepository {
     return toClientEntity(doc);
   }
 
+  async findRegisteredByEmail(email: string): Promise<Client | null> {
+    const doc = await RegisteredClient.findOne({ email: normalizeEmail(email) }).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
   async findByPhone(phone: string): Promise<Client | null> {
     const doc = await UnregisteredClient.findOne({ phone }).lean();
     if (!doc) return null;

@@ -152,6 +152,7 @@ export const makeMockClientRepository = () => ({
   incrementarNoShow: jest.fn(),
   aplicarSancion: jest.fn(),
   levantarSancion: jest.fn(),
+  findRegisteredByEmail: jest.fn(),
 });
 
 export const makeMockAnalisisCorteRepository = () => ({

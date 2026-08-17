@@ -63,6 +63,21 @@ export class CreateAppointmentUseCase {
     }
     const nowInTz = getNowInTimezone();
 
+    // Reserva anónima: si el email pertenece a una cuenta registrada, pedir login.
+    // Solo aplica al flujo público (createdBy.type === 'anonymous' y sin clientId).
+    // No abre enumeración de cuentas: el endpoint ya está rate-limitado (F1) y el
+    // mensaje no revela más que la existencia de la cuenta.
+    if (dto.createdBy?.type === 'anonymous' && !dto.clientId && dto.clientEmail) {
+      const existing = await this.clientRepository.findRegisteredByEmail(dto.clientEmail);
+      if (existing) {
+        throw new AppError(
+          'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+          409,
+          'EMAIL_ALREADY_REGISTERED'
+        );
+      }
+    }
+
     // RN01 — Fecha y hora no pueden estar en el pasado
     if (dto.date < nowInTz.date) {
       throw new AppError('No se puede agendar en el pasado.', 400);

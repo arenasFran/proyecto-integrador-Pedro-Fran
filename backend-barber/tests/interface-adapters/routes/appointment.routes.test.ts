@@ -77,6 +77,35 @@ describeIfMongo('Appointment routes — integración real', () => {
       expect(inDb).not.toBeNull();
     });
 
+    it('rechaza reserva anónima si el email pertenece a una cuenta registrada', async () => {
+      const { barberId } = await seedBarber();
+      const { serviceId } = await seedService();
+      const { email } = await seedRegisteredClient({ email: 'ya-registrado@test.com' });
+      const date = getFutureDate(15);
+      const { tempLockId } = await seedTempLock({ barberId, date, startTime: '10:00' });
+
+      const res = await request(app)
+        .post('/api/appointments')
+        .send({
+          barberId,
+          serviceId,
+          date,
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientEmail: email,
+          clientPhone: '099123456',
+          tempLockId,
+        });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(res.body.code).toBe('EMAIL_ALREADY_REGISTERED');
+
+      const inDb = await AppointmentModel.findOne({ clientEmail: email });
+      expect(inDb).toBeNull();
+    });
+
     it('crea turno como cliente registrado (con auth)', async () => {
       const { barberId } = await seedBarber();
       const { serviceId } = await seedService();

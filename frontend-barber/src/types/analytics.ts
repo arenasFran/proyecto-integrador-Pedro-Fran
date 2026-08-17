@@ -14,6 +14,8 @@ export interface OverviewData {
 export interface HeatmapEntry {
   fecha: string;
   cantidad: number;
+  ingresos?: number;
+  porOrigen?: Record<string, number>;
 }
 
 export interface ReservasGananciasEntry {

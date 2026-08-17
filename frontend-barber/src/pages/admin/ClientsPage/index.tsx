@@ -7,6 +7,7 @@ import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import type { ClienteData } from '../../../types/analytics';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const PAGE_SIZE = 20;
 
@@ -65,12 +66,7 @@ export default function ClientsPage() {
 
   return (
     <div className="flex flex-col gap-5 p-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <FiUserCheck className="text-[#FF5C00]" />
-          Clientes
-        </h1>
-      </div>
+      <AdminPageHeader icon={FiUserCheck} title="Clientes" description="Conocé el historial y el valor de cada cliente." />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">

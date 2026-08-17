@@ -22,6 +22,7 @@ import {
 } from '../../admin/utils/schedule-helpers';
 import { ProfessionalsList } from './components/ProfessionalsList';
 import { ProfessionalModalWizard } from './components/ProfessionalModalWizard';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const PAGE_SIZE = 20;
 
@@ -212,27 +213,7 @@ export const ProfessionalsPage: React.FC = () => {
     <div className="min-h-screen bg-[#050505] text-white">
       <div className="relative mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A]">
-                <FiScissors className="text-[#FF5C00]" />
-                Barberos
-              </div>
-              <h1 className="mt-4 text-[28px] font-extrabold tracking-[-0.02em] text-white sm:text-[34px]">
-                Barberos
-              </h1>
-              <p className="mt-2 text-[14px] leading-6 text-[#8A8A8A] max-w-xl">
-                Gestioná el equipo de barberos, sus horarios y disponibilidad.
-              </p>
-            </div>
-            <Button
-              icon={FiPlus}
-              size="md"
-              onClick={openCreateModal}
-            >
-              Nuevo barbero
-            </Button>
-          </div>
+          <AdminPageHeader icon={FiScissors} title="Barberos" description="Gestioná el equipo, sus horarios y disponibilidad." action={<Button icon={FiPlus} size="md" onClick={openCreateModal}>Nuevo barbero</Button>} />
         </AnimatedContainer>
 
         <div className="mt-8">

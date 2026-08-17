@@ -11,6 +11,7 @@ interface AppointmentListModalProps {
   onClose: () => void;
   title: string;
   params: AppointmentQueryParams;
+  onAppointmentClick?: (appointment: import('../../types/booking').Appointment) => void;
 }
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
@@ -25,7 +26,7 @@ function formatTime(time: string) {
   return `${h}:${m}`;
 }
 
-export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOpen, onClose, title, params }) => {
+export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOpen, onClose, title, params, onAppointmentClick }) => {
   const { data: appointments = [], isLoading, isFetching } = useGetAppointmentsQuery(params, {
     skip: !isOpen,
   });
@@ -45,7 +46,16 @@ export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOp
             return (
               <div
                 key={a.id}
-                className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 hover:border-[#FF5C00]/30 transition-colors"
+                className={`rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 hover:border-[#FF5C00]/30 transition-colors ${onAppointmentClick ? 'cursor-pointer text-left w-full' : ''}`}
+                onClick={() => onAppointmentClick?.(a)}
+                onKeyDown={(event) => {
+                  if (onAppointmentClick && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onAppointmentClick(a);
+                  }
+                }}
+                role={onAppointmentClick ? 'button' : undefined}
+                tabIndex={onAppointmentClick ? 0 : undefined}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">

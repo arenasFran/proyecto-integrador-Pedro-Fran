@@ -27,13 +27,21 @@ function periodToRange(periodo: string): { dateFrom: string; dateTo: string } {
   return { dateFrom: periodo, dateTo: periodo };
 }
 
-export default function GananciasChart() {
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+interface GananciasChartProps {
+  desde?: string;
+  hasta?: string;
+}
+
+export default function GananciasChart({ desde: desdeProp, hasta: hastaProp }: GananciasChartProps = {}) {
+  const [internalDesde, setInternalDesde] = useState('');
+  const [internalHasta, setInternalHasta] = useState('');
   const [barberId, setBarberId] = useState<string | undefined>();
   const [serviceId, setServiceId] = useState<string | undefined>();
   const [selectedPeriod, setSelectedPeriod] = useState<{ dateFrom: string; dateTo: string } | null>(null);
 
+  const desde = desdeProp ?? internalDesde;
+  const hasta = hastaProp ?? internalHasta;
+  const controlled = desdeProp !== undefined && hastaProp !== undefined;
   const granularidad = useMemo(() => deriveGranularidad(desde, hasta), [desde, hasta]);
 
   const { data = [], isFetching, isLoading, error: rtkError } = useGetReservasGananciasQuery({
@@ -53,10 +61,8 @@ export default function GananciasChart() {
 
   return (
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
-      <h3 className="text-white text-base font-bold mb-2">Ganancias</h3>
-      <div className="mb-2">
-        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
-      </div>
+      <h3 className="text-white text-base font-bold mb-2">Ingresos confirmados</h3>
+      {!controlled && <div className="mb-2"><DateRangeFilter onChange={(d, h) => { setInternalDesde(d); setInternalHasta(h); }} /></div>}
       <ChartFilters
         barberId={barberId}
         onBarberChange={setBarberId}

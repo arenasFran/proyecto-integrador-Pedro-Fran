@@ -7,9 +7,14 @@ import { formatCurrency } from '../../../../utils/formatCurrency';
 
 const COLORS = ['#FF5C00', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
-export default function DistribucionDonut() {
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+interface DistribucionDonutProps { desde?: string; hasta?: string }
+
+export default function DistribucionDonut({ desde: desdeProp, hasta: hastaProp }: DistribucionDonutProps = {}) {
+  const [internalDesde, setInternalDesde] = useState('');
+  const [internalHasta, setInternalHasta] = useState('');
+  const desde = desdeProp ?? internalDesde;
+  const hasta = hastaProp ?? internalHasta;
+  const controlled = desdeProp !== undefined && hastaProp !== undefined;
 
   const { data, isFetching, isLoading, error: rtkError } = useGetDistribucionQuery(
     { desde, hasta },
@@ -28,9 +33,7 @@ export default function DistribucionDonut() {
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <h3 className="text-white text-base font-bold mb-4">Distribución de reservas por barbero</h3>
 
-      <div className="mb-2">
-        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
-      </div>
+      {!controlled && <div className="mb-2"><DateRangeFilter onChange={(d, h) => { setInternalDesde(d); setInternalHasta(h); }} /></div>}
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 

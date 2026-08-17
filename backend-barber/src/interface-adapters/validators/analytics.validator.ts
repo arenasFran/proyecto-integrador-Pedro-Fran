@@ -91,7 +91,13 @@ const CURRENT_YEAR = new Date().getFullYear();
 export const heatmapQuerySchema = Joi.object({
   year: Joi.number().integer().min(2020).max(CURRENT_YEAR),
   lastYear: Joi.boolean(),
+  desde: Joi.string().pattern(ISO_DATE),
+  hasta: Joi.string().pattern(ISO_DATE),
 }).custom((value, helpers) => {
+  if (value.desde || value.hasta) {
+    if (!value.desde || !value.hasta) return helpers.message({ custom: 'Debe proporcionar "desde" y "hasta".' });
+    return rangeValidation(value, helpers);
+  }
   if (!value.lastYear && !value.year) {
     return helpers.message({ custom: 'Debe proporcionar "year" o "lastYear".' });
   }

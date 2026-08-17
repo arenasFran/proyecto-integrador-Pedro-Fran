@@ -30,6 +30,8 @@ export type OverviewResult = {
 export type HeatmapEntry = {
   fecha: string;
   cantidad: number;
+  ingresos?: number;
+  porOrigen?: Record<string, number>;
 };
 
 export type DistribucionEntry = {
@@ -323,11 +325,15 @@ export class MongoAnalyticsRepository {
     };
   }
 
-  async getHeatmap(param: { year?: number; lastYear?: boolean }): Promise<HeatmapEntry[]> {
+  async getHeatmap(param: { year?: number; lastYear?: boolean; desde?: string; hasta?: string }): Promise<HeatmapEntry[]> {
     let gte: Date;
     let lte: Date;
 
-    if (param.lastYear) {
+    if (param.desde && param.hasta) {
+      const range = parseLocalDateRange(param.desde, param.hasta);
+      gte = range.desdeDate;
+      lte = range.hastaDate;
+    } else if (param.lastYear) {
       const now = new Date();
       lte = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       gte = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
@@ -337,7 +343,7 @@ export class MongoAnalyticsRepository {
       lte = parseLocalDate(`${year}-12-31`);
     }
 
-    const pipeline = [
+    const activityPipeline = [
       DATE_CONVERSION_STAGE,
       {
         $match: {
@@ -355,7 +361,23 @@ export class MongoAnalyticsRepository {
       { $sort: { fecha: 1 } },
     ] as mongoose.PipelineStage[];
 
-    return AppointmentModel.aggregate(pipeline);
+    const activity = await AppointmentModel.aggregate(activityPipeline);
+    if (!param.desde || !param.hasta) return activity;
+
+    const revenue = await this.revenueEntryRepo.getRevenueByDay(gte, lte);
+
+    const activityMap = new Map(activity.map((entry) => [entry.fecha, entry.cantidad]));
+    const dates = new Set([...activityMap.keys(), ...revenue.map((entry) => entry.fecha)]);
+
+    return [...dates].sort().map((fecha) => {
+      const revenueEntry = revenue.find((entry) => entry.fecha === fecha);
+      return {
+        fecha,
+        cantidad: activityMap.get(fecha) ?? 0,
+        ingresos: revenueEntry?.ingresos ?? 0,
+        porOrigen: revenueEntry?.porOrigen ?? {},
+      };
+    });
   }
 
   async getDistribucion(desde: string, hasta: string): Promise<DistribucionEntry[]> {

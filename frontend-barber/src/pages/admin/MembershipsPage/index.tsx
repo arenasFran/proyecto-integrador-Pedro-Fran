@@ -16,6 +16,7 @@ import { CreateMembershipModal } from './components/CreateMembershipModal';
 import type { MembershipStatus, MembershipWithUser } from '../../../types/membership';
 import { formatDate } from '../../../utils/formatDate';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const STATUS_FILTERS = [
   { value: '', label: 'Todas' },
@@ -133,18 +134,7 @@ export default function MembershipsPage() {
   return (
     <div className="flex flex-col gap-5">
       <AnimatedContainer animation="fadeInDown">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF5C00]/10">
-              <FiAward className="text-[#FF5C00] text-lg" />
-            </div>
-            <div>
-              <h1 className="text-[20px] font-bold text-white">Membresías</h1>
-              <p className="text-[13px] text-[#8A8A8A]">Gestioná las membresías de los clientes</p>
-            </div>
-          </div>
-          <Button icon={FiPlus} onClick={() => setShowCreate(true)}>Nueva membresía</Button>
-        </div>
+        <AdminPageHeader icon={FiAward} title="Membresías" description="Gestioná las membresías de los clientes" action={<Button icon={FiPlus} onClick={() => setShowCreate(true)}>Nueva membresía</Button>} />
       </AnimatedContainer>
 
       {/* ===== TABS ===== */}

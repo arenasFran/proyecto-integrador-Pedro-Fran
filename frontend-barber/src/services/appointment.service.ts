@@ -47,6 +47,7 @@ export type AppointmentQueryParams = {
   page?: number;
   limit?: number;
   includeBarber?: string;
+  includeClient?: string;
   sortBy?: 'date' | 'startTime';
   sortDir?: 'asc' | 'desc';
 };

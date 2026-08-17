@@ -156,6 +156,36 @@ export class MongoRevenueEntryRepository {
     ]);
   }
 
+  async getRevenueByDay(desde: Date, hasta: Date): Promise<{
+    fecha: string;
+    ingresos: number;
+    porOrigen: Record<string, number>;
+  }[]> {
+    const rows = await RevenueEntryModel.aggregate([
+      { $match: { date: { $gte: desde, $lte: hasta } } },
+      {
+        $group: {
+          _id: {
+            fecha: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
+            source: '$source',
+          },
+          total: { $sum: '$amount' },
+        },
+      },
+      { $sort: { '_id.fecha': 1 } },
+    ]);
+
+    const byDate = new Map<string, { ingresos: number; porOrigen: Record<string, number> }>();
+    for (const row of rows as Array<{ _id: { fecha: string; source: string }; total: number }>) {
+      const current = byDate.get(row._id.fecha) ?? { ingresos: 0, porOrigen: {} };
+      current.ingresos += row.total;
+      current.porOrigen[row._id.source] = row.total;
+      byDate.set(row._id.fecha, current);
+    }
+
+    return [...byDate.entries()].map(([fecha, value]) => ({ fecha, ...value }));
+  }
+
   private toDomain(doc: IRevenueEntryDocument): RevenueEntry {
     return RevenueEntry.restore({
       id: doc._id.toString(),

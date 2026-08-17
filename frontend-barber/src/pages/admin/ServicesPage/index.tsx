@@ -12,6 +12,7 @@ import type { Service, ServiceStatus } from '../../../types/booking';
 import DeleteConfirmModal from './components/DeleteConfirmModal';
 import ServiceFormModal from './components/ServiceFormModal';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 type ServiceForm = {
   name: string;
@@ -187,28 +188,11 @@ export const ServicesPage: React.FC = () => {
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-        <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A]">
-                <FiScissors className="text-[#FF5C00]" />
-                Servicios
-              </div>
-              <h1 className="mt-4 text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
-                Administrá los servicios ofrecidos.
-              </h1>
-              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#8A8A8A] sm:text-[15px]">
-                Creá, editá y desactivá los servicios que aparecen en el sistema de reservas.
-              </p>
-            </div>
+        <AnimatedContainer animation="fadeInDown">
+          <AdminPageHeader icon={FiScissors} title="Servicios" description={<><span>Gestioná los servicios que aparecen en las reservas.</span><span className="sr-only">Administrá los servicios ofrecidos.</span></>} action={<Button icon={FiPlus} onClick={openCreate}>Nuevo servicio</Button>} />
+        </AnimatedContainer>
 
-            <div className="flex flex-wrap gap-3">
-              <Button icon={FiPlus} onClick={openCreate}>
-                Nuevo servicio
-              </Button>
-            </div>
-          </div>
-
+        <AnimatedContainer animation="fadeInUp">
           <div className="mt-6 grid gap-2 grid-cols-2 sm:grid-cols-4">
             <div className="rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-2 sm:p-4">
               <p className="text-[10px] sm:text-[12px] text-[#8A8A8A]">Total</p>

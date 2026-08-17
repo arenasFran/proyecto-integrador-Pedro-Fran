@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAward, FiScissors, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
@@ -8,13 +8,13 @@ import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClie
 import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
 import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
-import { useGetProductsQuery } from '../../../../services/productApi';
 import type { OverviewData } from '../../../../types/analytics';
 import type { Order } from '../../../../types/order';
 import type { MembershipWithUser } from '../../../../types/membership';
 import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
 import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
+import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
 import { formatCurrency } from '../../../../utils/formatCurrency';
 
@@ -565,11 +565,7 @@ const CARDS_CONFIG = [
   { key: 'reservas', label: 'Reservas', icon: FiUsers, format: (v: number) => String(v), clickable: true, tooltip: 'Total de turnos agendados en el período (todos los estados)' },
   { key: 'ingresos', label: 'Ingresos totales', icon: FiDollarSign, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos completados + pagos de productos y membresías aprobados' },
   { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos con pago pendiente + órdenes y membresías pendientes de pago' },
-  { key: 'tasaCancelTurnos', label: 'Cancelación turnos', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false, tooltip: 'Porcentaje de turnos cancelados o no-show sobre el total de turnos' },
-  { key: 'tasaCancelOrdenes', label: 'Cancelación órdenes', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false, tooltip: 'Porcentaje de órdenes canceladas sobre el total de órdenes' },
   { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true, tooltip: 'Clientes (registrados y anónimos) creados en el período' },
-  { key: 'membresias', label: 'Membresías activas', icon: FiAward, format: (v: number) => String(v), clickable: true, tooltip: 'Membresías actualmente activas (no vencidas)' },
-  { key: 'clientesUnicos', label: 'Clientes únicos', icon: FiUserCheck, format: (v: number) => String(v), clickable: false, tooltip: 'Clientes distintos con al menos un turno en el período' },
   { key: 'ordenes', label: 'Órdenes totales', icon: FiShoppingCart, format: (v: number) => String(v), clickable: true, tooltip: 'Total de órdenes de ecommerce en el período' },
   { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true, tooltip: 'Órdenes con estado pendiente de pago' },
 ];
@@ -579,15 +575,14 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
+  const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
+  const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
 
   const { data: ecommerceData } = useGetEcommerceOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
 
-  const { data: productsData } = useGetProductsQuery({});
-  const allProducts = productsData?.products ?? [];
-  const lowStockProducts = allProducts.filter((p) => p.stock > 0 && p.stock <= (p.minStock || 5));
   const pendingOrders = ecommerceData?.ordersByStatus?.pending ?? 0;
 
   if (error) {
@@ -598,36 +593,21 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
     );
   }
 
-  const totalCancelTurnos = data
-    ? (data.estadisticasPorEstado.cancelado ?? 0) + (data.estadisticasPorEstado.noshow ?? 0)
-    : 0;
-  const tasaCancelTurnos = data && data.totalReservas > 0 ? Math.round((totalCancelTurnos / data.totalReservas) * 100) : 0;
-
-  const totalCancelOrdenes = data
-    ? (data.estadisticasPorEstado.cancelled_order ?? 0)
-    : 0;
-  const totalOrdenes = data ? (data.estadisticasPorEstado.total_orders ?? 0) : 0;
-  const tasaCancelOrdenes = totalOrdenes > 0 ? Math.round((totalCancelOrdenes / totalOrdenes) * 100) : 0;
-
   const values = data
     ? [
         data.totalReservas,
         data.ingresosTotales,
         data.ingresosPendientes,
-        tasaCancelTurnos,
-        tasaCancelOrdenes,
         data.nuevosClientes,
-        data.membresiasActivas ?? 0,
-        data.clientesUnicos ?? 0,
         ecommerceData?.totalOrders ?? 0,
         pendingOrders,
       ]
-    : [null, null, null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
       case 'reservas':
-        navigate(`/admin/turnos?dateFrom=${desde}&dateTo=${hasta}`);
+        setShowAppointmentsModal(true);
         break;
       case 'ingresos':
         setShowIncomeModal(true);
@@ -649,22 +629,6 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
 
   return (
     <>
-      {(lowStockProducts.length > 0 || pendingOrders > 0) && (
-        <div className="flex flex-col gap-2 mb-2">
-          {pendingOrders > 0 && (
-            <div className="flex items-center gap-2 rounded-[10px] bg-yellow-500/10 border border-yellow-500/20 px-4 py-2">
-              <FiAlertCircle className="text-yellow-400 shrink-0" size={16} />
-              <span className="text-[12px] text-yellow-300">{pendingOrders} orden(es) pendiente(s) de pago</span>
-            </div>
-          )}
-          {lowStockProducts.length > 0 && (
-            <div className="flex items-center gap-2 rounded-[10px] bg-orange-500/10 border border-orange-500/20 px-4 py-2">
-              <FiAlertTriangle className="text-orange-400 shrink-0" size={16} />
-              <span className="text-[12px] text-orange-300">{lowStockProducts.length} producto(s) con stock bajo</span>
-            </div>
-          )}
-        </div>
-      )}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
         {CARDS_CONFIG.map((card, idx) => {
           if (!card.clickable) {
@@ -714,9 +678,17 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
           );
         })}
       </div>
-      <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
-      <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
-      <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
-    </>
+       <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
+       <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
+       <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
+       <AppointmentListModal
+         isOpen={showAppointmentsModal}
+         onClose={() => setShowAppointmentsModal(false)}
+         title="Reservas del período"
+         params={{ dateFrom: desde, dateTo: hasta, includeBarber: 'true', includeClient: 'true', limit: 100 }}
+         onAppointmentClick={(appointment) => { setShowAppointmentsModal(false); setDetailAppointment(appointment); }}
+       />
+       {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} isOpen onClose={() => setDetailAppointment(null)} />}
+     </>
   );
 }

@@ -79,16 +79,22 @@ export class AnalyticsController {
 
   getHeatmapHandler = async (req: Request, res: Response) => {
     try {
-      const { year, lastYear } = req.query as Record<string, string | undefined>;
+      const { year, lastYear, desde, hasta } = req.query as Record<string, string | undefined>;
 
-      if (!lastYear && !year) {
+      if ((!lastYear && !year) && (!desde || !hasta)) {
         return sendError(res, new Error('Debe proporcionar "year" o "lastYear".'), 'Error al obtener heatmap');
       }
 
-      const result = await this.repository.getHeatmap({
+      const heatmapParams: { year?: number; lastYear?: boolean; desde?: string; hasta?: string } = {
         year: year ? parseInt(year, 10) : undefined,
         lastYear: lastYear === 'true' ? true : undefined,
-      });
+      };
+      if (desde && hasta) {
+        heatmapParams.desde = desde;
+        heatmapParams.hasta = hasta;
+      }
+
+      const result = await this.repository.getHeatmap(heatmapParams);
 
       return sendSuccess(res, result);
     } catch (error) {

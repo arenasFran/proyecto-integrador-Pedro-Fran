@@ -11,6 +11,7 @@ import { BlockModal } from './BlockModal';
 import { DayCard } from './DayCard';
 import { DayDetailModal } from './DayDetailModal';
 import { QuickCreateModal } from './QuickCreateModal';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const WEEKDAY_ABBR = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
@@ -188,17 +189,13 @@ export const CalendarPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
-          <div className="flex flex-col gap-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A] w-fit">
-              <FiScissors className="text-[#FF5C00]" />
-              Calendario de turnos
-            </div>
+        <AnimatedContainer animation="fadeInDown">
+          <AdminPageHeader icon={FiScissors} title="Calendario" description="Organizá la agenda y creá turnos desde una vista única." />
+        </AnimatedContainer>
 
-            <div className="flex items-center justify-between">
-              <h1 className="hidden sm:block text-[28px] font-extrabold tracking-[-0.02em] text-white">
-                Calendario
-              </h1>
+        <AnimatedContainer animation="fadeInUp" className="rounded-[16px] border border-[#282828] bg-[#121212] p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-end">
               <div className="flex items-center gap-3">
                 <button
                   onClick={goPrev}

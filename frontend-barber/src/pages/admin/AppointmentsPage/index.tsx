@@ -23,6 +23,7 @@ import { AppointmentActionModals } from './AppointmentActionModals';
 import { AppointmentActionsMenu } from './AppointmentActionsMenu';
 import { exportCSV, formatTimeRange, formatTimestamp, methodLabel, originBadge, paymentBadge, statusLabel, statusStyles } from './helpers';
 import { useAdminAppointments } from './useAdminAppointments';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 export const AdminAppointmentsPage: React.FC = () => {
   const adminAppointments = useAdminAppointments();
@@ -52,21 +53,11 @@ export const AdminAppointmentsPage: React.FC = () => {
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-        <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#282828] bg-[#1A1A1A] px-4 py-2 text-[12px] text-[#8A8A8A]">
-                <FiScissors className="text-[#FF5C00]" />
-                Gestión de turnos
-              </div>
-              <h1 className="mt-4 text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
-                Administrá todos los turnos desde una sola pantalla.
-              </h1>
-              <p className="mt-3 max-w-2xl text-[14px] leading-6 text-[#8A8A8A] sm:text-[15px] hidden md:block">
-                Visualizá, cancelá, reprogramá y cambiá el estado de los turnos de forma centralizada.
-              </p>
-            </div>
-          </div>
+        <AnimatedContainer animation="fadeInDown">
+          <AdminPageHeader icon={FiScissors} title="Turnos" description="Visualizá, cancelá, reprogramá y actualizá la agenda." />
+        </AnimatedContainer>
+
+        <AnimatedContainer animation="fadeInUp" className="rounded-[16px] border border-[#282828] bg-[#121212] p-5">
           <StatsCards stats={stats} onStatusClick={(s) => { updateParams({ status: s || undefined }); }} />
         </AnimatedContainer>
 

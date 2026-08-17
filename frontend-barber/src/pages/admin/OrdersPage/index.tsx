@@ -1,20 +1,20 @@
 import { useState } from 'react';
 import {
   FiShoppingBag, FiPackage, FiClock, FiCheckCircle, FiXCircle, FiTruck,
-  FiDollarSign, FiAlertCircle,
+  FiDollarSign, FiAlertCircle, FiPlus,
 } from 'react-icons/fi';
 import type { OrderStatus } from '../../../types/order';
-import { AnimatedContainer, Spinner, Pagination, Select, useToast } from '../../../components/common';
+import { AnimatedContainer, Button, Spinner, Pagination, Select, useToast } from '../../../components/common';
 import type { SelectOption } from '../../../components/common/Select';
 import { OrderCard } from '../../../components/admin/OrderCard';
 import { OrderDetailModal } from '../../../components/admin/OrderDetailModal';
-import { QuickActionsPanel } from '../../../components/admin/QuickActionsPanel';
 import { CreateOrderModal } from '../../../components/admin/CreateOrderModal';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation, useDeleteOrderMutation } from '../../../services/orderApi';
 import { useGetEcommerceOverviewQuery } from '../../../services/analyticsApi';
 import { getAccessToken } from '../../../services/api';
 import { getTokenKind } from '../../../utils/token';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const STATUS_CONFIG: Record<OrderStatus | '', { label: string; bg: string; text: string; icon: React.ReactNode }> = {
   '': { label: 'Todos los estados', bg: 'bg-gray-500/10', text: 'text-gray-400', icon: <FiPackage size={14} /> },
@@ -108,19 +108,8 @@ export const OrdersPage: React.FC = () => {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF5C00]/10">
-            <FiShoppingBag className="text-[#FF5C00] text-lg" />
-          </div>
-          <div>
-            <h1 className="text-[20px] font-bold text-white">Ordenes</h1>
-            <p className="text-[13px] text-[#8A8A8A]">Historial de compras de productos</p>
-          </div>
-        </div>
-      </div>
+    <div className="flex flex-col gap-5">
+      <AdminPageHeader icon={FiShoppingBag} title="Órdenes" description="Historial de compras de productos" action={<Button size="sm" icon={FiPlus} onClick={() => setCreateModalOpen(true)}>Crear orden</Button>} />
 
       {/* Filters: Date + Status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
@@ -159,7 +148,7 @@ export const OrdersPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Main Layout: Cards + Quick Panel */}
+      {/* Orders */}
       {isLoading ? (
         <div className="flex justify-center py-20"><Spinner size="lg" /></div>
       ) : orders.length === 0 ? (
@@ -169,33 +158,23 @@ export const OrdersPage: React.FC = () => {
           <p className="text-[13px] mt-1">Las compras de productos apareceran aqui</p>
         </AnimatedContainer>
       ) : (
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Left: Order Cards */}
-          <div className="lg:w-1/2">
-            <AnimatedContainer animation="fadeInUp">
-              <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 ${isFetching ? 'opacity-60 transition-opacity' : ''}`}>
-                {orders.map((order) => (
-                  <OrderCard
-                    key={order.id}
-                    order={order}
-                    selected={order.id === selectedOrderId}
-                    onSelect={setSelectedOrderId}
-                  />
-                ))}
-              </div>
-              {data && data.totalPages > 1 && (
-                <div className="mt-4">
-                  <Pagination currentPage={page} totalPages={data.totalPages} onPageChange={setPage} />
-                </div>
-              )}
-            </AnimatedContainer>
+        <AnimatedContainer animation="fadeInUp">
+          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 ${isFetching ? 'opacity-60 transition-opacity' : ''}`}>
+            {orders.map((order) => (
+              <OrderCard
+                key={order.id}
+                order={order}
+                selected={order.id === selectedOrderId}
+                onSelect={setSelectedOrderId}
+              />
+            ))}
           </div>
-
-          {/* Right: Quick Actions Panel */}
-          <div className="lg:w-1/2">
-            <QuickActionsPanel onFilterPending={() => { setStatusFilter('pending'); setPage(1); }} onCreateOrder={() => setCreateModalOpen(true)} />
-          </div>
-        </div>
+          {data && data.totalPages > 1 && (
+            <div className="mt-4">
+              <Pagination currentPage={page} totalPages={data.totalPages} onPageChange={setPage} />
+            </div>
+          )}
+        </AnimatedContainer>
       )}
 
       {/* Order Detail Modal */}

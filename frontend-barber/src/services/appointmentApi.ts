@@ -50,6 +50,15 @@ export const appointmentApi = createApi({
       invalidatesTags: ['Appointments'],
     }),
 
+    createAdminAppointment: builder.mutation<{ message: string; appointment: Appointment; preferenceId?: string; initPoint?: string }, CreateAppointmentPayload>({
+      query: (data) => ({
+        url: '/api/appointments/admin',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['Appointments'],
+    }),
+
     getAppointments: builder.query<Appointment[], QueryParams | void>({
       query: (params) => ({
         url: '/api/appointments',
@@ -162,6 +171,7 @@ export const {
   useAcquireTempLockMutation,
   useReleaseTempLockMutation,
   useCreateAppointmentMutation,
+  useCreateAdminAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,
   useGetAppointmentsSummaryQuery,

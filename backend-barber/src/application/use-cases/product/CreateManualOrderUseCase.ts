@@ -61,14 +61,15 @@ export class CreateManualOrderUseCase {
       clientEmail: dto.clientEmail || undefined,
       clientPhone: dto.clientPhone || undefined,
       items: resolvedItems,
+      paymentMethod: 'local',
     });
 
     const targetStatus = dto.status || 'pending';
     if (targetStatus === 'paid') {
-      order.pay();
+      order.pay(undefined, 'admin_manual');
     } else if (targetStatus === 'delivered') {
-      order.pay();
-      order.deliver();
+      order.pay(undefined, 'admin_manual');
+      order.deliver('admin_manual');
     }
 
     const saved = await this.orderRepository.save(order);
@@ -78,8 +79,14 @@ export class CreateManualOrderUseCase {
     // "manual_<timestamp>", que no es un ObjectId válido: no tiene sentido (ni es seguro)
     // intentar guardar un Payment con ese id, así que directamente no se crea.
     if (targetStatus === 'paid' || targetStatus === 'delivered') {
+      const decreased: { productId: string; quantity: number }[] = [];
       for (const item of resolvedItems) {
-        await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+        const success = await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
+        if (!success) {
+          for (const previous of decreased) await this.productRepository.atomicIncreaseStock(previous.productId, previous.quantity);
+          throw new AppError(`Stock insuficiente para: ${item.name}`, 409);
+        }
+        decreased.push(item);
       }
       if (this.paymentRepository && dto.userId) {
         try {
@@ -89,8 +96,12 @@ export class CreateManualOrderUseCase {
             amount: saved.total,
             userId: dto.userId,
           });
-          paymentDoc.approve('admin_manual');
-          await this.paymentRepository.save(paymentDoc);
+          paymentDoc.approve();
+          const savedPayment = await this.paymentRepository.save(paymentDoc);
+          if (savedPayment?.id) {
+            saved.assignPayment(savedPayment.id);
+            await this.orderRepository.save(saved);
+          }
         } catch (err) {
           console.error('[CreateManualOrderUseCase] Error creating PaymentModel:', err);
         }
@@ -103,7 +114,11 @@ export class CreateManualOrderUseCase {
           amount: saved.total,
           userId: dto.userId,
         });
-        await this.paymentRepository.save(paymentDoc);
+        const savedPayment = await this.paymentRepository.save(paymentDoc);
+        if (savedPayment?.id) {
+          saved.assignPayment(savedPayment.id);
+          await this.orderRepository.save(saved);
+        }
       } catch (err) {
         console.error('[CreateManualOrderUseCase] Error creating PaymentModel:', err);
       }

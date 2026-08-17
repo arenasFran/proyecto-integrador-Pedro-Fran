@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { FiMenu } from 'react-icons/fi';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store';
@@ -210,12 +211,21 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
 function OptionalAppLayout({ children }: { children: React.ReactNode }) {
   const loginToken = useAppSelector((state) => state.auth.loginToken);
   const token = loginToken || getAccessToken();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   if (!token) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-[#050505]">
-      <AppSidebar />
+      <AppSidebar mobileOpen={mobileOpen} onToggleMobile={() => setMobileOpen((open) => !open)} />
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="fixed left-3 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-xl border border-[#282828] bg-[#121212] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/30 hover:text-white lg:hidden"
+        aria-label="Abrir menú"
+      >
+        <FiMenu size={20} />
+      </button>
       <div className="lg:ml-52">
         <main>
           {children}

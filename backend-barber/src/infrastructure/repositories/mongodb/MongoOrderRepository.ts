@@ -116,6 +116,10 @@ export class MongoOrderRepository {
       items: data.items,
       total: data.total,
       status: data.status,
+      paymentId: data.paymentId,
+      mpPaymentId: data.mpPaymentId,
+      mpStatusDetail: data.mpStatusDetail,
+      paymentMethod: data.paymentMethod,
       statusHistory: data.statusHistory,
     }], session ? { session } : {});
 

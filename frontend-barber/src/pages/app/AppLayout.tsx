@@ -15,7 +15,7 @@ export const AppLayout: React.FC = () => {
 
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-3 left-3 z-30 lg:hidden flex items-center justify-center w-10 h-10 rounded-[10px] bg-[#121212] border border-[#282828] text-[#8A8A8A] hover:text-white hover:border-[#FF5C00]/30 transition-colors"
+        className="fixed left-3 top-3 z-30 flex h-11 w-11 items-center justify-center rounded-xl border border-[#282828] bg-[#121212] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/30 hover:text-white lg:hidden"
         aria-label="Abrir menú"
       >
         <FiMenu size={20} />

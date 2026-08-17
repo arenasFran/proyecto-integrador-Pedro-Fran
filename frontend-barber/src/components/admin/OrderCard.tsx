@@ -10,6 +10,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: stri
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiXCircle size={12} /> },
   refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400', icon: <FiDollarSign size={12} /> },
   disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: <FiAlertCircle size={12} /> },
+  stock_issue: { label: 'Problema de stock', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiAlertCircle size={12} /> },
 };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
@@ -17,6 +18,8 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   visa: 'Visa',
   master: 'Mastercard',
   amex: 'American Express',
+  local: 'Pago al levantar',
+  online: 'Pago online',
   debvisa: 'Visa Debito',
   debmaster: 'Mastercard Debito',
 };
@@ -33,7 +36,9 @@ interface OrderCardProps {
 }
 
 export const OrderCard: React.FC<OrderCardProps> = ({ order, selected, onSelect }) => {
-  const cfg = STATUS_CONFIG[order.status];
+  const cfg = order.status === 'pending' && order.paymentMethod === 'local'
+    ? { ...STATUS_CONFIG.pending, label: 'Pago al levantar' }
+    : STATUS_CONFIG[order.status];
   const isAnonymous = !!order.clientName;
 
   return (

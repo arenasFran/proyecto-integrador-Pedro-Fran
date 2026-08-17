@@ -20,6 +20,7 @@ export const createOrderRouter = (deps: {
   router.post(
     '/',
     deps.authenticate,
+    authorize('Registrado'),
     validate({ body: createOrderSchema }),
     deps.orderController.create
   );

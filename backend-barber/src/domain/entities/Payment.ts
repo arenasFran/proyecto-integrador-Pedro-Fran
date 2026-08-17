@@ -64,12 +64,12 @@ export class Payment {
     return { ...this.props };
   }
 
-  approve(mpPaymentId: string): void {
+  approve(mpPaymentId?: string): void {
     if (this.props.status !== 'pending') {
       return;
     }
     this.props.status = 'approved';
-    this.props.mpPaymentId = mpPaymentId;
+    if (mpPaymentId) this.props.mpPaymentId = mpPaymentId;
     this.props.updatedAt = new Date();
   }
 

@@ -16,8 +16,8 @@ export const analisisCorteApi = createApi({
   baseQuery: axiosBaseQuery,
   tagTypes: ['AnalisisCorte'],
   endpoints: (builder) => ({
-    getHistorialAnalisisCorte: builder.query<HistorialAnalisisCorte, void>({
-      query: () => ({ url: '/api/analisis-corte/historial' }),
+    getHistorialAnalisisCorte: builder.query<HistorialAnalisisCorte, { page?: number; limit?: number } | void>({
+      query: (params) => ({ url: '/api/analisis-corte/historial', params: params ?? undefined }),
       providesTags: ['AnalisisCorte'],
     }),
     generarImagenEjemploCorte: builder.mutation<ImagenEjemploCorteResponse, ImagenEjemploCorteRequest>({

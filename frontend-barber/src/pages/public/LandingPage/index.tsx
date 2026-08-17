@@ -18,6 +18,7 @@ import {
   FiMenu,
   FiPackage,
   FiPhone,
+  FiPlus,
   FiShoppingBag,
   FiShoppingCart,
   FiScissors,
@@ -183,16 +184,6 @@ const LandingFoldLine: React.FC<{ text: string }> = ({ text }) => (
     className="landing-fold-title-line"
   />
 );
-
-const heroCtaVariants = {
-  hidden: { opacity: 0, y: 18, scale: 0.94 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.62, delay: 0.12, ease: [0.22, 1, 0.36, 1] as const },
-  },
-};
 
 const LandingProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const gallery = [product.imageUrl, ...product.gallery].filter(Boolean).slice(0, 4);
@@ -456,14 +447,9 @@ export const LandingPage: React.FC = () => {
                 title="Reservar turno"
                 onClick={() => goTo('/reservar')}
               >
+                <span>RESERVAR</span>
                 <FiCalendar aria-hidden="true" />
               </button>
-            )}
-            {!isAuthenticated && (
-              <>
-                <Link className="landing-login-link" to="/login">Iniciar sesión</Link>
-                <Link className="landing-register-link" to="/register">Crear cuenta</Link>
-              </>
             )}
             {isAuthenticated ? (
               <div className="landing-account" ref={dropdownRef}>
@@ -548,13 +534,14 @@ export const LandingPage: React.FC = () => {
                 className="landing-section-menu-trigger"
                 aria-expanded={sectionMenuOpen}
                 aria-haspopup="menu"
+                aria-label={sectionMenuOpen ? 'Cerrar menú de secciones' : 'Abrir menú de secciones'}
+                title={sectionMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
                 onClick={() => {
                   setSectionMenuOpen((open) => !open);
                   setDropdownOpen(false);
                 }}
               >
-                <span>Menú</span>
-                <FiChevronDown className={sectionMenuOpen ? 'is-open' : ''} />
+                {sectionMenuOpen ? <FiX aria-hidden="true" /> : <FiMenu aria-hidden="true" />}
               </button>
               <AnimatePresence initial={false}>
                 {sectionMenuOpen && (
@@ -580,6 +567,19 @@ export const LandingPage: React.FC = () => {
                         </button>
                       ))}
                     </div>
+                    {!isAuthenticated && (
+                      <div className="landing-account-section landing-access-section">
+                        <span className="landing-account-section-title">Acceso</span>
+                        <Link className="landing-access-link landing-access-link-login" to="/login" onClick={() => setSectionMenuOpen(false)}>
+                          <FiUser aria-hidden="true" />
+                          <span>Iniciar sesión</span>
+                        </Link>
+                        <Link className="landing-access-link landing-access-link-register" to="/register" onClick={() => setSectionMenuOpen(false)}>
+                          <span className="landing-register-icon" aria-hidden="true"><FiUser /><FiPlus /></span>
+                          <span>Crear cuenta</span>
+                        </Link>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -651,10 +651,11 @@ export const LandingPage: React.FC = () => {
               )}
 
               {!isAuthenticated && (
-                <>
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)}>Iniciar sesión</Link>
-                  <Link to="/register" onClick={() => setMobileMenuOpen(false)}>Crear cuenta</Link>
-                </>
+                <div className="landing-mobile-access">
+                  <span>Acceso</span>
+                  <Link to="/login" onClick={() => setMobileMenuOpen(false)}><FiUser aria-hidden="true" /> Iniciar sesión</Link>
+                  <Link to="/register" onClick={() => setMobileMenuOpen(false)}><span className="landing-register-icon" aria-hidden="true"><FiUser /><FiPlus /></span> Crear cuenta</Link>
+                </div>
               )}
 
               {isAuthenticated && (
@@ -672,12 +673,9 @@ export const LandingPage: React.FC = () => {
 
       <main>
         <section className="landing-hero" aria-labelledby="hero-title">
-          <div className="hero-grid" aria-hidden="true" />
-          <div className="hero-glow hero-glow-one" aria-hidden="true" />
-          <div className="hero-glow hero-glow-two" aria-hidden="true" />
           <div className="landing-container hero-layout">
             <motion.div
-              className="hero-copy"
+              className="hero-composition"
               variants={staggerVariants}
               initial="hidden"
               animate="visible"
@@ -693,8 +691,8 @@ export const LandingPage: React.FC = () => {
                   startDelay={0}
                   fillDelay={0.1}
                   stagger={0.06}
-                  ease="power2.out"
-                  trigger="scroll"
+                  ease="power3.out"
+                  trigger="mount"
                   fillMode="wipe"
                   fontSize={120}
                   letterSpacing={-4}
@@ -705,12 +703,12 @@ export const LandingPage: React.FC = () => {
                   strokeColor="#ff9d66"
                   fillColor="#ffffff"
                   strokeWidth={1}
-                  drawDuration={1.35}
-                  startDelay={0.24}
-                  fillDelay={0.08}
+                  drawDuration={1.08}
+                  startDelay={0.12}
+                  fillDelay={0.06}
                   stagger={0.06}
-                  ease="power2.out"
-                  trigger="scroll"
+                  ease="power3.out"
+                  trigger="mount"
                   fillMode="wipe"
                   fontSize={120}
                   letterSpacing={-4}
@@ -721,12 +719,12 @@ export const LandingPage: React.FC = () => {
                   strokeColor="#ff5c00"
                   fillColor="#ff5c00"
                   strokeWidth={1}
-                  drawDuration={1.8}
-                  startDelay={0.48}
-                  fillDelay={0.12}
+                  drawDuration={1.32}
+                  startDelay={0.24}
+                  fillDelay={0.08}
                   stagger={0.055}
-                  ease="power2.out"
-                  trigger="scroll"
+                  ease="power3.out"
+                  trigger="mount"
                   fillMode="wipe"
                   fontSize={132}
                   fontWeight={400}
@@ -738,12 +736,12 @@ export const LandingPage: React.FC = () => {
                   strokeColor="#ff9d66"
                   fillColor="#ffffff"
                   strokeWidth={1}
-                  drawDuration={1.3}
-                  startDelay={0.78}
-                  fillDelay={0.06}
+                  drawDuration={1.02}
+                  startDelay={0.42}
+                  fillDelay={0.05}
                   stagger={0.058}
-                  ease="power2.out"
-                  trigger="scroll"
+                  ease="power3.out"
+                  trigger="mount"
                   fillMode="wipe"
                   fontSize={120}
                   letterSpacing={-4}
@@ -754,12 +752,12 @@ export const LandingPage: React.FC = () => {
                   strokeColor="#ff9d66"
                   fillColor="#ffffff"
                   strokeWidth={1}
-                  drawDuration={1.62}
-                  startDelay={0.98}
-                  fillDelay={0.09}
+                  drawDuration={1.2}
+                  startDelay={0.54}
+                  fillDelay={0.06}
                   stagger={0.057}
-                  ease="power2.out"
-                  trigger="scroll"
+                  ease="power3.out"
+                  trigger="mount"
                   fillMode="wipe"
                   fontSize={120}
                   letterSpacing={-4}
@@ -767,55 +765,11 @@ export const LandingPage: React.FC = () => {
                 />
               </motion.h1>
 
-              <motion.div variants={motionItem} className="hero-actions">
-                <motion.button
-                  type="button"
-                  className="landing-button landing-button-primary"
-                  variants={reduceMotion ? undefined : heroCtaVariants}
-                  onClick={() => goTo('/reservar')}
-                >
-                  Reservar mi turno <FiArrowUpRight />
-                </motion.button>
-              </motion.div>
-      
-            </motion.div>
-
-            <motion.div
-              className="hero-visual"
-              initial={reduceMotion ? { opacity: 1, x: 0 } : { opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={reduceMotion ? { duration: 0 } : { duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            >
-            
-              <div className="hero-image-frame">
-                <picture>
-                  <source media="(max-width: 640px)" type="image/webp" srcSet="/hero-mobile-480.webp 480w, /hero-mobile.webp 768w" sizes="(max-width: 640px) calc(100vw - 32px), 560px" />
-                  <source type="image/webp" srcSet="/hero-640.webp 640w, /hero.webp 1200w" sizes="(max-width: 1180px) 50vw, 590px" />
-                  <img src="/hero.png" alt="Interior y ambiente de Barbería SA" width={1672} height={941} fetchPriority="high" decoding="async" />
-                </picture>
-                <div className="hero-image-shade" />
-           
-              </div>
-              <div className="hero-info-card">
-                <div className="hero-info-head">
-                  <span className="hero-info-status">
-                    <span className="hero-info-dot" aria-hidden="true" />
-                    Horarios
-                  </span>
-                
-                </div>
-
-                <div className="hero-info-row">
-                  <div className="hero-info-icon-wrap">
-                    <FiClock className="hero-info-icon" />
-                  </div>
-
-                  <div className="hero-info-copy">
-                    <strong>Lunes a sábado</strong>
-                    <span>09:00 a 19:00</span>
-                  </div>
-                </div>
-              </div>
+              <div
+                className="hero-logo-draw"
+                role="img"
+                aria-label="Logo ilustrado de Barbería SA"
+              />
             </motion.div>
           </div>
 

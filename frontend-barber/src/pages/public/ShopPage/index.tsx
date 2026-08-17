@@ -12,6 +12,7 @@ import { useCreateOrderMutation } from '../../../services/orderApi';
 import type { Product } from '../../../types/product';
 import { Button } from '../../../components/common';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 
 export default function ShopPage() {
   const dispatch = useAppDispatch();
@@ -23,6 +24,9 @@ export default function ShopPage() {
   const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
 
   const checkoutPrefId = useAppSelector((state) => state.cart.checkoutPreferenceId);
+  const token = getAccessToken();
+  const { data: membershipData } = useGetMyMembershipQuery(undefined, { skip: !token });
+  const memberDiscount = membershipData?.active?.productDiscount ?? 0;
 
   const { data: productsData, isLoading } = useGetProductsQuery({
     category: selectedCategory || undefined,
@@ -125,12 +129,10 @@ export default function ShopPage() {
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-[26px] font-extrabold tracking-[-0.02em] text-white">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#2a2a2a] bg-[#151515] px-3 py-1.5 text-[11px] font-medium text-[#9a9a9a]">
+              <FiShoppingCart className="text-[#FF7A33]" aria-hidden="true" />
               Tienda
-            </h1>
-            <p className="text-[13px] text-[#8A8A8A] mt-1">
-              Productos de barbería y cuidado personal
-            </p>
+            </div>
           </div>
           <button
             onClick={() => dispatch(openCart())}
@@ -183,7 +185,8 @@ export default function ShopPage() {
           isLoading={isLoading}
           onAddToCart={handleAddToCart}
           onBuyNow={handleBuyNow}
-          onViewDetail={(product) => navigate(`/producto/${product.id}`)}
+           onViewDetail={(product) => navigate(`/producto/${product.id}`)}
+           discountPercent={memberDiscount}
         />
       </div>
 

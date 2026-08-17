@@ -71,22 +71,16 @@ export class CreateOrderUseCase {
       });
     }
 
+    const paymentMethod = dto.paymentMethod || 'online';
     const order = Order.create({
       userId: dto.userId,
       items: resolvedItems,
+      paymentMethod,
     });
 
     const saved = await this.orderRepository.save(order);
 
-    const paymentMethod = dto.paymentMethod || 'online';
-
     if (paymentMethod === 'local') {
-      saved.pay();
-      await this.orderRepository.save(saved);
-
-      for (const item of resolvedItems) {
-        await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
-      }
       if (this.paymentRepository) {
         try {
           const paymentDoc = Payment.create({
@@ -95,18 +89,19 @@ export class CreateOrderUseCase {
             amount: saved.total,
             userId: dto.userId,
           });
-          await this.paymentRepository.save(paymentDoc);
+          const savedPayment = await this.paymentRepository.save(paymentDoc);
+          if (savedPayment?.id) {
+            saved.assignPayment(savedPayment.id);
+            await this.orderRepository.save(saved);
+          }
         } catch (err) {
           console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
         }
       }
-      await this.revenueTracker?.trackProductOrder(saved.id, saved.total, new Date(), {
-        userId: dto.userId,
-      });
       return { orderId: saved.id };
     }
 
-    let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string };
+    let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string; paymentId: string };
     try {
       paymentResult = await this.createPaymentUseCase.execute({
         type: 'product_order',
@@ -125,6 +120,9 @@ export class CreateOrderUseCase {
       await this.orderRepository.delete(saved.id);
       throw error;
     }
+
+    saved.assignPayment(paymentResult.paymentId);
+    await this.orderRepository.save(saved);
 
     return {
       preferenceId: paymentResult.preferenceId,

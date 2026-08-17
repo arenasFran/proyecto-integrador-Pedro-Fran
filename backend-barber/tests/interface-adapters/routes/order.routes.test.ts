@@ -42,7 +42,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.status).toBe(401);
     });
 
-    it('pago local: crea la orden ya paga y descuenta stock inmediatamente', async () => {
+    it('pago local: crea la orden pendiente sin descontar stock hasta cobrarla', async () => {
       const { productId } = await seedProduct({ price: 500, stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -56,10 +56,15 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.body.orderId).toBeTruthy();
 
       const order = await OrderModel.findById(res.body.orderId);
-      expect(order!.status).toBe('paid');
+      expect(order!.status).toBe('pending');
+      expect(order!.paymentMethod).toBe('local');
 
       const product = await ProductModel.findById(productId);
-      expect(product!.stock).toBe(8);
+      expect(product!.stock).toBe(10);
+
+      const payment = await PaymentModel.findOne({ referenceId: res.body.orderId });
+      expect(payment).not.toBeNull();
+      expect(payment!.status).toBe('pending');
 
       expect(createPreferenceMock).not.toHaveBeenCalled();
     });
@@ -176,11 +181,11 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       const res = await request(app)
         .get('/api/orders')
         .set('Authorization', `Bearer ${adminToken}`)
-        .query({ status: 'paid' });
+        .query({ status: 'pending' });
 
       expect(res.status).toBe(200);
       expect(res.body.orders).toHaveLength(1);
-      expect(res.body.orders[0].status).toBe('paid');
+      expect(res.body.orders[0].status).toBe('pending');
     });
   });
 

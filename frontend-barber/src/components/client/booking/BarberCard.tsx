@@ -36,6 +36,7 @@ export const BarberCard: React.FC<BarberCardProps> = ({ barber, isSelected, onSe
           <span className="block">{barber.name}</span>
           <span className="block">{barber.lastname}</span>
         </h3>
+        {barber.services.length > 0 && <p className="mt-2 line-clamp-1 text-[11px] text-[#777]">{barber.services.join(' · ')}</p>}
       </div>
     </div>
   </motion.button>

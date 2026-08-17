@@ -17,6 +17,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: stri
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiXCircle size={12} /> },
   refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400', icon: <FiDollarSign size={12} /> },
   disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: <FiAlertCircle size={12} /> },
+  stock_issue: { label: 'Problema de stock', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiAlertCircle size={12} /> },
 };
 
 const MP_STATUS_LABELS: Record<string, string> = {
@@ -50,7 +51,7 @@ function getPaymentMethodLabel(method?: string): string {
     amex: 'American Express', debvisa: 'Visa Debito', debmaster: 'Mastercard Debito',
     naranja: 'Naranja', nativa: 'Nativa', cabal: 'Cabal', maestro: 'Maestro', oca: 'OCA',
   };
-  return labels[method] ?? method;
+  return labels[method] ?? (method === 'local' ? 'Pago al levantar' : method === 'online' ? 'Pago online' : method);
 }
 
 interface OrderDetailPanelProps {
@@ -90,9 +91,13 @@ export const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const statusCfg = STATUS_CONFIG[order.status];
+  const statusCfg = order.status === 'pending' && order.paymentMethod === 'local'
+    ? { ...STATUS_CONFIG.pending, label: 'Pago al levantar' }
+    : STATUS_CONFIG[order.status];
   const isPending = order.status === 'pending';
   const isPaid = order.status === 'paid';
+  const manualPaymentLabel = order.paymentMethod === 'local' ? 'Pagar' : 'Confirmar pago';
+  const manualDeliveryLabel = order.paymentMethod === 'local' ? 'Pagar y entregar' : 'Confirmar pago y entregar';
 
   return (
     <>
@@ -260,10 +265,10 @@ export const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({
                 {isPending && (
                   <>
                     <Button size="sm" variant="outline" className="text-[12px]" onClick={() => onStatusChange?.(order.id, 'paid')} loading={isUpdating}>
-                      <FiDollarSign className="mr-1" size={14} /> Pagar
+                      <FiDollarSign className="mr-1" size={14} /> {manualPaymentLabel}
                     </Button>
                     <Button size="sm" variant="outline" className="text-[12px]" onClick={() => onStatusChange?.(order.id, 'delivered')} loading={isUpdating}>
-                      <FiTruck className="mr-1" size={14} /> Pagar y entregar
+                      <FiTruck className="mr-1" size={14} /> {manualDeliveryLabel}
                     </Button>
                   </>
                 )}
@@ -277,12 +282,12 @@ export const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({
                     <FiXCircle className="mr-1" size={14} /> Cancelar
                   </Button>
                 )}
-                {confirmDelete ? (
+                 {onDelete && isPending && confirmDelete ? (
                   <div className="flex gap-1 w-full mt-2">
                     <Button size="sm" variant="ghost" className="text-[12px]" onClick={() => setConfirmDelete(false)} disabled={isDeleting}>Volver</Button>
                     <Button size="sm" variant="danger" className="text-[12px]" onClick={() => { onDelete?.(order.id); setConfirmDelete(false); }} loading={isDeleting}>Eliminar</Button>
                   </div>
-                ) : (
+                 ) : onDelete && isPending ? (
                   <button
                     onClick={() => setConfirmDelete(true)}
                     className="text-[#8A8A8A] hover:text-red-400 transition-colors p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-red-500/10"
@@ -290,7 +295,7 @@ export const OrderDetailPanel: React.FC<OrderDetailPanelProps> = ({
                   >
                     <FiTrash2 size={16} />
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           )}

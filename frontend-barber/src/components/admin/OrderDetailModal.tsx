@@ -19,6 +19,7 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: stri
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiXCircle size={12} /> },
   refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400', icon: <FiDollarSign size={12} /> },
   disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: <FiAlertCircle size={12} /> },
+  stock_issue: { label: 'Problema de stock', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiAlertCircle size={12} /> },
 };
 
 const MP_STATUS_LABELS: Record<string, string> = {
@@ -52,7 +53,7 @@ function getPaymentMethodLabel(method?: string): string {
     amex: 'American Express', debvisa: 'Visa Debito', debmaster: 'Mastercard Debito',
     naranja: 'Naranja', nativa: 'Nativa', cabal: 'Cabal', maestro: 'Maestro', oca: 'OCA',
   };
-  return labels[method] ?? method;
+  return labels[method] ?? (method === 'local' ? 'Pago al levantar' : method === 'online' ? 'Pago online' : method);
 }
 
 interface OrderDetailModalProps {
@@ -87,9 +88,13 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
-  const statusCfg = STATUS_CONFIG[order.status];
+  const statusCfg = order.status === 'pending' && order.paymentMethod === 'local'
+    ? { ...STATUS_CONFIG.pending, label: 'Pago al levantar' }
+    : STATUS_CONFIG[order.status];
   const isPending = order.status === 'pending';
   const isPaid = order.status === 'paid';
+  const manualPaymentLabel = order.paymentMethod === 'local' ? 'Cobrar' : 'Confirmar pago';
+  const manualDeliveryLabel = order.paymentMethod === 'local' ? 'Cobrar y entregar' : 'Confirmar pago y entregar';
 
   return (
     <>
@@ -181,7 +186,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 aria-expanded={expandedSections['payment'] ?? false}
               >
                 <FiHash size={14} />
-                Datos de Mercado Pago
+                Información del pago
                 {expandedSections['payment'] ? <FiChevronUp size={14} className="ml-auto" /> : <FiChevronDown size={14} className="ml-auto" />}
               </button>
               {expandedSections['payment'] && (
@@ -247,10 +252,10 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               {isPending && (
                 <>
                   <Button size="sm" onClick={() => onStatusChange?.(order.id, 'paid')} loading={isUpdating}>
-                    <FiDollarSign className="mr-1" size={14} /> Cobrar
+                    <FiDollarSign className="mr-1" size={14} /> {manualPaymentLabel}
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => onStatusChange?.(order.id, 'delivered')} loading={isUpdating}>
-                    <FiTruck className="mr-1" size={14} /> Cobrar y entregar
+                    <FiTruck className="mr-1" size={14} /> {manualDeliveryLabel}
                   </Button>
                 </>
               )}
@@ -265,16 +270,16 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
                 </Button>
               )}
               <div className="flex-1" />
-              {confirmDelete ? (
+               {onDelete && isPending && confirmDelete ? (
                 <>
                   <Button size="sm" variant="ghost" onClick={() => setConfirmDelete(false)} disabled={isDeleting}>Volver</Button>
                   <Button size="sm" variant="danger" onClick={() => { onDelete?.(order.id); setConfirmDelete(false); }} loading={isDeleting}>Eliminar</Button>
                 </>
-              ) : (
+               ) : onDelete && isPending ? (
                 <button onClick={() => setConfirmDelete(true)} className="text-[#8A8A8A] hover:text-red-400 transition-colors p-2 min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg hover:bg-red-500/10" aria-label="Eliminar orden">
                   <FiTrash2 size={16} />
                 </button>
-              )}
+              ) : null}
             </div>
           )}
         </div>

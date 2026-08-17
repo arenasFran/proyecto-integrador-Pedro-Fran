@@ -1,4 +1,4 @@
-export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled' | 'refunded' | 'disputed';
+export type OrderStatus = 'pending' | 'paid' | 'delivered' | 'cancelled' | 'refunded' | 'disputed' | 'stock_issue';
 
 export type StatusHistoryEntry = {
   status: OrderStatus;

@@ -4,13 +4,14 @@ import { Payment } from '../../../../src/domain/entities/Payment';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { makeMockOrderRepository, makeMockPaymentRepository } from '../../../test-utils/mocks';
 
-const makeOrder = (overrides?: Partial<{ status: 'pending' | 'paid' | 'delivered' | 'cancelled'; paymentId: string }>) =>
+const makeOrder = (overrides?: Partial<{ status: 'pending' | 'paid' | 'delivered' | 'cancelled'; paymentId: string; paymentMethod: string }>) =>
   Order.restore({
     id: 'order-1',
     userId: 'user-1',
     items: [{ productId: 'prod-1', name: 'Cera', price: 100, quantity: 2 }],
     total: 200,
     status: overrides?.status ?? 'pending',
+    paymentMethod: overrides?.paymentMethod,
     paymentId: overrides?.paymentId,
     statusHistory: [{ status: 'pending', timestamp: new Date(), actor: 'system' }],
     createdAt: new Date(),
@@ -131,8 +132,8 @@ describe('UpdateOrderStatusUseCase', () => {
   });
 
   describe('cancelación', () => {
-    it('debe cancelar la orden y restaurar el stock', async () => {
-      const order = makeOrder();
+    it('debe cancelar la orden paga y restaurar el stock', async () => {
+      const order = makeOrder({ status: 'paid' });
       orderRepository.findById.mockResolvedValue(order);
 
       const result = await useCase.execute({ orderId: 'order-1', status: 'cancelled', actor: 'admin' });

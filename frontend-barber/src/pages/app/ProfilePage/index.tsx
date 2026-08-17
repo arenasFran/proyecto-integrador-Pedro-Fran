@@ -315,8 +315,8 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-        <AnimatedContainer animation="fadeInDown" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
+        <AnimatedContainer animation="fadeInDown" className="rounded-2xl border border-[#282828] bg-[#121212] p-5 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <ImageUpload
@@ -330,7 +330,7 @@ export const ProfilePage: React.FC = () => {
                 }}
                 helperText="Arrastrá o hacé clic para cambiar"
               />
-              <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-white sm:text-[38px]">
+                <h1 className="text-[25px] font-semibold tracking-[-0.02em] text-white sm:text-[32px]">
                 {displayName}
               </h1>
             </div>
@@ -351,7 +351,7 @@ export const ProfilePage: React.FC = () => {
           </AnimatedContainer>
         )}
 
-        <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+        <AnimatedContainer animation="fadeInUp" className="rounded-2xl border border-[#282828] bg-[#121212] p-5">
           <div className="flex gap-1 mb-6 rounded-[12px] bg-[#1A1A1A] p-1">
             <button
               type="button"
@@ -489,7 +489,7 @@ export const ProfilePage: React.FC = () => {
           </form>
         </AnimatedContainer>
 
-        <AnimatedContainer animation="fadeInUp" className="rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+        <AnimatedContainer animation="fadeInUp" className="rounded-2xl border border-[#282828] bg-[#121212] p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <FiLock className="w-5 h-5 text-[#FF5C00]" />

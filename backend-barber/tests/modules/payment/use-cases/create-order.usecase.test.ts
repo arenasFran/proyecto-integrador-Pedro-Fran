@@ -96,7 +96,7 @@ describe('CreateOrderUseCase', () => {
     expect(savedOrder!.items[0].price).toBe(80);
   });
 
-  it('pago local: debe marcar la orden como paga, descontar stock y registrar el revenue', async () => {
+  it('pago local: debe dejar la orden pendiente, conservar stock y registrar un payment pendiente', async () => {
     productRepository.findById.mockResolvedValue(makeProduct());
 
     const result = await useCase.execute({
@@ -106,9 +106,12 @@ describe('CreateOrderUseCase', () => {
     });
 
     expect(result.orderId).toBe('order-1');
-    expect(productRepository.atomicDecreaseStock).toHaveBeenCalledWith('prod-1', 2);
+    const savedOrder = orderRepository.save.mock.calls[0][0] as Order;
+    expect(savedOrder.status).toBe('pending');
+    expect(savedOrder.paymentMethod).toBe('local');
+    expect(productRepository.atomicDecreaseStock).not.toHaveBeenCalled();
     expect(paymentRepository.save).toHaveBeenCalled();
-    expect(revenueTracker.trackProductOrder).toHaveBeenCalledWith('order-1', 200, expect.any(Date), { userId: 'u1' });
+    expect(revenueTracker.trackProductOrder).not.toHaveBeenCalled();
     expect(createPaymentUseCase.execute).not.toHaveBeenCalled();
   });
 

@@ -119,6 +119,10 @@ const cartSlice = createSlice({
         saveCart(state.items);
       }
     },
+    replaceItems: (state, action: PayloadAction<CartItem[]>) => {
+      state.items = action.payload;
+      saveCart(state.items);
+    },
   },
 });
 
@@ -133,6 +137,7 @@ export const {
   setCheckoutResult,
   clearCheckoutResult,
   syncWithProducts,
+  replaceItems,
 } = cartSlice.actions;
 
 export const selectCartTotal = (state: { cart: CartState }): number =>

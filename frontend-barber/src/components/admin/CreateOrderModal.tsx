@@ -43,7 +43,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
   const [anonymousEmail, setAnonymousEmail] = useState('');
   const [anonymousPhone, setAnonymousPhone] = useState('');
   const [cart, setCart] = useState<Record<string, number>>({});
-  const [status, setStatus] = useState<'pending' | 'paid' | 'delivered'>('paid');
+  const [status, setStatus] = useState<'pending' | 'paid' | 'delivered'>('pending');
   const [clients, setClients] = useState<RegisteredClient[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
 

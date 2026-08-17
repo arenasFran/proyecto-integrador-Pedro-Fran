@@ -90,6 +90,9 @@ export type Appointment = {
   cancelReason?: string;
   cancelledAt?: string | null;
   cancelledBy?: string;
+  membershipId?: string;
+  couponRedeemed?: boolean;
+  couponRestoredAt?: string | null;
   createdBy?: CreatedBy;
   statusHistory?: StatusHistoryEntry[];
   clientKind?: ClientKind;

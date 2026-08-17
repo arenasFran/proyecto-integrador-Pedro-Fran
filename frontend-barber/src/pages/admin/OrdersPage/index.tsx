@@ -13,6 +13,8 @@ import { CreateOrderModal } from '../../../components/admin/CreateOrderModal';
 import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation, useDeleteOrderMutation } from '../../../services/orderApi';
 import { useGetEcommerceOverviewQuery } from '../../../services/analyticsApi';
+import { getAccessToken } from '../../../services/api';
+import { getTokenKind } from '../../../utils/token';
 
 const STATUS_CONFIG: Record<OrderStatus | '', { label: string; bg: string; text: string; icon: React.ReactNode }> = {
   '': { label: 'Todos los estados', bg: 'bg-gray-500/10', text: 'text-gray-400', icon: <FiPackage size={14} /> },
@@ -22,6 +24,7 @@ const STATUS_CONFIG: Record<OrderStatus | '', { label: string; bg: string; text:
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiXCircle size={14} /> },
   refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400', icon: <FiDollarSign size={14} /> },
   disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: <FiAlertCircle size={14} /> },
+  stock_issue: { label: 'Problema de stock', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiAlertCircle size={14} /> },
 };
 
 const STATUS_OPTIONS: SelectOption[] = (Object.keys(STATUS_CONFIG) as (OrderStatus | '')[]).map((key) => ({
@@ -55,6 +58,7 @@ export const OrdersPage: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const { showToast } = useToast();
+  const canDeleteOrders = getTokenKind(getAccessToken()) === 'Admin';
 
   const { data, isLoading, isFetching } = useGetAllOrdersQuery({
     status: statusFilter || undefined,
@@ -201,7 +205,7 @@ export const OrdersPage: React.FC = () => {
         isUpdating={isUpdating}
         isDeleting={isDeleting}
         onStatusChange={handleStatus}
-        onDelete={handleDelete}
+        onDelete={canDeleteOrders ? handleDelete : undefined}
       />
 
       <CreateOrderModal isOpen={createModalOpen} onClose={() => setCreateModalOpen(false)} />

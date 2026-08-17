@@ -33,7 +33,7 @@ export const buildOrderRouter = () => {
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
   const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository, orderStockService, paymentRepository, revenueTracker);
   const createManualOrderUseCase = new CreateManualOrderUseCase(orderRepository, productRepository, paymentRepository, revenueTracker);
-  const deleteOrderUseCase = new DeleteOrderUseCase(orderRepository, orderStockService);
+  const deleteOrderUseCase = new DeleteOrderUseCase(orderRepository, paymentRepository);
 
   const emailService = new NodemailerEmailService();
   const userRepository = new MongoUserRepository();

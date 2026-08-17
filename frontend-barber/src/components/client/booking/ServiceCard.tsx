@@ -44,7 +44,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, isSelected, o
     >
       <div className="flex items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] transition-colors duration-300 ${isSelected ? 'bg-[#FF5C00] text-white' : 'bg-[#25201D] text-[#FF8A4C] group-hover:bg-[#2D231E]'}`}>
-          {icon}
+          {service.imageUrl ? <img src={service.imageUrl} alt="" className="h-full w-full rounded-[13px] object-cover" loading="lazy" /> : icon}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-semibold text-white">{service.name}</span>

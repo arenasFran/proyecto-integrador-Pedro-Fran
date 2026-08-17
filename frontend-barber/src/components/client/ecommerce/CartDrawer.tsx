@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { skipToken } from '@reduxjs/toolkit/query';
 import { FiShoppingCart, FiX, FiCreditCard, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -12,6 +13,7 @@ import {
   selectCartCount,
   setCheckoutResult,
   syncWithProducts,
+  replaceItems,
 } from '../../../store/slices/cartSlice';
 import CartItem from '../../product/CartItem';
 import { Button, useToast } from '../../common';
@@ -19,17 +21,27 @@ import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import { useGetProductsQuery } from '../../../services/productApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import { useClearCartMutation, useGetCartQuery, useSyncCartMutation } from '../../../services/cartApi';
+import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 
 export const CartDrawer = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { items, isOpen } = useAppSelector((state) => state.cart);
+  const user = useAppSelector((state) => state.auth.user);
+  const { data: membershipData } = useGetMyMembershipQuery(undefined, { skip: !user });
   const total = useAppSelector(selectCartTotal);
   const count = useAppSelector(selectCartCount);
+  const memberDiscount = membershipData?.active?.productDiscount ?? 0;
+  const memberTotal = memberDiscount > 0 ? items.reduce((sum, item) => sum + Math.round(item.product.price * (100 - memberDiscount) / 100) * item.quantity, 0) : total;
   const [createOrder, { isLoading: isCreatingOrder }] = useCreateOrderMutation();
   const { showToast } = useToast();
 
   const { data: allProductsData } = useGetProductsQuery({});
+  const { data: remoteCart } = useGetCartQuery(user ? undefined : skipToken);
+  const [syncCart] = useSyncCartMutation();
+  const [clearRemoteCart] = useClearCartMutation();
+  const hydratedRemoteCart = useRef(false);
 
   useEffect(() => {
     if (allProductsData?.products && items.length > 0) {
@@ -37,6 +49,30 @@ export const CartDrawer = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allProductsData?.products, dispatch]);
+
+  useEffect(() => {
+    if (!user || !remoteCart || !allProductsData?.products || hydratedRemoteCart.current) return;
+    const productMap = new Map(allProductsData.products.map((product) => [product.id, product]));
+    const localById = new Map(items.map((item) => [item.product.id, item]));
+    remoteCart.items.forEach((remoteItem) => {
+      const product = productMap.get(remoteItem.productId) ?? localById.get(remoteItem.productId)?.product;
+      if (product && product.status === 'active' && product.stock > 0) {
+        localById.set(remoteItem.productId, { product, quantity: Math.min(remoteItem.quantity, product.stock) });
+      }
+    });
+    const merged = [...localById.values()];
+    hydratedRemoteCart.current = true;
+    dispatch(replaceItems(merged));
+    void syncCart({ items: merged.map((item) => ({ productId: item.product.id, quantity: item.quantity })) });
+  }, [allProductsData?.products, dispatch, items, remoteCart, syncCart, user]);
+
+  useEffect(() => {
+    if (!user || !hydratedRemoteCart.current) return;
+    const timeoutId = window.setTimeout(() => {
+      void syncCart({ items: items.map((item) => ({ productId: item.product.id, quantity: item.quantity })) });
+    }, 450);
+    return () => window.clearTimeout(timeoutId);
+  }, [items, syncCart, user]);
 
   const handleCheckout = async (paymentMethod: 'online' | 'local') => {
     const token = getAccessToken();
@@ -52,6 +88,7 @@ export const CartDrawer = () => {
       }).unwrap();
       dispatch(closeCart());
       dispatch(clearCart());
+      void clearRemoteCart();
 
       if (paymentMethod === 'online' && result.preferenceId) {
         dispatch(setCheckoutResult({ preferenceId: result.preferenceId }));
@@ -121,6 +158,7 @@ export const CartDrawer = () => {
                       <span className="text-[13px] text-[#8A8A8A]">Subtotal</span>
                       <span className="text-[16px] font-bold text-white">{formatCurrency(total)}</span>
                     </div>
+                    {memberDiscount > 0 && <div className="flex items-center justify-between"><span className="text-[12px] text-emerald-400">Con membresía ({memberDiscount}% OFF)</span><span className="text-[14px] font-semibold text-emerald-400">{formatCurrency(memberTotal)}</span></div>}
 
                     <div className="flex gap-2">
                       <Button
@@ -143,7 +181,7 @@ export const CartDrawer = () => {
                     </div>
 
                     <button
-                      onClick={() => dispatch(clearCart())}
+                      onClick={() => { dispatch(clearCart()); if (user) void clearRemoteCart(); }}
                       className="w-full text-center text-[12px] text-[#555] hover:text-red-400"
                     >
                       Vaciar carrito

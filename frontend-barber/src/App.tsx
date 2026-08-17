@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
 import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
-import { Spinner, ToastProvider, CookieConsent } from './components/common';
+import { Spinner, ToastProvider } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { RequireAdminRoute, RequireClientRoute } from './components/guards';
 import { AppSidebar } from './components/sidebar/AppSidebar';
@@ -145,7 +145,6 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </ErrorBoundary>
-          <CookieConsent />
         </Router>
         </ToastProvider>
       </AppInitializer>

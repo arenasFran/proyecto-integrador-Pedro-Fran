@@ -32,6 +32,7 @@ const initialState = {
     servicesError: null,
     slotsError: null,
     confirmError: null,
+    emailRegisteredError: false,
     createdAppointment: null,
     submitSuccess: false,
   },
@@ -369,6 +370,42 @@ describe('bookingSlice', () => {
       await store.dispatch(submitAppointment());
       const state = store.getState().booking;
       expect(state.async.confirmError).toBe('Estás sancionado por inasistencias y no podés reservar turnos.');
+    });
+
+    it('rejected con code EMAIL_ALREADY_REGISTERED expone emailRegisteredError', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 409,
+          error: 'Rejected',
+          originalStatus: 409,
+          data: {
+            error: 'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+            code: 'EMAIL_ALREADY_REGISTERED',
+          },
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(state.async.emailRegisteredError).toBe(true);
+    });
+
+    it('rejected con code a nivel superior (baseQuery) expone emailRegisteredError', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 409,
+          error: 'Rejected',
+          originalStatus: 409,
+          data: 'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+          code: 'EMAIL_ALREADY_REGISTERED',
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(state.async.emailRegisteredError).toBe(true);
     });
   });
 });

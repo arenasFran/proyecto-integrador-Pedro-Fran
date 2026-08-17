@@ -16,11 +16,13 @@ export const axiosBaseQuery = async ({ url, method, data, params }: {
     });
     return { data: result.data };
   } catch (axiosError) {
-    const err = axiosError as AxiosError<{ error?: string }>;
+    const err = axiosError as (AxiosError<{ error?: string; code?: string }>) & { code?: string };
+    const responseData = err.response?.data;
     return {
       error: {
         status: err.response?.status,
-        data: err.response?.data?.error ?? err.message,
+        data: responseData?.error ?? err.message,
+        code: responseData?.code ?? err.code,
       },
     };
   }

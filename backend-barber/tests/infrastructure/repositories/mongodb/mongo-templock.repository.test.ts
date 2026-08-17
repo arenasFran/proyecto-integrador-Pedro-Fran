@@ -51,6 +51,7 @@ describeIfMongo('MongoTempLockRepository', () => {
     expect(found!.date).toBe(date);
     expect(found!.startTime).toBe(startTime);
     expect(found!.clientId).toBe('client-1');
+    expect(found!.createdAt).toBeInstanceOf(Date);
     expect((found as any).ownerToken).toBeUndefined();
   });
 

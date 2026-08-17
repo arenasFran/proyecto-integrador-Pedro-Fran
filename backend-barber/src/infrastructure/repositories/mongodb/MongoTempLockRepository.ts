@@ -9,7 +9,7 @@ export type TempLockData = {
   clientId?: string;
 };
 
-export type TempLockWithId = TempLockData & { id: string };
+export type TempLockWithId = TempLockData & { id: string; createdAt: Date };
 
 export type TempLockCreationResult = {
   id: string;
@@ -104,6 +104,7 @@ export class MongoTempLockRepository {
       date: doc.date,
       startTime: doc.startTime,
       clientId: doc.clientId,
+      createdAt: doc.createdAt,
     };
   }
 }

@@ -4,7 +4,7 @@ import { Modal, Select, Input, Button, DatePicker } from '../../../components/co
 import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
-import { useCreateAppointmentMutation, useLazySearchClientsQuery } from '../../../services/appointmentApi';
+import { useCreateAppointmentMutation, useAcquireTempLockMutation, useReleaseTempLockMutation, useLazySearchClientsQuery } from '../../../services/appointmentApi';
 import type { BarberPublic, ClientSearchResult } from '../../../types/booking';
 
 export interface QuickCreateInitialClient {
@@ -54,6 +54,8 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
   const { data: services = [] } = useGetServicesQuery();
   const [createAppointment, { isLoading: isSubmitting }] = useCreateAppointmentMutation();
+  const [acquireTempLock] = useAcquireTempLockMutation();
+  const [releaseTempLock] = useReleaseTempLockMutation();
   const [triggerSearchClients, { data: clientResults = [], isFetching: isSearchingClients }] =
     useLazySearchClientsQuery();
 
@@ -164,7 +166,14 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
     setLocalError(null);
 
+    let tempLockResult: { tempLockId: string; ownerToken: string } | undefined;
     try {
+      tempLockResult = await acquireTempLock({
+        barberId,
+        date: selectedDate,
+        startTime: selectedTime,
+      }).unwrap();
+
       await createAppointment({
         barberId,
         serviceId,
@@ -175,6 +184,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
         clientLastname: clientLastname.trim(),
         clientPhone: clientPhone.trim(),
         clientEmail: clientEmail.trim(),
+        tempLockId: tempLockResult.tempLockId,
       }).unwrap();
       onClose();
     } catch (err: unknown) {
@@ -183,6 +193,13 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           ? (err as { data: string }).data
           : 'Error al crear el turno.';
       setLocalError(message);
+    } finally {
+      if (tempLockResult) {
+        await releaseTempLock({
+          tempLockId: tempLockResult.tempLockId,
+          ownerToken: tempLockResult.ownerToken,
+        }).catch(() => {});
+      }
     }
   };
 

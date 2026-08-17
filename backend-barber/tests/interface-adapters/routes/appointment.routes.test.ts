@@ -1,5 +1,9 @@
 const verifyIdTokenMock = jest.fn();
 
+jest.mock('express-rate-limit', () => {
+  return jest.fn(() => (_req: any, _res: any, next: any) => next());
+});
+
 jest.mock('../../../src/infrastructure/config/mailer', () => ({
   __esModule: true,
   default: { sendMail: jest.fn().mockResolvedValue(undefined) },
@@ -44,6 +48,7 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { barberId } = await seedBarber();
       const { serviceId } = await seedService();
       const date = getFutureDate(15);
+      const { tempLockId } = await seedTempLock({ barberId, date, startTime: '10:00' });
 
       const res = await request(app)
         .post('/api/appointments')
@@ -56,6 +61,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientLastname: 'Perez',
           clientEmail: 'anon@test.com',
           clientPhone: '099123456',
+          tempLockId,
         });
 
       expect(res.status).toBe(201);
@@ -77,6 +83,7 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
       const date = getFutureDate(15);
+      const { tempLockId: lockId } = await seedTempLock({ barberId, date, startTime: '10:00' });
 
       const res = await request(app)
         .post('/api/appointments')
@@ -90,6 +97,7 @@ describeIfMongo('Appointment routes — integración real', () => {
           clientLastname: 'Perez',
           clientEmail: email,
           clientPhone: '099123456',
+          tempLockId: lockId,
         });
 
       expect(res.status).toBe(201);
@@ -148,6 +156,7 @@ describeIfMongo('Appointment routes — integración real', () => {
       const { barberId } = await seedBarber();
       const { serviceId } = await seedService();
       const date = getFutureDate(15);
+      const { tempLockId: lockId1 } = await seedTempLock({ barberId, date, startTime: '10:00' });
       const payload = {
         barberId,
         serviceId,
@@ -157,10 +166,13 @@ describeIfMongo('Appointment routes — integración real', () => {
         clientLastname: 'Perez',
         clientEmail: 'dup@test.com',
         clientPhone: '099123456',
+        tempLockId: lockId1,
       };
 
       await request(app).post('/api/appointments').send(payload);
-      const res = await request(app).post('/api/appointments').send(payload);
+
+      const { tempLockId: lockId2 } = await seedTempLock({ barberId, date, startTime: '10:00' });
+      const res = await request(app).post('/api/appointments').send({ ...payload, tempLockId: lockId2 });
 
       expect(res.status).toBe(409);
     });
@@ -168,18 +180,21 @@ describeIfMongo('Appointment routes — integración real', () => {
     it('rechaza barbero inactivo', async () => {
       const { barberId } = await seedBarber({ isActive: false });
       const { serviceId } = await seedService();
+      const date = getFutureDate(15);
+      const { tempLockId: lockId } = await seedTempLock({ barberId, date, startTime: '10:00' });
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId,
           serviceId,
-          date: getFutureDate(15),
+          date,
           startTime: '10:00',
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'inactive@test.com',
           clientPhone: '099123456',
+          tempLockId: lockId,
         });
 
       expect(res.status).toBe(400);
@@ -188,18 +203,21 @@ describeIfMongo('Appointment routes — integración real', () => {
     it('rechaza turno fuera del horario laboral', async () => {
       const { barberId } = await seedBarber();
       const { serviceId } = await seedService();
+      const date = getFutureDate(15);
+      const { tempLockId: lockId } = await seedTempLock({ barberId, date, startTime: '20:00' });
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
           barberId,
           serviceId,
-          date: getFutureDate(15),
+          date,
           startTime: '20:00',
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'fuera-horario@test.com',
           clientPhone: '099123456',
+          tempLockId: lockId,
         });
 
       expect(res.status).toBe(400);
@@ -216,18 +234,22 @@ describeIfMongo('Appointment routes — integración real', () => {
 
     it('rechaza barbero inexistente', async () => {
       const { serviceId } = await seedService();
+      const fakeBarberId = new mongoose.Types.ObjectId().toString();
+      const date = getFutureDate(15);
+      const { tempLockId: lockId } = await seedTempLock({ barberId: fakeBarberId, date, startTime: '10:00' });
 
       const res = await request(app)
         .post('/api/appointments')
         .send({
-          barberId: new mongoose.Types.ObjectId().toString(),
+          barberId: fakeBarberId,
           serviceId,
-          date: getFutureDate(15),
+          date,
           startTime: '10:00',
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientEmail: 'no-barber@test.com',
           clientPhone: '099123456',
+          tempLockId: lockId,
         });
 
       expect(res.status).toBe(404);
@@ -544,12 +566,14 @@ describeIfMongo('Appointment routes — integración real', () => {
 
       // Prueba de contraste: a esta altura, crear un turno NUEVO sí debe estar bloqueado por RN15 —
       // confirma que el límite realmente estaba activo (si esto diera 201, el test de abajo no probaría nada).
+      const { tempLockId: contrastLockId } = await seedTempLock({ barberId, date: getFutureDate(20), startTime: '16:00' });
       const blockedCreate = await request(app)
         .post('/api/appointments')
         .set('Authorization', `Bearer ${token}`)
         .send({
           barberId, serviceId, date: getFutureDate(20), startTime: '16:00',
           clientName: 'Juan', clientLastname: 'Perez', clientEmail: email, clientPhone: '099333333',
+          tempLockId: contrastLockId,
         });
       expect(blockedCreate.status).toBe(409);
 

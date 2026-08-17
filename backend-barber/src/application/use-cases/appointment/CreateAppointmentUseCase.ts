@@ -25,7 +25,7 @@ type CreateAppointmentDTO = {
   clientPhone?: string;
   clientEmail?: string;
   paymentMethod?: 'local' | 'online' | 'memberPass';
-  tempLockId?: string;
+  tempLockId: string;
   createdBy?: { type: 'staff' | 'registered' | 'anonymous'; userId?: string };
 };
 
@@ -201,24 +201,23 @@ export class CreateAppointmentUseCase {
         }
       }
 
-      // Validar TempLock antes de crear
-      if (dto.tempLockId) {
-        const lock = await this.tempLockRepository.findById(dto.tempLockId, session);
-        if (!lock) {
-          throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
-        }
-        if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
-          throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
-        }
+      // Validar TempLock obligatorio antes de crear
+      const lock = await this.tempLockRepository.findById(dto.tempLockId, session);
+      if (!lock) {
+        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+      }
+      if (lock.barberId !== dto.barberId || lock.date !== dto.date || lock.startTime !== dto.startTime) {
+        throw new AppError('El horario ya fue reservado. Intentá de nuevo.', 409);
+      }
+      if (Date.now() - lock.createdAt.getTime() > 300_000) {
+        throw new AppError('El bloqueo expiró. Volvé a intentar.', 409);
       }
 
       // Crear el turno
       created = await this.appointmentRepository.create(appointment.toPrimitives(), session);
 
-      // Eliminar TempLock si existe
-      if (dto.tempLockId) {
-        await this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime, session).catch(() => {});
-      }
+      // Eliminar TempLock
+      await this.tempLockRepository.deleteOne(dto.barberId, dto.date, dto.startTime, session).catch(() => {});
 
       await session.commitTransaction();
     } catch (error) {

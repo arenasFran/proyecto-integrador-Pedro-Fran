@@ -54,7 +54,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, x: 100, scale: 0.95 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className={`flex items-center gap-3 px-4 py-3 rounded-[16px] border min-w-[300px] max-w-[400px] shadow-lg ${
+               className={`flex w-[calc(100vw-2rem)] min-w-0 max-w-[400px] items-center gap-3 rounded-[16px] border px-4 py-3 shadow-lg sm:min-w-[300px] sm:w-auto ${
                 toast.type === 'success'
                   ? 'bg-green-500/10 border-green-500/30 text-green-400'
                   : 'bg-red-500/10 border-red-500/30 text-red-400'

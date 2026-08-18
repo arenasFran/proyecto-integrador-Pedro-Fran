@@ -130,7 +130,7 @@ export default function MembershipsPage() {
             </AnimatedContainer>
           ) : (
             <AnimatedContainer animation="fadeInUp" delay={0.1}>
-              <div className="hidden md:block overflow-x-auto rounded-[12px] border border-[#282828]">
+              <div className="hidden lg:block overflow-x-auto rounded-[12px] border border-[#282828]">
                 <table className="w-full text-[13px]">
                   <thead>
                     <tr className="bg-[#121212] border-b border-[#282828]">
@@ -192,6 +192,48 @@ export default function MembershipsPage() {
                   </tbody>
                 </table>
               </div>
+              <div className="flex flex-col gap-3 lg:hidden">
+                 {memberships.map((m: MembershipWithUser) => (
+                   <div key={m.id} className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-4">
+                     <div className="flex items-start justify-between gap-3">
+                       <div className="flex min-w-0 items-center gap-3">
+                         <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
+                         <div className="min-w-0">
+                           <p className="break-words text-[14px] font-semibold text-white">{m.user?.name ?? '—'} {m.user?.lastname ?? ''}</p>
+                           <p className="text-[11px] text-[#8A8A8A]">{m.paymentMethod === 'mercadopago' ? 'Pago único' : m.paymentMethod === 'local' ? 'Pago local' : 'Sin método'}</p>
+                         </div>
+                       </div>
+                       {statusBadge(m.status)}
+                     </div>
+                     <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
+                       <span className="text-[#6A6A6A]">Cupones</span>
+                       <span className="text-right text-white">
+                         {m.couponsTotal - m.couponsUsed}/{m.couponsTotal}
+                         <button
+                           onClick={async () => {
+                             const count = prompt('Cantidad de cupones a agregar:');
+                             if (count && !isNaN(Number(count)) && Number(count) > 0) {
+                               try {
+                                 await addCoupons({ id: m.id, count: Number(count) }).unwrap();
+                                 showToast('Cupones agregados correctamente', 'success');
+                               } catch {
+                                 showToast('Error al agregar cupones', 'error');
+                               }
+                             }
+                           }}
+                           disabled={isAddingCoupons || m.status === 'expired'}
+                           className={`ml-2 rounded border px-1.5 py-0.5 text-[10px] font-bold transition-colors ${m.status === 'expired' ? 'cursor-not-allowed border-[#282828] text-[#444]' : 'border-[#22C55E]/30 text-[#22C55E] hover:border-[#22C55E] hover:text-[#16A34A]'}`}
+                           aria-label="Agregar cupones"
+                         >+</button>
+                       </span>
+                       <span className="text-[#6A6A6A]">Vigencia</span>
+                       <span className="text-right text-[#8A8A8A]">{m.durationDays} días</span>
+                       <span className="text-[#6A6A6A]">Vence</span>
+                       <span className="text-right text-[#8A8A8A]">{formatDate(m.endDate)}</span>
+                     </div>
+                   </div>
+                 ))}
+               </div>
               {totalPages > 1 && <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />}
             </AnimatedContainer>
           )}
@@ -216,7 +258,7 @@ export default function MembershipsPage() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {pending.map((m: MembershipWithUser) => (
-                      <div key={m.id} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] border border-[#282828] px-4 py-3">
+                      <div key={m.id} className="flex flex-col gap-3 rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3 min-w-0">
                           <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
                           <div className="min-w-0">
@@ -228,7 +270,7 @@ export default function MembershipsPage() {
                             </p>
                           </div>
                         </div>
-                        <Button icon={FiCheck} variant="primary" onClick={() => handleApprove(m.id)} loading={isApproving} size="sm">
+                        <Button icon={FiCheck} variant="primary" onClick={() => handleApprove(m.id)} loading={isApproving} size="sm" className="w-full sm:w-auto">
                           Marcar pagada
                         </Button>
                       </div>
@@ -260,7 +302,7 @@ export default function MembershipsPage() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     {expiring.map((m: MembershipWithUser & { daysLeft: number }) => (
-                      <div key={m.id} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] border border-[#282828] px-4 py-3">
+                      <div key={m.id} className="flex flex-col gap-3 rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3 min-w-0">
                           <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
                           <div className="min-w-0">
@@ -270,7 +312,7 @@ export default function MembershipsPage() {
                             <p className="text-[11px] text-[#8A8A8A]">Vence {formatFullDate(m.endDate)}</p>
                           </div>
                         </div>
-                        <span className={`text-[12px] font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-full ${
+                        <span className={`self-end text-[12px] font-semibold flex items-center gap-1.5 px-2.5 py-1 rounded-full sm:self-auto ${
                           m.daysLeft <= 2 ? 'bg-red-500/10 text-red-400' : 'bg-[#FF5C00]/10 text-[#FF5C00]'
                         }`}>
                           <FiClock size={12} />

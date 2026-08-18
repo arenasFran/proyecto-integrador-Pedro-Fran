@@ -9,12 +9,13 @@ interface DatePickerProps {
   className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  popupAlign?: 'left' | 'right';
 }
 
 const DAY_LABELS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
 const MONTH_LABELS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, className, open: controlledOpen, onOpenChange }) => {
+export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, className, open: controlledOpen, onOpenChange, popupAlign = 'left' }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpenRef = useRef<(v: boolean | ((prev: boolean) => boolean)) => void>(() => {});
@@ -74,7 +75,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, label, 
         {formatDate(value)}
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-[60] w-[260px] rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 shadow-xl">
+        <div className={`${popupAlign === 'right' ? 'right-0 left-auto' : 'left-0'} absolute top-full z-[60] mt-1 w-[min(260px,calc(100vw-2rem))] rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 shadow-xl`}>
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"

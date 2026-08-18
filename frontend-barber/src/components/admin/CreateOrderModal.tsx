@@ -297,7 +297,7 @@ const [cart, setCart] = useState<Record<string, number>>({});
           {/* Estado */}
           <div>
             <p className="text-[11px] text-[#6A6A6A] font-medium uppercase tracking-wider mb-2">Estado inicial</p>
-            <div className="grid grid-cols-3 gap-2">
+             <div className="grid gap-2 sm:grid-cols-3">
               {STATUS_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}

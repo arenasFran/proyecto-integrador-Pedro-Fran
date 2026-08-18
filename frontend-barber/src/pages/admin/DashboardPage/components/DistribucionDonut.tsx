@@ -65,13 +65,13 @@ export default function DistribucionDonut({ desde: desdeProp, hasta: hastaProp }
             </ResponsiveContainer>
           </div>
 
-          <div className="flex flex-col gap-2">
+           <div className="flex max-w-full flex-col gap-2">
             {dataEntries.map((entry, i) => {
               return (
-                <div key={entry.barberId} className="flex items-center gap-2 text-sm">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                  <span className="text-white whitespace-nowrap">{entry.nombre}</span>
-                  <span className="text-[#8A8A8A] whitespace-nowrap">{entry.cantidad} · {formatCurrency(entry.ingresos)}</span>
+                 <div key={entry.barberId} className="flex max-w-full flex-wrap items-center gap-2 text-sm lg:flex-nowrap">
+                   <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                   <span className="max-w-[160px] truncate text-white lg:max-w-none lg:whitespace-nowrap">{entry.nombre}</span>
+                   <span className="break-words text-[#8A8A8A] lg:whitespace-nowrap">{entry.cantidad} · {formatCurrency(entry.ingresos)}</span>
                 </div>
               );
             })}

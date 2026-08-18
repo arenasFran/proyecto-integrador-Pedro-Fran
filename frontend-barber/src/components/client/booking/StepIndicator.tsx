@@ -61,7 +61,7 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, onSte
                 </motion.span>
               </motion.button>
               <span
-                  className={`mt-2 w-full whitespace-nowrap text-center text-[9px] font-semibold uppercase tracking-[0.06em] transition-colors duration-300 sm:text-[10px] sm:tracking-[0.08em] ${
+                   className={`mt-2 min-w-0 max-w-full break-words text-center text-[9px] font-semibold uppercase leading-tight tracking-[0.06em] transition-colors duration-300 sm:text-[10px] sm:tracking-[0.08em] ${
                   isActive ? 'text-[#FF8A4C]' : isCompleted ? 'text-[#64C98D]' : 'text-[#686868]'
                 }`}
               >

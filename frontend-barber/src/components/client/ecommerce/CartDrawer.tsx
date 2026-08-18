@@ -160,7 +160,7 @@ export const CartDrawer = () => {
                     </div>
                     {memberDiscount > 0 && <div className="flex items-center justify-between"><span className="text-[12px] text-emerald-400">Con membresía ({memberDiscount}% OFF)</span><span className="text-[14px] font-semibold text-emerald-400">{formatCurrency(memberTotal)}</span></div>}
 
-                    <div className="flex gap-2">
+                     <div className="flex flex-col gap-2 sm:flex-row">
                       <Button
                         className="flex-1 text-[12px]"
                         onClick={() => handleCheckout('online')}

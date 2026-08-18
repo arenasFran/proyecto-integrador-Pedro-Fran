@@ -264,7 +264,7 @@ export const CalendarPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-6 flex flex-col gap-4 lg:hidden">
+               <div className="mt-6 grid gap-4 md:grid-cols-2 lg:hidden">
                 {columns.map((col) => (
                   <DayCard
                     key={col.dateStr}

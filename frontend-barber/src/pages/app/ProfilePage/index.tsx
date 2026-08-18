@@ -401,8 +401,8 @@ export const ProfilePage: React.FC = () => {
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-5 px-4 py-5 sm:px-6 lg:px-8">
         <AnimatedContainer animation="fadeInDown" className="rounded-2xl border border-[#282828] bg-[#121212] p-5 shadow-[0_0_20px_rgba(0,0,0,0.35)]">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
+           <div className="flex items-center justify-between gap-3">
+             <div className="flex min-w-0 items-center gap-3">
               <ImageUpload
                 variant="avatar"
                 name={String(formData.name ?? '')}
@@ -414,8 +414,8 @@ export const ProfilePage: React.FC = () => {
                 }}
                 helperText="Tocá para cambiar"
               />
-              <div>
-                <h1 className="text-[25px] font-semibold tracking-[-0.02em] text-white sm:text-[32px]">
+               <div className="min-w-0">
+                 <h1 className="break-words text-[25px] font-semibold tracking-[-0.02em] text-white sm:text-[32px]">
                   {displayName || 'Mi perfil'}
                 </h1>
                 {(isBarber || role === 'Registrado') && (
@@ -479,7 +479,7 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 {!editingPersonal ? (
-                  <div className="flex gap-3 pt-2">
+               <div className="flex flex-wrap gap-3 pt-2">
                     <Button type="button" icon={FiEdit2} onClick={() => { setEditingPersonal(true); setPageError(null); setPageMessage(null); }}>
                       Editar perfil
                     </Button>
@@ -705,8 +705,8 @@ export const ProfilePage: React.FC = () => {
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-2xl border border-[#282828] bg-[#121212] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
+             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+               <div className="flex min-w-0 items-center gap-2">
               <FiLock className="w-5 h-5 text-[#FF5C00]" />
               <h2 className="text-[18px] font-bold text-white">Cambiar contraseña</h2>
             </div>
@@ -787,7 +787,7 @@ export const ProfilePage: React.FC = () => {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <FiSend className="w-5 h-5 text-[#FF5C00]" />
-                <h2 className="text-[18px] font-bold text-white">Conectar Telegram</h2>
+                 <h2 className="break-words text-[18px] font-bold text-white">Conectar Telegram</h2>
               </div>
               <Button
                 type="button"

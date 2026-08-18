@@ -60,7 +60,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-black/60 px-4 py-12 ${
+      className={`fixed inset-0 z-50 flex justify-center overflow-y-auto bg-black/60 px-3 py-6 sm:px-4 sm:py-12 ${
         centered ? 'items-start sm:items-center lg:pl-52' : 'items-start'
       }`}
     >
@@ -75,8 +75,8 @@ export const Modal: React.FC<ModalProps> = ({
         aria-label={title}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#282828]">
-            <h2 className="text-[18px] font-bold text-white">{title}</h2>
+          <div className="flex items-center justify-between gap-3 border-b border-[#282828] px-4 py-3 sm:px-6 sm:py-4">
+            <h2 className="min-w-0 break-words text-[17px] font-bold text-white sm:text-[18px]">{title}</h2>
             <button
               onClick={onClose}
               className="flex h-8 w-8 items-center justify-center rounded-[10px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
@@ -86,7 +86,7 @@ export const Modal: React.FC<ModalProps> = ({
             </button>
           </div>
         )}
-        <div className="px-6 py-5">{children}</div>
+        <div className="px-4 py-4 sm:px-6 sm:py-5">{children}</div>
       </motion.div>
     </div>
   );

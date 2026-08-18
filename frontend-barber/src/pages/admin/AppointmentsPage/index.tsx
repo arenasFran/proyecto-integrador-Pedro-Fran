@@ -205,7 +205,7 @@ export const AdminAppointmentsPage: React.FC = () => {
           ) : (
             <>
             {/* Mobile cards */}
-            <div className="flex flex-col gap-3 md:hidden">
+             <div className="flex flex-col gap-3 lg:hidden">
               {appointments.map((appointment) => {
                 const style = statusStyles[appointment.status];
                 const isActive = appointment.status === 'Confirmado';
@@ -318,7 +318,7 @@ export const AdminAppointmentsPage: React.FC = () => {
             </div>
 
             {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
+             <div className="hidden lg:block overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">

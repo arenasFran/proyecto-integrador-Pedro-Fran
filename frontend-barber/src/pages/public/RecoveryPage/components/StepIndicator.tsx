@@ -20,11 +20,11 @@ export const StepIndicator: React.FC<StepIndicatorProps> = ({ currentStep, steps
                 {index + 1}
               </span>
             </div>
-            <span className="text-[12px] text-[#8A8A8A] mt-2">{step.label}</span>
+             <span className="mt-2 max-w-[76px] text-center text-[10px] text-[#8A8A8A] sm:max-w-none sm:text-[12px]">{step.label}</span>
           </div>
           {index < steps.length - 1 && (
             <div
-              className="w-12 h-[2px] mx-2"
+               className="mx-1 h-[2px] w-4 sm:mx-2 sm:w-12"
               style={{
                 backgroundColor: index + 1 < currentStep ? '#FF5C00' : '#282828',
               }}

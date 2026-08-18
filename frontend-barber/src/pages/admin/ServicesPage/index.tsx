@@ -186,7 +186,7 @@ export const ServicesPage: React.FC = () => {
           ) : isLoading ? (
             <>
               {/* Mobile skeleton */}
-              <div className="flex flex-col gap-3 md:hidden">
+               <div className="flex flex-col gap-3 lg:hidden">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 animate-pulse">
                     <div className="h-4 w-32 rounded bg-[#282828] mb-3" />
@@ -200,7 +200,7 @@ export const ServicesPage: React.FC = () => {
                 ))}
               </div>
               {/* Desktop skeleton */}
-              <div className="hidden md:block overflow-x-auto">
+               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full text-left text-[13px]">
                   <thead>
                     <tr className="border-b border-[#282828] text-[#8A8A8A] text-[12px] uppercase tracking-wider">
@@ -238,9 +238,9 @@ export const ServicesPage: React.FC = () => {
             <>
               {/* Mobile cards */}
               {(isFetching && !isLoading) && (
-                <div className="mb-3 text-[12px] text-[#8A8A8A] md:hidden">Actualizando...</div>
+               <div className="mb-3 text-[12px] text-[#8A8A8A] lg:hidden">Actualizando...</div>
               )}
-              <div className="flex flex-col gap-3 md:hidden">
+               <div className="flex flex-col gap-3 lg:hidden">
                 {services.map((service) => (
                   <div key={service.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3">
                     <div className="flex items-center justify-between gap-2">
@@ -278,7 +278,7 @@ export const ServicesPage: React.FC = () => {
                 ))}
               </div>
               {/* Desktop table */}
-              <div className="hidden md:block overflow-x-auto">
+               <div className="hidden lg:block overflow-x-auto">
                 {(isFetching && !isLoading) && (
                   <div className="mb-3 text-[12px] text-[#8A8A8A]">Actualizando...</div>
                 )}

@@ -83,10 +83,44 @@ function OrderDetailsModal({ order, onClose }: { order: Order | null; onClose: (
   );
 }
 
+function OrderCards({ orders, onSelect }: { orders: Order[]; onSelect: (order: Order) => void }) {
+  return (
+    <div className="flex flex-col gap-3 p-3 lg:hidden">
+      {orders.map((order) => {
+        const status = getStatusLabel(order);
+        const firstItem = order.items[0];
+        return (
+          <button
+            key={order.id}
+            type="button"
+            onClick={() => onSelect(order)}
+            className="w-full rounded-[14px] border border-[#292929] bg-[#171717] p-3 text-left transition-colors hover:border-[#FF7A33]/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5C00]"
+          >
+            <div className="flex items-start gap-3">
+              <ProductImage item={firstItem} size="h-12 w-12 rounded-lg" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[13px] font-medium text-white">{firstItem?.name ?? 'Sin productos'}</p>
+                <p className="mt-0.5 text-[11px] text-[#777]">{order.items.length} producto{order.items.length === 1 ? '' : 's'}</p>
+              </div>
+              <FiChevronRight className="mt-1 shrink-0 text-[#777]" aria-hidden="true" />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[#292929] pt-3">
+              <StatusBadge label={status.label} tone={status.tone} />
+              <span className="text-[12px] text-[#777]">{formatDate(order.createdAt)}</span>
+              <span className="text-[14px] font-semibold text-[#FF8A4C]">{formatCurrency(order.total)}</span>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function OrdersTable({ orders, onSelect }: { orders: Order[]; onSelect: (order: Order) => void }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-[#292929] bg-[#121212]">
-      <div className="overflow-x-auto">
+      <OrderCards orders={orders} onSelect={onSelect} />
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[850px] border-collapse text-left">
           <thead className="border-b border-[#292929] bg-[#171717]">
             <tr className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#666]">

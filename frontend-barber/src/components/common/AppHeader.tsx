@@ -60,7 +60,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
             }}
             className="flex items-center gap-2"
           >
-            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-16 w-auto" />
+             <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-10 w-auto sm:h-16" />
             <span className="hidden sm:inline text-[15px] font-bold text-white">Barbería SA</span>
           </button>
         </div>

@@ -57,7 +57,7 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
         <p className="text-[13px] font-semibold text-white leading-tight">{product.name}</p>
         <div className="flex items-baseline gap-2"><p className="text-[15px] font-bold text-[#FF5C00]">{formatCurrency(memberPrice)}</p>{discountPercent > 0 && <span className="text-[10px] text-[#666] line-through">{formatCurrency(product.price)}</span>}</div>
         {discountPercent > 0 && <p className="text-[10px] font-medium text-emerald-400">{discountPercent}% de descuento por membresía</p>}
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+         <div className="flex flex-col gap-2 sm:flex-row" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
             variant="outline"

@@ -144,7 +144,7 @@ export const ProductsPage: React.FC = () => {
       ) : (
         <AnimatedContainer animation="fadeInUp">
           <div className="rounded-[16px] border border-[#282828] bg-[#121212] overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-[#282828] text-[#8A8A8A]">
@@ -211,7 +211,44 @@ export const ProductsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+            <div className="flex flex-col gap-3 p-3 lg:hidden">
+               {products.map((product) => (
+                 <div key={product.id} className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-3">
+                   <div className="flex items-start gap-3">
+                     <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#242424]">
+                       {product.imageUrl ? <img src={product.imageUrl} alt={`Foto de ${product.name}`} className="h-full w-full object-cover" /> : <FiPackage className="text-[#6A6A6A]" aria-hidden="true" />}
+                     </div>
+                     <div className="min-w-0 flex-1">
+                       <p className="break-words text-[14px] font-semibold text-white">{product.name}</p>
+                       <p className="mt-0.5 line-clamp-2 text-[11px] text-[#6A6A6A]">{product.description}</p>
+                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+                         <span className="font-semibold text-white">{formatCurrency(product.price)}</span>
+                         <span className={product.stock > 0 ? 'text-[#22C55E]' : 'text-red-400'}>Stock: {product.stock}</span>
+                         <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColor[product.status]}`}>{statusLabel[product.status]}</span>
+                       </div>
+                     </div>
+                   </div>
+                   <div className="mt-3 flex justify-end gap-2 border-t border-[#282828]/70 pt-3">
+                     <button
+                       onClick={() => handleToggleStatus(product)}
+                       className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#282828] px-2.5 text-[11px] text-[#8A8A8A] hover:bg-[#282828] hover:text-white"
+                       title={product.status === 'active' ? 'Desactivar' : 'Activar'}
+                     >
+                       {product.status === 'active' ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                       <span>{product.status === 'active' ? 'Desactivar' : 'Activar'}</span>
+                     </button>
+                     <button onClick={() => openEdit(product)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#282828] px-2.5 text-[11px] text-[#8A8A8A] hover:bg-[#282828] hover:text-white">
+                       <FiEdit3 size={14} />
+                       <span>Editar</span>
+                     </button>
+                     <button onClick={() => handleDelete(product)} className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#282828] px-2.5 text-[#8A8A8A] hover:bg-[#282828] hover:text-red-400" aria-label={`Eliminar ${product.name}`}>
+                       <FiTrash2 size={14} />
+                     </button>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
         </AnimatedContainer>
       )}
 

@@ -114,7 +114,7 @@ export default function OrdersOrderDetailPanel({
           <section className="border-b border-[#282828] pb-3">
             <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#5F5F5F]">Cliente y origen</p>
             <div className="grid gap-1.5 text-[12px]">
-              <p className="flex items-center gap-2 text-[#E6E6E6]"><FiUser className="shrink-0 text-[#6A6A6A]" size={13} />{customerName}</p>
+               <p className="flex min-w-0 items-center gap-2 break-words text-[#E6E6E6]"><FiUser className="shrink-0 text-[#6A6A6A]" size={13} />{customerName}</p>
               {customerEmail && <p className="flex items-center gap-2 truncate text-[#8A8A8A]"><FiMail className="shrink-0 text-[#6A6A6A]" size={13} />{customerEmail}</p>}
               <p className="flex items-center gap-2 text-[#8A8A8A]"><FiCalendar className="shrink-0 text-[#6A6A6A]" size={13} />{formatDateTime(order.createdAt)}</p>
               <p className="flex items-center gap-2 text-[#8A8A8A]"><FiCreditCard className="shrink-0 text-[#6A6A6A]" size={13} />{getPaymentMethodLabel(order.paymentMethod)}</p>

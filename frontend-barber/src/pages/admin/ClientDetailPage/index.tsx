@@ -362,7 +362,7 @@ className="w-full shrink-0 sm:w-auto"
           </p>
         ) : (
           <>
-            <div className="flex flex-col gap-2 md:hidden">
+             <div className="flex flex-col gap-2 lg:hidden">
               {sortedAppointments.map((a) => (
                 <div
                   key={a.id}
@@ -389,7 +389,7 @@ className="w-full shrink-0 sm:w-auto"
               ))}
             </div>
 
-            <div className="hidden md:block overflow-x-auto rounded-[12px] border border-[#282828]">
+             <div className="hidden lg:block overflow-x-auto rounded-[12px] border border-[#282828]">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-[#121212] border-b border-[#282828]">

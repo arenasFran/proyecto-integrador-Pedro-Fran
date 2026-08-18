@@ -105,7 +105,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
           </button>
           <button
             onClick={onToggleMobile}
-            className="text-[#8A8A8A] hover:text-white lg:hidden"
+             className="flex h-10 w-10 items-center justify-center rounded-[10px] text-[#8A8A8A] hover:bg-[#1A1A1A] hover:text-white lg:hidden"
           >
             <FiX size={20} />
           </button>

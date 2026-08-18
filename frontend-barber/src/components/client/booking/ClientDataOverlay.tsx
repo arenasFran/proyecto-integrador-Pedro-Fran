@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiAward, FiCreditCard, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar } from 'react-icons/fi';
+import { FiAward, FiCreditCard, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar, FiX } from 'react-icons/fi';
 import { Button, Input } from '../../common';
 import { formatDate } from '../../../utils/formatDate';
 import type { BarberPublic, PaymentMethod, Service } from '../../../types/booking';
@@ -115,7 +115,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-3 sm:p-4"
           onClick={onClose}
         >
           <motion.div
@@ -124,12 +124,22 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
             exit={{ opacity: 0, y: 40 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full sm:max-w-md rounded-t-[20px] sm:rounded-[16px] border border-[#282828] bg-[#121212] p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="relative max-h-[calc(100dvh-1.5rem)] w-full overscroll-contain overflow-y-auto rounded-[20px] border border-[#282828] bg-[#121212] p-4 shadow-2xl sm:max-h-[90vh] sm:max-w-md sm:rounded-[16px] sm:p-6"
           >
-            <h2 className="text-[18px] font-bold text-white mb-1">Casi listo</h2>
-            <p className="text-[13px] text-[#8A8A8A] mb-5">
-              {isLoggedIn ? 'Tus datos' : 'Completá tus datos para confirmar'}
-            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-[10px] text-[#8A8A8A] transition-colors hover:bg-[#1A1A1A] hover:text-white"
+              aria-label="Cerrar"
+            >
+              <FiX className="h-5 w-5" />
+            </button>
+            <div className="pr-10">
+              <h2 className="mb-1 text-[18px] font-bold text-white">Casi listo</h2>
+              <p className="mb-5 text-[13px] text-[#8A8A8A]">
+                {isLoggedIn ? 'Tus datos' : 'Completá tus datos para confirmar'}
+              </p>
+            </div>
 
             <div className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-4 space-y-2.5 mb-5">
               {barber && (
@@ -155,7 +165,7 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
             </div>
 
             <div className="space-y-3 mb-5">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Input
                   label="Nombre"
                   required

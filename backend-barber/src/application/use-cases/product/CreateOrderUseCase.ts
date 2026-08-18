@@ -1,11 +1,8 @@
 import { Order } from '../../../domain/entities/Order';
-import { Payment } from '../../../domain/entities/Payment';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
-import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
-import { RevenueTracker } from '../../services/RevenueTracker';
 import { AppError } from '../../../domain/errors/AppError';
 
 export type CreateOrderDTO = {
@@ -27,9 +24,7 @@ export class CreateOrderUseCase {
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly membershipRepository: MongoMembershipRepository,
-    private readonly createPaymentUseCase: CreatePaymentUseCase,
-    private readonly paymentRepository?: MongoPaymentRepository,
-    private readonly revenueTracker?: RevenueTracker
+    private readonly createPaymentUseCase: CreatePaymentUseCase
   ) {}
 
   async execute(dto: CreateOrderDTO): Promise<CreateOrderResult> {
@@ -81,28 +76,6 @@ export class CreateOrderUseCase {
     const paymentMethod = dto.paymentMethod || 'online';
 
     if (paymentMethod === 'local') {
-      saved.pay();
-      await this.orderRepository.save(saved);
-
-      for (const item of resolvedItems) {
-        await this.productRepository.atomicDecreaseStock(item.productId, item.quantity);
-      }
-      if (this.paymentRepository) {
-        try {
-          const paymentDoc = Payment.create({
-            type: 'product_order',
-            referenceId: saved.id,
-            amount: saved.total,
-            userId: dto.userId,
-          });
-          await this.paymentRepository.save(paymentDoc);
-        } catch (err) {
-          console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
-        }
-      }
-      await this.revenueTracker?.trackProductOrder(saved.id, saved.total, new Date(), {
-        userId: dto.userId,
-      });
       return { orderId: saved.id };
     }
 

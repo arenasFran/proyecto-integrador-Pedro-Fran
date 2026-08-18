@@ -1,5 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 
 type SancionResponse = {
   message: string;
@@ -20,6 +21,7 @@ export const clientApi = createApi({
         data: { motivo },
       }),
       invalidatesTags: ['ClientSanction'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     levantarSancion: builder.mutation<SancionResponse, string>({
@@ -28,6 +30,7 @@ export const clientApi = createApi({
         method: 'PATCH',
       }),
       invalidatesTags: ['ClientSanction'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
   }),
 });

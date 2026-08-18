@@ -67,15 +67,11 @@ export default function DistribucionDonut({ desde: desdeProp, hasta: hastaProp }
 
           <div className="flex flex-col gap-2">
             {dataEntries.map((entry, i) => {
-              const ticketPromedio = entry.cantidad > 0 ? entry.ingresos / entry.cantidad : 0;
               return (
                 <div key={entry.barberId} className="flex items-center gap-2 text-sm">
                   <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                   <span className="text-white whitespace-nowrap">{entry.nombre}</span>
                   <span className="text-[#8A8A8A] whitespace-nowrap">{entry.cantidad} · {formatCurrency(entry.ingresos)}</span>
-                  <span className="text-[10px] text-[#6A6A6A] border border-[#282828] rounded-full px-1.5 py-0.5 whitespace-nowrap">
-                    Ø {formatCurrency(Math.round(ticketPromedio))}
-                  </span>
                 </div>
               );
             })}

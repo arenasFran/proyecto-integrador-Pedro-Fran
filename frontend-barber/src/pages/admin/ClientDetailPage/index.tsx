@@ -5,7 +5,7 @@ import {
   FiAward, FiUser, FiClock, FiScissors, FiCreditCard, FiUserCheck,
   FiActivity, FiPercent, FiTag, FiAlertTriangle, FiAlertOctagon, FiUserX, FiX,
 } from 'react-icons/fi';
-import { Spinner, Button, BarberAvatar } from '../../../components/common';
+import { Spinner, Button, BarberAvatar, useToast } from '../../../components/common';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { useSancionarClienteMutation, useLevantarSancionMutation } from '../../../services/clientApi';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
@@ -100,6 +100,7 @@ export default function ClientDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const actions = useAppointmentActions();
+  const { showToast } = useToast();
 
   const [sancionarOpen, setSancionarOpen] = useState(false);
   const [motivo, setMotivo] = useState('');
@@ -157,16 +158,26 @@ export default function ClientDetailPage() {
 
   const handleSancionar = async () => {
     if (!client?.clientId) return;
-    await sancionarCliente({ clientId: client.clientId, motivo: motivo.trim() || 'Inasistencias reiteradas' });
-    setSancionarOpen(false);
-    setMotivo('');
-    refetchClientes();
+    try {
+      await sancionarCliente({ clientId: client.clientId, motivo: motivo.trim() || 'Inasistencias reiteradas' }).unwrap();
+      setSancionarOpen(false);
+      setMotivo('');
+      await refetchClientes();
+      showToast('Cliente sancionado');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo sancionar al cliente', 'error');
+    }
   };
 
   const handleLevantarSancion = async () => {
     if (!client?.clientId) return;
-    await levantarSancion(client.clientId);
-    refetchClientes();
+    try {
+      await levantarSancion(client.clientId).unwrap();
+      await refetchClientes();
+      showToast('Sanción levantada');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo levantar la sanción', 'error');
+    }
   };
 
   if (!stateClient && isLoadingList) {

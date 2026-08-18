@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiClock, FiLock, FiTrash2, FiUser } from 'react-icons/fi';
-import { Modal, BarberAvatar, ConfirmModal } from '../../../components/common';
+import { Modal, BarberAvatar, ConfirmModal, useToast } from '../../../components/common';
 import { getAccessToken } from '../../../services/api';
 import { AppointmentActionsMenu } from '../AppointmentsPage/AppointmentActionsMenu';
 import type { AppointmentActions } from '../AppointmentsPage/useAppointmentActions';
@@ -39,6 +39,7 @@ const statusStyles: Record<string, { bg: string; text: string; label: string }> 
 export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, appointments, blocks, onClose, onBlockDeleted, actions }) => {
   const [confirmDeleteBlock, setConfirmDeleteBlock] = useState<BarberBlock | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { showToast } = useToast();
 
   const hasBlocks = blocks.length > 0;
   const hasAppointments = appointments.length > 0;
@@ -62,8 +63,9 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, ap
 
       setConfirmDeleteBlock(null);
       onBlockDeleted();
-    } catch {
-      // ignore
+      showToast('Bloque eliminado');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo eliminar el bloque', 'error');
     } finally {
       setIsDeleting(false);
     }

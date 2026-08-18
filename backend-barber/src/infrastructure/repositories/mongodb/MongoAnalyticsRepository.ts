@@ -106,6 +106,10 @@ const DATE_CONVERSION_STAGE = { $addFields: { dateObj: { $toDate: '$date' } } };
 const REGISTERED_AT_STAGE = { $addFields: { registeredAt: { $toDate: '$_id' } } };
 const REVENUE_ENTRIES_COLLECTION = RevenueEntryModel.collection.name;
 
+export function countPaidOrdersByStatus(ordersByStatus: Record<string, number>): number {
+  return (ordersByStatus.paid ?? 0) + (ordersByStatus.delivered ?? 0);
+}
+
 function endOfDayDate(hasta: string): Date {
   const date = new Date(hasta);
   if (!hasta.includes('T')) {
@@ -607,7 +611,7 @@ export class MongoAnalyticsRepository {
   async getIngresosPorServicio(desde: string, hasta: string): Promise<{ serviceId: string; serviceName: string; cantidad: number; ingresos: number }[]> {
     const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
 
-    const [appointmentData, serviceRevenue, productOrderTotal, membershipTotal] = await Promise.all([
+    const [appointmentData, serviceRevenue] = await Promise.all([
       AppointmentModel.aggregate([
         DATE_CONVERSION_STAGE,
         {
@@ -633,8 +637,6 @@ export class MongoAnalyticsRepository {
         { $sort: { cantidad: -1 } },
       ] as mongoose.PipelineStage[]),
       this.revenueEntryRepo.getRevenueByService(desdeDate, hastaDate),
-      this.revenueEntryRepo.getTotalByDateRange(desdeDate, hastaDate, 'product_order'),
-      this.revenueEntryRepo.getTotalByDateRange(desdeDate, hastaDate, 'membership'),
     ]);
 
     const revenueMap = new Map(serviceRevenue.map(r => [r.serviceId, r.total]));
@@ -645,24 +647,6 @@ export class MongoAnalyticsRepository {
       cantidad: e.cantidad,
       ingresos: revenueMap.get(e.serviceId) ?? 0,
     }));
-
-    if (productOrderTotal > 0) {
-      result.push({
-        serviceId: '__productos__',
-        serviceName: 'Productos',
-        cantidad: 0,
-        ingresos: productOrderTotal,
-      });
-    }
-
-    if (membershipTotal > 0) {
-      result.push({
-        serviceId: '__memberships__',
-        serviceName: 'Membresías',
-        cantidad: 0,
-        ingresos: membershipTotal,
-      });
-    }
 
     result.sort((a, b) => b.ingresos - a.ingresos);
     return result;
@@ -1047,7 +1031,7 @@ export class MongoAnalyticsRepository {
       totalRevenue: Math.round(paymentTotal),
       averageTicket,
       ordersByStatus,
-      paidOrders: ordersByStatus['paid'] ?? 0,
+      paidOrders: countPaidOrdersByStatus(ordersByStatus),
       cancelledOrders: ordersByStatus['cancelled'] ?? 0,
     };
   }

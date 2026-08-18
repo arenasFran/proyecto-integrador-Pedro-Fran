@@ -54,8 +54,9 @@ export default function RevenueByServiceChart({ desde: desdeProp, hasta: hastaPr
               width={120}
             />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
+              contentStyle={{ backgroundColor: '#242424', border: '1px solid #4A4A4A', borderRadius: 8, color: '#fff' }}
               labelStyle={{ color: '#fff' }}
+              itemStyle={{ color: '#fff' }}
               formatter={(value) => [formatCurrency(value as number), 'Ingresos']}
             />
             <Bar dataKey="ingresos" radius={[0, 4, 4, 0]}>

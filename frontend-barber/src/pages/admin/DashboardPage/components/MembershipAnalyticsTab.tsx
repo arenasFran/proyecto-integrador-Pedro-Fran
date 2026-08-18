@@ -1,4 +1,5 @@
 import { FiAward, FiClock, FiDollarSign, FiTrendingUp, FiUsers } from 'react-icons/fi';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { AnimatedContainer, Spinner } from '../../../../components/common';
 import { useGetMembershipRevenueQuery } from '../../../../services/analyticsApi';
 import { useGetAllMembershipsQuery, useGetExpiringSoonQuery, useGetPendingMembershipsQuery } from '../../../../services/membershipApi';
@@ -61,6 +62,28 @@ export default function MembershipAnalyticsTab({ desde, hasta }: MembershipAnaly
                   </div>
                 ))}
               </div>
+            )}
+          </section>
+        </AnimatedContainer>
+
+        <AnimatedContainer animation="fadeInUp" delay={0.1}>
+          <section className="bg-[#121212] border border-[#282828] rounded-2xl p-5" aria-labelledby="membership-volume-heading">
+            <h3 id="membership-volume-heading" className="text-white text-[15px] font-bold mb-1">Membresías vendidas</h3>
+            <p className="text-[11px] text-[#6A6A6A] mb-4">Cantidad de cobros de membresía por mes</p>
+            {revenue.length === 0 ? <p className="text-[#8A8A8A] text-sm py-8 text-center">No hay membresías en este período.</p> : (
+              <ResponsiveContainer width="100%" height={230}>
+                <BarChart data={revenue}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
+                  <XAxis dataKey="periodo" tick={{ fill: '#8A8A8A', fontSize: 11 }} stroke="#282828" />
+                  <YAxis allowDecimals={false} tick={{ fill: '#8A8A8A', fontSize: 11 }} stroke="#282828" />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
+                    labelStyle={{ color: '#fff' }}
+                    formatter={(value) => [value, 'Membresías']}
+                  />
+                  <Bar dataKey="cantidadReservas" fill="#c084fc" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </section>
         </AnimatedContainer>

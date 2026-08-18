@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
 import authReducer from './slices/authSlice';
 import barbersReducer from './slices/barbersSlice';
 import bookingReducer from './slices/bookingSlice';
@@ -51,6 +52,8 @@ export const store = configureStore({
       cartApi.middleware
     ),
 });
+
+setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

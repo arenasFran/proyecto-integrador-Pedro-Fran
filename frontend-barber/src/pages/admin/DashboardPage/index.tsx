@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { FiAward, FiBarChart2, FiCalendar, FiDollarSign, FiGrid, FiShoppingCart, FiUsers } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
@@ -7,6 +7,8 @@ import { resolvePreset } from '../../../components/common/dateRangeUtils';
 import { getTokenKind } from '../../../utils/token';
 import { getAccessToken } from '../../../services/api';
 import { useGetOverviewQuery } from '../../../services/analyticsApi';
+import { analyticsApi } from '../../../services/analyticsApi';
+import { useAppDispatch } from '../../../store/hooks';
 import type { OverviewData } from '../../../types/analytics';
 import KpiCards from './components/KpiCards';
 import HeatmapChart from './components/HeatmapChart';
@@ -19,6 +21,7 @@ import BarberComparisonTable from './components/BarberComparisonTable';
 import RevenueByServiceChart from './components/RevenueByServiceChart';
 import EcommerceTab from './components/EcommerceTab';
 import MembershipAnalyticsTab from './components/MembershipAnalyticsTab';
+import GeneralAnalyticsCharts from './components/GeneralAnalyticsCharts';
 import AdminPageHeader from '../components/AdminPageHeader';
 
 type TabKey = 'resumen' | 'reservas' | 'tienda' | 'membresia';
@@ -30,7 +33,7 @@ const TABS: { key: TabKey; label: string; icon: React.ComponentType }[] = [
   { key: 'membresia', label: 'MEMBRESÍA', icon: FiAward },
 ];
 
-function ReservationKpis({ data, desde, hasta }: { data: OverviewData | null; desde: string; hasta: string }) {
+function ReservationKpis({ data }: { data: OverviewData | null }) {
   const cancellationCount = (data?.estadisticasPorEstado.cancelado ?? 0) + (data?.estadisticasPorEstado.noshow ?? 0);
   const cards = [
     { label: 'Reservas confirmadas', value: data?.estadisticasPorEstado.confirmado ?? 0, icon: FiCalendar, color: '#60a5fa' },
@@ -43,13 +46,13 @@ function ReservationKpis({ data, desde, hasta }: { data: OverviewData | null; de
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
       {cards.map((card) => (
-        <a key={card.label} href={`/admin/turnos?dateFrom=${desde}&dateTo=${hasta}`} className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3 hover:border-[#FF5C00]/40 transition-colors">
+        <div key={card.label} className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>
             <card.icon className="text-xl shrink-0" style={{ color: card.color }} />
           </div>
           <span className="text-white text-2xl font-bold">{card.value}</span>
-        </a>
+        </div>
       ))}
     </div>
   );
@@ -60,7 +63,15 @@ export default function DashboardPage() {
   const [desde, setDesde] = useState(initialRange.desde);
   const [hasta, setHasta] = useState(initialRange.hasta);
   const [activeTab, setActiveTab] = useState<TabKey>('resumen');
+  const dispatch = useAppDispatch();
   const kind = getTokenKind(getAccessToken());
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      dispatch(analyticsApi.util.invalidateTags(['Analytics']));
+    }, 30_000);
+    return () => window.clearInterval(intervalId);
+  }, [dispatch]);
 
   const { data: overview, isLoading, error: rtkError, refetch: refetchOverview } = useGetOverviewQuery({ desde, hasta });
 
@@ -111,17 +122,14 @@ export default function DashboardPage() {
           {activeTab === 'resumen' && (
             <div className="flex flex-col gap-5">
               <KpiCards data={overview ?? null} loading={isLoading} error={error} desde={desde} hasta={hasta} onRefresh={refetchOverview} />
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <ReservasChart desde={desde} hasta={hasta} />
-                <GananciasChart desde={desde} hasta={hasta} />
-              </div>
-              <HeatmapChart desde={desde} hasta={hasta} />
+              <GeneralAnalyticsCharts desde={desde} hasta={hasta} />
+               <HeatmapChart />
             </div>
           )}
 
           {activeTab === 'reservas' && (
             <div className="flex flex-col gap-5">
-              <ReservationKpis data={overview ?? null} desde={desde} hasta={hasta} />
+               <ReservationKpis data={overview ?? null} />
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5"><ReservasChart desde={desde} hasta={hasta} /><GananciasChart desde={desde} hasta={hasta} /></div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5"><HourDistributionChart desde={desde} hasta={hasta} /><DayOfWeekChart desde={desde} hasta={hasta} /></div>
               <DistribucionDonut desde={desde} hasta={hasta} />

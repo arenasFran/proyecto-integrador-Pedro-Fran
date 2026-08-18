@@ -6,6 +6,7 @@ import {
   activateBarber,
   createBarber,
   deactivateBarber,
+  fetchBarbers,
   fetchBarbersPaginated,
   removeBarber,
   updateBarber,
@@ -163,9 +164,13 @@ export const ProfessionalsPage: React.FC = () => {
         await dispatch(
           updateBarberSchedule({ id: editProfessional.id, schedule: payload.schedule })
         ).unwrap();
+        await dispatch(fetchBarbers()).unwrap();
+        await loadProfessionals(page, searchTerm.trim() || undefined);
         showToast(`Barbero ${updated.name} actualizado con éxito.`);
       } else {
         const created = await dispatch(createBarber(payload)).unwrap();
+        await dispatch(fetchBarbers()).unwrap();
+        await loadProfessionals(page, searchTerm.trim() || undefined);
         showToast(`Barbero ${created.name} creado con éxito.`);
       }
     } catch (error) {
@@ -179,6 +184,8 @@ export const ProfessionalsPage: React.FC = () => {
     setIsDeleting(true);
     try {
       const result = await dispatch(removeBarber(professional.id)).unwrap();
+      await dispatch(fetchBarbers()).unwrap();
+      await loadProfessionals(page, searchTerm.trim() || undefined);
       showToast(result.message);
       setDeleteTarget(null);
     } catch (error) {
@@ -200,6 +207,8 @@ export const ProfessionalsPage: React.FC = () => {
         const result = await dispatch(activateBarber(professional.id)).unwrap();
         showToast(`${result.name} activado.`);
       }
+      await dispatch(fetchBarbers()).unwrap();
+      await loadProfessionals(page, searchTerm.trim() || undefined);
       setToggleTarget(null);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error';

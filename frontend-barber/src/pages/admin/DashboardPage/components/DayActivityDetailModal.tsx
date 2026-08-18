@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { FiAward, FiCalendar, FiClock, FiDollarSign, FiPackage, FiShoppingBag } from 'react-icons/fi';
 import { Modal, Spinner } from '../../../../components/common';
-import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
 import { useGetAppointmentsQuery } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery } from '../../../../services/orderApi';
@@ -10,6 +9,7 @@ import type { Appointment } from '../../../../types/booking';
 import type { Order } from '../../../../types/order';
 import type { MembershipTransaction } from '../../../../types/membership';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+import DashboardAppointmentDetailModal from './DashboardAppointmentDetailModal';
 
 interface DayActivityDetailModalProps {
   date: string | null;
@@ -60,8 +60,8 @@ export default function DayActivityDetailModal({ date, isOpen, onClose, revenueB
     { skip },
   );
 
-  const orders = ordersData?.orders ?? [];
-  const memberships = transactionsData?.data ?? [];
+  const orders = useMemo(() => ordersData?.orders ?? [], [ordersData?.orders]);
+  const memberships = useMemo(() => transactionsData?.data ?? [], [transactionsData?.data]);
   const fallbackAmounts = useMemo(() => ({
     appointment: appointments.filter((appointment) => appointment.paymentStatus === 'Pagado').reduce((sum, appointment) => sum + appointment.servicePrice, 0),
     product_order: orders.filter((order) => ['paid', 'delivered'].includes(order.status)).reduce((sum, order) => sum + order.total, 0),
@@ -149,7 +149,7 @@ export default function DayActivityDetailModal({ date, isOpen, onClose, revenueB
         )}
       </Modal>
 
-      {selectedAppointment && <AppointmentDetailModal appointment={selectedAppointment} isOpen onClose={() => setSelectedAppointment(null)} />}
+      {selectedAppointment && <DashboardAppointmentDetailModal appointment={selectedAppointment} isOpen onClose={() => setSelectedAppointment(null)} />}
       {selectedOrder && <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />}
       {selectedMembership && (
         <Modal isOpen onClose={() => setSelectedMembership(null)} title="Detalle de membresía" size="sm">

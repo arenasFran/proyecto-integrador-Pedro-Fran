@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FiEdit3, FiEye, FiEyeOff, FiPlus, FiRefreshCw, FiScissors, FiTrash2 } from 'react-icons/fi';
-import { AnimatedContainer, Button, ConfirmModal } from '../../../components/common';
+import { AnimatedContainer, Button, ConfirmModal, useToast } from '../../../components/common';
 import {
     useCreateServiceMutation,
     useDeleteServiceMutation,
@@ -43,6 +43,7 @@ const statusColor: Record<ServiceStatus, string> = {
 };
 
 export const ServicesPage: React.FC = () => {
+  const { showToast } = useToast();
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const { data: services = [], isLoading, isFetching, error } = useGetServicesAdminQuery({ includeDeleted });
   const [createService, { isLoading: isCreating }] = useCreateServiceMutation();
@@ -126,6 +127,7 @@ export const ServicesPage: React.FC = () => {
           imageUrl: form.imageUrl.trim() || undefined,
         }).unwrap();
       }
+      showToast(editingService ? 'Servicio actualizado' : 'Servicio creado');
       closeModal();
     } catch (err: unknown) {
       setPageError(getApiErrorMessage(err, 'Error al guardar el servicio'));
@@ -143,6 +145,7 @@ export const ServicesPage: React.FC = () => {
     try {
       await deleteService(confirmDeleteService.id).unwrap();
       setConfirmDeleteService(null);
+      showToast('Servicio eliminado');
     } catch (err: unknown) {
       setPageError(getApiErrorMessage(err, 'Error al eliminar el servicio'));
       setConfirmDeleteService(null);
@@ -162,6 +165,7 @@ export const ServicesPage: React.FC = () => {
       const newStatus: ServiceStatus = confirmToggleService.status === 'active' ? 'inactive' : 'active';
       await updateService({ id: confirmToggleService.id, data: { status: newStatus } }).unwrap();
       setConfirmToggleService(null);
+      showToast(newStatus === 'active' ? 'Servicio activado' : 'Servicio desactivado');
     } catch (err: unknown) {
       setPageError(getApiErrorMessage(err, 'Error al actualizar el servicio'));
       setConfirmToggleService(null);
@@ -173,6 +177,7 @@ export const ServicesPage: React.FC = () => {
     setPageError(null);
     try {
       await restoreService(service.id).unwrap();
+      showToast('Servicio restaurado');
     } catch (err: unknown) {
       setPageError(getApiErrorMessage(err, 'Error al restaurar el servicio'));
     }

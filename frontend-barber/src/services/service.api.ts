@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type { Service, ServiceStatus } from '../types/booking';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 
 export const serviceApi = createApi({
   reducerPath: 'serviceApi',
@@ -31,6 +32,7 @@ export const serviceApi = createApi({
         data,
       }),
       invalidatesTags: ['Services'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     updateService: builder.mutation<{ service: Service }, { id: string; data: Partial<{ name: string; description: string; price: number; imageUrl: string; status: ServiceStatus }> }>({
@@ -40,6 +42,7 @@ export const serviceApi = createApi({
         data,
       }),
       invalidatesTags: ['Services'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     deleteService: builder.mutation<{ service: Service }, string>({
@@ -48,6 +51,7 @@ export const serviceApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: ['Services'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     restoreService: builder.mutation<{ service: Service }, string>({
@@ -56,6 +60,7 @@ export const serviceApi = createApi({
         method: 'PATCH',
       }),
       invalidatesTags: ['Services'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
   }),
 });

@@ -2,6 +2,9 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type { Order, OrdersResponse, CreateOrderPayload, CreateManualOrderPayload } from '../types/order';
 import type { InitiatePaymentResponse } from '../types/payment';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
+import { invalidateProductsAfterSuccess } from './productCache';
+import { invalidatePaymentsAfterSuccess } from './paymentCache';
 
 export const orderApi = createApi({
   reducerPath: 'orderApi',
@@ -15,6 +18,11 @@ export const orderApi = createApi({
         data,
       }),
       invalidatesTags: ['Orders'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateProductsAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     getMyOrders: builder.query<{ orders: Order[] }, void>({
@@ -42,6 +50,11 @@ export const orderApi = createApi({
         data: { status },
       }),
       invalidatesTags: ['Orders', 'Order'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateProductsAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     deleteOrder: builder.mutation<{ message: string }, string>({
@@ -50,6 +63,11 @@ export const orderApi = createApi({
         method: 'DELETE',
       }),
       invalidatesTags: ['Orders'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateProductsAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     createManualOrder: builder.mutation<{ order: Order }, CreateManualOrderPayload>({
@@ -59,6 +77,11 @@ export const orderApi = createApi({
         data,
       }),
       invalidatesTags: ['Orders'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateProductsAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
   }),
 });

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Select } from '../../../../components/common/Select';
 import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
 import { formatCurrency } from '../../../../utils/formatCurrency';
@@ -43,23 +43,19 @@ interface HeatmapChartProps {
 }
 
 export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
-  const [selectedYear, setSelectedYear] = useState<number | undefined>();
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
   const [tooltip, setTooltip] = useState<{ fecha: string; cantidad: number; ingresos: number; porOrigen: Record<string, number>; x: number; y: number } | null>(null);
   const [modalDate, setModalDate] = useState<string | null>(null);
 
   const { data: availableYears = [], isLoading: yearsLoading } = useGetAvailableYearsQuery();
-  const mostRecentYear = availableYears[0];
-  useEffect(() => {
-    if (selectedYear === undefined && mostRecentYear !== undefined) setSelectedYear(mostRecentYear);
-  }, [mostRecentYear, selectedYear]);
 
   const controlled = desde !== undefined && hasta !== undefined;
   const displayYear = controlled && desde ? Number(desde.slice(0, 4)) : selectedYear;
   const params = controlled
     ? { desde, hasta }
-    : selectedYear ? { year: selectedYear } : { lastYear: true as const };
+    : displayYear ? { year: displayYear } : { lastYear: true as const };
   const { data = [], isFetching, isLoading, error: rtkError } = useGetHeatmapQuery(params, {
-    skip: controlled ? !desde || !hasta : selectedYear === undefined,
+    skip: controlled ? !desde || !hasta : displayYear === undefined,
   });
 
   const error = rtkError
@@ -68,6 +64,9 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
       : 'Error al cargar heatmap'
     : null;
   const loading = isLoading || yearsLoading;
+  const yearOptions = [...new Set([new Date().getFullYear(), ...availableYears])]
+    .sort((first, second) => second - first)
+    .map((year) => ({ value: String(year), label: String(year) }));
 
   const yearGrid = useMemo(() => {
     if (displayYear === undefined || Number.isNaN(displayYear)) return [];
@@ -116,20 +115,23 @@ export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
 
   return (
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-end justify-between gap-4 mb-4">
         <div>
           <h3 className="text-white text-base font-bold">Actividad e ingresos por día</h3>
           <p className="text-[11px] text-[#6A6A6A] mt-1">La intensidad combina reservas confirmadas e ingresos cobrados</p>
         </div>
-        {!controlled && <Select
-          label="Año"
-          value={selectedYear !== undefined ? String(selectedYear) : ''}
-          onChange={(v) => setSelectedYear(v ? Number(v) : undefined)}
-          options={[
-            ...(availableYears.length === 0 ? [{ value: '', label: 'Sin datos' }] : []),
-            ...availableYears.map((y) => ({ value: String(y), label: String(y) })),
-          ]}
-        />}
+        {!controlled && (
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium text-white">Año</span>
+            <div className="w-24">
+              <Select
+                value={String(selectedYear)}
+                onChange={(value) => setSelectedYear(Number(value))}
+                options={yearOptions}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}

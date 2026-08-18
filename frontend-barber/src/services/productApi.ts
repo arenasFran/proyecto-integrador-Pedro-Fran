@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type { Product, ProductsResponse, CreateProductPayload, UpdateProductPayload } from '../types/product';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 
 export const productApi = createApi({
   reducerPath: 'productApi',
@@ -30,6 +31,7 @@ export const productApi = createApi({
 
     getCategories: builder.query<{ categories: string[] }, void>({
       query: () => ({ url: '/api/products/categories' }),
+      providesTags: ['Products'],
     }),
 
     createProduct: builder.mutation<{ product: Product }, CreateProductPayload>({
@@ -38,7 +40,8 @@ export const productApi = createApi({
         method: 'POST',
         data,
       }),
-      invalidatesTags: ['Products'],
+      invalidatesTags: ['Products', 'Product'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     updateProduct: builder.mutation<{ product: Product }, { id: string; data: UpdateProductPayload }>({
@@ -48,6 +51,7 @@ export const productApi = createApi({
         data,
       }),
       invalidatesTags: ['Products', 'Product'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     deleteProduct: builder.mutation<{ message: string }, string>({
@@ -55,7 +59,8 @@ export const productApi = createApi({
         url: `/api/products/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Products'],
+      invalidatesTags: ['Products', 'Product'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
   }),
 });

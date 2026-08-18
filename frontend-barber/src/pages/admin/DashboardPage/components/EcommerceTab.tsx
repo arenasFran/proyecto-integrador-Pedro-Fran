@@ -6,6 +6,7 @@ import { Spinner } from '../../../../components/common/Spinner';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { ProductPerformanceEntry } from '../../../../services/analyticsApi';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+import OrdersAnalyticsTab from './OrdersAnalyticsTab';
 
 interface EcommerceTabProps {
   desde: string;
@@ -174,6 +175,8 @@ export default function EcommerceTab({ desde, hasta }: EcommerceTabProps) {
           </div>
         </AnimatedContainer>
       </div>
+
+      <OrdersAnalyticsTab desde={desde} hasta={hasta} showKpis={false} />
     </div>
   );
 }

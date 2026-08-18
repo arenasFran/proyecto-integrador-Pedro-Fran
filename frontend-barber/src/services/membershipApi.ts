@@ -8,6 +8,7 @@ import type {
   MembershipTransaction,
 } from '../types/membership';
 import type { InitiatePaymentResponse } from '../types/payment';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 
 export const membershipApi = createApi({
   reducerPath: 'membershipApi',
@@ -22,6 +23,7 @@ export const membershipApi = createApi({
     createMembership: builder.mutation<Membership, CreateMembershipPayload>({
       query: (data) => ({ url: '/api/memberships', method: 'POST', data }),
       invalidatesTags: ['Membership', 'Memberships'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     getAllMemberships: builder.query<{ data: MembershipWithUser[]; total: number; page: number; totalPages: number; limit: number }, { status?: string; search?: string; page?: number; limit?: number }>({
@@ -51,27 +53,29 @@ export const membershipApi = createApi({
 
     cancelMembership: builder.mutation<void, string>({
       query: (id) => ({ url: `/api/memberships/${id}/cancel`, method: 'POST' }),
-      invalidatesTags: ['Membership'],
+      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     initiateMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
       query: (data) => ({ url: '/api/memberships/initiate-payment', method: 'POST', data }),
-      invalidatesTags: ['Membership'],
+      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
     }),
 
     retryMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
       query: (data) => ({ url: '/api/memberships/retry-payment', method: 'POST', data }),
-      invalidatesTags: ['Membership'],
+      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
     }),
 
     redeemCoupon: builder.mutation<{ remainingCoupons: number; couponsUsed: number }, { userId: string }>({
       query: (data) => ({ url: '/api/memberships/redeem', method: 'POST', data }),
-      invalidatesTags: ['Membership'],
+      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
     }),
 
     approvePendingMembership: builder.mutation<Membership, string>({
       query: (id) => ({ url: `/api/memberships/${id}/approve`, method: 'POST' }),
-      invalidatesTags: ['Membership', 'Memberships'],
+      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     getTransactions: builder.query<{ data: MembershipTransaction[]; total: number; page: number; totalPages: number; limit: number }, {

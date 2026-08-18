@@ -1,21 +1,23 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAward, FiScissors, FiCalendar, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiShoppingCart, FiAward, FiScissors, FiCalendar, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
 import { useGetAppointmentDetailsQuery, useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
 import { useGetAppointmentsQuery, useGetAppointmentsPaginatedQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
-import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
+import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation, useCancelMembershipMutation } from '../../../../services/membershipApi';
 import type { OverviewData } from '../../../../types/analytics';
 import type { Order } from '../../../../types/order';
 import type { MembershipWithUser } from '../../../../types/membership';
 import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
-import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+import DashboardAppointmentDetailModal from './DashboardAppointmentDetailModal';
+import { useToast } from '../../../../components/common';
+import { extractError } from '../../AppointmentsPage/helpers';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -233,13 +235,13 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
             ) : (
               <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
                 {nuevos.slice(0, 20).map((c) => (
-                  <div key={c.clientId} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-[12px]">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-white truncate">{c.name} {c.lastname}</span>
-                      {kindBadge(c.kind)}
-                    </div>
-                    <span className="text-[#8A8A8A] shrink-0 ml-2">{c.phone ?? c.email ?? ''}</span>
-                  </div>
+                   <button key={c.clientId} type="button" onClick={() => { onClose(); navigate(`/admin/clientes/${c.clientId}`); }} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-left text-[12px] transition-colors hover:bg-[#242424]">
+                     <div className="flex items-center gap-2 min-w-0 flex-1">
+                       <span className="text-white truncate">{c.name} {c.lastname}</span>
+                       {kindBadge(c.kind)}
+                     </div>
+                     <span className="text-[#8A8A8A] shrink-0 ml-2">{c.phone ?? c.email ?? ''}</span>
+                   </button>
                 ))}
                 {nuevos.length > 20 && (
                   <p className="text-[11px] text-[#8A8A8A] text-center pt-1">... y {nuevos.length - 20} más</p>
@@ -248,14 +250,6 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
             )}
           </div>
 
-          <button
-            onClick={() => { onClose(); navigate('/admin/clientes'); }}
-            className="flex items-center justify-center gap-2 rounded-[10px] bg-[#FF5C00] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#E55300] transition-colors"
-          >
-            <FiUserPlus size={16} />
-            Ver todos los clientes
-            <FiArrowRight size={16} />
-          </button>
         </div>
       )}
     </Modal>
@@ -272,14 +266,34 @@ const ORDER_STATUS_BADGES: Record<string, { label: string; className: string }> 
   stock_issue: { label: 'Problema de stock', className: 'bg-red-500/10 text-red-400' },
 };
 
-function OrdersKpiModal({ isOpen, onClose, desde, hasta, status }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; status?: 'pending' }) {
+const APPOINTMENT_STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  Confirmado: { label: 'Confirmado', className: 'bg-blue-500/10 text-blue-400' },
+  Completado: { label: 'Completado', className: 'bg-green-500/10 text-green-400' },
+  Cancelado: { label: 'Cancelado', className: 'bg-red-500/10 text-red-400' },
+  NoShow: { label: 'No asistió', className: 'bg-yellow-500/10 text-yellow-400' },
+};
+
+function OrdersKpiModal({ isOpen, onClose, desde, hasta, status, onRefresh }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; status?: 'pending'; onRefresh: () => void }) {
   const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const { showToast } = useToast();
   const { data, isLoading, isFetching } = useGetAllOrdersQuery(
     { status, desde, hasta, limit: 100 },
     { skip: !isOpen || !desde || !hasta },
   );
+  const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
   const orders = data?.orders ?? [];
   const title = status === 'pending' ? 'Órdenes pendientes' : 'Órdenes del período';
+
+  const handleStatusChange = async (id: string, nextStatus: string) => {
+    try {
+      await updateOrderStatus({ id, status: nextStatus }).unwrap();
+      showToast('Estado de la orden actualizado');
+      setDetailOrder(null);
+      onRefresh();
+    } catch (error) {
+      showToast(extractError(error), 'error');
+    }
+  };
 
   return (
     <>
@@ -310,14 +324,14 @@ function OrdersKpiModal({ isOpen, onClose, desde, hasta, status }: { isOpen: boo
           </div>
         )}
       </Modal>
-      {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />}
+       {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} isUpdating={isUpdating} onStatusChange={(id, nextStatus) => void handleStatusChange(id, nextStatus)} />}
     </>
   );
 }
 
 function ReservationsKpiModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
   const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
-  const { data, isLoading, error } = useGetAppointmentDetailsQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data, isLoading, error, refetch } = useGetAppointmentDetailsQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
   const appointments = data?.appointments ?? [];
 
   return (
@@ -329,14 +343,14 @@ function ReservationsKpiModal({ isOpen, onClose, desde, hasta }: { isOpen: boole
             {appointments.map((appointment) => (
               <button key={appointment.id} type="button" onClick={() => setDetailAppointment(appointment)} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] p-3 text-left transition-colors hover:border-[#FF5C00]/40">
                 <FiCalendar className="shrink-0 text-blue-400" size={16} aria-hidden="true" />
-                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium text-white">{appointment.clientName} {appointment.clientLastname}</span><span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{appointment.date} · {appointment.startTime.slice(0, 5)} · {appointment.serviceName}</span></span>
+                <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-[13px] font-medium text-white">{appointment.clientName} {appointment.clientLastname}</span><span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${APPOINTMENT_STATUS_BADGES[appointment.status]?.className ?? 'bg-gray-500/10 text-gray-400'}`}>{APPOINTMENT_STATUS_BADGES[appointment.status]?.label ?? appointment.status}</span></span><span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{appointment.date} · {appointment.startTime.slice(0, 5)} · {appointment.serviceName}</span></span>
                 <span className="shrink-0 text-sm font-semibold text-white">{formatCurrency(appointment.servicePrice)}</span>
               </button>
             ))}
           </div>
         )}
       </Modal>
-      {detailAppointment && <AppointmentDetailModal appointment={detailAppointment} isOpen onClose={() => setDetailAppointment(null)} />}
+      {detailAppointment && <DashboardAppointmentDetailModal appointment={detailAppointment} isOpen onClose={() => setDetailAppointment(null)} onUpdated={() => void refetch()} />}
     </>
   );
 }
@@ -381,8 +395,10 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
   const [cancelAppt] = useCancelAppointmentMutation();
   const [updateStatus] = useUpdateAppointmentStatusMutation();
   const [sendReminder] = useSendReminderMutation();
-  const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  const [updateOrderStatus, { isLoading: isUpdatingOrder }] = useUpdateOrderStatusMutation();
   const [approveMembership] = useApprovePendingMembershipMutation();
+  const [cancelMembership] = useCancelMembershipMutation();
+  const { showToast } = useToast();
 
   const pendingOrders = ordersData?.orders ?? [];
   const memberships = (pendingMemberships?.data ?? []).filter((membership) => {
@@ -492,10 +508,10 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); markAsPaid({ id: a.id }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
-                                    <button onClick={() => { closeMenu(); updateStatus({ id: a.id, status: 'NoShow' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
-                                    <button onClick={() => { closeMenu(); cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
-                                    <button onClick={() => { closeMenu(); sendReminder({ id: a.id }); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiBell size={13} />Recordatorio</button>
+                                     <button onClick={() => { closeMenu(); void markAsPaid({ id: a.id }).unwrap().then(() => { onRefresh(); showToast('Pago registrado'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                     <button onClick={() => { closeMenu(); void updateStatus({ id: a.id, status: 'NoShow' }).unwrap().then(() => { onRefresh(); showToast('Turno marcado como no asistido'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
+                                     <button onClick={() => { closeMenu(); void cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).unwrap().then(() => { onRefresh(); showToast('Turno cancelado'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                     <button onClick={() => { closeMenu(); void sendReminder({ id: a.id }).unwrap().then(() => showToast('Recordatorio enviado')).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiBell size={13} />Recordatorio</button>
                                   </div>
                                 </>
                               )}
@@ -541,9 +557,9 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'paid' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'delivered' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                     <button onClick={() => { closeMenu(); void updateOrderStatus({ id: o.id, status: 'paid' }).unwrap().then(() => { onRefresh(); showToast('Orden cobrada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                     <button onClick={() => { closeMenu(); void updateOrderStatus({ id: o.id, status: 'delivered' }).unwrap().then(() => { onRefresh(); showToast('Orden cobrada y entregada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
+                                     <button onClick={() => { closeMenu(); void updateOrderStatus({ id: o.id, status: 'cancelled' }).unwrap().then(() => { onRefresh(); showToast('Orden cancelada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
                                   </div>
                                 </>
                               )}
@@ -587,8 +603,8 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); approveMembership(m.id).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
-                                    <button onClick={() => { closeMenu(); cancelAppt({ id: m.id, reason: 'Membresía rechazada' }).catch(() => {}); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Rechazar</button>
+                                     <button onClick={() => { closeMenu(); void approveMembership(m.id).unwrap().then(() => { onRefresh(); showToast('Membresía aprobada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
+                                     <button onClick={() => { closeMenu(); void cancelMembership(m.id).unwrap().then(() => { onRefresh(); showToast('Membresía rechazada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Rechazar</button>
                                   </div>
                                 </>
                               )}
@@ -610,10 +626,10 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
       )}
 
       {detailAppointment && (
-        <AppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} />
+        <DashboardAppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} onUpdated={onRefresh} />
       )}
       {detailOrder && (
-        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusChange={(id, status) => { updateOrderStatus({ id, status }).then(() => { onRefresh(); setDetailOrder(null); }); }} />
+        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} isUpdating={isUpdatingOrder} onStatusChange={(id, status) => { void updateOrderStatus({ id, status }).unwrap().then(() => { onRefresh(); setDetailOrder(null); showToast('Estado de orden actualizado'); }).catch((error) => showToast(extractError(error), 'error')); }} />
       )}
       {detailMembership && (
         <Modal isOpen={!!detailMembership} onClose={() => setDetailMembership(null)} title="Membresía pendiente" size="sm">
@@ -636,7 +652,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
               </div>
             </div>
             <button
-              onClick={() => { approveMembership(detailMembership.id).then(() => { onRefresh(); setDetailMembership(null); }); }}
+              onClick={() => { void approveMembership(detailMembership.id).unwrap().then(() => { onRefresh(); showToast('Membresía aprobada'); setDetailMembership(null); }).catch((error) => showToast(extractError(error), 'error')); }}
               className="w-full rounded-[10px] bg-[#c084fc] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#a855f7] transition-colors"
             >
               Aprobar membresía
@@ -654,7 +670,6 @@ const CARDS_CONFIG = [
   { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos con pago pendiente + órdenes y membresías pendientes de pago' },
   { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true, tooltip: 'Clientes (registrados y anónimos) creados en el período' },
   { key: 'ordenes', label: 'Órdenes totales', icon: FiShoppingCart, format: (v: number) => String(v), clickable: true, tooltip: 'Total de órdenes de ecommerce en el período' },
-  { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true, tooltip: 'Órdenes con estado pendiente de pago' },
 ];
 
 export default function KpiCards({ data, loading, error, desde, hasta, onRefresh }: KpiCardsProps) {
@@ -663,14 +678,12 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
   const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
-  const [orderModalStatus, setOrderModalStatus] = useState<'all' | 'pending' | null>(null);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
 
   const { data: ecommerceData } = useGetEcommerceOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
-
-  const pendingOrders = ecommerceData?.ordersByStatus?.pending ?? 0;
 
   if (error) {
     return (
@@ -687,9 +700,8 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
         data.ingresosPendientes,
         data.nuevosClientes,
         ecommerceData?.totalOrders ?? 0,
-        pendingOrders,
       ]
-    : [null, null, null, null, null, null];
+    : [null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
@@ -706,10 +718,7 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
         setShowNewClientsModal(true);
         break;
       case 'ordenes':
-        setOrderModalStatus('all');
-        break;
-      case 'ordenesPendientes':
-        setOrderModalStatus('pending');
+        setShowOrdersModal(true);
         break;
     }
   };
@@ -768,7 +777,7 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
        <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
        <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
        <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
-       <OrdersKpiModal isOpen={orderModalStatus !== null} onClose={() => setOrderModalStatus(null)} desde={desde} hasta={hasta} status={orderModalStatus === 'pending' ? 'pending' : undefined} />
+        <OrdersKpiModal isOpen={showOrdersModal} onClose={() => setShowOrdersModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
        <ReservationsKpiModal isOpen={showAppointmentsModal} onClose={() => setShowAppointmentsModal(false)} desde={desde} hasta={hasta} />
      </>
   );

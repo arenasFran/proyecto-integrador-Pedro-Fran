@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiUser, FiPhone, FiMail, FiX, FiSearch } from 'react-icons/fi';
-import { Modal, Select, Input, Button, DatePicker } from '../../../components/common';
+import { Modal, Select, Input, Button, DatePicker, useToast } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
@@ -24,6 +24,7 @@ interface QuickCreateModalProps {
 type ClientMode = 'new' | 'existing';
 
 export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onClose, initialClient }) => {
+  const { showToast } = useToast();
   const [barbers, setBarbers] = useState<BarberPublic[]>([]);
   const [barberId, setBarberId] = useState('');
   const [serviceId, setServiceId] = useState('');
@@ -92,8 +93,8 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   };
 
   useEffect(() => {
-    professionalService.getPublic().then(setBarbers).catch(() => {});
-  }, []);
+    professionalService.getPublic().then(setBarbers).catch((error: unknown) => showToast(error instanceof Error ? error.message : 'No se pudieron cargar los barberos', 'error'));
+  }, [showToast]);
 
   const handleBarberChange = (id: string) => {
     setBarberId(id);
@@ -104,7 +105,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
       professionalService
         .getSlots(id, selectedDate)
         .then((res) => setAvailableSlots(res.slots))
-        .catch(() => setAvailableSlots([]));
+         .catch(() => { setAvailableSlots([]); setLocalError('No se pudieron cargar los horarios.'); });
     }
   };
 
@@ -116,7 +117,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
       professionalService
         .getSlots(barberId, newDate)
         .then((res) => setAvailableSlots(res.slots))
-        .catch(() => setAvailableSlots([]));
+         .catch(() => { setAvailableSlots([]); setLocalError('No se pudieron cargar los horarios.'); });
     }
   };
 
@@ -176,6 +177,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
         clientPhone: clientPhone.trim(),
         clientEmail: clientEmail.trim(),
       }).unwrap();
+      showToast('Turno creado con éxito');
       onClose();
     } catch (err: unknown) {
       const message =

@@ -12,20 +12,20 @@ const mockServices = [{ id: 's1', name: 'Corte', price: 500 }];
 const mockSlots = ['10:00', '10:30', '11:00'];
 
 const mockCreateAppointment = vi.fn().mockResolvedValue({});
-const mockTriggerSearchClients = vi.fn();
+const mockAcquireTempLock = vi.fn().mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'owner-1' });
+const mockReleaseTempLock = vi.fn().mockResolvedValue({});
 const mockRegisteredClients = [
-  { id: 'c1', name: 'Ana', lastname: 'Gómez', phone: '099111222', contactEmail: 'ana@test.com' },
-  { id: 'c2', name: 'Luis', lastname: 'Pérez', contactEmail: 'luis@test.com' },
+  { id: 'c1', name: 'Ana', lastname: 'Gómez', phone: '099111222', email: 'ana@test.com', photoUrl: null },
+  { id: 'c2', name: 'Luis', lastname: 'Pérez', phone: '', email: 'luis@test.com', photoUrl: 'http://img/luis.jpg' },
 ];
-
-const withUnwrap = (value: unknown) => {
-  const promise = Promise.resolve(value) as Promise<unknown> & { unwrap: () => Promise<unknown> };
-  promise.unwrap = () => promise;
-  return promise;
-};
-
-const mockAcquireTempLock = vi.fn(() => withUnwrap({ tempLockId: 'lock1', ownerToken: 'token1' }));
-const mockReleaseTempLock = vi.fn(() => withUnwrap({}));
+const mockSearchClients = mockRegisteredClients.map((client) => ({
+  id: client.id,
+  name: client.name,
+  lastname: client.lastname,
+  phone: client.phone,
+  contactEmail: client.email,
+  photoUrl: client.photoUrl,
+}));
 
 vi.mock('../../../services/service.api', () => ({
   useGetServicesQuery: vi.fn(() => ({ data: mockServices })),
@@ -35,10 +35,14 @@ vi.mock('../../../services/appointmentApi', () => ({
   useCreateAppointmentMutation: vi.fn(() => [mockCreateAppointment, { isLoading: false }]),
   useAcquireTempLockMutation: vi.fn(() => [mockAcquireTempLock, { isLoading: false }]),
   useReleaseTempLockMutation: vi.fn(() => [mockReleaseTempLock, { isLoading: false }]),
-  useLazySearchClientsQuery: vi.fn(() => [
-    mockTriggerSearchClients,
-    { data: mockRegisteredClients, isFetching: false },
-  ]),
+  useLazySearchClientsQuery: vi.fn(() => [vi.fn(), { data: mockSearchClients, isFetching: false }]),
+}));
+
+vi.mock('../../../services/clientApi', () => ({
+  useGetRegisteredClientsQuery: vi.fn(() => ({
+    data: { clients: mockRegisteredClients },
+    isFetching: false,
+  })),
 }));
 
 vi.mock('../../../services/professional.service', () => ({
@@ -85,35 +89,39 @@ describe('QuickCreateModal', () => {
     expect(mockCreateAppointment).not.toHaveBeenCalled();
   });
 
-  it('lets staff search and select a registered client, prefilling and locking all fields', async () => {
+  it('hides the client inputs and shows the searchable client list (with photos) when "cliente registrado" is selected', async () => {
     const user = userEvent.setup();
     renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
 
+    expect(screen.getByLabelText(/^nombre/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: /cliente registrado/i }));
+
+    expect(screen.queryByLabelText(/^nombre/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/apellido/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+
     await user.type(screen.getByLabelText(/buscar cliente/i), 'ana');
 
-    const result = await screen.findByText('Ana Gómez');
-    await user.click(result);
+    await user.click(screen.getByText('Ana Gómez'));
 
-    expect(screen.getByDisplayValue('Ana')).toBeDisabled();
-    expect(screen.getByDisplayValue('Gómez')).toBeDisabled();
-    expect(screen.getByDisplayValue('099111222')).toBeDisabled();
-    expect(screen.getByDisplayValue('ana@test.com')).toBeDisabled();
+    expect(screen.getByText('ana@test.com')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^nombre/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^teléfono/i)).not.toBeInTheDocument();
   });
 
-  it('leaves the phone field editable when the selected client has no phone on file', async () => {
+  it('shows the phone field when the selected registered client has no phone on file', async () => {
     const user = userEvent.setup();
     renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: /cliente registrado/i }));
     await user.type(screen.getByLabelText(/buscar cliente/i), 'luis');
 
-    const result = await screen.findByText('Luis Pérez');
-    await user.click(result);
+    await user.click(screen.getByText('Luis Pérez'));
 
-    expect(screen.getByDisplayValue('Luis')).toBeDisabled();
-    expect(screen.getByDisplayValue('Pérez')).toBeDisabled();
-    expect(screen.getByDisplayValue('luis@test.com')).toBeDisabled();
+    expect(screen.queryByLabelText(/apellido/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^teléfono/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^teléfono/i)).not.toBeDisabled();
     expect(screen.getByText(/este cliente no tiene teléfono cargado/i)).toBeInTheDocument();
 
@@ -143,5 +151,73 @@ describe('QuickCreateModal', () => {
 
     expect(await screen.findByText(/buscá y seleccioná un cliente/i)).toBeInTheDocument();
     expect(mockCreateAppointment).not.toHaveBeenCalled();
+  });
+
+  it('opens in data-entry mode with prefilled fields when the initial client is anonymous', () => {
+    renderWithProviders(
+      <QuickCreateModal
+        dateStr="2026-07-05"
+        onClose={vi.fn()}
+        initialClient={{
+          id: 'anon-1',
+          name: 'Carlos',
+          lastname: 'Ruiz',
+          phone: '099111333',
+          email: 'carlos@test.com',
+          kind: 'anonymous',
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText(/^nombre/i)).toHaveValue('Carlos');
+    expect(screen.getByLabelText(/apellido/i)).toHaveValue('Ruiz');
+    expect(screen.getByLabelText(/^teléfono/i)).toHaveValue('099111333');
+    expect(screen.getByLabelText(/email/i)).toHaveValue('carlos@test.com');
+    expect(screen.queryByLabelText(/buscar cliente/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
+  });
+
+  it('falls back to data-entry mode when the initial client is not in the registered list', async () => {
+    renderWithProviders(
+      <QuickCreateModal
+        dateStr="2026-07-05"
+        onClose={vi.fn()}
+        initialClient={{
+          id: 'anon-1',
+          name: 'Carlos',
+          lastname: 'Ruiz',
+          phone: '099111333',
+          email: 'carlos@test.com',
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^nombre/i)).toHaveValue('Carlos');
+    });
+    expect(screen.getByLabelText(/^teléfono/i)).toHaveValue('099111333');
+    expect(screen.queryByLabelText(/buscar cliente/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
+  });
+
+  it('finds the prefilled registered client when searching full name and lastname', () => {
+    renderWithProviders(
+      <QuickCreateModal
+        dateStr="2026-07-05"
+        onClose={vi.fn()}
+        initialClient={{
+          id: 'c2',
+          name: 'Luis',
+          lastname: 'Pérez',
+          phone: '',
+          email: 'luis@test.com',
+          kind: 'registered',
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText(/buscar cliente/i)).toHaveValue('Luis Pérez');
+    expect(screen.getByText('Luis Pérez')).toBeInTheDocument();
+    expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
   });
 });

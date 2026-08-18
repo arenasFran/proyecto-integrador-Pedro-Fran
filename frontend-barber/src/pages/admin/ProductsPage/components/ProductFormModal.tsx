@@ -56,7 +56,7 @@ export default function ProductFormModal({ product, formData, onChange, onSave, 
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg rounded-[24px] border border-[#282828] bg-[#121212] p-5 max-h-[90vh] overflow-y-auto"
+           className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[24px] border border-[#282828] bg-[#121212] p-4 sm:p-5"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
@@ -99,7 +99,7 @@ export default function ProductFormModal({ product, formData, onChange, onSave, 
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-2.5">
+             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
               <div>
                 <label className={labelClass}>Precio ($)</label>
                 <input

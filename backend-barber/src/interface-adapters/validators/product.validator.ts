@@ -18,7 +18,7 @@ export const updateProductSchema = Joi.object({
   imageUrl: Joi.string().allow('').optional(),
   gallery: Joi.array().items(Joi.string().uri()).max(4).optional(),
   category: Joi.string().allow('').optional(),
-  status: Joi.string().valid('active', 'inactive', 'deleted').optional(),
+  status: Joi.string().valid('active', 'inactive', 'deleted', 'all').optional(),
 });
 
 export const productIdParamSchema = Joi.object({
@@ -26,7 +26,7 @@ export const productIdParamSchema = Joi.object({
 });
 
 export const queryProductsSchema = Joi.object({
-  status: Joi.string().valid('active', 'inactive', 'deleted').optional(),
+  status: Joi.string().valid('active', 'inactive', 'deleted', 'all').optional(),
   category: Joi.string().max(100).optional(),
   search: Joi.string().max(100).optional(),
   page: Joi.number().integer().min(1).max(10000).optional(),

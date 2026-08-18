@@ -20,10 +20,9 @@ export class MongoServiceRepository {
     return docs.map((doc) => toServiceEntity(doc));
   }
 
-  async findAllAdmin(includeDeleted: boolean = false): Promise<Service[]> {
+  async findAllAdmin(): Promise<Service[]> {
     // TODO: deuda técnica — falta paginación si el sistema escala
-    const filter = includeDeleted ? {} : { status: { $ne: 'deleted' as ServiceStatus } };
-    const docs = await ServiceModel.find(filter).lean();
+    const docs = await ServiceModel.find({}).lean();
     return docs.map((doc) => toServiceEntity(doc));
   }
 
@@ -67,7 +66,7 @@ export class MongoServiceRepository {
       if (data.status !== undefined) updateData.status = data.status;
 
       const doc = await ServiceModel.findOneAndUpdate(
-        { _id: id, status: { $ne: 'deleted' } },
+        { _id: id },
         { $set: updateData, $currentDate: { updatedAt: true } },
         { returnDocument: 'after' }
       ).lean();
@@ -80,27 +79,5 @@ export class MongoServiceRepository {
       }
       throw error;
     }
-  }
-
-  async softDelete(id: string): Promise<Service | null> {
-    const doc = await ServiceModel.findByIdAndUpdate(
-      id,
-      { $set: { status: 'deleted' }, $currentDate: { updatedAt: true } },
-      { returnDocument: 'after' }
-    ).lean();
-
-    if (!doc) return null;
-    return toServiceEntity(doc);
-  }
-
-  async restore(id: string): Promise<Service | null> {
-    const doc = await ServiceModel.findOneAndUpdate(
-      { _id: id, status: 'deleted' },
-      { $set: { status: 'inactive' }, $currentDate: { updatedAt: true } },
-      { returnDocument: 'after' }
-    ).lean();
-
-    if (!doc) return null;
-    return toServiceEntity(doc);
   }
 }

@@ -44,7 +44,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.status).toBe(401);
     });
 
-    it('pago local: crea la orden pendiente sin descontar stock ni crear preferencia', async () => {
+    it('pago local: crea la orden pendiente sin descontar stock hasta cobrarla', async () => {
       const { productId } = await seedProduct({ price: 500, stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -59,9 +59,14 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
 
       const order = await OrderModel.findById(res.body.orderId);
       expect(order!.status).toBe('pending');
+      expect(order!.paymentMethod).toBe('local');
 
       const product = await ProductModel.findById(productId);
       expect(product!.stock).toBe(10);
+
+      const payment = await PaymentModel.findOne({ referenceId: res.body.orderId });
+      expect(payment).not.toBeNull();
+      expect(payment!.status).toBe('pending');
 
       expect(createPreferenceMock).not.toHaveBeenCalled();
     });
@@ -339,7 +344,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(product!.stock).toBe(10);
     });
 
-    it('un Admin cancela una orden pagada y restaura el stock', async () => {
+    it('un Admin no puede cancelar una orden pagada con payment aprobado', async () => {
       const { productId } = await seedProduct({ stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -358,9 +363,9 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ status: 'cancelled' });
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(409);
       const product = await ProductModel.findById(productId);
-      expect(product!.stock).toBe(10);
+      expect(product!.stock).toBe(8);
     });
 
     it('flujo local completo: crear pendiente, confirmar desde admin, stock baja UNA sola vez y se registra payment aprobado + revenue', async () => {
@@ -472,7 +477,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(product!.stock).toBe(10);
     });
 
-    it('un Admin elimina una orden pagada y restaura el stock', async () => {
+    it('un Admin no puede eliminar una orden pagada', async () => {
       const { productId } = await seedProduct({ stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -490,11 +495,11 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
         .delete(`/api/orders/${created.body.orderId}`)
         .set('Authorization', `Bearer ${adminToken}`);
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(409);
       const order = await OrderModel.findById(created.body.orderId);
-      expect(order).toBeNull();
+      expect(order).not.toBeNull();
       const product = await ProductModel.findById(productId);
-      expect(product!.stock).toBe(10);
+      expect(product!.stock).toBe(8);
     });
   });
 });

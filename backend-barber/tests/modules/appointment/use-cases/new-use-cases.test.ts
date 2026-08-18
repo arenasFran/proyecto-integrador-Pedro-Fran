@@ -36,11 +36,13 @@ const makeAppointment = (overrides?: Partial<AppointmentProps>) => {
 
 describe('UpdatePaymentStatusUseCase', () => {
   let appointmentRepository: ReturnType<typeof makeMockAppointmentRepository>;
+  let revenueTracker: { trackAppointment: jest.Mock };
   let useCase: UpdatePaymentStatusUseCase;
 
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
-    useCase = new UpdatePaymentStatusUseCase(appointmentRepository);
+    revenueTracker = { trackAppointment: jest.fn().mockResolvedValue(undefined) };
+    useCase = new UpdatePaymentStatusUseCase(appointmentRepository, revenueTracker as any);
   });
 
   it('debe marcar como pagado un turno confirmado', async () => {
@@ -84,6 +86,16 @@ describe('UpdatePaymentStatusUseCase', () => {
     appointmentRepository.findById.mockResolvedValue(makeAppointment({ status: 'NoShow' }));
 
     await expect(useCase.execute('apt-1', 'admin-1', 'Admin')).rejects.toBeInstanceOf(AppError);
+  });
+
+  it('debe rechazar registrar un cobro sobre un turno cubierto por membresía', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ paymentMethod: 'memberPass', paymentStatus: 'Pagado' })
+    );
+
+    await expect(useCase.execute('apt-1', 'admin-1', 'Admin')).rejects.toThrow(/cupón de membresía/);
+    expect(appointmentRepository.updateStatus).not.toHaveBeenCalled();
+    expect(revenueTracker.trackAppointment).not.toHaveBeenCalled();
   });
 });
 

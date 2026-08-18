@@ -74,4 +74,30 @@ describe('RecoveryPage', () => {
     expect(form).toHaveTextContent('email:ana@test.com');
     expect(form).toHaveTextContent('code:123456');
   });
+
+it('starts on step 2 when the recovery request came from the profile', () => {
+    renderWithProviders(<RecoveryPage />, {
+      initialEntries: ['/recovery?email=ana%40test.com'],
+    });
+
+    expect(screen.getByTestId('verify-code-form')).toHaveTextContent('email:ana@test.com');
+    expect(screen.queryByTestId('request-reset-form')).not.toBeInTheDocument();
+  });
+
+  it('shows a back to profile link when the recovery came from the profile', () => {
+    renderWithProviders(<RecoveryPage />, {
+      initialEntries: ['/recovery?email=ana%40test.com&from=profile'],
+    });
+
+    expect(screen.getByRole('link', { name: 'Volver al perfil' })).toHaveAttribute('href', '/perfil');
+    expect(screen.queryByRole('link', { name: 'Volver al login' })).not.toBeInTheDocument();
+  });
+
+  it('shows a back to login link when the recovery came from the login flow', () => {
+    renderWithProviders(<RecoveryPage />, {
+      initialEntries: ['/recovery?email=ana%40test.com'],
+    });
+
+    expect(screen.getByRole('link', { name: 'Volver al login' })).toHaveAttribute('href', '/login');
+  });
 });

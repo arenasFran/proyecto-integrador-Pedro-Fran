@@ -5,7 +5,8 @@ export class RevenueService {
   isAppointmentRevenue(appointment: Appointment): boolean {
     return appointmentCountsAsRevenue(
       appointment.status,
-      appointment.paymentStatus
+      appointment.paymentStatus,
+      appointment.paymentMethod
     );
   }
 

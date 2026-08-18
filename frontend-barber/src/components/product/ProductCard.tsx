@@ -8,16 +8,26 @@ interface ProductCardProps {
   onAddToCart: (product: Product) => void;
   onBuyNow: (product: Product) => void;
   onViewDetail?: (product: Product) => void;
+  discountPercent?: number;
 }
 
-export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDetail }: ProductCardProps) {
+export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDetail, discountPercent = 0 }: ProductCardProps) {
   const outOfStock = product.stock === 0;
   const lowStock = !outOfStock && product.stock <= (product.minStock || 5);
+  const memberPrice = discountPercent > 0 ? Math.round(product.price * (100 - discountPercent) / 100) : product.price;
 
   return (
     <div
       className="group rounded-[16px] border border-[#282828] bg-[#121212] overflow-hidden hover:border-[#555] transition-all cursor-pointer"
       onClick={() => onViewDetail?.(product)}
+      onKeyDown={(event) => {
+        if ((event.key === 'Enter' || event.key === ' ') && onViewDetail) {
+          event.preventDefault();
+          onViewDetail(product);
+        }
+      }}
+      role={onViewDetail ? 'button' : undefined}
+      tabIndex={onViewDetail ? 0 : undefined}
     >
       <div className="aspect-square bg-[#1A1A1A] overflow-hidden relative">
         {product.imageUrl ? (
@@ -45,8 +55,9 @@ export default function ProductCard({ product, onAddToCart, onBuyNow, onViewDeta
       <div className="p-3 space-y-2">
         <p className="text-[11px] text-[#555] uppercase tracking-wider">{product.category}</p>
         <p className="text-[13px] font-semibold text-white leading-tight">{product.name}</p>
-        <p className="text-[15px] font-bold text-[#FF5C00]">{formatCurrency(product.price)}</p>
-        <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-baseline gap-2"><p className="text-[15px] font-bold text-[#FF5C00]">{formatCurrency(memberPrice)}</p>{discountPercent > 0 && <span className="text-[10px] text-[#666] line-through">{formatCurrency(product.price)}</span>}</div>
+        {discountPercent > 0 && <p className="text-[10px] font-medium text-emerald-400">{discountPercent}% de descuento por membresía</p>}
+         <div className="flex flex-col gap-2 sm:flex-row" onClick={(e) => e.stopPropagation()}>
           <Button
             size="sm"
             variant="outline"

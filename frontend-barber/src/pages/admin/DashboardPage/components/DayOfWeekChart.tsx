@@ -6,9 +6,14 @@ import DateRangeFilter from '../../../../components/common/DateRangeFilter';
 
 const DAY_ORDER = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-export default function DayOfWeekChart() {
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+interface DayOfWeekChartProps { desde?: string; hasta?: string }
+
+export default function DayOfWeekChart({ desde: desdeProp, hasta: hastaProp }: DayOfWeekChartProps = {}) {
+  const [internalDesde, setInternalDesde] = useState('');
+  const [internalHasta, setInternalHasta] = useState('');
+  const desde = desdeProp ?? internalDesde;
+  const hasta = hastaProp ?? internalHasta;
+  const controlled = desdeProp !== undefined && hastaProp !== undefined;
 
   const { data = [], isFetching, isLoading, error: rtkError } = useGetDiasSemanaQuery(
     { desde, hasta },
@@ -31,14 +36,12 @@ export default function DayOfWeekChart() {
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <h3 className="text-white text-base font-bold mb-4">Turnos por día de la semana</h3>
 
-      <div className="mb-2">
-        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
-      </div>
+      {!controlled && <div className="mb-2"><DateRangeFilter onChange={(d, h) => { setInternalDesde(d); setInternalHasta(h); }} /></div>}
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <ChartContainer isFetching={isFetching} loading={loading} hasData={chartData.some(d => d.cantidad > 0)} height={280} className="mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
             <XAxis

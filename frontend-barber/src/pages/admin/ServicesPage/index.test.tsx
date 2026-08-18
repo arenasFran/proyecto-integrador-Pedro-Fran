@@ -1,10 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { screen } from '@testing-library/react';
 import { renderWithProviders } from '../../../test/utils';
-
-const mockDeleteTrigger = vi.hoisted(() => vi.fn());
-const mockRestoreTrigger = vi.hoisted(() => vi.fn());
 
 const mockMutationState = { isLoading: false, reset: vi.fn() };
 
@@ -12,11 +8,9 @@ vi.mock('../../../services/service.api', () => ({
   useGetServicesAdminQuery: vi.fn(),
   useCreateServiceMutation: vi.fn(() => [vi.fn(), { ...mockMutationState }]),
   useUpdateServiceMutation: vi.fn(() => [vi.fn(), { ...mockMutationState }]),
-  useDeleteServiceMutation: vi.fn(),
-  useRestoreServiceMutation: vi.fn(),
 }));
 
-import { useGetServicesAdminQuery, useDeleteServiceMutation, useRestoreServiceMutation } from '../../../services/service.api';
+import { useGetServicesAdminQuery } from '../../../services/service.api';
 import ServicesPage from './index';
 
 const activeService = {
@@ -55,18 +49,6 @@ function mockQuery(
 describe('ServicesPage', () => {
   beforeEach(() => {
     vi.mocked(useGetServicesAdminQuery).mockReset();
-    vi.mocked(useDeleteServiceMutation).mockReset();
-    vi.mocked(useDeleteServiceMutation).mockReturnValue([
-      mockDeleteTrigger,
-      { isLoading: false, reset: vi.fn() },
-    ]);
-    vi.mocked(useRestoreServiceMutation).mockReset();
-    vi.mocked(useRestoreServiceMutation).mockReturnValue([
-      mockRestoreTrigger,
-      { isLoading: false, reset: vi.fn() },
-    ]);
-    mockDeleteTrigger.mockClear();
-    mockRestoreTrigger.mockClear();
   });
 
   it('renderiza lista de servicios con stats y acciones', () => {
@@ -88,7 +70,9 @@ describe('ServicesPage', () => {
     expect(screen.getAllByText('Activo').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Inactivo').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByTitle('Editar').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getAllByTitle('Eliminar').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByTitle('Activar').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByTitle('Desactivar').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByTitle('Eliminar')).not.toBeInTheDocument();
   });
 
   it('muestra empty state cuando no hay servicios', () => {
@@ -102,47 +86,6 @@ describe('ServicesPage', () => {
       screen.getByText(/Creá el primer servicio para empezar/)
     ).toBeInTheDocument();
     expect(screen.getAllByText('Nuevo servicio').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('abre modal de confirmación, ejecuta delete y cierra modal', async () => {
-    const user = userEvent.setup();
-    mockQuery({ data: [activeService] });
-    mockDeleteTrigger.mockReturnValue({
-      unwrap: () =>
-        Promise.resolve({
-          data: { service: { ...activeService, isDeleted: true } },
-        }),
-    });
-    renderWithProviders(<ServicesPage />);
-
-    await user.click(screen.getAllByTitle('Eliminar')[0]);
-
-    expect(screen.getByText('Eliminar servicio')).toBeInTheDocument();
-    expect(screen.getAllByText(/Corte de pelo/).length).toBeGreaterThanOrEqual(1);
-
-    await user.click(screen.getByText('Eliminar'));
-
-    expect(mockDeleteTrigger).toHaveBeenCalledWith('1');
-
-    await waitFor(() => {
-      expect(
-        screen.queryByText('Eliminar servicio')
-      ).not.toBeInTheDocument();
-    });
-  });
-
-  it('deshabilita botones de eliminar durante la mutación', () => {
-    vi.mocked(useDeleteServiceMutation).mockReturnValue([
-      mockDeleteTrigger,
-      { isLoading: true, reset: vi.fn() },
-    ]);
-    mockQuery({ data: [activeService] });
-    renderWithProviders(<ServicesPage />);
-
-    const deleteButtons = screen.getAllByTitle('Eliminar');
-    deleteButtons.forEach((btn) => {
-      expect(btn).toBeDisabled();
-    });
   });
 
   it('muestra pantalla de error cuando falla la consulta', () => {

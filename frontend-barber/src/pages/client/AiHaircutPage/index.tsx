@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { FiAward, FiCamera, FiClock, FiScissors } from 'react-icons/fi';
-import { AnimatedContainer, Button, ImageUpload, Spinner, useToast } from '../../../components/common';
+import { FiAward, FiCamera, FiClock, FiRefreshCw, FiScissors } from 'react-icons/fi';
+import { AnimatedContainer, Button, ClientPageShell, ClientState, ImageUpload, Pagination, Spinner, useToast } from '../../../components/common';
 import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 import { useGetHistorialAnalisisCorteQuery } from '../../../services/analisisCorteApi';
 import { analizarCorte } from '../../../services/analisisCorte.service';
@@ -17,17 +17,12 @@ export default function AiHaircutPage() {
   const token = getAccessToken();
   const navigate = useNavigate();
   const { showToast } = useToast();
-
   const { data: membershipData, isLoading: isLoadingMembership } = useGetMyMembershipQuery();
-  const {
-    data: historialData,
-    isLoading: isLoadingHistorial,
-    refetch: refetchHistorial,
-  } = useGetHistorialAnalisisCorteQuery();
+  const [historyPage, setHistoryPage] = useState(1);
+  const { data: historialData, isLoading: isLoadingHistorial, isError: historyError, refetch: refetchHistorial } = useGetHistorialAnalisisCorteQuery({ page: historyPage, limit: 6 });
   const historial = historialData?.historial ?? [];
   const cupo = historialData?.cupo;
   const yaConsintio = historialData?.consentimientoAceptado ?? false;
-
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -37,257 +32,34 @@ export default function AiHaircutPage() {
   const [sessionConsentAccepted, setSessionConsentAccepted] = useState(false);
   const [detalleSeleccionado, setDetalleSeleccionado] = useState<AnalisisCorteRecord | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
   if (!token) return <Navigate to="/login" replace />;
-
+  if (isLoadingMembership) return <div className="flex min-h-screen items-center justify-center bg-[#080808]"><Spinner size="lg" /></div>;
   const active = membershipData?.active;
   const puedeCargarImagen = yaConsintio || sessionConsentAccepted;
-
   const ultimoAnalisis = historial[0] ?? null;
   const enCupo = cupo ? !cupo.disponible : false;
   const proximaFecha = cupo?.proximaFechaDisponible ? new Date(cupo.proximaFechaDisponible) : null;
 
-  const handleFileSelect = (selected: File | null) => {
-    setFile(selected);
-    setResultado(null);
-    if (preview) URL.revokeObjectURL(preview);
-    setPreview(selected ? URL.createObjectURL(selected) : null);
-  };
-
-  const MIN_ANALYSIS_LOADING_MS = 3000;
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
+  const handleFileSelect = (selected: File | null) => { setFile(selected); setResultado(null); if (preview) URL.revokeObjectURL(preview); setPreview(selected ? URL.createObjectURL(selected) : null); };
   const runAnalysis = async (aceptaConsentimiento?: boolean) => {
     if (!file) return;
     setIsAnalyzing(true);
     try {
-      const [data] = await Promise.all([
-        analizarCorte(file, aceptaConsentimiento),
-        delay(MIN_ANALYSIS_LOADING_MS),
-      ]);
-      setResultado(data);
-      setConsentOpen(false);
-      refetchHistorial();
+      const data = await analizarCorte(file, aceptaConsentimiento);
+      setResultado(data); setConsentOpen(false); void refetchHistorial();
     } catch (err) {
       const error = err as Error & { code?: string };
-      if (error.code === 'CONSENT_REQUIRED') {
-        setConsentMode('retry');
-        setConsentOpen(true);
-      } else {
-        showToast(error.message ?? 'Error al analizar la foto', 'error');
-        if (error.code === 'QUOTA_EXCEEDED') {
-          refetchHistorial();
-        }
-      }
-    } finally {
-      setIsAnalyzing(false);
-    }
+      if (error.code === 'CONSENT_REQUIRED') { setConsentMode('retry'); setConsentOpen(true); } else { showToast(error.message ?? 'Error al analizar la foto', 'error'); if (error.code === 'QUOTA_EXCEEDED') void refetchHistorial(); }
+    } finally { setIsAnalyzing(false); }
   };
+  const handleConsentAccept = () => { if (consentMode === 'retry') { void runAnalysis(true); return; } setSessionConsentAccepted(true); setConsentOpen(false); };
 
-  const handleAddImageClick = () => {
-    setConsentMode('gate');
-    setConsentOpen(true);
-  };
+  const mainPanel = isAnalyzing ? <FaceScanLoader /> : resultado ? <div className="rounded-2xl border border-emerald-500/20 bg-[#121212] p-5"><RecomendacionDetalle resultado={resultado} analisisId={resultado.id} fotoUrl={preview} /><div className="mt-5 rounded-xl border border-[#292929] bg-[#181818] p-3 text-[12px] leading-5 text-[#8a8a8a]"><FiClock className="mr-2 inline text-[#FF7A33]" aria-hidden="true" />Podés volver a analizarte {proximaFecha ? `a partir del ${formatDate(proximaFecha.toISOString())}` : 'cuando se habilite tu próximo cupo'}.</div><Button className="mt-5" onClick={() => navigate('/reservar')} icon={FiScissors}>Reservar turno</Button></div> : isLoadingHistorial ? <div className="flex min-h-48 items-center justify-center rounded-2xl border border-[#292929] bg-[#121212]"><Spinner /></div> : historyError ? <ClientState icon={FiRefreshCw} title="No pudimos cargar tu historial" description="Revisá tu conexión y volvé a intentarlo." actionLabel="Reintentar" onAction={() => void refetchHistorial()} tone="danger" /> : enCupo && ultimoAnalisis ? <div className="rounded-2xl border border-amber-500/20 bg-[#121212] p-8 text-center"><FiClock className="mx-auto h-8 w-8 text-amber-400" aria-hidden="true" /><h2 className="mt-4 text-[18px] font-semibold text-white">Ya usaste tu análisis de este mes</h2><p className="mx-auto mt-2 max-w-md text-[13px] leading-5 text-[#858585]">Podés volver a analizarte {proximaFecha ? `a partir del ${formatDate(proximaFecha.toISOString())}` : 'cuando se habilite tu próximo cupo'}.</p></div> : <div className="rounded-2xl border border-[#292929] bg-[#121212] p-5">{puedeCargarImagen ? <ImageUpload variant="box" onFileSelect={handleFileSelect} capture="user" helperText="Subí una foto de frente, con buena luz y sin nada que tape tu cara." /> : <button type="button" onClick={() => { setConsentMode('gate'); setConsentOpen(true); }} className="flex min-h-48 w-full flex-col items-center justify-center rounded-xl border border-dashed border-[#3a3a3a] bg-[#171717] px-5 text-center transition-colors hover:border-[#FF5C00]/60"><FiCamera className="h-8 w-8 text-[#FF7A33]" aria-hidden="true" /><span className="mt-3 text-[13px] font-medium text-white">Agregar una foto</span><span className="mt-1 text-[11px] text-[#666]">Te vamos a pedir tu consentimiento antes de subirla</span></button>}<div className="mt-4 flex justify-end"><Button onClick={() => void runAnalysis(!yaConsintio ? true : undefined)} disabled={!file} icon={FiCamera}>Analizar foto</Button></div></div>;
 
-  const handleAnalyzeClick = () => runAnalysis(!yaConsintio ? true : undefined);
-
-  const handleConsentAccept = () => {
-    if (consentMode === 'retry') {
-      runAnalysis(true);
-      return;
-    }
-    setSessionConsentAccepted(true);
-    setConsentOpen(false);
-  };
-
-  if (isLoadingMembership) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!active) {
-    return (
-      <div className="min-h-screen bg-[#050505]">
-        <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <AnimatedContainer animation="fadeInUp">
-            <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-8 text-center">
-              <div className="flex justify-center mb-6">
-                <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-[#FF5C00]/10">
-                  <FiCamera className="text-[#FF5C00] text-4xl" />
-                </div>
-              </div>
-              <h2 className="text-[22px] font-bold text-white mb-2">Recomendación de corte con IA</h2>
-              <p className="text-[14px] text-[#8A8A8A] max-w-md mx-auto mb-8">
-                Este beneficio es exclusivo para clientes con membresía activa. Subí una foto y te recomendamos
-                cortes reales según la forma de tu cara.
-              </p>
-              <div className="flex justify-center">
-                <Button onClick={() => navigate('/mi-membresia')} icon={FiAward}>
-                  Ver mi membresía
-                </Button>
-              </div>
-            </div>
-          </AnimatedContainer>
-        </div>
-      </div>
-    );
-  }
-
-  const renderMainPanel = () => {
-    if (isAnalyzing) {
-      return <FaceScanLoader />;
-    }
-
-    if (resultado) {
-      return (
-        <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6">
-          <RecomendacionDetalle resultado={resultado} analisisId={resultado.id} fotoUrl={preview} />
-
-          <div className="mt-5 flex items-start gap-2 rounded-[12px] bg-[#1A1A1A] border border-[#282828] p-3">
-            <FiClock className="mt-0.5 shrink-0 text-[#FF5C00]" />
-            <p className="text-[12px] text-[#8A8A8A]">
-              Ya usaste tu análisis de este mes. Vas a poder hacer uno nuevo a partir del{' '}
-              <span className="text-white font-medium">
-                {proximaFecha ? formatDate(proximaFecha.toISOString()) : ''}
-              </span>
-              .
-            </p>
-          </div>
-
-          <div className="mt-6">
-            <Button onClick={() => navigate('/reservar')} icon={FiScissors}>
-              Reservar turno
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    if (isLoadingHistorial) {
-      return (
-        <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-10 flex justify-center">
-          <Spinner size="lg" />
-        </div>
-      );
-    }
-
-    if (enCupo && ultimoAnalisis) {
-      return (
-        <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-[#FF5C00]/10">
-              <FiClock className="text-[#FF5C00] text-4xl" />
-            </div>
-          </div>
-          <h2 className="text-[20px] font-bold text-white mb-2">Ya usaste tu análisis de este mes</h2>
-          <p className="text-[14px] text-[#8A8A8A] max-w-md mx-auto mb-2">
-            Podés volver a analizarte a partir del{' '}
-            <span className="text-white font-medium">{proximaFecha ? formatDate(proximaFecha.toISOString()) : ''}</span>.
-          </p>
-          <p className="text-[12px] text-[#8A8A8A]">
-            Mientras tanto podés revisar tu último resultado en el historial, más abajo.
-          </p>
-        </div>
-      );
-    }
-
-    return (
-      <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6">
-        {puedeCargarImagen ? (
-          <ImageUpload
-            variant="box"
-            onFileSelect={handleFileSelect}
-            capture="user"
-            helperText="Subí una foto de frente, con buena luz, sin lentes de sol ni nada que tape tu cara"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={handleAddImageClick}
-            className="w-full flex flex-col items-center justify-center rounded-[16px] border-2 border-dashed border-[#282828] bg-[#1A1A1A] p-6 cursor-pointer hover:border-[#FF5C00]/50 transition-colors"
-          >
-            <FiCamera className="w-8 h-8 text-[#8A8A8A] mb-2" />
-            <p className="text-[13px] text-[#8A8A8A]">Agregar imagen</p>
-            <p className="text-[11px] text-[#555] mt-1">Te vamos a pedir tu consentimiento antes de subirla</p>
-          </button>
-        )}
-        <div className="mt-4 flex justify-center">
-          <Button onClick={handleAnalyzeClick} disabled={!file} icon={FiCamera}>
-            Analizar foto
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-[#050505]">
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <AnimatedContainer animation="fadeInDown">
-          <div className="flex flex-col items-center text-center mb-8">
-            <div className="flex h-16 w-16 items-center justify-center rounded-[20px] bg-[#FF5C00]/10 mb-4">
-              <FiCamera className="text-[#FF5C00] text-3xl" />
-            </div>
-            <h1 className="text-[20px] font-bold text-white">Recomendación de corte con IA</h1>
-            <p className="text-[13px] text-[#8A8A8A] mt-1">Subí una foto y recibí una recomendación personalizada</p>
-          </div>
-        </AnimatedContainer>
-
-        <AnimatedContainer animation="fadeInUp" delay={0.1}>
-          {renderMainPanel()}
-        </AnimatedContainer>
-
-        <AnimatedContainer animation="fadeInUp" delay={0.2} className="mt-6">
-          <div className="rounded-[16px] border border-[#282828] bg-[#121212] p-6">
-            <h3 className="text-[15px] font-semibold text-white mb-4">Historial</h3>
-            {isLoadingHistorial ? (
-              <div className="flex justify-center py-8">
-                <Spinner />
-              </div>
-            ) : historial.length === 0 ? (
-              <p className="text-[13px] text-[#8A8A8A]">Todavía no hiciste ningún análisis.</p>
-            ) : (
-              <div className="space-y-3">
-                {historial.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setDetalleSeleccionado(item)}
-                    className="w-full text-left rounded-[12px] bg-[#1A1A1A] border border-[#282828] px-4 py-3 hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center justify-between mb-2 gap-2">
-                      <p className="min-w-0 flex-1 truncate text-[13px] text-white font-medium capitalize">
-                        {item.resultado.formaCara}
-                      </p>
-                      <span className="shrink-0 text-[11px] text-[#8A8A8A]">{formatDate(item.createdAt)}</span>
-                    </div>
-                    <p className="text-[12px] text-[#8A8A8A]">
-                      {item.resultado.cortesRecomendados.map((c) => c.nombreCorte).join(', ')}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </AnimatedContainer>
-      </div>
-
-      <ConsentModal
-        isOpen={consentOpen}
-        onClose={() => setConsentOpen(false)}
-        onAccept={handleConsentAccept}
-        loading={isAnalyzing}
-      />
-
-      <HistorialDetalleModal record={detalleSeleccionado} onClose={() => setDetalleSeleccionado(null)} />
-    </div>
-  );
+  return <ClientPageShell eyebrow="Recomendación IA" icon={FiCamera}>
+    {!active ? <ClientState icon={FiAward} title="Beneficio exclusivo para miembros" description="Activá tu membresía para recibir recomendaciones personalizadas y visualizar ejemplos de cortes." /> : <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]"><AnimatedContainer animation="fadeInUp">{mainPanel}</AnimatedContainer><AnimatedContainer animation="fadeInUp" delay={0.08} className="rounded-2xl border border-[#292929] bg-[#121212] p-5"><div className="flex items-center justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#666]">Historial</p><h2 className="mt-1 text-[16px] font-semibold text-white">Tus análisis</h2></div><span className="text-[11px] text-[#666]">{historialData?.total ?? 0}</span></div>{historial.length === 0 ? <p className="mt-5 text-[12px] text-[#777]">Todavía no hiciste ningún análisis.</p> : <div className="mt-4 grid gap-2">{historial.map((item) => <button key={item.id} type="button" onClick={() => setDetalleSeleccionado(item)} className="rounded-xl border border-[#292929] bg-[#181818] p-3 text-left transition-colors hover:border-[#FF5C00]/50"><div className="flex items-center justify-between gap-2"><p className="truncate text-[12px] font-medium capitalize text-white">{item.resultado.formaCara}</p><span className="shrink-0 text-[10px] text-[#666]">{formatDate(item.createdAt)}</span></div><p className="mt-1 line-clamp-2 text-[11px] leading-4 text-[#777]">{item.resultado.cortesRecomendados.map((corte) => corte.nombreCorte).join(', ')}</p></button>)}{historialData && historialData.totalPages > 1 && <Pagination currentPage={historyPage} totalPages={historialData.totalPages} onPageChange={setHistoryPage} />}</div>}</AnimatedContainer></div>}
+    <ConsentModal isOpen={consentOpen} onClose={() => setConsentOpen(false)} onAccept={handleConsentAccept} loading={isAnalyzing} /><HistorialDetalleModal record={detalleSeleccionado} onClose={() => setDetalleSeleccionado(null)} />
+  </ClientPageShell>;
 }

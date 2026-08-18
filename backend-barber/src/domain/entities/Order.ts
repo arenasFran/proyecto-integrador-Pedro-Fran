@@ -15,6 +15,7 @@ export class Order {
     clientName?: string;
     clientEmail?: string;
     clientPhone?: string;
+    paymentMethod?: string;
     items: { productId: string; name: string; price: number; quantity: number; imageUrl?: string }[];
   }): Order {
     const now = new Date();
@@ -25,6 +26,7 @@ export class Order {
       clientName: data.clientName,
       clientEmail: data.clientEmail,
       clientPhone: data.clientPhone,
+      paymentMethod: data.paymentMethod,
       items: data.items.map((i) => ({ ...i })),
       total,
       status: 'pending',
@@ -51,6 +53,11 @@ export class Order {
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
   get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
 
+  assignPayment(paymentId: string): void {
+    this.props.paymentId = paymentId;
+    this.props.updatedAt = new Date();
+  }
+
   toPrimitives(): OrderProps {
     return { ...this.props };
   }
@@ -59,23 +66,23 @@ export class Order {
     this.props.statusHistory.push({ status, timestamp: new Date(), actor });
   }
 
-  pay(paymentId?: string): void {
+  pay(paymentId?: string, actor = 'system'): void {
     if (this.props.status !== 'pending') {
       throw new AppError('Solo se pueden pagar órdenes pendientes.', 400);
     }
     this.props.status = 'paid';
     if (paymentId) this.props.paymentId = paymentId;
     this.props.updatedAt = new Date();
-    this.addHistoryEntry('paid', 'system');
+    this.addHistoryEntry('paid', actor);
   }
 
-  deliver(): void {
+  deliver(actor = 'system'): void {
     if (this.props.status !== 'pending' && this.props.status !== 'paid') {
       throw new AppError('Solo se pueden entregar órdenes pendientes o pagas.', 400);
     }
     this.props.status = 'delivered';
     this.props.updatedAt = new Date();
-    this.addHistoryEntry('delivered', 'system');
+    this.addHistoryEntry('delivered', actor);
   }
 
   cancel(actor: string = 'system'): void {

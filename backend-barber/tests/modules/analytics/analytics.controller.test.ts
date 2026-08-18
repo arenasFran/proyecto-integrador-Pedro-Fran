@@ -266,8 +266,18 @@ describe('AnalyticsController', () => {
       expect(repository.getClientesList).toHaveBeenCalledWith('2026-01-01', '2026-01-31', 'juan');
     });
 
-    it('debe devolver error si faltan fechas', async () => {
+    it('debe delegar en el repositorio sin fechas para traer toda la data', async () => {
+      repository.getClientesList.mockResolvedValue([]);
       const req = createMockReqFull({ query: {} });
+      const res = createMockRes();
+
+      await controller.getClientesListHandler(req, res);
+
+      expect(repository.getClientesList).toHaveBeenCalledWith(undefined, undefined, undefined);
+    });
+
+    it('debe devolver error si falta solo una de las fechas', async () => {
+      const req = createMockReqFull({ query: { desde: '2026-01-01' } });
       const res = createMockRes();
 
       await controller.getClientesListHandler(req, res);

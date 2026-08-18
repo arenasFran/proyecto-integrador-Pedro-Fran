@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiDollarSign, FiInfo, FiSearch, FiTrendingUp, FiUser, FiUserCheck } from 'react-icons/fi';
+import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiSearch, FiTrendingUp, FiUser, FiUserCheck, FiUserX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { AnimatedContainer } from '../../../components/common';
-import DateRangeFilter from '../../../components/common/DateRangeFilter';
+import { AnimatedContainer, BarberAvatar } from '../../../components/common';
 import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import type { ClienteData } from '../../../types/analytics';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const PAGE_SIZE = 20;
 
@@ -27,15 +27,10 @@ const sanctionBadge = (c: ClienteData) => {
 
 export default function ClientsPage() {
   const navigate = useNavigate();
-  const [desde, setDesde] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 10);
-  });
-  const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data: clientes = [], isLoading, isFetching } = useGetClientesListQuery({ desde, hasta });
+  const { data: clientes = [], isLoading, isFetching } = useGetClientesListQuery({});
 
   const filtered = useMemo(() => {
     if (!search) return clientes;
@@ -59,18 +54,12 @@ export default function ClientsPage() {
     const reg = clientes.filter(c => c.kind === 'Registrado').length;
     const anon = total - reg;
     const totalVisits = clientes.reduce((s, c) => s + c.totalVisits, 0);
-    const totalSpent = clientes.reduce((s, c) => s + c.totalSpent, 0);
-    return { total, reg, anon, totalVisits, totalSpent };
+    return { total, reg, anon, totalVisits };
   }, [clientes]);
 
   return (
-    <div className="flex flex-col gap-5 p-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <FiUserCheck className="text-[#FF5C00]" />
-          Clientes
-        </h1>
-      </div>
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
+      <AdminPageHeader icon={FiUserCheck} title="Clientes" description="Conocé el historial y el valor de cada cliente." />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
@@ -82,25 +71,16 @@ export default function ClientsPage() {
           <span className="text-2xl font-bold text-purple-400">{stats.reg}</span>
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
-          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiCalendar size={12} /> Reservas</span>
-          <span className="text-2xl font-bold text-blue-400">{stats.totalVisits}</span>
+          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiUserX size={12} /> No registrados</span>
+          <span className="text-2xl font-bold text-gray-400">{stats.anon}</span>
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
-          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiDollarSign size={12} /> Gastado</span>
-          <span className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalSpent)}</span>
+          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiCalendar size={12} /> Reservas</span>
+          <span className="text-2xl font-bold text-blue-400">{stats.totalVisits}</span>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); setPage(1); }} skipMountEffect />
-          <span
-            title="Este rango afecta las estadísticas de reservas y gastado por cliente, no cuáles clientes aparecen en la lista."
-            className="text-[#6A6A6A] hover:text-[#8A8A8A] cursor-help shrink-0"
-          >
-            <FiInfo size={14} />
-          </span>
-        </div>
         <div className="relative flex-1 max-w-xs">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6A6A6A]" size={16} />
           <input
@@ -130,7 +110,7 @@ export default function ClientsPage() {
       ) : (
         <>
           {/* Mobile cards */}
-          <div className="flex flex-col gap-3 md:hidden">
+           <div className="flex flex-col gap-3 lg:hidden">
             {paged.map((c) => (
               <div
                 key={c.key}
@@ -138,18 +118,21 @@ export default function ClientsPage() {
                 className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-[14px] font-semibold break-words ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
-                      {c.clientName} {c.clientLastname}
-                      {c.membershipStatus === 'active' && (
-                        <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                  <div className="flex items-start gap-3 min-w-0">
+                    <BarberAvatar name={c.clientName} lastname={c.clientLastname} photoUrl={c.clientPhotoUrl} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[14px] font-semibold break-words ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
+                        {c.clientName} {c.clientLastname}
+                        {c.membershipStatus === 'active' && (
+                          <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                        )}
+                      </p>
+                      {c.clientPhone && (
+                        <p className="text-[12px] text-[#8A8A8A]">{c.clientPhone}</p>
                       )}
-                    </p>
-                    {c.clientPhone && (
-                      <p className="text-[12px] text-[#8A8A8A]">{c.clientPhone}</p>
-                    )}
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {sanctionBadge(c)}
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {sanctionBadge(c)}
+                      </div>
                     </div>
                   </div>
                   {kindBadge(c.kind)}
@@ -188,7 +171,7 @@ export default function ClientsPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden md:block overflow-x-auto rounded-[12px] border border-[#282828]">
+           <div className="hidden lg:block overflow-x-auto rounded-[12px] border border-[#282828]">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="bg-[#121212] border-b border-[#282828]">
@@ -211,13 +194,18 @@ export default function ClientsPage() {
                     className="border-b border-[#282828]/50 hover:bg-[#1A1A1A] cursor-pointer transition-colors last:border-b-0"
                   >
                     <td className="px-4 py-3">
-                      <span className={`font-medium ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
-                        {c.clientName} {c.clientLastname}
-                        {c.membershipStatus === 'active' && (
-                          <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
-                        )}
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 mt-1">{sanctionBadge(c)}</div>
+                      <div className="flex items-center gap-3">
+                        <BarberAvatar name={c.clientName} lastname={c.clientLastname} photoUrl={c.clientPhotoUrl} size="sm" />
+                        <div className="min-w-0">
+                          <span className={`font-medium ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
+                            {c.clientName} {c.clientLastname}
+                            {c.membershipStatus === 'active' && (
+                              <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                            )}
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 mt-1">{sanctionBadge(c)}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-[#8A8A8A]">{c.clientPhone ?? '—'}</td>
                     <td className="px-4 py-3 text-[#8A8A8A] max-w-[180px] truncate">{c.clientEmail ?? '—'}</td>

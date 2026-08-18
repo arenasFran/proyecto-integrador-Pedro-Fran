@@ -22,3 +22,4 @@ export type { Stats } from './StatsCards';
 export { AppFooter } from './AppFooter';
 export { DatePicker } from './DatePicker';
 export { Calendar } from './Calendar';
+export { ClientPageShell, ClientState, StatusBadge } from '../client/common';

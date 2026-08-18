@@ -49,20 +49,6 @@ export const createServiceRouter = (deps: {
       validate({ params: serviceIdParamSchema, body: updateServiceSchema }),
       deps.serviceController.update
     );
-
-    router.delete(
-      '/:id',
-      authorize('Admin'),
-      validate({ params: serviceIdParamSchema }),
-      deps.serviceController.delete
-    );
-
-    router.patch(
-      '/:id/restore',
-      authorize('Admin'),
-      validate({ params: serviceIdParamSchema }),
-      deps.serviceController.restore
-    );
   }
 
   return router;

@@ -54,7 +54,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
   const contentTransition = { duration: reduceMotion ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] as const };
 
   return (
-    <div className="min-h-[276px] rounded-[17px] border border-[#292929] bg-[#151515] p-5">
+    <div className="min-h-[276px] w-full min-w-0 rounded-[17px] border border-[#292929] bg-[#151515] p-3 sm:p-5">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div>
           <h3 className="text-[14px] font-semibold text-white">Horarios</h3>
@@ -81,7 +81,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
       <AnimatePresence mode="wait" initial={false}>
         {isLoading ? (
           <motion.div key="loading" variants={slotContentVariants} initial={reduceMotion ? false : 'initial'} animate="animate" exit={reduceMotion ? undefined : 'exit'} transition={contentTransition} className="min-h-[210px]">
-            <div className="grid grid-cols-3 gap-2 pt-1 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 pt-1 sm:grid-cols-4">
               {Array.from({ length: 8 }).map((_, index) => <motion.div key={index} initial={reduceMotion ? false : { opacity: 0 }} animate={{ opacity: [0.45, 0.85, 0.45] }} transition={reduceMotion ? undefined : { duration: 1.15, repeat: Infinity, delay: index * 0.045 }} className="h-11 rounded-[11px] bg-[#242424]" />)}
             </div>
             <p className="mt-5 text-center text-[11px] text-[#777777]">Buscando horarios para {selectedDate ? formatDate(selectedDate) : 'la fecha elegida'}...</p>
@@ -105,7 +105,7 @@ export const TimeSlotGrid: React.FC<TimeSlotGridProps> = ({
             {groups.map(({ period, slots: periodSlots }, groupIndex) => (
               <motion.div key={period} initial={reduceMotion ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: reduceMotion ? 0 : groupIndex * 0.08, duration: reduceMotion ? 0 : 0.25, ease: 'easeOut' }}>
                 <p className="mb-2.5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#777777]"><FiSun className={period === 'Tarde' ? 'h-3 w-3 text-[#FF8A4C]' : 'h-3 w-3 text-[#D8A45C]'} />{period}</p>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {periodSlots.map((time, index) => {
                     const isSelected = selectedTime === time;
                     return (

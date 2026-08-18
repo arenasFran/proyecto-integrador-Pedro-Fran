@@ -35,7 +35,7 @@ const orderSchema = new Schema<IOrderDocument>(
     total: { type: Number, required: true },
     status: {
       type: String,
-      enum: ['pending', 'paid', 'delivered', 'cancelled', 'refunded', 'disputed'],
+       enum: ['pending', 'paid', 'delivered', 'cancelled', 'refunded', 'disputed', 'stock_issue'],
       default: 'pending',
     },
     paymentId: { type: String, default: undefined },

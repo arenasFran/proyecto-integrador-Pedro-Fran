@@ -31,6 +31,7 @@ describe('CreateManualOrderUseCase', () => {
     orderRepository = makeMockOrderRepository();
     productRepository = makeMockProductRepository();
     paymentRepository = makeMockPaymentRepository();
+    productRepository.atomicDecreaseStock.mockResolvedValue(true);
     revenueTracker = { trackProductOrder: jest.fn().mockResolvedValue(undefined) };
     orderRepository.save.mockImplementation(async (o: Order) => Order.restore({ ...o.toPrimitives(), id: 'order-1' }));
 

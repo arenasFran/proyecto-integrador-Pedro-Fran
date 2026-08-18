@@ -90,6 +90,7 @@ export default function DateRangeFilter({ onChange, defaultPreset = 'semana', sk
             onChange={(v) => { setCustomHasta(v); setActivePicker(null); }}
             open={activePicker === 'hasta'}
             onOpenChange={(o) => setActivePicker(o ? 'hasta' : null)}
+            popupAlign="right"
           />
           <button
             onClick={applyCustom}

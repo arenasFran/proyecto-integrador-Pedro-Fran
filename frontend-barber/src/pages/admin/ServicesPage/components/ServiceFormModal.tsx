@@ -2,7 +2,7 @@ import { FiX } from 'react-icons/fi';
 import { AnimatedContainer, Button, Input } from '../../../../components/common';
 import type { Service } from '../../../../types/booking';
 
-type FormField = 'name' | 'description' | 'price' | 'imageUrl';
+type FormField = 'name' | 'description' | 'price';
 
 interface ServiceFormModalProps {
   isOpen: boolean;
@@ -75,24 +75,6 @@ export default function ServiceFormModal({
             </div>
             {formErrors.price && <p className="text-[12px] text-red-400">{formErrors.price}</p>}
           </div>
-          <Input
-            label="URL de imagen (opcional)"
-            value={form.imageUrl}
-            onChange={(e) => onFieldChange('imageUrl', e.target.value)}
-            placeholder="https://..."
-          />
-
-          {form.imageUrl.trim() && (
-            <div className="rounded-[12px] border border-[#282828] overflow-hidden h-32 w-full">
-              <img
-                src={form.imageUrl.trim()}
-                alt="Preview"
-                className="h-full w-full object-cover"
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                onLoad={(e) => { (e.target as HTMLImageElement).style.display = 'block' }}
-              />
-            </div>
-          )}
 
           {pageError && (
             <p className="text-[13px] text-red-400">{pageError}</p>

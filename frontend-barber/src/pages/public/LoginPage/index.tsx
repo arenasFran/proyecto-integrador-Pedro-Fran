@@ -58,6 +58,7 @@ export const LoginPage: React.FC = () => {
   const [completeGoogleProfileMutation, { isLoading: isCompleting }] = useCompleteGoogleProfileMutation();
 
   const [twoFactorPendingEmail, setTwoFactorPendingEmail] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [requiresProfileCompletion, setRequiresProfileCompletion] = useState<string | null>(null);
   const [profileCompletionName, setProfileCompletionName] = useState('');
   const [profileCompletionLastname, setProfileCompletionLastname] = useState('');
@@ -113,6 +114,16 @@ export const LoginPage: React.FC = () => {
 
   const isCodeStep = Boolean(twoFactorPendingEmail);
   const isLoading = isSending || isVerifying || isGoogleLoading || isCompleting;
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timeoutId = window.setTimeout(() => {
+      setResendCooldown((seconds) => (seconds > 1 ? seconds - 1 : 0));
+    }, 1000);
+    return () => window.clearTimeout(timeoutId);
+  }, [resendCooldown]);
+
+  const startResendCooldown = () => setResendCooldown(60);
 
   const prevIsCodeStep = useRef(isCodeStep);
   useEffect(() => {
@@ -227,6 +238,7 @@ export const LoginPage: React.FC = () => {
       }).unwrap();
       setTwoFactorPendingEmail(credentialsValues.email);
       setSuccessMessage(result.message);
+      startResendCooldown();
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al enviar el código'), 'error');
     }
@@ -276,6 +288,7 @@ export const LoginPage: React.FC = () => {
         password: credentialsValues.password,
       }).unwrap();
       setSuccessMessage(result.message);
+      startResendCooldown();
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al reenviar el código'), 'error');
     }
@@ -457,10 +470,10 @@ export const LoginPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleResendCode}
-                      disabled={isLoading}
+                      disabled={isLoading || resendCooldown > 0}
                       className="text-[#FF5C00] text-[14px] font-medium hover:text-[#FF5C00]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Reenviar código
+                      {resendCooldown > 0 ? `Reenviar código en ${resendCooldown}s` : 'Reenviar código'}
                     </button>
                   </motion.div>
                 </>

@@ -6,6 +6,7 @@ import {
   makeMockOrderRepository,
   makeMockProductRepository,
   makeMockMembershipRepository,
+  makeMockPaymentRepository,
 } from '../../../test-utils/mocks';
 
 const makeProduct = (overrides?: Partial<{ price: number; stock: number; status: 'active' | 'inactive' | 'deleted' }>) =>
@@ -28,6 +29,8 @@ describe('CreateOrderUseCase', () => {
   let orderRepository: ReturnType<typeof makeMockOrderRepository>;
   let productRepository: ReturnType<typeof makeMockProductRepository>;
   let membershipRepository: ReturnType<typeof makeMockMembershipRepository>;
+  let paymentRepository: ReturnType<typeof makeMockPaymentRepository>;
+  let revenueTracker: { trackProductOrder: jest.Mock };
   let createPaymentUseCase: { execute: jest.Mock };
   let useCase: CreateOrderUseCase;
 
@@ -35,6 +38,8 @@ describe('CreateOrderUseCase', () => {
     orderRepository = makeMockOrderRepository();
     productRepository = makeMockProductRepository();
     membershipRepository = makeMockMembershipRepository();
+    paymentRepository = makeMockPaymentRepository();
+    revenueTracker = { trackProductOrder: jest.fn() };
     createPaymentUseCase = { execute: jest.fn() };
 
     membershipRepository.findActiveByUser.mockResolvedValue(null);
@@ -45,6 +50,8 @@ describe('CreateOrderUseCase', () => {
       productRepository as any,
       membershipRepository as any,
       createPaymentUseCase as any,
+      paymentRepository as any,
+      revenueTracker as any,
     );
   });
 
@@ -89,14 +96,8 @@ describe('CreateOrderUseCase', () => {
     expect(savedOrder!.items[0].price).toBe(80);
   });
 
-  it('pago local: deja la orden pendiente, sin descontar stock, sin payment ni revenue', async () => {
+  it('pago local: debe dejar la orden pendiente, conservar stock y registrar un payment pendiente', async () => {
     productRepository.findById.mockResolvedValue(makeProduct());
-
-    let savedOrder: Order | undefined;
-    orderRepository.save.mockImplementation(async (o: Order) => {
-      savedOrder = o;
-      return Order.restore({ ...o.toPrimitives(), id: 'order-1' });
-    });
 
     const result = await useCase.execute({
       userId: 'u1',
@@ -105,9 +106,12 @@ describe('CreateOrderUseCase', () => {
     });
 
     expect(result.orderId).toBe('order-1');
-    expect(result.preferenceId).toBeUndefined();
-    expect(savedOrder!.status).toBe('pending');
+    const savedOrder = orderRepository.save.mock.calls[0][0] as Order;
+    expect(savedOrder.status).toBe('pending');
+    expect(savedOrder.paymentMethod).toBe('local');
     expect(productRepository.atomicDecreaseStock).not.toHaveBeenCalled();
+    expect(paymentRepository.save).toHaveBeenCalled();
+    expect(revenueTracker.trackProductOrder).not.toHaveBeenCalled();
     expect(createPaymentUseCase.execute).not.toHaveBeenCalled();
   });
 

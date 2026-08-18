@@ -76,7 +76,7 @@ export default function PaymentTransactionDetail({ payment }: PaymentTransaction
         )}
 
         <div className="flex items-center justify-between">
-          <span className="text-[12px] text-[#666]">Pagado</span>
+            <span className="text-[12px] text-[#666]">{payment.status === 'approved' ? 'Pagado' : 'Monto'}</span>
           <span className="text-[12px] text-white font-medium">
             {formatCurrency(payment.mpTotalPaidAmount || payment.amount)}
           </span>

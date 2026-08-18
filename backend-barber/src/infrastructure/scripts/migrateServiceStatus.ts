@@ -9,7 +9,7 @@ export const migrateServiceStatus = async () => {
           status: {
             $cond: {
               if: { $eq: ['$isDeleted', true] },
-              then: 'deleted',
+              then: 'inactive',
               else: {
                 $cond: {
                   if: { $eq: ['$isActive', false] },

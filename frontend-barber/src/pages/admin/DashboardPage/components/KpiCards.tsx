@@ -1,22 +1,23 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiArrowRight, FiShoppingCart, FiInbox, FiAlertTriangle, FiAward, FiUserCheck, FiScissors, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiUserPlus, FiAlertCircle, FiXCircle, FiShoppingCart, FiAward, FiScissors, FiCalendar, FiChevronDown, FiChevronRight, FiMoreVertical, FiCheck, FiX, FiBell, FiTruck } from 'react-icons/fi';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { Modal } from '../../../../components/common/Modal';
 import { Spinner } from '../../../../components/common/Spinner';
-import { useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
-import { useGetAppointmentsQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
+import { useGetAppointmentDetailsQuery, useGetDistribucionQuery, useGetEcommerceOverviewQuery, useGetNuevosClientesQuery, useGetMembershipRevenueQuery, useGetProductPerformanceQuery } from '../../../../services/analyticsApi';
+import { useGetAppointmentsQuery, useGetAppointmentsPaginatedQuery, useMarkAsPaidMutation, useCancelAppointmentMutation, useUpdateAppointmentStatusMutation, useSendReminderMutation } from '../../../../services/appointmentApi';
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from '../../../../services/orderApi';
-import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation } from '../../../../services/membershipApi';
-import { useGetProductsQuery } from '../../../../services/productApi';
+import { useGetPendingMembershipsQuery, useApprovePendingMembershipMutation, useCancelMembershipMutation } from '../../../../services/membershipApi';
 import type { OverviewData } from '../../../../types/analytics';
 import type { Order } from '../../../../types/order';
 import type { MembershipWithUser } from '../../../../types/membership';
 import type { Appointment } from '../../../../types/booking';
 import DateRangeBadge from './DateRangeBadge';
-import { AppointmentDetailModal } from '../../AppointmentsPage/AppointmentDetailModal';
 import { OrderDetailModal } from '../../../../components/admin/OrderDetailModal';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+import DashboardAppointmentDetailModal from './DashboardAppointmentDetailModal';
+import { useToast } from '../../../../components/common';
+import { extractError } from '../../AppointmentsPage/helpers';
 
 interface KpiCardsProps {
   data: OverviewData | null;
@@ -51,20 +52,26 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
   const [showMemberships, setShowMemberships] = useState(false);
 
   const { data: distData, isLoading: distLoading } = useGetDistribucionQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-  const { data: membershipRevenue } = useGetMembershipRevenueQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
-  const { data: productPerformance } = useGetProductPerformanceQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useGetAppointmentsPaginatedQuery(
+    { dateFrom: desde, dateTo: hasta, includeBarber: 'true', includeClient: 'true', limit: 100 },
+    { skip: !isOpen || !desde || !hasta },
+  );
+  const { data: membershipRevenue, isLoading: membershipLoading } = useGetMembershipRevenueQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const { data: productPerformance, isLoading: productsLoading } = useGetProductPerformanceQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
 
   const entries = distData?.byBarber ?? [];
-  const totalAppointments = entries.reduce((s, e) => s + e.ingresos, 0);
+  const totalAppointmentRevenue = entries.reduce((s, e) => s + e.ingresos, 0);
+  const totalAppointmentCount = appointmentsData?.total ?? entries.reduce((s, e) => s + e.cantidad, 0);
   const totalProducts = ecommerceData?.totalRevenue ?? 0;
   const totalMemberships = membershipRevenue?.reduce((s, e) => s + e.ganancias, 0) ?? 0;
-  const totalCombined = totalAppointments + totalProducts + totalMemberships;
-  const isLoading = distLoading;
+  const totalMembershipCount = membershipRevenue?.reduce((s, e) => s + e.cantidadReservas, 0) ?? 0;
+  const totalCombined = totalAppointmentRevenue + totalProducts + totalMemberships;
+  const isLoading = distLoading || appointmentsLoading || membershipLoading || productsLoading;
 
   const segments = [
-    { label: 'Turnos', value: totalAppointments, color: 'bg-green-400', hex: '#4ade80', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointments / totalCombined) * 100) : 0 },
-    { label: 'Productos', value: totalProducts, color: 'bg-[#FF5C00]', hex: '#FF5C00', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
-    { label: 'Membresias', value: totalMemberships, color: 'bg-purple-400', hex: '#c084fc', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
+    { label: 'Turnos', value: totalAppointmentRevenue, count: totalAppointmentCount, color: 'bg-green-400', hex: '#4ade80', icon: FiScissors, pct: totalCombined > 0 ? Math.round((totalAppointmentRevenue / totalCombined) * 100) : 0 },
+    { label: 'Productos', value: totalProducts, count: ecommerceData?.totalOrders ?? 0, color: 'bg-[#FF5C00]', hex: '#FF5C00', icon: FiShoppingCart, pct: totalCombined > 0 ? Math.round((totalProducts / totalCombined) * 100) : 0 },
+    { label: 'Membresias', value: totalMemberships, count: totalMembershipCount, color: 'bg-purple-400', hex: '#c084fc', icon: FiAward, pct: totalCombined > 0 ? Math.round((totalMemberships / totalCombined) * 100) : 0 },
   ];
 
   const donutData = segments.filter(s => s.value > 0).map(s => ({ name: s.label, value: s.value, hex: s.hex }));
@@ -81,7 +88,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
             <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-2">
               <div className="w-[120px] h-[120px] shrink-0 relative">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={120}>
                   <PieChart>
                     <Pie
                       data={donutData.length > 0 ? donutData : [{ name: 'Sin datos', value: 1, hex: '#282828' }]}
@@ -107,9 +114,9 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
                 {segments.map((seg) => (
                   <div key={seg.label} className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: seg.hex }} />
-                    <span className="text-[11px] text-[#8A8A8A] w-[80px] shrink-0">{seg.label}</span>
-                    <span className="text-[12px] text-white font-medium w-[80px] text-right">{formatCurrency(seg.value)}</span>
-                    <span className="text-[11px] text-[#6A6A6A] w-9 text-right">{seg.pct}%</span>
+                     <span className="w-[72px] shrink-0 text-[11px] text-[#8A8A8A] sm:w-[80px]">{seg.label}</span>
+                     <span className="w-[96px] text-right text-[12px] font-medium text-white sm:w-[104px]">{formatCurrency(seg.value)} · {seg.count}</span>
+                     <span className="w-8 text-right text-[11px] text-[#6A6A6A] sm:w-9">{seg.pct}%</span>
                   </div>
                 ))}
               </div>
@@ -228,13 +235,13 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
             ) : (
               <div className="flex flex-col gap-1.5 max-h-52 overflow-y-auto pr-1">
                 {nuevos.slice(0, 20).map((c) => (
-                  <div key={c.clientId} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-[12px]">
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="text-white truncate">{c.name} {c.lastname}</span>
-                      {kindBadge(c.kind)}
-                    </div>
-                    <span className="text-[#8A8A8A] shrink-0 ml-2">{c.phone ?? c.email ?? ''}</span>
-                  </div>
+                   <button key={c.clientId} type="button" onClick={() => { onClose(); navigate(`/admin/clientes/${c.clientId}`); }} className="flex items-center justify-between rounded-[8px] bg-[#1A1A1A] px-3 py-2 text-left text-[12px] transition-colors hover:bg-[#242424]">
+                     <div className="flex items-center gap-2 min-w-0 flex-1">
+                       <span className="text-white truncate">{c.name} {c.lastname}</span>
+                       {kindBadge(c.kind)}
+                     </div>
+                     <span className="text-[#8A8A8A] shrink-0 ml-2">{c.phone ?? c.email ?? ''}</span>
+                   </button>
                 ))}
                 {nuevos.length > 20 && (
                   <p className="text-[11px] text-[#8A8A8A] text-center pt-1">... y {nuevos.length - 20} más</p>
@@ -243,17 +250,105 @@ function NewClientsModal({ isOpen, onClose, desde, hasta, navigate }: { isOpen: 
             )}
           </div>
 
-          <button
-            onClick={() => { onClose(); navigate('/admin/clientes'); }}
-            className="flex items-center justify-center gap-2 rounded-[10px] bg-[#FF5C00] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#E55300] transition-colors"
-          >
-            <FiUserPlus size={16} />
-            Ver todos los clientes
-            <FiArrowRight size={16} />
-          </button>
         </div>
       )}
     </Modal>
+  );
+}
+
+const ORDER_STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  pending: { label: 'Pendiente', className: 'bg-yellow-500/10 text-yellow-400' },
+  paid: { label: 'Pagada', className: 'bg-green-500/10 text-green-400' },
+  delivered: { label: 'Entregada', className: 'bg-blue-500/10 text-blue-400' },
+  cancelled: { label: 'Cancelada', className: 'bg-red-500/10 text-red-400' },
+};
+
+const APPOINTMENT_STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  Confirmado: { label: 'Confirmado', className: 'bg-blue-500/10 text-blue-400' },
+  Completado: { label: 'Completado', className: 'bg-green-500/10 text-green-400' },
+  Cancelado: { label: 'Cancelado', className: 'bg-red-500/10 text-red-400' },
+  NoShow: { label: 'No asistió', className: 'bg-yellow-500/10 text-yellow-400' },
+};
+
+function OrdersKpiModal({ isOpen, onClose, desde, hasta, status, onRefresh }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string; status?: 'pending'; onRefresh: () => void }) {
+  const [detailOrder, setDetailOrder] = useState<Order | null>(null);
+  const { showToast } = useToast();
+  const { data, isLoading, isFetching } = useGetAllOrdersQuery(
+    { status, desde, hasta, limit: 100 },
+    { skip: !isOpen || !desde || !hasta },
+  );
+  const [updateOrderStatus, { isLoading: isUpdating }] = useUpdateOrderStatusMutation();
+  const orders = data?.orders ?? [];
+  const title = status === 'pending' ? 'Órdenes pendientes' : 'Órdenes del período';
+
+  const handleStatusChange = async (id: string, nextStatus: string) => {
+    try {
+      await updateOrderStatus({ id, status: nextStatus }).unwrap();
+      showToast('Estado de la orden actualizado');
+      setDetailOrder(null);
+      onRefresh();
+    } catch (error) {
+      showToast(extractError(error), 'error');
+    }
+  };
+
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
+        <DateRangeBadge desde={desde} hasta={hasta} />
+        {isLoading ? (
+          <div className="flex justify-center py-10"><Spinner size="lg" /></div>
+        ) : orders.length === 0 ? (
+          <p className="py-10 text-center text-sm text-[#8A8A8A]">No hay órdenes para este período.</p>
+        ) : (
+          <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1">
+            {orders.map((order) => (
+              <button key={order.id} type="button" onClick={() => setDetailOrder(order)} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] p-3 text-left transition-colors hover:border-[#FF5C00]/40">
+                <FiShoppingCart className="shrink-0 text-[#FF5C00]" size={16} aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-[13px] font-medium text-white">{order.userName ?? order.clientName ?? `Orden #${order.id.slice(-6)}`}</span>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${ORDER_STATUS_BADGES[order.status]?.className ?? 'bg-gray-500/10 text-gray-400'}`}>
+                      {ORDER_STATUS_BADGES[order.status]?.label ?? 'Estado no disponible'}
+                    </span>
+                  </span>
+                  <span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{order.items.length} producto(s) · {order.createdAt.slice(0, 10)}</span>
+                </span>
+                <span className="shrink-0 text-sm font-semibold text-white">{formatCurrency(order.total)}</span>
+              </button>
+            ))}
+            {isFetching && <div className="flex justify-center py-2"><Spinner size="sm" /></div>}
+          </div>
+        )}
+      </Modal>
+       {detailOrder && <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} isUpdating={isUpdating} onStatusChange={(id, nextStatus) => void handleStatusChange(id, nextStatus)} />}
+    </>
+  );
+}
+
+function ReservationsKpiModal({ isOpen, onClose, desde, hasta }: { isOpen: boolean; onClose: () => void; desde: string; hasta: string }) {
+  const [detailAppointment, setDetailAppointment] = useState<Appointment | null>(null);
+  const { data, isLoading, error, refetch } = useGetAppointmentDetailsQuery({ desde, hasta }, { skip: !isOpen || !desde || !hasta });
+  const appointments = data?.appointments ?? [];
+
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title="Reservas del período" size="lg">
+        <DateRangeBadge desde={desde} hasta={hasta} />
+        {isLoading ? <div className="flex justify-center py-10"><Spinner size="lg" /></div> : error ? <p className="py-8 text-center text-sm text-[#FF5C00]">No se pudieron cargar las reservas del período.</p> : appointments.length === 0 ? <p className="py-10 text-center text-sm text-[#8A8A8A]">No se encontraron reservas para este período.</p> : (
+          <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto pr-1">
+            {appointments.map((appointment) => (
+              <button key={appointment.id} type="button" onClick={() => setDetailAppointment(appointment)} className="flex items-center gap-3 rounded-xl border border-[#282828] bg-[#1A1A1A] p-3 text-left transition-colors hover:border-[#FF5C00]/40">
+                <FiCalendar className="shrink-0 text-blue-400" size={16} aria-hidden="true" />
+                <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="truncate text-[13px] font-medium text-white">{appointment.clientName} {appointment.clientLastname}</span><span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${APPOINTMENT_STATUS_BADGES[appointment.status]?.className ?? 'bg-gray-500/10 text-gray-400'}`}>{APPOINTMENT_STATUS_BADGES[appointment.status]?.label ?? appointment.status}</span></span><span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{appointment.date} · {appointment.startTime.slice(0, 5)} · {appointment.serviceName}</span></span>
+                <span className="shrink-0 text-sm font-semibold text-white">{formatCurrency(appointment.servicePrice)}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+      {detailAppointment && <DashboardAppointmentDetailModal appointment={detailAppointment} isOpen onClose={() => setDetailAppointment(null)} onUpdated={() => void refetch()} />}
+    </>
   );
 }
 
@@ -284,11 +379,11 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
   const [detailMembership, setDetailMembership] = useState<MembershipWithUser | null>(null);
 
   const { data: appointments = [], isLoading: apptsLoading } = useGetAppointmentsQuery(
-    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 50, includeBarber: 'true', includeClient: 'true' },
+    { dateFrom: desde, dateTo: hasta, paymentStatus: 'Pendiente', limit: 100, includeBarber: 'true', includeClient: 'true' },
     { skip: !isOpen || !desde || !hasta },
   );
   const { data: ordersData, isLoading: ordersLoading } = useGetAllOrdersQuery(
-    { status: 'pending', desde, hasta, limit: 50 },
+    { status: 'pending', desde, hasta, limit: 100 },
     { skip: !isOpen || !desde || !hasta },
   );
   const { data: pendingMemberships, isLoading: memLoading } = useGetPendingMembershipsQuery(undefined, { skip: !isOpen });
@@ -297,11 +392,16 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
   const [cancelAppt] = useCancelAppointmentMutation();
   const [updateStatus] = useUpdateAppointmentStatusMutation();
   const [sendReminder] = useSendReminderMutation();
-  const [updateOrderStatus] = useUpdateOrderStatusMutation();
+  const [updateOrderStatus, { isLoading: isUpdatingOrder }] = useUpdateOrderStatusMutation();
   const [approveMembership] = useApprovePendingMembershipMutation();
+  const [cancelMembership] = useCancelMembershipMutation();
+  const { showToast } = useToast();
 
   const pendingOrders = ordersData?.orders ?? [];
-  const memberships = pendingMemberships?.data ?? [];
+  const memberships = (pendingMemberships?.data ?? []).filter((membership) => {
+    const createdDate = membership.createdAt.slice(0, 10);
+    return createdDate >= desde && createdDate <= hasta;
+  });
 
   const totalTurnos = appointments.reduce((s, a) => s + a.servicePrice, 0);
   const totalOrdenes = pendingOrders.reduce((s, o) => s + o.total, 0);
@@ -405,10 +505,10 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); markAsPaid({ id: a.id }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
-                                    <button onClick={() => { closeMenu(); updateStatus({ id: a.id, status: 'NoShow' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
-                                    <button onClick={() => { closeMenu(); cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
-                                    <button onClick={() => { closeMenu(); sendReminder({ id: a.id }); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiBell size={13} />Recordatorio</button>
+                                     <button onClick={() => { closeMenu(); void markAsPaid({ id: a.id }).unwrap().then(() => { onRefresh(); showToast('Pago registrado'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#4ade80] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                     <button onClick={() => { closeMenu(); void updateStatus({ id: a.id, status: 'NoShow' }).unwrap().then(() => { onRefresh(); showToast('Turno marcado como no asistido'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-yellow-400 hover:bg-[#242424] transition-colors"><FiXCircle size={13} />No asistió</button>
+                                     <button onClick={() => { closeMenu(); void cancelAppt({ id: a.id, reason: 'Cancelado por admin' }).unwrap().then(() => { onRefresh(); showToast('Turno cancelado'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                     <button onClick={() => { closeMenu(); void sendReminder({ id: a.id }).unwrap().then(() => showToast('Recordatorio enviado')).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-blue-400 hover:bg-[#242424] transition-colors"><FiBell size={13} />Recordatorio</button>
                                   </div>
                                 </>
                               )}
@@ -454,9 +554,9 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'paid' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'delivered' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
-                                    <button onClick={() => { closeMenu(); updateOrderStatus({ id: o.id, status: 'cancelled' }).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
+                                     <button onClick={() => { closeMenu(); void updateOrderStatus({ id: o.id, status: 'paid' }).unwrap().then(() => { onRefresh(); showToast('Orden cobrada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Cobrar</button>
+                                     <button onClick={() => { closeMenu(); void updateOrderStatus({ id: o.id, status: 'delivered' }).unwrap().then(() => { onRefresh(); showToast('Orden cobrada y entregada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] hover:bg-[#242424] transition-colors"><FiTruck size={13} />Cobrar y entregar</button>
+                                     <button onClick={() => { closeMenu(); void updateOrderStatus({ id: o.id, status: 'cancelled' }).unwrap().then(() => { onRefresh(); showToast('Orden cancelada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Cancelar</button>
                                   </div>
                                 </>
                               )}
@@ -500,8 +600,8 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
                                 <>
                                   <div className="fixed inset-0 z-10" onClick={closeMenu} />
                                   <div className="absolute right-0 top-full mt-1 z-20 w-40 rounded-[10px] border border-[#333] bg-[#1E1E1E] py-1 shadow-xl">
-                                    <button onClick={() => { closeMenu(); approveMembership(m.id).then(() => onRefresh()); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
-                                    <button onClick={() => { closeMenu(); cancelAppt({ id: m.id, reason: 'Membresía rechazada' }).catch(() => {}); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Rechazar</button>
+                                     <button onClick={() => { closeMenu(); void approveMembership(m.id).unwrap().then(() => { onRefresh(); showToast('Membresía aprobada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-[#c084fc] hover:bg-[#242424] transition-colors"><FiCheck size={13} />Aprobar</button>
+                                     <button onClick={() => { closeMenu(); void cancelMembership(m.id).unwrap().then(() => { onRefresh(); showToast('Membresía rechazada'); }).catch((error) => showToast(extractError(error), 'error')); }} className="w-full flex items-center gap-2 px-3 py-2 text-[12px] text-[#8A8A8A] hover:text-red-400 hover:bg-[#242424] transition-colors"><FiX size={13} />Rechazar</button>
                                   </div>
                                 </>
                               )}
@@ -523,10 +623,10 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
       )}
 
       {detailAppointment && (
-        <AppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} />
+        <DashboardAppointmentDetailModal appointment={detailAppointment} isOpen={!!detailAppointment} onClose={() => setDetailAppointment(null)} onUpdated={onRefresh} />
       )}
       {detailOrder && (
-        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} onStatusChange={(id, status) => { updateOrderStatus({ id, status }).then(() => { onRefresh(); setDetailOrder(null); }); }} />
+        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} isUpdating={isUpdatingOrder} onStatusChange={(id, status) => { void updateOrderStatus({ id, status }).unwrap().then(() => { onRefresh(); setDetailOrder(null); showToast('Estado de orden actualizado'); }).catch((error) => showToast(extractError(error), 'error')); }} />
       )}
       {detailMembership && (
         <Modal isOpen={!!detailMembership} onClose={() => setDetailMembership(null)} title="Membresía pendiente" size="sm">
@@ -549,7 +649,7 @@ function PendingIncomeModal({ isOpen, onClose, desde, hasta, onRefresh }: { isOp
               </div>
             </div>
             <button
-              onClick={() => { approveMembership(detailMembership.id).then(() => { onRefresh(); setDetailMembership(null); }); }}
+              onClick={() => { void approveMembership(detailMembership.id).unwrap().then(() => { onRefresh(); showToast('Membresía aprobada'); setDetailMembership(null); }).catch((error) => showToast(extractError(error), 'error')); }}
               className="w-full rounded-[10px] bg-[#c084fc] px-4 py-2.5 text-white text-[13px] font-medium hover:bg-[#a855f7] transition-colors"
             >
               Aprobar membresía
@@ -565,13 +665,8 @@ const CARDS_CONFIG = [
   { key: 'reservas', label: 'Reservas', icon: FiUsers, format: (v: number) => String(v), clickable: true, tooltip: 'Total de turnos agendados en el período (todos los estados)' },
   { key: 'ingresos', label: 'Ingresos totales', icon: FiDollarSign, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos completados + pagos de productos y membresías aprobados' },
   { key: 'ingresosPendientes', label: 'Ingresos pendientes', icon: FiAlertCircle, format: (v: number) => formatCurrency(v), clickable: true, tooltip: 'Turnos con pago pendiente + órdenes y membresías pendientes de pago' },
-  { key: 'tasaCancelTurnos', label: 'Cancelación turnos', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false, tooltip: 'Porcentaje de turnos cancelados o no-show sobre el total de turnos' },
-  { key: 'tasaCancelOrdenes', label: 'Cancelación órdenes', icon: FiXCircle, format: (v: number) => `${v}%`, clickable: false, tooltip: 'Porcentaje de órdenes canceladas sobre el total de órdenes' },
   { key: 'clientes', label: 'Nuevos clientes', icon: FiUserPlus, format: (v: number) => String(v), clickable: true, tooltip: 'Clientes (registrados y anónimos) creados en el período' },
-  { key: 'membresias', label: 'Membresías activas', icon: FiAward, format: (v: number) => String(v), clickable: true, tooltip: 'Membresías actualmente activas (no vencidas)' },
-  { key: 'clientesUnicos', label: 'Clientes únicos', icon: FiUserCheck, format: (v: number) => String(v), clickable: false, tooltip: 'Clientes distintos con al menos un turno en el período' },
   { key: 'ordenes', label: 'Órdenes totales', icon: FiShoppingCart, format: (v: number) => String(v), clickable: true, tooltip: 'Total de órdenes de ecommerce en el período' },
-  { key: 'ordenesPendientes', label: 'Órdenes pendientes', icon: FiInbox, format: (v: number) => String(v), clickable: true, tooltip: 'Órdenes con estado pendiente de pago' },
 ];
 
 export default function KpiCards({ data, loading, error, desde, hasta, onRefresh }: KpiCardsProps) {
@@ -579,16 +674,13 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
   const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showPendingIncomeModal, setShowPendingIncomeModal] = useState(false);
   const [showNewClientsModal, setShowNewClientsModal] = useState(false);
+  const [showAppointmentsModal, setShowAppointmentsModal] = useState(false);
+  const [showOrdersModal, setShowOrdersModal] = useState(false);
 
   const { data: ecommerceData } = useGetEcommerceOverviewQuery(
     { desde, hasta },
     { skip: !desde || !hasta },
   );
-
-  const { data: productsData } = useGetProductsQuery({});
-  const allProducts = productsData?.products ?? [];
-  const lowStockProducts = allProducts.filter((p) => p.stock > 0 && p.stock <= (p.minStock || 5));
-  const pendingOrders = ecommerceData?.ordersByStatus?.pending ?? 0;
 
   if (error) {
     return (
@@ -598,36 +690,20 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
     );
   }
 
-  const totalCancelTurnos = data
-    ? (data.estadisticasPorEstado.cancelado ?? 0) + (data.estadisticasPorEstado.noshow ?? 0)
-    : 0;
-  const tasaCancelTurnos = data && data.totalReservas > 0 ? Math.round((totalCancelTurnos / data.totalReservas) * 100) : 0;
-
-  const totalCancelOrdenes = data
-    ? (data.estadisticasPorEstado.cancelled_order ?? 0)
-    : 0;
-  const totalOrdenes = data ? (data.estadisticasPorEstado.total_orders ?? 0) : 0;
-  const tasaCancelOrdenes = totalOrdenes > 0 ? Math.round((totalCancelOrdenes / totalOrdenes) * 100) : 0;
-
   const values = data
     ? [
         data.totalReservas,
         data.ingresosTotales,
         data.ingresosPendientes,
-        tasaCancelTurnos,
-        tasaCancelOrdenes,
         data.nuevosClientes,
-        data.membresiasActivas ?? 0,
-        data.clientesUnicos ?? 0,
         ecommerceData?.totalOrders ?? 0,
-        pendingOrders,
       ]
-    : [null, null, null, null, null, null, null, null, null, null];
+    : [null, null, null, null, null];
 
   const handleCardClick = (key: string) => {
     switch (key) {
       case 'reservas':
-        navigate(`/admin/turnos?dateFrom=${desde}&dateTo=${hasta}`);
+        setShowAppointmentsModal(true);
         break;
       case 'ingresos':
         setShowIncomeModal(true);
@@ -639,43 +715,24 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
         setShowNewClientsModal(true);
         break;
       case 'ordenes':
-        navigate('/admin/ordenes');
-        break;
-      case 'ordenesPendientes':
-        navigate('/admin/ordenes?status=pending');
+        setShowOrdersModal(true);
         break;
     }
   };
 
   return (
     <>
-      {(lowStockProducts.length > 0 || pendingOrders > 0) && (
-        <div className="flex flex-col gap-2 mb-2">
-          {pendingOrders > 0 && (
-            <div className="flex items-center gap-2 rounded-[10px] bg-yellow-500/10 border border-yellow-500/20 px-4 py-2">
-              <FiAlertCircle className="text-yellow-400 shrink-0" size={16} />
-              <span className="text-[12px] text-yellow-300">{pendingOrders} orden(es) pendiente(s) de pago</span>
-            </div>
-          )}
-          {lowStockProducts.length > 0 && (
-            <div className="flex items-center gap-2 rounded-[10px] bg-orange-500/10 border border-orange-500/20 px-4 py-2">
-              <FiAlertTriangle className="text-orange-400 shrink-0" size={16} />
-              <span className="text-[12px] text-orange-300">{lowStockProducts.length} producto(s) con stock bajo</span>
-            </div>
-          )}
-        </div>
-      )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 items-stretch">
         {CARDS_CONFIG.map((card, idx) => {
           if (!card.clickable) {
             return (
               <div
                 key={card.key}
-                className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3"
+                className="h-full min-h-[132px] bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between gap-3"
                 title={card.tooltip}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>
+                <div className="flex min-h-[40px] items-start justify-between gap-2">
+                  <span className="text-[#8A8A8A] text-sm font-medium leading-5">{card.label}</span>
                   <card.icon className="text-[#FF5C00] text-xl" />
                 </div>
                 <span className="text-white text-2xl font-bold">
@@ -694,11 +751,11 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
             <button
               key={card.key}
               onClick={() => handleCardClick(card.key)}
-              className="bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col gap-3 text-left hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
+              className="h-full min-h-[132px] bg-[#121212] border border-[#282828] rounded-2xl p-5 flex flex-col justify-between gap-3 text-left hover:border-[#FF5C00]/50 transition-colors cursor-pointer"
               title={card.tooltip}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-[#8A8A8A] text-sm font-medium">{card.label}</span>
+                <div className="flex min-h-[40px] items-start justify-between gap-2">
+                  <span className="text-[#8A8A8A] text-sm font-medium leading-5">{card.label}</span>
                 <card.icon className="text-[#FF5C00] text-xl" />
               </div>
               <span className="text-white text-2xl font-bold">
@@ -714,9 +771,11 @@ export default function KpiCards({ data, loading, error, desde, hasta, onRefresh
           );
         })}
       </div>
-      <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
-      <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
-      <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
-    </>
+       <IncomeBreakdownModal isOpen={showIncomeModal} onClose={() => setShowIncomeModal(false)} desde={desde} hasta={hasta} ecommerceData={ecommerceData} />
+       <PendingIncomeModal isOpen={showPendingIncomeModal} onClose={() => setShowPendingIncomeModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
+       <NewClientsModal isOpen={showNewClientsModal} onClose={() => setShowNewClientsModal(false)} desde={desde} hasta={hasta} navigate={navigate} />
+        <OrdersKpiModal isOpen={showOrdersModal} onClose={() => setShowOrdersModal(false)} desde={desde} hasta={hasta} onRefresh={onRefresh} />
+       <ReservationsKpiModal isOpen={showAppointmentsModal} onClose={() => setShowAppointmentsModal(false)} desde={desde} hasta={hasta} />
+     </>
   );
 }

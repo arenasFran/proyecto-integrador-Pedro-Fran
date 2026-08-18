@@ -41,6 +41,14 @@ export const createAnalyticsRouter = (authenticate: express.RequestHandler) => {
   );
 
   router.get(
+    '/appointments',
+    authenticate,
+    authorize('Admin'),
+    validate({ query: distribucionQuerySchema }),
+    controller.getAppointmentDetailsHandler,
+  );
+
+  router.get(
     '/charts/distribucion',
     authenticate,
     authorize('Admin'),

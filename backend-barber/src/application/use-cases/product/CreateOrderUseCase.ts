@@ -1,8 +1,11 @@
 import { Order } from '../../../domain/entities/Order';
+import { Payment } from '../../../domain/entities/Payment';
 import { MongoOrderRepository } from '../../../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
+import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
+import { RevenueTracker } from '../../services/RevenueTracker';
 import { AppError } from '../../../domain/errors/AppError';
 
 export type CreateOrderDTO = {
@@ -24,7 +27,9 @@ export class CreateOrderUseCase {
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly membershipRepository: MongoMembershipRepository,
-    private readonly createPaymentUseCase: CreatePaymentUseCase
+    private readonly createPaymentUseCase: CreatePaymentUseCase,
+    private readonly paymentRepository?: MongoPaymentRepository,
+    private readonly revenueTracker?: RevenueTracker
   ) {}
 
   async execute(dto: CreateOrderDTO): Promise<CreateOrderResult> {
@@ -66,20 +71,37 @@ export class CreateOrderUseCase {
       });
     }
 
+    const paymentMethod = dto.paymentMethod || 'online';
     const order = Order.create({
       userId: dto.userId,
       items: resolvedItems,
+      paymentMethod,
     });
 
     const saved = await this.orderRepository.save(order);
 
-    const paymentMethod = dto.paymentMethod || 'online';
-
     if (paymentMethod === 'local') {
+      if (this.paymentRepository) {
+        try {
+          const paymentDoc = Payment.create({
+            type: 'product_order',
+            referenceId: saved.id,
+            amount: saved.total,
+            userId: dto.userId,
+          });
+          const savedPayment = await this.paymentRepository.save(paymentDoc);
+          if (savedPayment?.id) {
+            saved.assignPayment(savedPayment.id);
+            await this.orderRepository.save(saved);
+          }
+        } catch (err) {
+          console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
+        }
+      }
       return { orderId: saved.id };
     }
 
-    let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string };
+    let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string; paymentId: string };
     try {
       paymentResult = await this.createPaymentUseCase.execute({
         type: 'product_order',
@@ -98,6 +120,9 @@ export class CreateOrderUseCase {
       await this.orderRepository.delete(saved.id);
       throw error;
     }
+
+    saved.assignPayment(paymentResult.paymentId);
+    await this.orderRepository.save(saved);
 
     return {
       preferenceId: paymentResult.preferenceId,

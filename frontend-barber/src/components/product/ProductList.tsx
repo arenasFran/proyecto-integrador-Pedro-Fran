@@ -9,9 +9,10 @@ interface ProductListProps {
   onAddToCart: (product: Product) => void;
   onBuyNow: (product: Product) => void;
   onViewDetail?: (product: Product) => void;
+  discountPercent?: number;
 }
 
-export default function ProductList({ products, isLoading, onAddToCart, onBuyNow, onViewDetail }: ProductListProps) {
+export default function ProductList({ products, isLoading, onAddToCart, onBuyNow, onViewDetail, discountPercent = 0 }: ProductListProps) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-20">
@@ -38,6 +39,7 @@ export default function ProductList({ products, isLoading, onAddToCart, onBuyNow
           onAddToCart={onAddToCart}
           onBuyNow={onBuyNow}
           onViewDetail={onViewDetail}
+          discountPercent={discountPercent}
         />
       ))}
     </div>

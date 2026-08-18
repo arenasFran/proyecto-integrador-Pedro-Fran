@@ -6,6 +6,7 @@ import { Spinner } from '../../../../components/common/Spinner';
 import { useGetProductsQuery } from '../../../../services/productApi';
 import type { ProductPerformanceEntry } from '../../../../services/analyticsApi';
 import { formatCurrency } from '../../../../utils/formatCurrency';
+import OrdersAnalyticsTab from './OrdersAnalyticsTab';
 
 interface EcommerceTabProps {
   desde: string;
@@ -17,8 +18,6 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Pagado',
   delivered: 'Entregado',
   cancelled: 'Cancelado',
-  refunded: 'Reembolsado',
-  disputed: 'En disputa',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -26,18 +25,17 @@ const STATUS_COLORS: Record<string, string> = {
   paid: '#4CAF50',
   delivered: '#2196F3',
   cancelled: '#F44336',
-  refunded: '#9C27B0',
-  disputed: '#FF9800',
 };
 
 function StatusDonut({ ordersByStatus, desde, hasta }: { ordersByStatus: Record<string, number>; desde: string; hasta: string }) {
   const navigate = useNavigate();
-  const total = Object.values(ordersByStatus).reduce((s, v) => s + v, 0);
+  const visibleStatuses = Object.entries(ordersByStatus).filter(([status]) => STATUS_LABELS[status]);
+  const total = visibleStatuses.reduce((sum, [, count]) => sum + count, 0);
   if (total === 0) return <div className="text-[#8A8A8A] text-[13px] text-center py-8">Sin datos</div>;
 
   return (
     <div className="flex flex-col gap-2">
-      {Object.entries(ordersByStatus).map(([status, count]) => {
+      {visibleStatuses.map(([status, count]) => {
         const pct = Math.round((count / total) * 100);
         return (
           <button
@@ -174,6 +172,8 @@ export default function EcommerceTab({ desde, hasta }: EcommerceTabProps) {
           </div>
         </AnimatedContainer>
       </div>
+
+      <OrdersAnalyticsTab desde={desde} hasta={hasta} showKpis={false} />
     </div>
   );
 }

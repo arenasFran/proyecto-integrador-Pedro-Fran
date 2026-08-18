@@ -4,14 +4,11 @@ import { MongoServiceRepository } from '../../../../src/infrastructure/repositor
 import { createMockReq, createMockReqFull, createMockRes } from '../../../test-utils/expressMocks';
 import { Service } from '../../../../src/domain/entities/Service';
 import { AppError } from '../../../../src/domain/errors/AppError';
-import type { ServiceStatus } from '../../../../src/domain/entities/Service';
 
 describe('ServiceController', () => {
   let serviceRepository: jest.Mocked<MongoServiceRepository>;
   let createServiceUseCase: { execute: jest.Mock };
   let updateServiceUseCase: { execute: jest.Mock };
-  let deleteServiceUseCase: { execute: jest.Mock };
-  let restoreServiceUseCase: { execute: jest.Mock };
   let controller: ServiceController;
 
   beforeEach(() => {
@@ -22,15 +19,11 @@ describe('ServiceController', () => {
       findByIdIncludingInactive: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
-      softDelete: jest.fn(),
-      restore: jest.fn(),
     } as unknown as jest.Mocked<MongoServiceRepository>;
 
     createServiceUseCase = { execute: jest.fn() };
     updateServiceUseCase = { execute: jest.fn() };
-    deleteServiceUseCase = { execute: jest.fn() };
-    restoreServiceUseCase = { execute: jest.fn() };
-    controller = new ServiceController(serviceRepository, createServiceUseCase as any, updateServiceUseCase as any, deleteServiceUseCase as any, restoreServiceUseCase as any);
+    controller = new ServiceController(serviceRepository, createServiceUseCase as any, updateServiceUseCase as any);
   });
 
   it('debe responder 200 con la lista de servicios', async () => {
@@ -163,60 +156,6 @@ describe('ServiceController', () => {
     const res = createMockRes();
 
     await controller.update(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it('delete debe responder 200 con el servicio eliminado', async () => {
-    deleteServiceUseCase.execute.mockResolvedValue({ toPrimitives: () => ({ status: 'deleted', id: 'svc-1' }) });
-
-    const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
-    const res = createMockRes();
-
-    await controller.delete(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        service: expect.objectContaining({ status: 'deleted' }),
-      })
-    );
-  });
-
-  it('delete debe responder 404 si el servicio no existe', async () => {
-    deleteServiceUseCase.execute.mockRejectedValue(new AppError('Servicio no encontrado.', 404));
-
-    const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
-    const res = createMockRes();
-
-    await controller.delete(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it('restore debe responder 200 y cambiar status a inactive', async () => {
-    restoreServiceUseCase.execute.mockResolvedValue({ toPrimitives: () => ({ status: 'inactive', id: 'svc-1' }) });
-
-    const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
-    const res = createMockRes();
-
-    await controller.restore(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        service: expect.objectContaining({ status: 'inactive' }),
-      })
-    );
-  });
-
-  it('restore debe responder 404 si el servicio no está eliminado', async () => {
-    restoreServiceUseCase.execute.mockRejectedValue(new AppError('El servicio no está en estado eliminado.', 404));
-
-    const req = createMockReqFull({ params: { id: new mongoose.Types.ObjectId().toString() } });
-    const res = createMockRes();
-
-    await controller.restore(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
   });

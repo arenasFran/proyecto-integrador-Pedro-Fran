@@ -137,15 +137,7 @@ describe('ProfessionalsPage', () => {
   it('renders the page heading', () => {
     renderWithProviders(<ProfessionalsPage />, { preloadedState });
 
-    expect(screen.getByRole('heading', { name: 'Barberos' })).toBeInTheDocument();
-  });
-
-  it('renders the search input', () => {
-    renderWithProviders(<ProfessionalsPage />, { preloadedState });
-
-    expect(
-      screen.getByPlaceholderText('Buscar por nombre, email o teléfono...')
-    ).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Profesionales' })).toBeInTheDocument();
   });
 
   it('renders "Nuevo barbero" button', () => {

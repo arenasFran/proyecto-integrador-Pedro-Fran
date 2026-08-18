@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiMoreVertical, FiCheck, FiDollarSign, FiRefreshCw, FiRepeat, FiCopy, FiSend, FiXCircle, FiX } from 'react-icons/fi';
+import { FiMoreVertical, FiCheck, FiDollarSign, FiRefreshCw, FiRepeat, FiSend, FiXCircle, FiX } from 'react-icons/fi';
 import type { Appointment } from '../../../types/booking';
 import type { AppointmentActions } from './useAppointmentActions';
 
@@ -18,12 +18,13 @@ export const AppointmentActionsMenu: React.FC<AppointmentActionsMenuProps> = ({ 
     isUpdatingStatus, isCancelling,
     setCombinedActionTarget, setRescheduleTarget, setRescheduleDate, setRescheduleTime, setRescheduleBarberId,
     setConfirmTarget, setCancelTarget, setCancelReason,
-    handleDuplicate, handleSendReminder, setChangeBarberTarget, setChangeBarberNewId,
+    handleSendReminder, setChangeBarberTarget, setChangeBarberNewId,
   } = actions;
 
   if (appointment.status !== 'Confirmado') return null;
 
   const isPaid = appointment.paymentStatus === 'Pagado';
+  const canRegisterPayment = !isPaid && appointment.paymentMethod !== 'memberPass';
   const close = () => { setIsOpen(false); setMenuRect(null); };
 
   return (
@@ -60,7 +61,7 @@ export const AppointmentActionsMenu: React.FC<AppointmentActionsMenuProps> = ({ 
             >
               <FiCheck className="text-sm" /> Completar
             </button>
-            {!isPaid && (
+            {canRegisterPayment && (
               <button
                 onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Pagado' }); close(); }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-emerald-400 hover:bg-[#242424] transition-colors"
@@ -85,12 +86,6 @@ export const AppointmentActionsMenu: React.FC<AppointmentActionsMenuProps> = ({ 
               className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-orange-400 hover:bg-[#242424] transition-colors"
             >
               <FiRepeat className="text-sm" /> Cambiar barbero
-            </button>
-            <button
-              onClick={() => { handleDuplicate(appointment); close(); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-purple-400 hover:bg-[#242424] transition-colors"
-            >
-              <FiCopy className="text-sm" /> Duplicar
             </button>
             {appointment.clientEmail && (
               <button

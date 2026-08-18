@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { Select } from '../../../../components/common/Select';
-import { AppointmentListModal } from '../../../../components/common/AppointmentListModal';
 import { useGetHeatmapQuery, useGetAvailableYearsQuery } from '../../../../services/analyticsApi';
+import { formatCurrency } from '../../../../utils/formatCurrency';
+import DayActivityDetailModal from './DayActivityDetailModal';
 
 const MONTHS_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -20,9 +21,11 @@ function generateYearGrid(year: number): { date: string; dayOfWeek: number }[] {
   return days;
 }
 
-function getIntensity(cantidad: number, max: number): string {
-  if (cantidad === 0) return 'bg-[#161616]';
-  const ratio = cantidad / max;
+function getIntensity(cantidad: number, ingresos: number, maxCantidad: number, maxIngresos: number): string {
+  if (cantidad === 0 && ingresos === 0) return 'bg-[#161616]';
+  const activityRatio = maxCantidad > 0 ? cantidad / maxCantidad : 0;
+  const revenueRatio = maxIngresos > 0 ? ingresos / maxIngresos : 0;
+  const ratio = Math.max(activityRatio, revenueRatio);
   if (ratio <= 0.25) return 'bg-[#3D1A00]';
   if (ratio <= 0.5) return 'bg-[#7A3B00]';
   if (ratio <= 0.75) return 'bg-[#C25E00]';
@@ -34,20 +37,25 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-export default function HeatmapChart() {
-  const [selectedYear, setSelectedYear] = useState<number | undefined>();
-  const [tooltip, setTooltip] = useState<{ fecha: string; cantidad: number; x: number; y: number } | null>(null);
+interface HeatmapChartProps {
+  desde?: string;
+  hasta?: string;
+}
+
+export default function HeatmapChart({ desde, hasta }: HeatmapChartProps = {}) {
+  const [selectedYear, setSelectedYear] = useState(() => new Date().getFullYear());
+  const [tooltip, setTooltip] = useState<{ fecha: string; cantidad: number; ingresos: number; porOrigen: Record<string, number>; x: number; y: number } | null>(null);
   const [modalDate, setModalDate] = useState<string | null>(null);
 
   const { data: availableYears = [], isLoading: yearsLoading } = useGetAvailableYearsQuery();
-  const mostRecentYear = availableYears[0];
-  if (selectedYear === undefined && mostRecentYear !== undefined) {
-    setSelectedYear(mostRecentYear);
-  }
 
-  const params = selectedYear ? { year: selectedYear } : { lastYear: true as const };
+  const controlled = desde !== undefined && hasta !== undefined;
+  const displayYear = controlled && desde ? Number(desde.slice(0, 4)) : selectedYear;
+  const params = controlled
+    ? { desde, hasta }
+    : displayYear ? { year: displayYear } : { lastYear: true as const };
   const { data = [], isFetching, isLoading, error: rtkError } = useGetHeatmapQuery(params, {
-    skip: selectedYear === undefined,
+    skip: controlled ? !desde || !hasta : displayYear === undefined,
   });
 
   const error = rtkError
@@ -56,13 +64,17 @@ export default function HeatmapChart() {
       : 'Error al cargar heatmap'
     : null;
   const loading = isLoading || yearsLoading;
+  const yearOptions = [...new Set([new Date().getFullYear(), ...availableYears])]
+    .sort((first, second) => second - first)
+    .map((year) => ({ value: String(year), label: String(year) }));
 
   const yearGrid = useMemo(() => {
-    if (selectedYear === undefined) return [];
-    return generateYearGrid(selectedYear);
-  }, [selectedYear]);
+    if (displayYear === undefined || Number.isNaN(displayYear)) return [];
+    return generateYearGrid(displayYear);
+  }, [displayYear]);
 
   const maxCantidad = useMemo(() => Math.max(...data.map((d) => d.cantidad), 1), [data]);
+  const maxIngresos = useMemo(() => Math.max(...data.map((d) => d.ingresos ?? 0), 1), [data]);
   const dataMap = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of data) {
@@ -70,6 +82,7 @@ export default function HeatmapChart() {
     }
     return map;
   }, [data]);
+  const revenueMap = useMemo(() => new Map(data.map((entry) => [entry.fecha, entry.ingresos ?? 0])), [data]);
 
   const weeks = useMemo(() => {
     if (yearGrid.length === 0) return [];
@@ -102,17 +115,23 @@ export default function HeatmapChart() {
 
   return (
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-white text-base font-bold">Actividad</h3>
-        <Select
-          label="Año"
-          value={selectedYear !== undefined ? String(selectedYear) : ''}
-          onChange={(v) => setSelectedYear(v ? Number(v) : undefined)}
-          options={[
-            ...(availableYears.length === 0 ? [{ value: '', label: 'Sin datos' }] : []),
-            ...availableYears.map((y) => ({ value: String(y), label: String(y) })),
-          ]}
-        />
+      <div className="flex items-end justify-between gap-4 mb-4">
+        <div>
+          <h3 className="text-white text-base font-bold">Actividad e ingresos por día</h3>
+          <p className="text-[11px] text-[#6A6A6A] mt-1">La intensidad combina reservas confirmadas e ingresos cobrados</p>
+        </div>
+        {!controlled && (
+          <div className="flex items-center gap-2">
+            <span className="text-[13px] font-medium text-white">Año</span>
+            <div className="w-24">
+              <Select
+                value={String(selectedYear)}
+                onChange={(value) => setSelectedYear(Number(value))}
+                options={yearOptions}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
@@ -134,7 +153,7 @@ export default function HeatmapChart() {
               </div>
             ))}
           </div>
-        ) : selectedYear === undefined ? (
+        ) : displayYear === undefined ? (
           <div className="flex items-center justify-center h-40">
             <p className="text-[#8A8A8A] text-sm">No hay datos disponibles</p>
           </div>
@@ -171,16 +190,26 @@ export default function HeatmapChart() {
                     {week.map((day, di) => (
                       <div
                         key={`${wi}-${di}`}
-                        className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, maxCantidad) : 'transparent'} cursor-pointer relative`}
+                        className={`w-full aspect-square rounded-sm ${day.date ? getIntensity(day.cantidad, revenueMap.get(day.date) ?? 0, maxCantidad, maxIngresos) : 'transparent'} cursor-pointer relative focus:outline-none focus:ring-2 focus:ring-[#FF5C00]`}
+                        role={day.date ? 'button' : undefined}
+                        tabIndex={day.date ? 0 : -1}
+                        aria-label={day.date ? `${formatDate(day.date)}: ${day.cantidad} reservas, ${formatCurrency(revenueMap.get(day.date) ?? 0)} cobrados` : undefined}
                         onClick={() => {
                           if (day.date) {
+                            setModalDate(day.date);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (day.date && (e.key === 'Enter' || e.key === ' ')) {
+                            e.preventDefault();
                             setModalDate(day.date);
                           }
                         }}
                         onMouseEnter={(e) => {
                           if (day.date) {
                             const rect = (e.target as HTMLElement).getBoundingClientRect();
-                            setTooltip({ fecha: day.date, cantidad: day.cantidad, x: rect.left, y: rect.top - 8 });
+                            const entry = data.find((item) => item.fecha === day.date);
+                            setTooltip({ fecha: day.date, cantidad: day.cantidad, ingresos: entry?.ingresos ?? 0, porOrigen: entry?.porOrigen ?? {}, x: rect.left, y: rect.top - 8 });
                           }
                         }}
                         onMouseLeave={() => setTooltip(null)}
@@ -202,6 +231,10 @@ export default function HeatmapChart() {
         >
           <p className="font-medium text-white">{formatDate(tooltip.fecha)}</p>
           <p className="text-[#FF5C00]">{tooltip.cantidad} reserva{tooltip.cantidad !== 1 ? 's' : ''}</p>
+          <p className="text-green-400">{formatCurrency(tooltip.ingresos)} cobrados</p>
+          {Object.entries(tooltip.porOrigen).map(([source, amount]) => (
+            <p key={source} className="text-[#8A8A8A]">{source === 'appointment' ? 'Turnos' : source === 'product_order' ? 'Tienda' : 'Membresías'}: {formatCurrency(amount)}</p>
+          ))}
         </div>
       )}
 
@@ -215,11 +248,11 @@ export default function HeatmapChart() {
         <span className="text-[#8A8A8A] text-xs">Más</span>
       </div>
 
-      <AppointmentListModal
+      <DayActivityDetailModal
         isOpen={modalDate !== null}
         onClose={() => setModalDate(null)}
-        title={`Turnos del ${modalDate ? formatDate(modalDate) : ''}`}
-        params={{ dateFrom: modalDate ?? undefined, dateTo: modalDate ?? undefined }}
+        date={modalDate}
+        revenueBySource={data.find((entry) => entry.fecha === modalDate)?.porOrigen}
       />
     </div>
   );

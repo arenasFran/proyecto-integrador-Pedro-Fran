@@ -31,7 +31,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error: AxiosError) => {
+      (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
@@ -77,6 +77,7 @@ api.interceptors.response.use(
 
     if (isAuthError && !originalRequest._retry && !originalRequest.url?.includes('/auth/')) {
       if (isRefreshing) {
+        originalRequest._retry = true;
         return new Promise((resolve, reject) => {
           failedQueue.push({
             resolve: (token: string) => {
@@ -92,7 +93,8 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const token = await refreshTokens();
+        refreshPromise = refreshTokens();
+        const token = await refreshPromise;
         processQueue(null, token);
 
         originalRequest.headers.Authorization = `Bearer ${token}`;
@@ -106,6 +108,14 @@ api.interceptors.response.use(
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
+        refreshPromise = null;
+      }
+    }
+
+    if (isAuthError && originalRequest._retry) {
+      setAccessToken(null);
+      if (_dispatch) {
+        _dispatch({ type: 'auth/logout' });
       }
     }
 

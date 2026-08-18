@@ -1,6 +1,7 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type { Service, ServiceStatus } from '../types/booking';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 
 export const serviceApi = createApi({
   reducerPath: 'serviceApi',
@@ -15,10 +16,10 @@ export const serviceApi = createApi({
       providesTags: ['Services'],
     }),
 
-    getServicesAdmin: builder.query<Service[], { includeDeleted?: boolean }>({
-      query: ({ includeDeleted } = {}) => ({
+    getServicesAdmin: builder.query<Service[], void>({
+      query: () => ({
         url: '/api/services',
-        params: { includeInactive: 'true', ...(includeDeleted ? { includeDeleted: 'true' } : {}) },
+        params: { includeInactive: 'true' },
       }),
       transformResponse: (response: { services: Service[] }) => response.services,
       providesTags: ['Services'],
@@ -31,6 +32,7 @@ export const serviceApi = createApi({
         data,
       }),
       invalidatesTags: ['Services'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
 
     updateService: builder.mutation<{ service: Service }, { id: string; data: Partial<{ name: string; description: string; price: number; imageUrl: string; status: ServiceStatus }> }>({
@@ -40,22 +42,7 @@ export const serviceApi = createApi({
         data,
       }),
       invalidatesTags: ['Services'],
-    }),
-
-    deleteService: builder.mutation<{ service: Service }, string>({
-      query: (id) => ({
-        url: `/api/services/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Services'],
-    }),
-
-    restoreService: builder.mutation<{ service: Service }, string>({
-      query: (id) => ({
-        url: `/api/services/${id}/restore`,
-        method: 'PATCH',
-      }),
-      invalidatesTags: ['Services'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
   }),
 });
@@ -65,6 +52,4 @@ export const {
   useGetServicesAdminQuery,
   useCreateServiceMutation,
   useUpdateServiceMutation,
-  useDeleteServiceMutation,
-  useRestoreServiceMutation,
 } = serviceApi;

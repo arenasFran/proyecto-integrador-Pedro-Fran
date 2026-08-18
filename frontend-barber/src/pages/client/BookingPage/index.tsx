@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import React, { useCallback, useEffect } from 'react';
 import { FiCalendar, FiCheckCircle, FiScissors, FiUser } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { PublicHeader } from '../../../components/client/PublicHeader';

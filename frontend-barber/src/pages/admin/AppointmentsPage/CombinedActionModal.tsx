@@ -14,6 +14,7 @@ interface CombinedActionModalProps {
 export function CombinedActionModal({ target, isUpdatingStatus, isMarkingPaid, onCompleteOnly, onCompleteAndPaid, onMarkPaidOnly, onClose }: CombinedActionModalProps) {
   if (!target) return null;
   const { appointment, primaryAction } = target;
+  const canRegisterPayment = appointment.paymentStatus !== 'Pagado' && appointment.paymentMethod !== 'memberPass';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -28,9 +29,11 @@ export function CombinedActionModal({ target, isUpdatingStatus, isMarkingPaid, o
               <Button onClick={() => onCompleteOnly(appointment.id)} loading={isUpdatingStatus}>
                 Solo completar
               </Button>
-              <Button onClick={() => onCompleteAndPaid(appointment.id)} loading={isUpdatingStatus || isMarkingPaid} variant="secondary">
-                Completar y marcar pagado
-              </Button>
+              {canRegisterPayment && (
+                <Button onClick={() => onCompleteAndPaid(appointment.id)} loading={isUpdatingStatus || isMarkingPaid} variant="secondary">
+                  Completar y marcar pagado
+                </Button>
+              )}
               <Button variant="secondary" onClick={onClose}>Volver</Button>
             </div>
           </>

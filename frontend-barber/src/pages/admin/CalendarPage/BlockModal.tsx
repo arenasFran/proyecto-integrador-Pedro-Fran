@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Modal, Select, Button } from '../../../components/common';
+import { Modal, Select, Button, useToast } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
 import { professionalService } from '../../../services/professional.service';
 import { getAccessToken } from '../../../services/api';
@@ -41,6 +41,7 @@ function generateTimeOptions(startH: number, endH: number, excludeStart?: boolea
 }
 
 export const BlockModal: React.FC<BlockModalProps> = ({ dateStr, onClose, onBlockCreated }) => {
+  const { showToast } = useToast();
   const [barbers, setBarbers] = useState<BarberPublic[]>([]);
   const [barberId, setBarberId] = useState('');
   const [startTime, setStartTime] = useState('');
@@ -59,8 +60,8 @@ export const BlockModal: React.FC<BlockModalProps> = ({ dateStr, onClose, onBloc
       if (!isAdmin && currentUser?.id) {
         setBarberId(currentUser.id);
       }
-    }).catch(() => {});
-  }, [isAdmin, currentUser?.id]);
+    }).catch((error: unknown) => showToast(error instanceof Error ? error.message : 'No se pudieron cargar los barberos', 'error'));
+  }, [isAdmin, currentUser?.id, showToast]);
 
   useEffect(() => {
     if (!barberId) return;
@@ -69,7 +70,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({ dateStr, onClose, onBloc
     setScheduleLoading(true);
     professionalService.getSchedule(barberId)
       .then((s) => { if (!cancelled) setSchedule(s); })
-      .catch(() => { if (!cancelled) setSchedule(null); })
+      .catch(() => { if (!cancelled) { setSchedule(null); setLocalError('No se pudo cargar el horario del barbero.'); } })
       .finally(() => { if (!cancelled) setScheduleLoading(false); });
     return () => { cancelled = true; };
   }, [barberId]);
@@ -148,6 +149,7 @@ export const BlockModal: React.FC<BlockModalProps> = ({ dateStr, onClose, onBloc
         onBlockCreated(body.block as BarberBlock);
       }
 
+      showToast('Horario bloqueado');
       onClose();
     } catch (err: unknown) {
       setLocalError(err instanceof Error ? err.message : 'Error al crear bloque');

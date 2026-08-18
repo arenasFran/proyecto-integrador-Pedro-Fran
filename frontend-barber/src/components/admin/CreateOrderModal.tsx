@@ -1,22 +1,13 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
   FiSearch, FiUser, FiPlus, FiMinus, FiShoppingBag, FiGrid, FiCheck,
 } from 'react-icons/fi';
 import { Modal, Button, Spinner, useToast } from '../common';
 import { useGetProductsQuery } from '../../services/productApi';
 import { useCreateManualOrderMutation } from '../../services/orderApi';
-import { getAccessToken } from '../../services/api';
+import { useGetRegisteredClientsQuery } from '../../services/clientApi';
 import { formatCurrency } from '../../utils/formatCurrency';
 import type { Product } from '../../types/product';
-
-interface RegisteredClient {
-  id: string;
-  name: string;
-  lastname: string;
-  email: string;
-  phone: string;
-  photoUrl: string | null;
-}
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -42,31 +33,22 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
   const [anonymousName, setAnonymousName] = useState('');
   const [anonymousEmail, setAnonymousEmail] = useState('');
   const [anonymousPhone, setAnonymousPhone] = useState('');
-  const [cart, setCart] = useState<Record<string, number>>({});
-  const [status, setStatus] = useState<'pending' | 'paid' | 'delivered'>('paid');
-  const [clients, setClients] = useState<RegisteredClient[]>([]);
-  const [loadingClients, setLoadingClients] = useState(false);
+const [cart, setCart] = useState<Record<string, number>>({});
+  const [status, setStatus] = useState<'pending' | 'paid' | 'delivered'>('pending');
+
+  const {
+    data: clientsData,
+    isFetching: loadingClients,
+  } = useGetRegisteredClientsQuery(undefined, {
+    skip: !isOpen || clientTab !== 'registered',
+  });
+
+  const clients = useMemo(() => clientsData?.clients ?? [], [clientsData]);
 
   const products = useMemo(
     () => (productsData as { products: Product[] } | undefined)?.products ?? [],
     [productsData]
   );
-
-  // Fetch clients when modal opens and registered tab is active
-  const fetchClients = useCallback(async () => {
-    if (clients.length > 0) return;
-    setLoadingClients(true);
-    try {
-      const token = getAccessToken();
-      const res = await fetch('/api/users/clients', {
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: 'include',
-      });
-      const json = await res.json();
-      if (json.success) setClients(json.data.clients ?? []);
-    } catch { /* ignore */ }
-    setLoadingClients(false);
-  }, [clients.length]);
 
   // Filter clients by search
   const filteredClients = useMemo(() => {
@@ -155,11 +137,6 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
     onClose();
   };
 
-  // Fetch clients when modal opens
-  if (isOpen && clients.length === 0 && !loadingClients) {
-    fetchClients();
-  }
-
   return (
     <Modal isOpen={isOpen} onClose={resetAndClose} title="Crear orden manual" size="xl">
       <div className="flex flex-col lg:flex-row gap-5">
@@ -170,7 +147,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
             <p className="text-[11px] text-[#6A6A6A] font-medium uppercase tracking-wider mb-2">Cliente</p>
             <div className="flex gap-1 mb-3">
               <button
-                onClick={() => { setClientTab('registered'); if (clients.length === 0) fetchClients(); }}
+                onClick={() => setClientTab('registered')}
                 className={`flex-1 rounded-[8px] py-2 text-[12px] font-medium transition-colors ${
                   clientTab === 'registered' ? 'bg-[#FF5C00]/10 text-[#FF5C00]' : 'bg-[#1A1A1A] text-[#8A8A8A] hover:text-white'
                 }`}
@@ -320,7 +297,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
           {/* Estado */}
           <div>
             <p className="text-[11px] text-[#6A6A6A] font-medium uppercase tracking-wider mb-2">Estado inicial</p>
-            <div className="grid grid-cols-3 gap-2">
+             <div className="grid gap-2 sm:grid-cols-3">
               {STATUS_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}

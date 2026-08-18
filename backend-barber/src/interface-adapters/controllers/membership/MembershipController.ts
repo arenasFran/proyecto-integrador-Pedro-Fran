@@ -102,7 +102,7 @@ export class MembershipController {
         return {
           ...m.toPrimitives(),
           user: user
-            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email }
+            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email, photoUrl: user.photoUrl ?? null }
             : null,
         };
       });
@@ -290,7 +290,7 @@ export class MembershipController {
         return {
           ...m.toPrimitives(),
           user: user
-            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email }
+            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email, photoUrl: user.photoUrl ?? null }
             : null,
         };
       });
@@ -313,7 +313,7 @@ export class MembershipController {
         return {
           ...m.toPrimitives(),
           user: user
-            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email }
+            ? { id: user.id, name: user.name, lastname: user.lastname, email: user.email, photoUrl: user.photoUrl ?? null }
             : null,
           daysLeft: Math.max(0, Math.ceil((new Date(m.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))),
         };
@@ -376,6 +376,10 @@ export class MembershipController {
       const membership = await this.membershipRepo.findById(membershipId);
       if (!membership) {
         throw new AppError('Membresía no encontrada.', 404);
+      }
+
+      if (membership.isExpired) {
+        throw new AppError('No se pueden agregar cupones a una membresía vencida o inactiva.', 400);
       }
 
       const updated = await this.membershipRepo.addCouponsTotal(membershipId, count);

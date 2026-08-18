@@ -33,5 +33,5 @@ export const createManualOrderSchema = Joi.object({
   clientName: Joi.string().trim().min(1).max(100).optional(),
   clientEmail: Joi.string().email().optional(),
   clientPhone: Joi.string().trim().max(20).optional(),
-  status: Joi.string().valid('pending', 'paid', 'delivered', 'cancelled').optional(),
+  status: Joi.string().valid('pending', 'paid', 'delivered').optional(),
 });

@@ -77,18 +77,37 @@ export class AnalyticsController {
     }
   };
 
+  getAppointmentDetailsHandler = async (req: Request, res: Response) => {
+    try {
+      const { desde, hasta } = req.query as Record<string, string | undefined>;
+      if (!desde || !hasta) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      }
+      const appointments = await this.repository.getAppointmentDetails(desde, hasta);
+      return sendSuccess(res, { appointments, total: appointments.length });
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener detalle de reservas');
+    }
+  };
+
   getHeatmapHandler = async (req: Request, res: Response) => {
     try {
-      const { year, lastYear } = req.query as Record<string, string | undefined>;
+      const { year, lastYear, desde, hasta } = req.query as Record<string, string | undefined>;
 
-      if (!lastYear && !year) {
+      if ((!lastYear && !year) && (!desde || !hasta)) {
         return sendError(res, new Error('Debe proporcionar "year" o "lastYear".'), 'Error al obtener heatmap');
       }
 
-      const result = await this.repository.getHeatmap({
+      const heatmapParams: { year?: number; lastYear?: boolean; desde?: string; hasta?: string } = {
         year: year ? parseInt(year, 10) : undefined,
         lastYear: lastYear === 'true' ? true : undefined,
-      });
+      };
+      if (desde && hasta) {
+        heatmapParams.desde = desde;
+        heatmapParams.hasta = hasta;
+      }
+
+      const result = await this.repository.getHeatmap(heatmapParams);
 
       return sendSuccess(res, result);
     } catch (error) {
@@ -175,8 +194,8 @@ export class AnalyticsController {
   getClientesListHandler = async (req: Request, res: Response) => {
     try {
       const { desde, hasta, search } = req.query as Record<string, string | undefined>;
-      if (!desde || !hasta) {
-        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      if ((desde && !hasta) || (!desde && hasta)) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta" juntos o ninguno.'), 'Parámetros de fecha inválidos');
       }
       const result = await this.repository.getClientesList(desde, hasta, search);
       return sendSuccess(res, result);

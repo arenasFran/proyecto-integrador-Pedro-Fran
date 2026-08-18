@@ -7,9 +7,14 @@ import { formatCurrency } from '../../../../utils/formatCurrency';
 
 const COLORS = ['#FF5C00', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
 
-export default function RevenueByServiceChart() {
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+interface RevenueByServiceChartProps { desde?: string; hasta?: string }
+
+export default function RevenueByServiceChart({ desde: desdeProp, hasta: hastaProp }: RevenueByServiceChartProps = {}) {
+  const [internalDesde, setInternalDesde] = useState('');
+  const [internalHasta, setInternalHasta] = useState('');
+  const desde = desdeProp ?? internalDesde;
+  const hasta = hastaProp ?? internalHasta;
+  const controlled = desdeProp !== undefined && hastaProp !== undefined;
 
   const { data = [], isFetching, isLoading, error: rtkError } = useGetIngresosPorServicioQuery(
     { desde, hasta },
@@ -27,14 +32,12 @@ export default function RevenueByServiceChart() {
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <h3 className="text-white text-base font-bold mb-4">Ingresos por servicio</h3>
 
-      <div className="mb-2">
-        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
-      </div>
+      {!controlled && <div className="mb-2"><DateRangeFilter onChange={(d, h) => { setInternalDesde(d); setInternalHasta(h); }} /></div>}
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <ChartContainer isFetching={isFetching} loading={loading} hasData={data.length > 0} height={300} className="mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
             <XAxis
@@ -51,8 +54,9 @@ export default function RevenueByServiceChart() {
               width={120}
             />
             <Tooltip
-              contentStyle={{ backgroundColor: '#1A1A1A', border: '1px solid #282828', borderRadius: 8, color: '#fff' }}
+              contentStyle={{ backgroundColor: '#242424', border: '1px solid #4A4A4A', borderRadius: 8, color: '#fff' }}
               labelStyle={{ color: '#fff' }}
+              itemStyle={{ color: '#fff' }}
               formatter={(value) => [formatCurrency(value as number), 'Ingresos']}
             />
             <Bar dataKey="ingresos" radius={[0, 4, 4, 0]}>

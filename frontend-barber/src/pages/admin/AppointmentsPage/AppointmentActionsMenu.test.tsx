@@ -36,7 +36,6 @@ function makeActions(overrides: Partial<AppointmentActions> = {}): AppointmentAc
     setConfirmTarget: vi.fn(),
     setCancelTarget: vi.fn(),
     setCancelReason: vi.fn(),
-    handleDuplicate: vi.fn(),
     handleSendReminder: vi.fn(),
     setChangeBarberTarget: vi.fn(),
     setChangeBarberNewId: vi.fn(),
@@ -65,7 +64,6 @@ describe('AppointmentActionsMenu', () => {
     expect(screen.getByText('Marcar pagado')).toBeDefined();
     expect(screen.getByText('Reprogramar')).toBeDefined();
     expect(screen.getByText('Cambiar barbero')).toBeDefined();
-    expect(screen.getByText('Duplicar')).toBeDefined();
     expect(screen.getByText('Recordatorio')).toBeDefined();
     expect(screen.getByText('No asistió')).toBeDefined();
     expect(screen.getByText('Cancelar')).toBeDefined();
@@ -76,6 +74,16 @@ describe('AppointmentActionsMenu', () => {
     const actions = makeActions();
     renderWithProviders(
       <AppointmentActionsMenu appointment={{ ...baseAppointment, paymentStatus: 'Pagado' }} actions={actions} />
+    );
+    await user.click(screen.getByLabelText('Acciones del turno'));
+    expect(screen.queryByText('Marcar pagado')).toBeNull();
+  });
+
+  it('oculta Marcar pagado para turnos cubiertos por membresía', async () => {
+    const user = userEvent.setup();
+    const actions = makeActions();
+    renderWithProviders(
+      <AppointmentActionsMenu appointment={{ ...baseAppointment, paymentMethod: 'memberPass', paymentStatus: 'Pagado' }} actions={actions} />
     );
     await user.click(screen.getByLabelText('Acciones del turno'));
     expect(screen.queryByText('Marcar pagado')).toBeNull();

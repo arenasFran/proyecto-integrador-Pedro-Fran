@@ -8,9 +8,14 @@ function formatHora(hora: number): string {
   return `${String(hora).padStart(2, '0')}:00`;
 }
 
-export default function HourDistributionChart() {
-  const [desde, setDesde] = useState('');
-  const [hasta, setHasta] = useState('');
+interface HourDistributionChartProps { desde?: string; hasta?: string }
+
+export default function HourDistributionChart({ desde: desdeProp, hasta: hastaProp }: HourDistributionChartProps = {}) {
+  const [internalDesde, setInternalDesde] = useState('');
+  const [internalHasta, setInternalHasta] = useState('');
+  const desde = desdeProp ?? internalDesde;
+  const hasta = hastaProp ?? internalHasta;
+  const controlled = desdeProp !== undefined && hastaProp !== undefined;
 
   const { data = [], isFetching, isLoading, error: rtkError } = useGetHorasQuery(
     { desde, hasta },
@@ -37,14 +42,12 @@ export default function HourDistributionChart() {
     <div className="bg-[#121212] border border-[#282828] rounded-2xl p-5 max-w-full">
       <h3 className="text-white text-base font-bold mb-4">Turnos por hora del día</h3>
 
-      <div className="mb-2">
-        <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); }} />
-      </div>
+      {!controlled && <div className="mb-2"><DateRangeFilter onChange={(d, h) => { setInternalDesde(d); setInternalHasta(h); }} /></div>}
 
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <ChartContainer isFetching={isFetching} loading={loading} hasData={chartData.some(d => d.cantidad > 0)} height={280} className="mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
             <XAxis

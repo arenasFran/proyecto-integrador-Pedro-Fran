@@ -27,8 +27,10 @@ export class UpdateOrderStatusUseCase {
     const previousStatus = order.status;
 
     let paymentForCancellation = null;
-    if (dto.status === 'cancelled' && this.paymentRepository && order.paymentId) {
-      paymentForCancellation = await this.paymentRepository.findById(order.paymentId);
+    if (dto.status === 'cancelled' && this.paymentRepository) {
+      paymentForCancellation = order.paymentId
+        ? await this.paymentRepository.findById(order.paymentId)
+        : await this.paymentRepository.findByReference(order.id, 'product_order');
       if (paymentForCancellation && paymentForCancellation.status === 'approved') {
         throw new AppError('No se puede cancelar una orden con un pago ya aprobado. Procesá el reembolso en MercadoPago antes de cancelarla.', 409);
       }
@@ -36,10 +38,11 @@ export class UpdateOrderStatusUseCase {
 
     switch (dto.status) {
       case 'paid':
-        order.pay();
+        order.pay(undefined, dto.actor);
         break;
       case 'delivered':
-        order.deliver();
+        if (previousStatus === 'pending') order.pay(undefined, dto.actor);
+        order.deliver(dto.actor);
         break;
       case 'cancelled':
         order.cancel(dto.actor);
@@ -81,7 +84,7 @@ export class UpdateOrderStatusUseCase {
       try {
         const existingPayment = await this.paymentRepository.findByReference(order.id, 'product_order');
         if (existingPayment && existingPayment.status === 'pending') {
-          existingPayment.approve('admin_manual');
+           existingPayment.approve();
           await this.paymentRepository.save(existingPayment);
         } else if (!existingPayment && !order.paymentId) {
           const paymentDoc = Payment.create({
@@ -90,7 +93,7 @@ export class UpdateOrderStatusUseCase {
             amount: order.total,
             userId: order.userId,
           });
-          paymentDoc.approve('admin_manual');
+           paymentDoc.approve();
           await this.paymentRepository.save(paymentDoc);
         }
       } catch (err) {

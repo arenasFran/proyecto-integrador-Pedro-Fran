@@ -1,4 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
+import { setupListeners } from '@reduxjs/toolkit/query';
 import authReducer from './slices/authSlice';
 import barbersReducer from './slices/barbersSlice';
 import bookingReducer from './slices/bookingSlice';
@@ -14,6 +15,7 @@ import { paymentApi } from '../services/paymentApi';
 import { telegramApi } from '../services/telegramApi';
 import { analisisCorteApi } from '../services/analisisCorteApi';
 import { clientApi } from '../services/clientApi';
+import { cartApi } from '../services/cartApi';
 
 export const store = configureStore({
   reducer: {
@@ -32,6 +34,7 @@ export const store = configureStore({
     [telegramApi.reducerPath]: telegramApi.reducer,
     [analisisCorteApi.reducerPath]: analisisCorteApi.reducer,
     [clientApi.reducerPath]: clientApi.reducer,
+    [cartApi.reducerPath]: cartApi.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
@@ -45,9 +48,12 @@ export const store = configureStore({
       paymentApi.middleware,
       telegramApi.middleware,
       analisisCorteApi.middleware,
-      clientApi.middleware
+      clientApi.middleware,
+      cartApi.middleware
     ),
 });
+
+setupListeners(store.dispatch);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

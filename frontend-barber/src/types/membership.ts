@@ -55,7 +55,7 @@ export type MembershipTransaction = {
 };
 
 export type MembershipWithUser = Membership & {
-  user: { id: string; name: string; lastname: string; email: string } | null;
+  user: { id: string; name: string; lastname: string; email: string; photoUrl?: string | null } | null;
 };
 
 export type RedeemCouponPayload = {

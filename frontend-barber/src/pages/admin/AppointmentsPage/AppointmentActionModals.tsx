@@ -9,7 +9,7 @@ import { CombinedActionModal } from './CombinedActionModal';
 import type { AppointmentActions } from './useAppointmentActions';
 
 // Agrupa los modales flotantes de acciones sobre un turno (cancelar, reprogramar,
-// completar/pagar, cambiar barbero, duplicar y el detalle). Se monta una sola vez
+// completar/pagar, cambiar barbero y el detalle). Se monta una sola vez
 // por pantalla que use useAppointmentActions (AppointmentsPage y CalendarPage).
 export const AppointmentActionModals: React.FC<AppointmentActions> = (actions) => {
   const {

@@ -32,7 +32,6 @@ export function useAdminAppointments() {
 
   const [pageSize, setPageSize] = useState(15);
   const [showCustomize, setShowCustomize] = useState(false);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleSort = useCallback((column: 'date' | 'time') => {
     if (sortBy === column) {
@@ -104,10 +103,10 @@ export function useAdminAppointments() {
     queryParams,
     searchParams, filterDateFrom, filterDateTo, filterBarberId,
     filterStatus, filterPaymentMethod, searchTerm, page, sortBy, sortDir,
-    pageSize, showCustomize, expandedId,
+    pageSize, showCustomize,
     stats,
     // Setters
-    setPageSize, setShowCustomize, setExpandedId,
+    setPageSize, setShowCustomize,
     // Actions
     toggleSort, handleDateRangeChange, clearFilters, updateParams,
   };

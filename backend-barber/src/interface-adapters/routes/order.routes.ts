@@ -32,6 +32,7 @@ export const createOrderRouter = (deps: {
     '/',
     orderMutationLimiter,
     deps.authenticate,
+    authorize('Registrado'),
     validate({ body: createOrderSchema }),
     deps.orderController.create
   );

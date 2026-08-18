@@ -76,10 +76,18 @@ export const ingresosServicioQuerySchema = Joi.object({
 }).custom(rangeValidation);
 
 export const clientesListQuerySchema = Joi.object({
-  desde: Joi.string().pattern(ISO_DATE).required(),
-  hasta: Joi.string().pattern(ISO_DATE).required(),
+  desde: Joi.string().pattern(ISO_DATE),
+  hasta: Joi.string().pattern(ISO_DATE),
   search: Joi.string().allow('').max(100).optional(),
-}).custom(rangeValidation);
+}).custom((value, helpers) => {
+  if (value.desde || value.hasta) {
+    if (!value.desde || !value.hasta) {
+      return helpers.message({ custom: 'Debe proporcionar "desde" y "hasta".' });
+    }
+    return rangeValidation(value, helpers);
+  }
+  return value;
+});
 
 export const nuevosClientesQuerySchema = Joi.object({
   desde: Joi.string().pattern(ISO_DATE).required(),
@@ -91,7 +99,13 @@ const CURRENT_YEAR = new Date().getFullYear();
 export const heatmapQuerySchema = Joi.object({
   year: Joi.number().integer().min(2020).max(CURRENT_YEAR),
   lastYear: Joi.boolean(),
+  desde: Joi.string().pattern(ISO_DATE),
+  hasta: Joi.string().pattern(ISO_DATE),
 }).custom((value, helpers) => {
+  if (value.desde || value.hasta) {
+    if (!value.desde || !value.hasta) return helpers.message({ custom: 'Debe proporcionar "desde" y "hasta".' });
+    return rangeValidation(value, helpers);
+  }
   if (!value.lastYear && !value.year) {
     return helpers.message({ custom: 'Debe proporcionar "year" o "lastYear".' });
   }

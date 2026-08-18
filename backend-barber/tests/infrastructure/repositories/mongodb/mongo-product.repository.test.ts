@@ -103,6 +103,20 @@ describeIfMongo('MongoProductRepository', () => {
     });
   });
 
+  describe('findPublicCatalog', () => {
+    it('solo devuelve productos activos con stock disponible', async () => {
+      await createProductDoc({ name: 'Disponible', status: 'active', stock: 3 });
+      await createProductDoc({ name: 'Sin stock', status: 'active', stock: 0 });
+      await createProductDoc({ name: 'Inactivo', status: 'inactive', stock: 5 });
+      await createProductDoc({ name: 'Eliminado', status: 'deleted', stock: 5 });
+
+      const result = await repository.findPublicCatalog();
+
+      expect(result.total).toBe(1);
+      expect(result.data[0].name).toBe('Disponible');
+    });
+  });
+
   describe('save', () => {
     it('debe crear un producto nuevo', async () => {
       const product = Product.create({
@@ -164,6 +178,7 @@ describeIfMongo('MongoProductRepository', () => {
     it('debe devolver las categorías distintas excluyendo eliminados', async () => {
       await createProductDoc({ category: 'cuidado' });
       await createProductDoc({ category: 'accesorios', name: 'Peine' });
+      await createProductDoc({ category: 'agotados', name: 'Agotado', stock: 0 });
       await createProductDoc({ category: 'descontinuado', name: 'Viejo', status: 'deleted' });
 
       const categories = await repository.getCategories();

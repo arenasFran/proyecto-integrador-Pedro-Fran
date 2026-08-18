@@ -5,7 +5,7 @@ import {
   FiAward, FiUser, FiClock, FiScissors, FiCreditCard, FiUserCheck,
   FiActivity, FiPercent, FiTag, FiAlertTriangle, FiAlertOctagon, FiUserX, FiX,
 } from 'react-icons/fi';
-import { Spinner, Button, BarberAvatar } from '../../../components/common';
+import { Spinner, Button, BarberAvatar, useToast } from '../../../components/common';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { useSancionarClienteMutation, useLevantarSancionMutation } from '../../../services/clientApi';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
@@ -100,13 +100,13 @@ export default function ClientDetailPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const actions = useAppointmentActions();
+  const { showToast } = useToast();
 
   const [sancionarOpen, setSancionarOpen] = useState(false);
   const [motivo, setMotivo] = useState('');
 
   // El state pasado por ClientsPage es solo un placeholder para el primer render:
-  // refleja los totales del rango de fechas que tenía seleccionado ClientsPage,
-  // no los totales de por vida, y puede haber quedado desactualizado (ej. un
+  // refleja los totales de por vida, y puede haber quedado desactualizado (ej. un
   // turno recién completado). La fuente real siempre es el fetch de abajo.
   const stateClient = (location.state as { client?: ClienteData } | null)?.client;
 
@@ -157,16 +157,26 @@ export default function ClientDetailPage() {
 
   const handleSancionar = async () => {
     if (!client?.clientId) return;
-    await sancionarCliente({ clientId: client.clientId, motivo: motivo.trim() || 'Inasistencias reiteradas' });
-    setSancionarOpen(false);
-    setMotivo('');
-    refetchClientes();
+    try {
+      await sancionarCliente({ clientId: client.clientId, motivo: motivo.trim() || 'Inasistencias reiteradas' }).unwrap();
+      setSancionarOpen(false);
+      setMotivo('');
+      await refetchClientes();
+      showToast('Cliente sancionado');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo sancionar al cliente', 'error');
+    }
   };
 
   const handleLevantarSancion = async () => {
     if (!client?.clientId) return;
-    await levantarSancion(client.clientId);
-    refetchClientes();
+    try {
+      await levantarSancion(client.clientId).unwrap();
+      await refetchClientes();
+      showToast('Sanción levantada');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'No se pudo levantar la sanción', 'error');
+    }
   };
 
   if (!stateClient && isLoadingList) {
@@ -190,7 +200,7 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5 p-5">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
       <button
         onClick={() => navigate('/admin/clientes')}
         className="flex items-center gap-1.5 text-[13px] text-[#8A8A8A] hover:text-white transition-colors w-fit"
@@ -198,42 +208,45 @@ export default function ClientDetailPage() {
         <FiArrowLeft size={14} /> Volver a clientes
       </button>
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#282828]">
-        <div className="flex items-center gap-3 min-w-0">
-          <BarberAvatar name={client.clientName} lastname={client.clientLastname} photoUrl={client.clientPhotoUrl} size="xl" />
-          <div className="min-w-0">
-            <h1 className="text-[24px] sm:text-[28px] font-bold text-white tracking-tight break-words flex items-center gap-2">
-              {client.clientName} {client.clientLastname}
-              {client.membershipStatus === 'active' && <FiAward className="text-[#FF5C00]" />}
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-              <Badge
-                label={client.kind === 'Registrado' ? 'Registrado' : 'Anónimo'}
-                styles={client.kind === 'Registrado' ? { bg: 'bg-purple-500/10', text: 'text-purple-400' } : undefined}
-              />
-              {client.membershipStatus === 'active' && (
-                <Badge label="Membresía activa" styles={{ bg: 'bg-[#FF5C00]/10', text: 'text-[#FF5C00]' }} />
-              )}
+      <div className="border-b border-[#202020] pb-6">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <BarberAvatar name={client.clientName} lastname={client.clientLastname} photoUrl={client.clientPhotoUrl} size="xl" />
+            <div className="min-w-0">
+              <h1 className="flex break-words items-center gap-2 text-[28px] font-bold tracking-[-0.03em] text-white sm:text-[32px]">
+                {client.clientName} {client.clientLastname}
+                {client.membershipStatus === 'active' && <FiAward className="text-[#FF5C00]" />}
+              </h1>
+              <div className="mt-2 flex items-center gap-2">
+                <Badge
+                  label={client.kind === 'Registrado' ? 'Registrado' : 'Anónimo'}
+                  styles={client.kind === 'Registrado' ? { bg: 'bg-purple-500/10', text: 'text-purple-400' } : undefined}
+                />
+                {client.membershipStatus === 'active' && (
+                  <Badge label="Membresía activa" styles={{ bg: 'bg-[#FF5C00]/10', text: 'text-[#FF5C00]' }} />
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {client.clientId && (
-          <Button
-            variant="outline"
-            icon={FiCalendar}
-            className="shrink-0"
-            onClick={() => actions.handleCreateForClient({
-              clientId: client.clientId ?? undefined,
-              clientName: client.clientName,
-              clientLastname: client.clientLastname,
-              clientPhone: client.clientPhone,
-              clientEmail: client.clientEmail,
-            } as Appointment)}
-          >
-            Crear turno para este cliente
-          </Button>
-        )}
+          {client.clientId && (
+            <Button
+              variant="outline"
+              icon={FiCalendar}
+className="w-full shrink-0 sm:w-auto"
+              onClick={() => actions.handleCreateForClient({
+                clientId: client.clientId ?? undefined,
+                clientName: client.clientName,
+                clientLastname: client.clientLastname,
+                clientPhone: client.clientPhone,
+                clientEmail: client.clientEmail,
+                clientKind: client.kind,
+              } as Appointment)}
+            >
+              Crear turno para este cliente
+            </Button>
+          )}
+        </div>
       </div>
 
       {client.sancionado ? (
@@ -349,12 +362,16 @@ export default function ClientDetailPage() {
           </p>
         ) : (
           <>
-            <div className="flex flex-col gap-2 md:hidden">
+             <div className="flex flex-col gap-2 lg:hidden">
               {sortedAppointments.map((a) => (
-                <div key={a.id} className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 text-[13px]">
+                <div
+                  key={a.id}
+                  onClick={() => actions.setDetailTarget(a)}
+                  className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 text-[13px] cursor-pointer hover:border-[#FF5C00]/40 active:scale-[0.99] transition-all"
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium">{formatDate(a.date)}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <Badge label={a.status} styles={statusStyles[a.status]} />
                       <AppointmentActionsMenu appointment={a} actions={actions} />
                     </div>
@@ -372,7 +389,7 @@ export default function ClientDetailPage() {
               ))}
             </div>
 
-            <div className="hidden md:block overflow-x-auto rounded-[12px] border border-[#282828]">
+             <div className="hidden lg:block overflow-x-auto rounded-[12px] border border-[#282828]">
               <table className="w-full text-[13px]">
                 <thead>
                   <tr className="bg-[#121212] border-b border-[#282828]">
@@ -388,7 +405,11 @@ export default function ClientDetailPage() {
                 </thead>
                 <tbody>
                   {sortedAppointments.map((a) => (
-                    <tr key={a.id} className="border-b border-[#282828]/50 last:border-b-0">
+                    <tr
+                      key={a.id}
+                      onClick={() => actions.setDetailTarget(a)}
+                      className="border-b border-[#282828]/50 last:border-b-0 cursor-pointer hover:bg-[#1A1A1A]/80 transition-colors"
+                    >
                       <td className="px-4 py-3 text-white">{formatDate(a.date)}</td>
                       <td className="px-4 py-3 text-[#8A8A8A]">{a.startTime} - {a.endTime}</td>
                       <td className="px-4 py-3 text-[#8A8A8A] max-w-[160px] truncate">{a.serviceName}</td>
@@ -396,7 +417,7 @@ export default function ClientDetailPage() {
                       <td className="px-4 py-3 text-right text-green-400 font-medium">{formatCurrency(a.servicePrice)}</td>
                       <td className="px-4 py-3 text-center"><Badge label={a.status} styles={statusStyles[a.status]} /></td>
                       <td className="px-4 py-3 text-center"><Badge label={a.paymentStatus} styles={paymentStyles[a.paymentStatus]} /></td>
-                      <td className="px-4 py-3 text-right"><AppointmentActionsMenu appointment={a} actions={actions} /></td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}><AppointmentActionsMenu appointment={a} actions={actions} /></td>
                     </tr>
                   ))}
                 </tbody>

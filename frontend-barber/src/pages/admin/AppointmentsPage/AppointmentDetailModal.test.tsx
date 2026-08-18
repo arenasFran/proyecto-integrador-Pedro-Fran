@@ -163,6 +163,20 @@ describe('AppointmentDetailModal', () => {
     expect(screen.queryByRole('button', { name: /crear turno para este cliente/i })).not.toBeInTheDocument();
   });
 
+  it('expone acciones operativas cuando se proporciona el callback', async () => {
+    const user = userEvent.setup();
+    const onAction = vi.fn();
+    renderWithProviders(
+      <AppointmentDetailModal {...defaultProps} appointment={baseAppointment} onAction={onAction} />
+    );
+
+    await user.click(screen.getByRole('button', { name: /^completar$/i }));
+
+    expect(onAction).toHaveBeenCalledWith('complete');
+    expect(screen.getByRole('button', { name: /^cobrar$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /no asistió/i })).toBeInTheDocument();
+  });
+
   it('el nombre del cliente redirige a su ficha y cierra el modal si tiene clientId', async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

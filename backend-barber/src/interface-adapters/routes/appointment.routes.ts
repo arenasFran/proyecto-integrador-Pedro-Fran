@@ -54,6 +54,14 @@ export const createAppointmentRouter = (deps: {
     deps.appointmentController.create
   );
 
+  router.post(
+    '/admin',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ body: createAppointmentSchema }),
+    deps.appointmentController.create
+  );
+
   router.get(
     '/anonymous',
     anonymousLimiter,

@@ -74,12 +74,14 @@ export function useAppointmentActions() {
     }
   }, [cancelTarget, cancelReason, cancelAppointment, showToast]);
 
-  const handleStatusChange = useCallback(async (id: string, status: 'Completado' | 'NoShow') => {
+  const handleStatusChange = useCallback(async (id: string, status: 'Completado' | 'NoShow'): Promise<boolean> => {
     try {
       await updateStatus({ id, status }).unwrap();
       showToast(`Turno ${status === 'Completado' ? 'completado' : 'marcado como no asistió'} con éxito`);
+      return true;
     } catch (err) {
       showToast(extractError(err), 'error');
+      return false;
     }
   }, [updateStatus, showToast]);
 
@@ -125,13 +127,6 @@ export function useAppointmentActions() {
     }
   }, [sendReminder, showToast]);
 
-  const handleDuplicate = useCallback((appointment: Appointment) => {
-    setDetailTarget(null);
-    setQuickCreateDate(appointment.date);
-    setQuickCreateClient(null);
-    setShowQuickCreate(true);
-  }, []);
-
   const handleCreateForClient = useCallback((appointment: Appointment) => {
     if (!appointment.clientId) return;
     setDetailTarget(null);
@@ -142,6 +137,11 @@ export function useAppointmentActions() {
       lastname: appointment.clientLastname,
       phone: appointment.clientPhone,
       email: appointment.clientEmail,
+      kind: appointment.clientKind
+        ? appointment.clientKind === 'Registrado'
+          ? 'registered'
+          : 'anonymous'
+        : undefined,
     });
     setShowQuickCreate(true);
   }, []);
@@ -164,21 +164,28 @@ export function useAppointmentActions() {
   }, [changeBarberTarget, changeBarberNewId, changeBarber, showToast]);
 
   const handleCompleteOnly = useCallback(async (id: string) => {
-    await handleStatusChange(id, 'Completado');
-    setCombinedActionTarget(null);
+    if (await handleStatusChange(id, 'Completado')) setCombinedActionTarget(null);
   }, [handleStatusChange]);
 
   const handleCompleteAndPaid = useCallback(async (id: string) => {
-    await handleStatusChange(id, 'Completado');
-    await markAsPaid({ id }).unwrap();
-    showToast('Turno completado y pago registrado');
-    setCombinedActionTarget(null);
+    if (!await handleStatusChange(id, 'Completado')) return;
+    try {
+      await markAsPaid({ id }).unwrap();
+      showToast('Turno completado y pago registrado');
+      setCombinedActionTarget(null);
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
   }, [handleStatusChange, markAsPaid, showToast]);
 
   const handleMarkPaidOnly = useCallback(async (id: string) => {
-    await markAsPaid({ id }).unwrap();
-    showToast('Pago registrado con éxito');
-    setCombinedActionTarget(null);
+    try {
+      await markAsPaid({ id }).unwrap();
+      showToast('Pago registrado con éxito');
+      setCombinedActionTarget(null);
+    } catch (err) {
+      showToast(extractError(err), 'error');
+    }
   }, [markAsPaid, showToast]);
 
   return {
@@ -194,7 +201,7 @@ export function useAppointmentActions() {
     setQuickCreateDate, setChangeBarberTarget, setChangeBarberNewId, setCombinedActionTarget,
     handleCancelConfirm, handleStatusChange, handleRescheduleConfirm,
     handleRescheduleDateChange, handleRescheduleBarberChange, handleRescheduleClose,
-    handleSendReminder, handleDuplicate, handleCreateForClient, handleQuickCreateClose, handleChangeBarberConfirm,
+    handleSendReminder, handleCreateForClient, handleQuickCreateClose, handleChangeBarberConfirm,
     handleCompleteOnly, handleCompleteAndPaid, handleMarkPaidOnly,
   };
 }

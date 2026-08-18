@@ -29,11 +29,18 @@ export const buildOrderRouter = () => {
 
   const createPaymentUseCase = new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
 
-  const createOrderUseCase = new CreateOrderUseCase(orderRepository, productRepository, membershipRepository, createPaymentUseCase);
+  const createOrderUseCase = new CreateOrderUseCase(
+    orderRepository,
+    productRepository,
+    membershipRepository,
+    createPaymentUseCase,
+    paymentRepository,
+    revenueTracker,
+  );
   const getOrderUseCase = new GetOrderUseCase(orderRepository);
   const updateOrderStatusUseCase = new UpdateOrderStatusUseCase(orderRepository, orderStockService, paymentRepository, revenueTracker);
   const createManualOrderUseCase = new CreateManualOrderUseCase(orderRepository, productRepository, paymentRepository, revenueTracker);
-  const deleteOrderUseCase = new DeleteOrderUseCase(orderRepository, orderStockService);
+  const deleteOrderUseCase = new DeleteOrderUseCase(orderRepository, paymentRepository);
 
   const emailService = new NodemailerEmailService();
   const userRepository = new MongoUserRepository();

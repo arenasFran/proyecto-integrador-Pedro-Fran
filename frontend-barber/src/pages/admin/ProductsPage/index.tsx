@@ -5,6 +5,7 @@ import { useCreateProductMutation, useDeleteProductMutation, useGetProductsQuery
 import type { CreateProductPayload, Product, ProductStatus } from '../../../types/product';
 import ProductFormModal from './components/ProductFormModal';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import AdminPageHeader from '../components/AdminPageHeader';
 
 const statusLabel: Record<ProductStatus, string> = {
   active: 'Activo',
@@ -23,8 +24,8 @@ const INITIAL_FORM: CreateProductPayload = {
 };
 
 export const ProductsPage: React.FC = () => {
-  const [includeInactive, setIncludeInactive] = useState(false);
-  const { data, isLoading } = useGetProductsQuery({ status: includeInactive ? 'all' : 'active' });
+  const { data: activeProducts, isLoading: isLoadingActive } = useGetProductsQuery({ status: 'active' });
+  const { data: inactiveProducts, isLoading: isLoadingInactive } = useGetProductsQuery({ status: 'inactive' });
   const [createProduct, { isLoading: isCreating }] = useCreateProductMutation();
   const [updateProduct, { isLoading: isUpdating }] = useUpdateProductMutation();
   const [deleteProduct] = useDeleteProductMutation();
@@ -35,7 +36,8 @@ export const ProductsPage: React.FC = () => {
   const [formData, setFormData] = useState<CreateProductPayload>(INITIAL_FORM);
   const formDraftRef = useRef<CreateProductPayload | null>(null);
 
-  const products = data?.products ?? [];
+  const products = [...(activeProducts?.products ?? []), ...(inactiveProducts?.products ?? [])];
+  const isLoading = isLoadingActive || isLoadingInactive;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
@@ -132,41 +134,21 @@ export const ProductsPage: React.FC = () => {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[#FF5C00]/10">
-            <FiPackage className="text-[#FF5C00] text-lg" />
-          </div>
-          <div>
-            <h1 className="text-[20px] font-bold text-white">Productos</h1>
-            <p className="text-[13px] text-[#8A8A8A]">Gestioná el catálogo de productos</p>
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIncludeInactive(!includeInactive)}
-            icon={includeInactive ? FiEye : FiEyeOff}
-          >
-            {includeInactive ? 'Ver activos' : 'Ver inactivos'}
-          </Button>
-          <Button size="sm" icon={FiPlus} onClick={openCreate}>
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
+      <AdminPageHeader icon={FiPackage} title="Productos" description="Gestioná el catálogo de productos" action={<Button size="sm" icon={FiPlus} onClick={openCreate}>
             Nuevo producto
-          </Button>
-        </div>
-      </div>
+          </Button>} />
 
       {isLoading ? (
         <div className="flex justify-center py-20"><Spinner size="lg" /></div>
       ) : (
         <AnimatedContainer animation="fadeInUp">
           <div className="rounded-[16px] border border-[#282828] bg-[#121212] overflow-hidden">
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-[#282828] text-[#8A8A8A]">
+                    <th className="px-4 py-3 font-medium">Foto</th>
                     <th className="px-4 py-3 font-medium">Producto</th>
                     <th className="px-4 py-3 font-medium">Categoría</th>
                     <th className="px-4 py-3 font-medium">Precio</th>
@@ -179,14 +161,14 @@ export const ProductsPage: React.FC = () => {
                   {products.map((product) => (
                     <tr key={product.id} className="border-b border-[#282828] hover:bg-[#1A1A1A]">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          {product.imageUrl && (
-                            <img src={product.imageUrl} alt="" className="h-10 w-10 rounded-[8px] object-cover" />
-                          )}
-                          <div>
-                            <p className="text-white font-medium">{product.name}</p>
-                            <p className="text-[11px] text-[#555] truncate max-w-[200px]">{product.description}</p>
-                          </div>
+                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[8px] bg-[#242424]">
+                          {product.imageUrl ? <img src={product.imageUrl} alt={`Foto de ${product.name}`} className="h-full w-full object-cover" /> : <FiPackage className="text-[#6A6A6A]" aria-hidden="true" />}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="text-white font-medium">{product.name}</p>
+                          <p className="text-[11px] text-[#555] truncate max-w-[200px]">{product.description}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3 text-[#8A8A8A]">{product.category || '-'}</td>
@@ -229,7 +211,44 @@ export const ProductsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
-          </div>
+            <div className="flex flex-col gap-3 p-3 lg:hidden">
+               {products.map((product) => (
+                 <div key={product.id} className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-3">
+                   <div className="flex items-start gap-3">
+                     <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[10px] bg-[#242424]">
+                       {product.imageUrl ? <img src={product.imageUrl} alt={`Foto de ${product.name}`} className="h-full w-full object-cover" /> : <FiPackage className="text-[#6A6A6A]" aria-hidden="true" />}
+                     </div>
+                     <div className="min-w-0 flex-1">
+                       <p className="break-words text-[14px] font-semibold text-white">{product.name}</p>
+                       <p className="mt-0.5 line-clamp-2 text-[11px] text-[#6A6A6A]">{product.description}</p>
+                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+                         <span className="font-semibold text-white">{formatCurrency(product.price)}</span>
+                         <span className={product.stock > 0 ? 'text-[#22C55E]' : 'text-red-400'}>Stock: {product.stock}</span>
+                         <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${statusColor[product.status]}`}>{statusLabel[product.status]}</span>
+                       </div>
+                     </div>
+                   </div>
+                   <div className="mt-3 flex justify-end gap-2 border-t border-[#282828]/70 pt-3">
+                     <button
+                       onClick={() => handleToggleStatus(product)}
+                       className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#282828] px-2.5 text-[11px] text-[#8A8A8A] hover:bg-[#282828] hover:text-white"
+                       title={product.status === 'active' ? 'Desactivar' : 'Activar'}
+                     >
+                       {product.status === 'active' ? <FiEyeOff size={14} /> : <FiEye size={14} />}
+                       <span>{product.status === 'active' ? 'Desactivar' : 'Activar'}</span>
+                     </button>
+                     <button onClick={() => openEdit(product)} className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-[#282828] px-2.5 text-[11px] text-[#8A8A8A] hover:bg-[#282828] hover:text-white">
+                       <FiEdit3 size={14} />
+                       <span>Editar</span>
+                     </button>
+                     <button onClick={() => handleDelete(product)} className="inline-flex min-h-9 items-center justify-center rounded-lg border border-[#282828] px-2.5 text-[#8A8A8A] hover:bg-[#282828] hover:text-red-400" aria-label={`Eliminar ${product.name}`}>
+                       <FiTrash2 size={14} />
+                     </button>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           </div>
         </AnimatedContainer>
       )}
 

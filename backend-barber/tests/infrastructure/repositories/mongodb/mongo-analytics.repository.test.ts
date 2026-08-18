@@ -389,6 +389,18 @@ describeIfMongo('MongoAnalyticsRepository', () => {
       const luis = result.find(c => c.clientName === 'Luis');
       expect(luis).toMatchObject({ totalVisits: 1, totalSpent: 600, lastVisit: '2025-06-10' });
     });
+
+    it('sin fechas trae toda la data disponible', async () => {
+      const result = await repository.getClientesList();
+
+      expect(result).toHaveLength(5);
+      expect(result.map(c => c.clientName)).toEqual(expect.arrayContaining(['Pia', 'Marta', 'Luis', 'Juan', 'Ana']));
+
+      const luis = result.find(c => c.clientName === 'Luis');
+      expect(luis).toMatchObject({ kind: 'NoRegistrado', totalVisits: 2, totalSpent: 1090 });
+      const pia = result.find(c => c.clientName === 'Pia');
+      expect(pia).toMatchObject({ kind: 'Registrado', totalVisits: 0 });
+    });
   });
 
   describe('getClientAppointments', () => {

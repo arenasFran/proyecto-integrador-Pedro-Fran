@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import { authApi } from '../../services/authApi';
-import { api, setAccessToken } from '../../services/api';
+import { api, getAccessToken, setAccessToken } from '../../services/api';
 import type { User } from '../../types/auth';
+import { isTokenValid } from '../../utils/token';
 
 interface AuthState {
   loginToken: string | null;
@@ -91,7 +92,10 @@ const authSlice = createSlice({
         state.user = null;
       })
       .addMatcher(authApi.endpoints.getProfile.matchFulfilled, (state, action) => {
-        state.user = action.payload;
+        // Ignore a late profile response after the session was cleared or expired.
+        if (isTokenValid(getAccessToken())) {
+          state.user = action.payload;
+        }
       })
       .addMatcher(authApi.endpoints.getProfile.matchRejected, () => {
       });

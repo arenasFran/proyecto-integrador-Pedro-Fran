@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { FiClock, FiUser, FiScissors } from 'react-icons/fi';
 import { useGetAppointmentsQuery } from '../../services/appointmentApi';
 import type { AppointmentQueryParams } from '../../services/appointment.service';
@@ -11,6 +11,7 @@ interface AppointmentListModalProps {
   onClose: () => void;
   title: string;
   params: AppointmentQueryParams;
+  onAppointmentClick?: (appointment: import('../../types/booking').Appointment) => void;
 }
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
@@ -25,10 +26,20 @@ function formatTime(time: string) {
   return `${h}:${m}`;
 }
 
-export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOpen, onClose, title, params }) => {
-  const { data: appointments = [], isLoading, isFetching } = useGetAppointmentsQuery(params, {
+export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOpen, onClose, title, params, onAppointmentClick }) => {
+  const { dateFrom, dateTo, date, ...serverFilters } = params;
+  const { data: fetchedAppointments = [], isLoading, isFetching, error } = useGetAppointmentsQuery({
+    ...serverFilters,
+    limit: params.limit ?? 100,
+  }, {
     skip: !isOpen,
   });
+  const appointments = useMemo(() => fetchedAppointments.filter((appointment) => {
+    const appointmentDate = appointment.date.slice(0, 10);
+    return (!date || appointmentDate === date)
+      && (!dateFrom || appointmentDate >= dateFrom)
+      && (!dateTo || appointmentDate <= dateTo);
+  }), [date, dateFrom, dateTo, fetchedAppointments]);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="lg">
@@ -36,6 +47,8 @@ export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOp
         <div className="flex items-center justify-center py-12">
           <Spinner size="lg" />
         </div>
+      ) : error ? (
+        <p className="py-8 text-center text-sm text-[#FF5C00]">No se pudieron cargar las reservas del período.</p>
       ) : appointments.length === 0 ? (
         <p className="text-[14px] text-[#8A8A8A] text-center py-8">No se encontraron turnos para este período.</p>
       ) : (
@@ -45,7 +58,16 @@ export const AppointmentListModal: React.FC<AppointmentListModalProps> = ({ isOp
             return (
               <div
                 key={a.id}
-                className="rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 hover:border-[#FF5C00]/30 transition-colors"
+                className={`rounded-[12px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 hover:border-[#FF5C00]/30 transition-colors ${onAppointmentClick ? 'cursor-pointer text-left w-full' : ''}`}
+                onClick={() => onAppointmentClick?.(a)}
+                onKeyDown={(event) => {
+                  if (onAppointmentClick && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onAppointmentClick(a);
+                  }
+                }}
+                role={onAppointmentClick ? 'button' : undefined}
+                tabIndex={onAppointmentClick ? 0 : undefined}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">

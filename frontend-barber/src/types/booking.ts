@@ -12,7 +12,7 @@ export type BarberPublic = {
   schedule: BarberSchedule;
 };
 
-export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+export type ServiceStatus = 'active' | 'inactive';
 
 export type Service = {
   id: string;
@@ -90,6 +90,9 @@ export type Appointment = {
   cancelReason?: string;
   cancelledAt?: string | null;
   cancelledBy?: string;
+  membershipId?: string;
+  couponRedeemed?: boolean;
+  couponRestoredAt?: string | null;
   createdBy?: CreatedBy;
   statusHistory?: StatusHistoryEntry[];
   clientKind?: ClientKind;

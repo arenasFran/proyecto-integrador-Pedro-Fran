@@ -15,6 +15,7 @@ import {
   FiXCircle,
   FiPlusCircle,
   FiCreditCard,
+  FiBell,
 } from 'react-icons/fi';
 import { BarberAvatar, Modal, Button } from '../../../components/common';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
@@ -115,7 +116,10 @@ interface AppointmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateAppointment?: (appointment: Appointment) => void;
+  onAction?: (action: AppointmentDetailAction) => void;
 }
+
+export type AppointmentDetailAction = 'complete' | 'paid' | 'cancel' | 'noShow' | 'reminder';
 
 interface TimelineEntry {
   key: string;
@@ -132,6 +136,7 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   isOpen,
   onClose,
   onCreateAppointment,
+  onAction,
 }) => {
   const navigate = useNavigate();
 
@@ -320,6 +325,37 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {onAction && (appointment.status === 'Confirmado' || appointment.status === 'Completado') && (
+          <div className="border-t border-[#282828] pt-4">
+            <h4 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-[#8A8A8A]">Acciones</h4>
+            <div className="flex flex-wrap gap-2">
+              {appointment.status === 'Confirmado' && (
+                <Button size="sm" onClick={() => onAction('complete')} icon={FiCheck}>
+                  Completar
+                </Button>
+              )}
+              {appointment.paymentStatus === 'Pendiente' && (
+                <Button size="sm" variant="outline" onClick={() => onAction('paid')} icon={FiDollarSign}>
+                  Cobrar
+                </Button>
+              )}
+              {appointment.status === 'Confirmado' && (
+                <>
+                  <Button size="sm" variant="ghost" onClick={() => onAction('noShow')} icon={FiXCircle}>
+                    No asistió
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => onAction('cancel')} icon={FiX} className="text-red-400">
+                    Cancelar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => onAction('reminder')} icon={FiBell}>
+                    Recordatorio
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         )}

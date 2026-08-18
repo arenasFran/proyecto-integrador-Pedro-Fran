@@ -67,7 +67,7 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
           </div>
 
           {hasGallery && (
-            <div className="flex gap-2 mt-3">
+            <div className="mt-3 flex flex-wrap gap-2">
               <button
                 onClick={() => setSelectedImage(null)}
                 className={`w-16 h-16 rounded-[10px] overflow-hidden border-2 transition-all ${!selectedImage ? 'border-[#FF5C00]' : 'border-[#282828] opacity-70 hover:opacity-100'}`}
@@ -118,7 +118,7 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
 
           <p className="text-[14px] text-[#8A8A8A] leading-relaxed">{product.description}</p>
 
-          <div className="flex gap-3 mt-auto">
+          <div className="mt-auto flex flex-col gap-3 sm:flex-row">
             <Button
               variant="outline"
               className="flex-1"

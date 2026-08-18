@@ -2,6 +2,9 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import type { Appointment, ClientSearchResult, CreateAppointmentPayload } from '../types/booking';
 import type { PaginatedAppointmentsResponse } from './appointment.service';
 import { axiosBaseQuery } from './baseQuery';
+import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
+import { invalidateMembershipAfterSuccess } from './membershipCache';
+import { invalidatePaymentsAfterSuccess } from './paymentCache';
 
 export type QueryParams = {
   barberId?: string;
@@ -49,6 +52,25 @@ export const appointmentApi = createApi({
         data,
       }),
       invalidatesTags: ['Appointments'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
+    }),
+
+    createAdminAppointment: builder.mutation<{ message: string; appointment: Appointment; preferenceId?: string; initPoint?: string }, CreateAppointmentPayload>({
+      query: (data) => ({
+        url: '/api/appointments/admin',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['Appointments'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     getAppointments: builder.query<Appointment[], QueryParams | void>({
@@ -99,6 +121,11 @@ export const appointmentApi = createApi({
         data: { reason },
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     updateAppointmentStatus: builder.mutation<
@@ -111,6 +138,11 @@ export const appointmentApi = createApi({
         data: body,
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     rescheduleAppointment: builder.mutation<
@@ -123,6 +155,11 @@ export const appointmentApi = createApi({
         data: body,
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     markAsPaid: builder.mutation<{ message: string }, { id: string }>({
@@ -131,6 +168,11 @@ export const appointmentApi = createApi({
         method: 'PATCH',
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     sendReminder: builder.mutation<{ message: string }, { id: string }>({
@@ -148,6 +190,11 @@ export const appointmentApi = createApi({
         data: { barberId },
       }),
       invalidatesTags: ['Appointments', 'Appointment'],
+      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => {
+        invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch);
+        invalidateMembershipAfterSuccess(queryFulfilled, dispatch);
+        invalidatePaymentsAfterSuccess(queryFulfilled, dispatch);
+      },
     }),
 
     searchClients: builder.query<ClientSearchResult[], string>({
@@ -163,6 +210,7 @@ export const {
   useAcquireTempLockMutation,
   useReleaseTempLockMutation,
   useCreateAppointmentMutation,
+  useCreateAdminAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,
   useGetAppointmentsSummaryQuery,

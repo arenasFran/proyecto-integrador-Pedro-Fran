@@ -55,6 +55,13 @@ export default function PaymentResultPage() {
   });
 
   const paymentType = paymentData?.payment?.type ?? 'unknown';
+  const destination = paymentType === 'appointment'
+    ? { path: '/mis-turnos', label: 'Ver mis turnos' }
+    : paymentType === 'membership'
+      ? { path: '/mi-membresia', label: 'Ver mi membresía' }
+      : paymentType === 'product_order'
+        ? { path: '/mis-ordenes', label: 'Ver mis órdenes' }
+        : { path: '/', label: 'Volver al inicio' };
 
   useEffect(() => {
     if (status === 'success') {
@@ -94,7 +101,7 @@ export default function PaymentResultPage() {
           <p className="text-[14px] text-[#8A8A8A] mb-8">
             Estamos procesando tu {typeLabels[paymentType] || 'pago'}. Te notificaremos cuando se confirme.
           </p>
-          <Button onClick={() => navigate('/')}>Volver al inicio</Button>
+           <Button onClick={() => navigate(destination.path)}>{destination.label}</Button>
         </motion.div>
       </div>
     );
@@ -116,7 +123,7 @@ export default function PaymentResultPage() {
           <p className="text-[14px] text-[#8A8A8A] mb-8">
             El {typeLabels[paymentType] || 'pago'} no pudo procesarse. Intentá de nuevo con otro medio de pago.
           </p>
-          <Button onClick={() => navigate('/tienda')}>Volver a la tienda</Button>
+           <Button onClick={() => navigate(paymentType === 'appointment' ? '/mis-turnos' : paymentType === 'membership' ? '/mi-membresia' : '/tienda')}>{paymentType === 'appointment' ? 'Ver mis turnos' : paymentType === 'membership' ? 'Ver mi membresía' : 'Volver a la tienda'}</Button>
         </motion.div>
       </div>
     );
@@ -236,9 +243,10 @@ export default function PaymentResultPage() {
           </motion.div>
         )}
 
-        <Button onClick={() => navigate('/')} className="w-full">
-          Volver al inicio
-        </Button>
+         <Button onClick={() => navigate(destination.path)} className="w-full">
+           {destination.label}
+         </Button>
+         {destination.path !== '/' && <button type="button" onClick={() => navigate('/')} className="mt-3 w-full text-center text-[12px] text-[#777] transition-colors hover:text-white">Volver al inicio</button>}
       </motion.div>
     </div>
   );

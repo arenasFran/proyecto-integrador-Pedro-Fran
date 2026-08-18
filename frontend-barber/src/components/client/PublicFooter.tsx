@@ -1,6 +1,5 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { openCookiePreferences } from '../../utils/cookieConsent';
 
 const legalLinks = [
   { to: '/terminos', label: 'Términos y Condiciones' },
@@ -29,15 +28,6 @@ export const PublicFooter: React.FC = () => {
                 </Link>
               </li>
             ))}
-            <li>
-              <button
-                type="button"
-                onClick={openCookiePreferences}
-                className="text-[12px] text-[#8A8A8A] hover:text-[#FF5C00] transition-colors"
-              >
-                Preferencias de cookies
-              </button>
-            </li>
           </ul>
         </div>
         <p className="mt-4 text-center text-[12px] text-[#8A8A8A]">

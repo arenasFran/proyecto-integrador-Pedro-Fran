@@ -432,12 +432,24 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     }
 
     const state = getState(ctx);
+    let tempLockId: string | undefined;
+    let ownerToken: string | undefined;
     try {
       // El accessToken capturado al principio del wizard puede haber expirado (dura 15 min).
       // Se pide una sesión fresca recién acá, justo antes de crear el turno.
       const freshAccessToken = state.accessToken && ctx.from
         ? (await getSessionForTelegramId(ctx.from.id))?.accessToken
         : undefined;
+
+      // Apartar el horario antes de crear (obligatorio en POST /api/appointments) y
+      // liberarlo si la creación falla, igual que en el flujo web.
+      const lock = await backendClient.acquireTempLock(
+        state.barberId as string,
+        state.date as string,
+        state.startTime as string
+      );
+      tempLockId = lock.tempLockId;
+      ownerToken = lock.ownerToken;
 
       await backendClient.createGuestAppointment(
         {
@@ -449,6 +461,7 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
           clientLastname: state.clientLastname as string,
           clientPhone: state.clientPhone as string,
           clientEmail: state.clientEmail as string,
+          tempLockId,
         },
         freshAccessToken
       );
@@ -456,6 +469,10 @@ export const guestBookingWizard = new Scenes.WizardScene<WizardCtx>(
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Error desconocido';
       await ctx.reply(`No pudimos reservar el turno: ${message}. Probá de nuevo con /reservar.`);
+    } finally {
+      if (tempLockId && ownerToken) {
+        backendClient.releaseTempLock(tempLockId, ownerToken).catch(() => {});
+      }
     }
     return ctx.scene.leave();
   }

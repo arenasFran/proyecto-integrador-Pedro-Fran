@@ -29,7 +29,7 @@ export const buildMembershipRouter = () => {
 
   const cancelMembershipUseCase = new CancelMembershipUseCase(membershipRepo);
   const initiateMembershipPaymentUseCase = new InitiateMembershipPaymentUseCase(membershipResolver, userRepo, createPaymentUseCase);
-  const approvePendingMembershipUseCase = new ApprovePendingMembershipUseCase(membershipRepo, transactionRepo, revenueTracker);
+  const approvePendingMembershipUseCase = new ApprovePendingMembershipUseCase(membershipRepo, transactionRepo, paymentRepo, revenueTracker);
   const retryMembershipPaymentUseCase = new RetryMembershipPaymentUseCase(membershipRepo, userRepo, createPaymentUseCase, paymentRepo);
 
   const controller = new MembershipController(

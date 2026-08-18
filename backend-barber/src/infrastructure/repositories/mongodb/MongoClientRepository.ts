@@ -3,6 +3,7 @@ import { Client } from '../../../domain/entities/Client';
 import { AppError } from '../../../domain/errors/AppError';
 import { Client as ClientModel, RegisteredClient, UnregisteredClient } from './models/client.model';
 import { CUPO_DIAS_ANALISIS_CORTE } from '../../../application/use-cases/analisis-corte/calcularCupoAnalisisCorte';
+import { escapeRegex } from '../../utils/regex';
 
 export type UnregisteredClientData = {
   name: string;
@@ -16,8 +17,6 @@ export type UnregisteredClientData = {
 const ANALISIS_LOCK_STALE_MS = 2 * 60 * 1000;
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
-
-const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const toClientEntity = (doc: Record<string, any>): Client =>
   Client.create({
@@ -93,6 +92,12 @@ export class MongoClientRepository {
 
   async findByEmail(email: string): Promise<Client | null> {
     const doc = await UnregisteredClient.findOne({ contactEmail: normalizeEmail(email) }).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
+  async findRegisteredByEmail(email: string): Promise<Client | null> {
+    const doc = await RegisteredClient.findOne({ email: normalizeEmail(email) }).lean();
     if (!doc) return null;
     return toClientEntity(doc);
   }

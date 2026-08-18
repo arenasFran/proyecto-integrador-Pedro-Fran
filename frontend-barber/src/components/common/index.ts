@@ -20,7 +20,6 @@ export { ImageUpload } from './ImageUpload';
 export { StatsCards } from './StatsCards';
 export type { Stats } from './StatsCards';
 export { AppFooter } from './AppFooter';
-export { CookieConsent } from './CookieConsent';
 export { DatePicker } from './DatePicker';
 export { Calendar } from './Calendar';
 export { ClientPageShell, ClientState, StatusBadge } from '../client/common';

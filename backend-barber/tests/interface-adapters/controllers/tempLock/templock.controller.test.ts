@@ -13,8 +13,8 @@ describe('TempLockController', () => {
   });
 
   describe('create', () => {
-    it('debe crear un tempLock y responder 201', async () => {
-      tempLockRepository.create.mockResolvedValue('temp-1');
+    it('debe crear un tempLock y responder 201 con el ownerToken', async () => {
+      tempLockRepository.create.mockResolvedValue({ id: 'temp-1', ownerToken: 'a'.repeat(64) });
       const req = createMockReq({ barberId: 'barber-1', date: '2026-06-20', startTime: '10:00' });
       const res = createMockRes();
 
@@ -22,7 +22,7 @@ describe('TempLockController', () => {
 
       expect(tempLockRepository.create).toHaveBeenCalledWith(req.body);
       expect(res.status).toHaveBeenCalledWith(201);
-      expect(res.json).toHaveBeenCalledWith({ message: 'Slot apartado temporalmente', tempLockId: 'temp-1' });
+      expect(res.json).toHaveBeenCalledWith({ message: 'Slot apartado temporalmente', tempLockId: 'temp-1', ownerToken: 'a'.repeat(64) });
     });
 
     it('debe manejar error de conflicto (ya apartado)', async () => {
@@ -49,33 +49,52 @@ describe('TempLockController', () => {
   });
 
   describe('release', () => {
-    it('debe liberar un tempLock y responder 200', async () => {
-      tempLockRepository.findById.mockResolvedValue({ _id: 'temp-1' });
-      const req = createMockReqFull({ params: { tempLockId: 'temp-1' } });
+    it('debe liberar un tempLock con token valido y responder 200', async () => {
+      tempLockRepository.release.mockResolvedValue('released');
+      const req = createMockReqFull({ params: { tempLockId: 'temp-1' }, body: { ownerToken: 'a'.repeat(64) } });
       const res = createMockRes();
 
       await controller.release(req, res);
 
-      expect(tempLockRepository.findById).toHaveBeenCalledWith('temp-1');
-      expect(tempLockRepository.deleteById).toHaveBeenCalledWith('temp-1');
+      expect(tempLockRepository.release).toHaveBeenCalledWith('temp-1', 'a'.repeat(64));
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'TempLock liberado' });
     });
 
-    it('debe responder 200 si el tempLock no existe', async () => {
-      tempLockRepository.findById.mockResolvedValue(null);
-      const req = createMockReqFull({ params: { tempLockId: 'temp-1' } });
+    it('debe responder 200 si el tempLock no existe (idempotente)', async () => {
+      tempLockRepository.release.mockResolvedValue('not_found');
+      const req = createMockReqFull({ params: { tempLockId: 'temp-1' }, body: { ownerToken: 'a'.repeat(64) } });
       const res = createMockRes();
 
       await controller.release(req, res);
 
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith({ message: 'TempLock liberado' });
+    });
+
+    it('debe responder 403 si el token no coincide', async () => {
+      tempLockRepository.release.mockResolvedValue('forbidden');
+      const req = createMockReqFull({ params: { tempLockId: 'temp-1' }, body: { ownerToken: 'b'.repeat(64) } });
+      const res = createMockRes();
+
+      await controller.release(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: 'No tenés permiso para liberar este horario.' });
+    });
+
+    it('debe responder 400 si falta el ownerToken', async () => {
+      const req = createMockReqFull({ params: { tempLockId: 'temp-1' }, body: {} });
+      const res = createMockRes();
+
+      await controller.release(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it('debe manejar error al liberar', async () => {
-      tempLockRepository.findById.mockRejectedValue(new Error('Error interno'));
-      const req = createMockReqFull({ params: { tempLockId: 'temp-1' } });
+      tempLockRepository.release.mockRejectedValue(new Error('Error interno'));
+      const req = createMockReqFull({ params: { tempLockId: 'temp-1' }, body: { ownerToken: 'a'.repeat(64) } });
       const res = createMockRes();
 
       await controller.release(req, res);

@@ -12,10 +12,20 @@ const mockServices = [{ id: 's1', name: 'Corte', price: 500 }];
 const mockSlots = ['10:00', '10:30', '11:00'];
 
 const mockCreateAppointment = vi.fn().mockResolvedValue({});
+const mockAcquireTempLock = vi.fn().mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'owner-1' });
+const mockReleaseTempLock = vi.fn().mockResolvedValue({});
 const mockRegisteredClients = [
   { id: 'c1', name: 'Ana', lastname: 'Gómez', phone: '099111222', email: 'ana@test.com', photoUrl: null },
   { id: 'c2', name: 'Luis', lastname: 'Pérez', phone: '', email: 'luis@test.com', photoUrl: 'http://img/luis.jpg' },
 ];
+const mockSearchClients = mockRegisteredClients.map((client) => ({
+  id: client.id,
+  name: client.name,
+  lastname: client.lastname,
+  phone: client.phone,
+  contactEmail: client.email,
+  photoUrl: client.photoUrl,
+}));
 
 vi.mock('../../../services/service.api', () => ({
   useGetServicesQuery: vi.fn(() => ({ data: mockServices })),
@@ -23,6 +33,9 @@ vi.mock('../../../services/service.api', () => ({
 
 vi.mock('../../../services/appointmentApi', () => ({
   useCreateAppointmentMutation: vi.fn(() => [mockCreateAppointment, { isLoading: false }]),
+  useAcquireTempLockMutation: vi.fn(() => [mockAcquireTempLock, { isLoading: false }]),
+  useReleaseTempLockMutation: vi.fn(() => [mockReleaseTempLock, { isLoading: false }]),
+  useLazySearchClientsQuery: vi.fn(() => [vi.fn(), { data: mockSearchClients, isFetching: false }]),
 }));
 
 vi.mock('../../../services/clientApi', () => ({

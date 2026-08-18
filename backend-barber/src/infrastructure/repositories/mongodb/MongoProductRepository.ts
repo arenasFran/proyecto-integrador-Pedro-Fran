@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { ProductModel, IProductDocument } from './models/product.model';
 import { Product } from '../../../domain/entities/Product';
+import { escapeRegex } from '../../utils/regex';
 
 type FindAllParams = {
   status?: string;
@@ -17,8 +18,6 @@ type FindAllResult = {
   totalPages: number;
   limit: number;
 };
-
-const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export type ProductCatalogParams = {
   category?: string;
@@ -49,9 +48,10 @@ export class MongoProductRepository {
     }
 
     if (params.search) {
+      const search = escapeRegex(params.search);
       filter.$or = [
-        { name: { $regex: params.search, $options: 'i' } },
-        { description: { $regex: params.search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
       ];
     }
 

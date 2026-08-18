@@ -326,7 +326,7 @@ export default function MembershipsPage() {
             </AnimatedContainer>
           </div>
 
-      <CreateMembershipModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      {kind === 'Admin' && <CreateMembershipModal isOpen={showCreate} onClose={() => setShowCreate(false)} />}
     </div>
   );
 }

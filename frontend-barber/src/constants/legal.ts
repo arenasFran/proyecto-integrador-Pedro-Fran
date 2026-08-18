@@ -2,7 +2,6 @@ export const legalConfig = {
   business: {
     name: 'Barbería Santiago Abbona',
     legalName: 'Santiago Abbona',
-    rut: '[A completar: RUT]',
     address: 'Avenida Artigas 397, Uruguay',
     email: 'santiagoabbona@gmail.com',
     phone: '+598 92 757 878',
@@ -50,7 +49,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: `La plataforma es operada por ${B.legalName}, nombre comercial "${B.name}", con RUT ${B.rut}, con domicilio en ${B.address}. Ante cualquier consulta podés contactarte por email a ${B.email} o por teléfono al ${B.phone}.`,
+            text: `La plataforma es operada por ${B.legalName}, nombre comercial "${B.name}", con domicilio en ${B.address}. Ante cualquier consulta podés contactarte por email a ${B.email} o por teléfono al ${B.phone}.`,
           },
         ],
       },
@@ -99,7 +98,7 @@ export const legalDocuments: LegalDocument[] = [
           {
             kind: 'list',
             items: [
-              'La duración del turno depende del servicio seleccionado.',
+              'La duración del turno depende del barbero seleccionado.',
               'Si llegás tarde, es posible que el turno deba acortarse o reprogramarse según la disponibilidad.',
               'Si la barbería debe cancelar un turno, te lo comunicaremos a la brevedad y coordinaremos la reprogramación del mismo.',
             ],
@@ -118,7 +117,7 @@ export const legalDocuments: LegalDocument[] = [
             kind: 'list',
             items: [
               'Los pagos realizados en línea no son reembolsables: si cancelás un turno que ya pagaste, el importe abonado no será devuelto.',
-              'La no concurrencia al turno sin aviso (no-show) puede generar consecuencias según la política aplicable.',
+              'Si no asistís a un turno reservado sin avisar previamente, se registrará la inasistencia según se detalla en la política de cancelaciones.',
               'Las reprogramaciones están sujetas a disponibilidad.',
             ],
           },
@@ -140,8 +139,29 @@ export const legalDocuments: LegalDocument[] = [
         ],
       },
       {
+        id: 'membresias',
+        heading: '7. Membresías',
+        blocks: [
+          {
+            kind: 'p',
+            text: 'La membresía mensual de la barbería incluye beneficios vigentes por un período de 30 días:',
+          },
+          {
+            kind: 'list',
+            items: [
+              'Cuatro (4) cupones de corte para canjear en turnos.',
+              'Diez por ciento (10%) de descuento en productos de la tienda.',
+            ],
+          },
+          {
+            kind: 'p',
+            text: 'Los cupones se canjean al reservar un turno con la membresía. La membresía es personal e intransferible. El pago puede realizarse en línea a través de Mercado Pago o en el local; si el pago queda pendiente de confirmación, la membresía no se activará hasta que se verifique.',
+          },
+        ],
+      },
+      {
         id: 'responsabilidades-usuario',
-        heading: '7. Responsabilidades del usuario',
+        heading: '8. Responsabilidades del usuario',
         blocks: [
           {
             kind: 'list',
@@ -156,7 +176,7 @@ export const legalDocuments: LegalDocument[] = [
       },
       {
         id: 'responsabilidad-barberia',
-        heading: '8. Responsabilidad de la barbería',
+        heading: '9. Responsabilidad de la barbería',
         blocks: [
           {
             kind: 'p',
@@ -170,7 +190,7 @@ export const legalDocuments: LegalDocument[] = [
       },
       {
         id: 'propiedad-intelectual',
-        heading: '9. Propiedad intelectual',
+        heading: '10. Propiedad intelectual',
         blocks: [
           {
             kind: 'p',
@@ -180,7 +200,7 @@ export const legalDocuments: LegalDocument[] = [
       },
       {
         id: 'modificaciones',
-        heading: '10. Modificaciones',
+        heading: '11. Modificaciones',
         blocks: [
           {
             kind: 'p',
@@ -190,7 +210,7 @@ export const legalDocuments: LegalDocument[] = [
       },
       {
         id: 'legislacion',
-        heading: '11. Legislación aplicable y jurisdicción',
+        heading: '12. Legislación aplicable y jurisdicción',
         blocks: [
           {
             kind: 'p',
@@ -213,7 +233,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: `El responsable de la base de datos personales es ${B.legalName}, con RUT ${B.rut}, domicilio en ${B.address}. Consultas: ${B.email} / ${B.phone}.`,
+            text: `El responsable de la base de datos personales es ${B.legalName}, domicilio en ${B.address}. Consultas: ${B.email} / ${B.phone}.`,
           },
         ],
       },
@@ -258,7 +278,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: 'Al registrarte aceptás los Términos y Condiciones y esta Política de Privacidad. El envío de comunicaciones comerciales (promociones, novedades y ofertas) requiere un consentimiento adicional y separado que podés revocar en cualquier momento.',
+            text: 'Al registrarte aceptás los Términos y Condiciones y esta Política de Privacidad.',
           },
         ],
       },
@@ -372,11 +392,7 @@ export const legalDocuments: LegalDocument[] = [
           },
           {
             kind: 'p',
-            text: `Si cancelás con menos de ${legalConfig.cancelMinHours} horas de anticipación, la cancelación tardía podrá generar las consecuencias indicadas en esta política. En caso de que el turno haya sido pagado en línea, no se realizará ningún reembolso.`,
-          },
-          {
-            kind: 'p',
-            text: 'Si no te presentás al turno (no-show) sin avisar, se registrará la inasistencia. La acumulación de inasistencias puede implicar restricciones a la reserva de nuevos turnos.',
+            text: `Si intentás cancelar con menos de ${legalConfig.cancelMinHours} horas de anticipación, la cancelación será rechazada por la plataforma y el turno se mantendrá vigente. En caso de que el turno haya sido pagado en línea, el importe no será reembolsado.`,
           },
         ],
       },
@@ -400,14 +416,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: 'Si la barbería cancela tu turno por cualquier motivo, te lo comunicaremos y tendrás derecho a:',
-          },
-          {
-            kind: 'list',
-            items: [
-              'Reprogramar el turno sin costo, o',
-              'Un crédito a favor para futuros servicios.',
-            ],
+            text: 'Si la barbería cancela tu turno por cualquier motivo, te lo comunicaremos y podrás reprogramar el turno sin costo.',
           },
         ],
       },
@@ -429,15 +438,23 @@ export const legalDocuments: LegalDocument[] = [
             kind: 'p',
             text: 'Si reservaste con pago en el local, la reserva queda registrada con tus datos y no se realiza ningún cobro anticipado. Si cancelás el turno, simplemente la reserva se libera.',
           },
+          {
+            kind: 'p',
+            text: `Si canjeaste un cupón de membresía y cancelás el turno con al menos ${legalConfig.cancelMinHours} horas de anticipación, el cupón se restaura para su uso en un futuro turno. Si cancelás fuera de ese plazo, el cupón se considera utilizado.`,
+          },
         ],
       },
       {
-        id: 'desistimiento',
-        heading: '6. Nota sobre contratación a distancia',
+        id: 'inasistencias',
+        heading: '6. Inasistencias',
         blocks: [
           {
             kind: 'p',
-            text: '[Esta política podrá completarse con información adicional sobre el derecho de desistimiento en contratación a distancia, conforme a la normativa aplicable.]',
+            text: 'Si no asistís a un turno reservado sin avisar previamente, se registrará la inasistencia. La acumulación de inasistencias puede limitar tu posibilidad de reservar nuevos turnos.',
+          },
+          {
+            kind: 'p',
+            text: 'Al acumular tres inasistencias, no podrás reservar nuevos turnos hasta que la barbería lo habilite. El registro de inasistencias se puede consultar y aclarar contactando a la barbería.',
           },
         ],
       },
@@ -461,21 +478,26 @@ export const legalDocuments: LegalDocument[] = [
         ],
       },
       {
-        id: 'tipos',
-        heading: '2. Tipos de cookies que utilizamos',
+        id: 'que-usamos',
+        heading: '2. Cookies que utilizamos',
         blocks: [
+          {
+            kind: 'p',
+            text: 'Actualmente solo utilizamos cookies estrictamente necesarias para el funcionamiento de la plataforma:',
+          },
           {
             kind: 'list',
             items: [
-              'Cookies necesarias: esenciales para el funcionamiento de la plataforma (por ejemplo, mantener tu sesión iniciada).',
-              'Cookies funcionales: recuerdan tus preferencias para mejorar tu experiencia.',
-              'Cookies de análisis (analytics): nos ayudan a entender cómo se usa la plataforma para mejorarla.',
-              'Cookies publicitarias: se utilizan únicamente si se habilitan comunicaciones comerciales y según el consentimiento correspondiente.',
+              'refreshToken: mantiene tu sesión iniciada y permite la renovación automática del acceso sin que tengas que volver a loguearte.',
             ],
           },
           {
             kind: 'p',
-            text: '[A completar: proveedores de cookies —por ejemplo, Google Analytics, Mercado Pago, etc.— y su finalidad]',
+            text: 'No utilizamos cookies de análisis, funcionales ni publicitarias. No realizamos seguimiento de tu actividad ni compartimos datos con terceros con fines de marketing o analítica.',
+          },
+          {
+            kind: 'p',
+            text: 'Si en el futuro incorporamos herramientas de analítica o publicidad, esta política será actualizada y se solicitará tu consentimiento antes de activarlas.',
           },
         ],
       },
@@ -485,7 +507,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: 'Podés configurar tu navegador para rechazar o eliminar las cookies. Tené en cuenta que algunas funciones de la plataforma pueden no funcionar correctamente si deshabilitás las cookies necesarias.',
+            text: 'Podés configurar tu navegador para bloquear o eliminar cookies. Tené en cuenta que la cookie necesaria (refreshToken) es indispensable para mantener tu sesión activa: si la deshabilitás, se cerrará tu sesión y deberás iniciar sesión nuevamente cada vez que accedas a la plataforma.',
           },
         ],
       },

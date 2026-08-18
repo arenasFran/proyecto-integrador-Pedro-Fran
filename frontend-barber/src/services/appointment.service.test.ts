@@ -10,21 +10,21 @@ const mockApi = vi.hoisted(() => ({
 vi.mock('./api', () => ({ default: mockApi }));
 
 describe('tempLockService', () => {
-  it('adquiere un temp lock y retorna el id', async () => {
-    mockApi.post.mockResolvedValueOnce({ data: { message: 'ok', tempLockId: 'lock-123' } });
+  it('adquiere un temp lock y retorna id y ownerToken', async () => {
+    mockApi.post.mockResolvedValueOnce({ data: { message: 'ok', tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) } });
     const { tempLockService } = await import('./appointment.service');
-    const id = await tempLockService.acquire('b1', '2025-06-16', '10:00');
-    expect(id).toBe('lock-123');
+    const result = await tempLockService.acquire('b1', '2025-06-16', '10:00');
+    expect(result).toEqual({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     expect(mockApi.post).toHaveBeenCalledWith('/api/appointments/temp-lock', {
       barberId: 'b1', date: '2025-06-16', startTime: '10:00',
     });
   });
 
-  it('libera un temp lock', async () => {
+  it('libera un temp lock con el ownerToken', async () => {
     mockApi.delete.mockResolvedValueOnce({ data: {} });
     const { tempLockService } = await import('./appointment.service');
-    await tempLockService.release('lock-123');
-    expect(mockApi.delete).toHaveBeenCalledWith('/api/appointments/temp-lock/lock-123');
+    await tempLockService.release('lock-123', 'a'.repeat(64));
+    expect(mockApi.delete).toHaveBeenCalledWith('/api/appointments/temp-lock/lock-123', { data: { ownerToken: 'a'.repeat(64) } });
   });
 });
 

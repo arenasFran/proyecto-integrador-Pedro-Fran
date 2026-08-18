@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { PaymentController } from '../controllers/payment/PaymentController';
-import { createAuthenticate } from '../middlewares/auth.middleware';
+import { createAuthenticate, authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
 import {
   paymentIdParamSchema,
@@ -49,6 +49,7 @@ export const createPaymentRouter = (deps: {
   router.get(
     '/',
     deps.authenticate,
+    authorize('Admin'),
     validate({ query: paymentQuerySchema }),
     deps.paymentController.getAll
   );

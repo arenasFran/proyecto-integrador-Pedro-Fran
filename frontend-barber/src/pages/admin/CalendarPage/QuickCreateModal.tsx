@@ -4,7 +4,12 @@ import { Modal, Select, Input, Button, DatePicker, Spinner, BarberAvatar, useToa
 import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
-import { useCreateAppointmentMutation } from '../../../services/appointmentApi';
+import {
+  useCreateAppointmentMutation,
+  useAcquireTempLockMutation,
+  useReleaseTempLockMutation,
+  useLazySearchClientsQuery,
+} from '../../../services/appointmentApi';
 import { useGetRegisteredClientsQuery, type RegisteredClientSummary } from '../../../services/clientApi';
 import type { BarberPublic, ClientSearchResult } from '../../../types/booking';
 
@@ -63,6 +68,10 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   } = useGetRegisteredClientsQuery(undefined, {
     skip: clientMode !== 'existing',
   });
+  const [acquireTempLock] = useAcquireTempLockMutation();
+  const [releaseTempLock] = useReleaseTempLockMutation();
+  const [triggerSearchClients, { data: clientResults = [], isFetching: isSearchingClients }] =
+    useLazySearchClientsQuery();
 
   const registeredClients = useMemo(() => clientsData?.clients ?? [], [clientsData]);
   const barbersById = useMemo(() => new Map(barbers.map((b) => [b.id, b])), [barbers]);
@@ -94,6 +103,28 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
       return tokens.every((t) => fullName.includes(t) || email.includes(t));
     });
   }, [registeredClients, clientSearch]);
+
+  const remoteClients = useMemo<RegisteredClientSummary[]>(
+    () => clientResults.map((client) => ({
+      id: client.id,
+      name: client.name,
+      lastname: client.lastname,
+      email: client.contactEmail ?? '',
+      phone: client.phone ?? '',
+      photoUrl: client.photoUrl ?? null,
+    })),
+    [clientResults]
+  );
+
+  const clientsForDisplay = clientSearch.trim().length >= 2 ? remoteClients : filteredClients;
+
+  useEffect(() => {
+    if (effectiveClientMode !== 'existing' || selectedClient) return;
+    const query = clientSearch.trim();
+    if (query.length < 2) return;
+    const timeout = setTimeout(() => triggerSearchClients(query), 300);
+    return () => clearTimeout(timeout);
+  }, [clientSearch, effectiveClientMode, selectedClient, triggerSearchClients]);
 
   const resetClientFields = () => {
     setClientId('');
@@ -197,7 +228,14 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
     setLocalError(null);
 
+    let tempLockResult: { tempLockId: string; ownerToken: string } | undefined;
     try {
+      tempLockResult = await acquireTempLock({
+        barberId,
+        date: selectedDate,
+        startTime: selectedTime,
+      }).unwrap();
+
       await createAppointment({
         barberId,
         serviceId,
@@ -208,6 +246,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
         clientLastname: clientLastname.trim(),
         clientPhone: clientPhone.trim(),
         clientEmail: clientEmail.trim(),
+        tempLockId: tempLockResult.tempLockId,
       }).unwrap();
       showToast('Turno creado con éxito');
       onClose();
@@ -217,6 +256,13 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           ? (err as { data: string }).data
           : 'Error al crear el turno.';
       setLocalError(message);
+    } finally {
+      if (tempLockResult) {
+        await releaseTempLock({
+          tempLockId: tempLockResult.tempLockId,
+          ownerToken: tempLockResult.ownerToken,
+        }).catch(() => {});
+      }
     }
   };
 
@@ -322,13 +368,13 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
               }}
               placeholder="Buscar por nombre, apellido o email"
             />
-            {loadingClients ? (
+            {loadingClients || isSearchingClients ? (
               <div className="flex justify-center py-4">
                 <Spinner size="sm" />
               </div>
             ) : (
               <div className="max-h-[160px] overflow-y-auto space-y-1 rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-1.5">
-                {filteredClients.slice(0, 30).map((c) => (
+                {clientsForDisplay.slice(0, 30).map((c) => (
                   <button
                     key={c.id}
                     type="button"
@@ -353,7 +399,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
                     {selectedClient?.id === c.id && <FiCheck size={14} className="text-[#FF5C00] shrink-0" />}
                   </button>
                 ))}
-                {filteredClients.length === 0 && (
+                {clientsForDisplay.length === 0 && (
                   <p className="text-[12px] text-[#6A6A6A] text-center py-3">Sin resultados</p>
                 )}
               </div>

@@ -46,7 +46,7 @@ export const createMembershipRouter = (deps: {
     '/',
     membershipMutationLimiter,
     deps.authenticate,
-    authorize('Admin', 'Empleado'),
+    authorize('Admin'),
     validate({ body: createMembershipSchema }),
     deps.membershipController.create
   );

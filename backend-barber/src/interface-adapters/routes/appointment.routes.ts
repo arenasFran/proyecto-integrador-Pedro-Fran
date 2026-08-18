@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { AppointmentController } from '../controllers/appointment/AppointmentController';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
+import { getConfig } from '../../infrastructure/config/env';
 import {
     anonymousQuerySchema,
     appointmentIdParamSchema,
@@ -19,6 +20,15 @@ const anonymousLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 200,
   message: { error: 'Demasiados intentos. Esperá 15 minutos.' },
+});
+
+const config = getConfig();
+const createAppointmentLimiter = rateLimit({
+  windowMs: config.rateLimit.appointmentCreate.windowMs,
+  max: config.rateLimit.appointmentCreate.max,
+  message: { error: 'Demasiadas solicitudes de creación de turnos. Esperá 15 minutos.' },
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
 const rescheduleMutationLimiter = rateLimit({
@@ -38,6 +48,7 @@ export const createAppointmentRouter = (deps: {
 
   router.post(
     '/',
+    createAppointmentLimiter,
     deps.optionalAuth,
     validate({ body: createAppointmentSchema }),
     deps.appointmentController.create

@@ -142,6 +142,16 @@ describe('UpdateOrderStatusUseCase', () => {
       expect(orderStockService.restoreStock).toHaveBeenCalledWith(order);
     });
 
+    it('debe cancelar una orden pendiente sin restaurar stock (nunca se descontó)', async () => {
+      const order = makeOrder();
+      orderRepository.findById.mockResolvedValue(order);
+
+      const result = await useCase.execute({ orderId: 'order-1', status: 'cancelled', actor: 'admin' });
+
+      expect(result.order.status).toBe('cancelled');
+      expect(orderStockService.restoreStock).not.toHaveBeenCalled();
+    });
+
     it('debe rechazar la cancelación si el payment asociado ya está aprobado', async () => {
       const order = makeOrder({ paymentId: 'pay-1' });
       orderRepository.findById.mockResolvedValue(order);

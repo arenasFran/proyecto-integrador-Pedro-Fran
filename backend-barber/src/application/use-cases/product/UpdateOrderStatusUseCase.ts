@@ -65,7 +65,9 @@ export class UpdateOrderStatusUseCase {
     }
 
     if (dto.status === 'cancelled') {
-      if (previousStatus === 'paid') await this.orderStockService.restoreStock(order);
+      if (previousStatus === 'paid' || previousStatus === 'delivered') {
+        await this.orderStockService.restoreStock(order);
+      }
       if (this.paymentRepository && paymentForCancellation) {
         try {
           // Ya se descartó más arriba el caso 'approved' (bloquea la cancelación),

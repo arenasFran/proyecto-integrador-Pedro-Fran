@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { ProductController } from '../controllers/product/ProductController';
 import { createAuthenticate } from '../middlewares/auth.middleware';
 import { authorize } from '../middlewares/auth.middleware';
@@ -11,6 +12,14 @@ import {
   queryProductsSchema,
 } from '../validators/product.validator';
 
+const productsLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Demasiadas solicitudes. Esperá un minuto.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 export const createProductRouter = (deps: {
   productController: ProductController;
   authenticate: ReturnType<typeof createAuthenticate>;
@@ -19,12 +28,14 @@ export const createProductRouter = (deps: {
 
   router.get(
     '/',
+    productsLimiter,
     validate({ query: queryProductsSchema }),
     deps.productController.getAll
   );
 
   router.get(
     '/categories',
+    productsLimiter,
     deps.productController.getCategories
   );
 
@@ -36,6 +47,7 @@ export const createProductRouter = (deps: {
 
   router.get(
     '/:id',
+    productsLimiter,
     validate({ params: productIdParamSchema }),
     deps.productController.getById
   );

@@ -1,8 +1,10 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { OrderController } from '../controllers/product/OrderController';
 import { createAuthenticate } from '../middlewares/auth.middleware';
 import { authorize } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validation.middleware';
+import { getConfig } from '../../infrastructure/config/env';
 import {
   createOrderSchema,
   createManualOrderSchema,
@@ -10,6 +12,15 @@ import {
   queryOrdersSchema,
   updateOrderStatusSchema,
 } from '../validators/order.validator';
+
+const config = getConfig();
+const orderMutationLimiter = rateLimit({
+  windowMs: config.rateLimit.order.windowMs,
+  max: config.rateLimit.order.max,
+  message: { error: 'Demasiadas solicitudes de órdenes. Esperá un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 export const createOrderRouter = (deps: {
   orderController: OrderController;
@@ -19,6 +30,7 @@ export const createOrderRouter = (deps: {
 
   router.post(
     '/',
+    orderMutationLimiter,
     deps.authenticate,
     authorize('Registrado'),
     validate({ body: createOrderSchema }),
@@ -27,6 +39,7 @@ export const createOrderRouter = (deps: {
 
   router.post(
     '/manual',
+    orderMutationLimiter,
     deps.authenticate,
     authorize('Admin', 'Empleado'),
     validate({ body: createManualOrderSchema }),

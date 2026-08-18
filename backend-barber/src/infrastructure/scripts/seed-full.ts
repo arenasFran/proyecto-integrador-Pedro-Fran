@@ -111,7 +111,7 @@ export async function runFullSeed() {
     { name: 'Shampoo Revitalizante', description: 'Limpieza profunda 250ml', price: 320, stock: 20, category: 'Cuidado Capilar', status: 'active' },
     { name: 'Peine Profesional', description: 'Peine de carbono antitetanico', price: 180, stock: 30, category: 'Accesorios', status: 'active' },
     { name: 'Toalla de Barbero', description: 'Toalla microfibra 40x60cm', price: 290, stock: 40, category: 'Accesorios', status: 'active' },
-  ];
+  ] as const;
   const productIds: string[] = [];
   for (const p of productsData) {
     const existing = await ProductModel.findOne({ name: p.name });
@@ -150,7 +150,7 @@ export async function runFullSeed() {
       daysOffset: -60, couponsTotal: 4, couponsUsed: 4, productDiscount: 10 },
     { clientIdx: 4, status: 'cancelled', price: 399, paymentMethod: 'mercadopago', billingCycle: 'onetime',
       daysOffset: -120, couponsTotal: 4, couponsUsed: 0, productDiscount: 10 },
-  ];
+  ] as const;
   const membershipIds: string[] = [];
   for (const m of membershipsData) {
     const uid = clientIds[m.clientIdx];
@@ -256,7 +256,7 @@ export async function runFullSeed() {
   console.log(`[SEED] ${aptCount} turnos creados`);
 
   // ── 8. Orders ───────────────────────────────────────
-  const orderStatuses = ['paid', 'delivered', 'pending', 'cancelled'];
+  const orderStatuses = ['paid', 'delivered', 'pending', 'cancelled'] as const;
   const orderIds: string[] = [];
   for (let i = 0; i < 20; i++) {
     const clientIdx = i % 5;
@@ -347,9 +347,8 @@ export async function runFullSeed() {
   console.log(`[SEED] ${revCount} revenue_entries creados (backfill)`);
   console.log('[SEED] Seed completo.');
   console.log('[SEED] Credenciales:');
-  console.log(`  Admin: ${adminEmail} / ${process.env.SEED_ADMIN_PASSWORD || 'Admin123!'}`);
+  console.log(`  Admin: ${adminEmail}`);
   console.log('  Clientes: santiago@test.com, valentina@test.com, mateo@test.com, camila@test.com, joaquin@test.com');
-  console.log('  Clave clientes: Cliente123!');
   console.log('  Barbers: carlos@barberia.com, martin@barberia.com, lucia@barberia.com');
-  console.log('  Clave barbers: Barber123!');
+  console.log('  La contraseña del admin se define con SEED_ADMIN_PASSWORD (default: ver script).');
 }

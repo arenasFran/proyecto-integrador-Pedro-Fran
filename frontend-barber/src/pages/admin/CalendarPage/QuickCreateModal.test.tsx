@@ -18,12 +18,23 @@ const mockRegisteredClients = [
   { id: 'c2', name: 'Luis', lastname: 'Pérez', contactEmail: 'luis@test.com' },
 ];
 
+const withUnwrap = (value: unknown) => {
+  const promise = Promise.resolve(value) as Promise<unknown> & { unwrap: () => Promise<unknown> };
+  promise.unwrap = () => promise;
+  return promise;
+};
+
+const mockAcquireTempLock = vi.fn(() => withUnwrap({ tempLockId: 'lock1', ownerToken: 'token1' }));
+const mockReleaseTempLock = vi.fn(() => withUnwrap({}));
+
 vi.mock('../../../services/service.api', () => ({
   useGetServicesQuery: vi.fn(() => ({ data: mockServices })),
 }));
 
 vi.mock('../../../services/appointmentApi', () => ({
   useCreateAppointmentMutation: vi.fn(() => [mockCreateAppointment, { isLoading: false }]),
+  useAcquireTempLockMutation: vi.fn(() => [mockAcquireTempLock, { isLoading: false }]),
+  useReleaseTempLockMutation: vi.fn(() => [mockReleaseTempLock, { isLoading: false }]),
   useLazySearchClientsQuery: vi.fn(() => [
     mockTriggerSearchClients,
     { data: mockRegisteredClients, isFetching: false },

@@ -32,7 +32,6 @@ const corsOrigins = config.corsOrigin
 app.use(express.json());
 app.use(
   helmet({
-    crossOriginOpenerPolicy: false,
     contentSecurityPolicy: false,
   })
 );

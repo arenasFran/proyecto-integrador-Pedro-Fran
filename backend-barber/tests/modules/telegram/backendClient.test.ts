@@ -4,6 +4,8 @@ import {
   getProducts,
   getSlots,
   createGuestAppointment,
+  acquireTempLock,
+  releaseTempLock,
   getMyProfile,
   getMyAppointments,
   cancelAppointmentAsUser,
@@ -125,10 +127,12 @@ describe('backendClient — autenticación', () => {
       clientLastname: 'Pérez',
       clientPhone: '099111111',
       clientEmail: 'ana@test.com',
+      tempLockId: 'lock-1',
     });
 
     const [, init] = fetchMock.mock.calls[0];
     expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+    expect(JSON.parse(init.body as string).tempLockId).toBe('lock-1');
   });
 
   it('createGuestAppointment manda Authorization si hay accessToken (usuario vinculado)', async () => {
@@ -144,12 +148,36 @@ describe('backendClient — autenticación', () => {
         clientLastname: 'Pérez',
         clientPhone: '099111111',
         clientEmail: 'ana@test.com',
+        tempLockId: 'lock-1',
       },
       'token-456'
     );
 
     const [, init] = fetchMock.mock.calls[0];
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer token-456');
+  });
+
+  it('acquireTempLock pega a POST /appointments/temp-lock con barberId/date/startTime', async () => {
+    const fetchMock = mockFetchOnce(201, { tempLockId: 'lock-1', ownerToken: 'a'.repeat(64) });
+
+    const result = await acquireTempLock('b1', '2026-08-01', '10:00');
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/appointments\/temp-lock$/);
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ barberId: 'b1', date: '2026-08-01', startTime: '10:00' });
+    expect(result).toEqual({ tempLockId: 'lock-1', ownerToken: 'a'.repeat(64) });
+  });
+
+  it('releaseTempLock pega a DELETE /appointments/temp-lock/:id con ownerToken', async () => {
+    const fetchMock = mockFetchOnce(200, { message: 'TempLock liberado' });
+
+    await releaseTempLock('lock-1', 'a'.repeat(64));
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/appointments\/temp-lock\/lock-1$/);
+    expect(init.method).toBe('DELETE');
+    expect(JSON.parse(init.body as string)).toEqual({ ownerToken: 'a'.repeat(64) });
   });
 });
 

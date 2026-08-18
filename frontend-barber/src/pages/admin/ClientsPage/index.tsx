@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiSearch, FiTrendingUp, FiUser, FiUserCheck, FiUserX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
-import { AnimatedContainer } from '../../../components/common';
+import { AnimatedContainer, BarberAvatar } from '../../../components/common';
 import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
@@ -118,18 +118,21 @@ export default function ClientsPage() {
                 className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 flex flex-col gap-3 cursor-pointer active:scale-[0.98] transition-transform"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-[14px] font-semibold break-words ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
-                      {c.clientName} {c.clientLastname}
-                      {c.membershipStatus === 'active' && (
-                        <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                  <div className="flex items-start gap-3 min-w-0">
+                    <BarberAvatar name={c.clientName} lastname={c.clientLastname} photoUrl={c.clientPhotoUrl} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[14px] font-semibold break-words ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
+                        {c.clientName} {c.clientLastname}
+                        {c.membershipStatus === 'active' && (
+                          <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                        )}
+                      </p>
+                      {c.clientPhone && (
+                        <p className="text-[12px] text-[#8A8A8A]">{c.clientPhone}</p>
                       )}
-                    </p>
-                    {c.clientPhone && (
-                      <p className="text-[12px] text-[#8A8A8A]">{c.clientPhone}</p>
-                    )}
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      {sanctionBadge(c)}
+                      <div className="flex flex-wrap gap-1.5 mt-1.5">
+                        {sanctionBadge(c)}
+                      </div>
                     </div>
                   </div>
                   {kindBadge(c.kind)}
@@ -191,13 +194,18 @@ export default function ClientsPage() {
                     className="border-b border-[#282828]/50 hover:bg-[#1A1A1A] cursor-pointer transition-colors last:border-b-0"
                   >
                     <td className="px-4 py-3">
-                      <span className={`font-medium ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
-                        {c.clientName} {c.clientLastname}
-                        {c.membershipStatus === 'active' && (
-                          <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
-                        )}
-                      </span>
-                      <div className="flex flex-wrap gap-1.5 mt-1">{sanctionBadge(c)}</div>
+                      <div className="flex items-center gap-3">
+                        <BarberAvatar name={c.clientName} lastname={c.clientLastname} photoUrl={c.clientPhotoUrl} size="sm" />
+                        <div className="min-w-0">
+                          <span className={`font-medium ${c.membershipStatus === 'active' ? 'text-[#FF5C00]' : 'text-white'}`}>
+                            {c.clientName} {c.clientLastname}
+                            {c.membershipStatus === 'active' && (
+                              <FiAward size={14} className="inline ml-1.5 text-[#FF5C00] align-middle" />
+                            )}
+                          </span>
+                          <div className="flex flex-wrap gap-1.5 mt-1">{sanctionBadge(c)}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-[#8A8A8A]">{c.clientPhone ?? '—'}</td>
                     <td className="px-4 py-3 text-[#8A8A8A] max-w-[180px] truncate">{c.clientEmail ?? '—'}</td>

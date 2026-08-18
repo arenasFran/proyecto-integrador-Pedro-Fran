@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { FiAward, FiPlus, FiSearch, FiUser, FiCheck, FiClock, FiAlertTriangle, FiDollarSign, FiList } from 'react-icons/fi';
-import { AnimatedContainer, Button, Pagination, Select, Spinner, useToast } from '../../../components/common';
+import { FiAward, FiPlus, FiSearch, FiCheck, FiClock, FiAlertTriangle, FiDollarSign, FiList } from 'react-icons/fi';
+import { AnimatedContainer, BarberAvatar, Button, Pagination, Select, Spinner, useToast } from '../../../components/common';
 import {
   useGetAllMembershipsQuery,
   useGetPendingMembershipsQuery,
@@ -180,7 +180,7 @@ export default function MembershipsPage() {
                   {pending.map((m: MembershipWithUser) => (
                     <div key={m.id} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] border border-[#282828] px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FiUser className="text-[#FF5C00] text-sm shrink-0" />
+                        <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
                         <div className="min-w-0">
                           <p className="text-[13px] text-white font-medium truncate">
                             {m.user?.name ?? '—'} {m.user?.lastname ?? ''}
@@ -225,7 +225,7 @@ export default function MembershipsPage() {
                   {expiring.map((m: MembershipWithUser & { daysLeft: number }) => (
                     <div key={m.id} className="flex items-center justify-between rounded-[10px] bg-[#1A1A1A] border border-[#282828] px-4 py-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <FiUser className="text-[#FF5C00] text-sm shrink-0" />
+                        <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
                         <div className="min-w-0">
                           <p className="text-[13px] text-white font-medium truncate">
                             {m.user?.name ?? '—'} {m.user?.lastname ?? ''}
@@ -288,7 +288,7 @@ export default function MembershipsPage() {
                       <tr key={m.id} className="border-b border-[#282828]/50 hover:bg-[#1A1A1A] transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <FiUser className="text-[#FF5C00] text-sm shrink-0" />
+                            <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
                             <span className="text-white font-medium truncate">{m.user?.name ?? '—'} {m.user?.lastname ?? ''}</span>
                           </div>
                         </td>

@@ -363,10 +363,14 @@ export default function ClientDetailPage() {
           <>
             <div className="flex flex-col gap-2 md:hidden">
               {sortedAppointments.map((a) => (
-                <div key={a.id} className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 text-[13px]">
+                <div
+                  key={a.id}
+                  onClick={() => actions.setDetailTarget(a)}
+                  className="rounded-[14px] border border-[#282828] bg-[#1A1A1A] p-3 flex flex-col gap-2 text-[13px] cursor-pointer hover:border-[#FF5C00]/40 active:scale-[0.99] transition-all"
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium">{formatDate(a.date)}</span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <Badge label={a.status} styles={statusStyles[a.status]} />
                       <AppointmentActionsMenu appointment={a} actions={actions} />
                     </div>
@@ -400,7 +404,11 @@ export default function ClientDetailPage() {
                 </thead>
                 <tbody>
                   {sortedAppointments.map((a) => (
-                    <tr key={a.id} className="border-b border-[#282828]/50 last:border-b-0">
+                    <tr
+                      key={a.id}
+                      onClick={() => actions.setDetailTarget(a)}
+                      className="border-b border-[#282828]/50 last:border-b-0 cursor-pointer hover:bg-[#1A1A1A]/80 transition-colors"
+                    >
                       <td className="px-4 py-3 text-white">{formatDate(a.date)}</td>
                       <td className="px-4 py-3 text-[#8A8A8A]">{a.startTime} - {a.endTime}</td>
                       <td className="px-4 py-3 text-[#8A8A8A] max-w-[160px] truncate">{a.serviceName}</td>
@@ -408,7 +416,7 @@ export default function ClientDetailPage() {
                       <td className="px-4 py-3 text-right text-green-400 font-medium">{formatCurrency(a.servicePrice)}</td>
                       <td className="px-4 py-3 text-center"><Badge label={a.status} styles={statusStyles[a.status]} /></td>
                       <td className="px-4 py-3 text-center"><Badge label={a.paymentStatus} styles={paymentStyles[a.paymentStatus]} /></td>
-                      <td className="px-4 py-3 text-right"><AppointmentActionsMenu appointment={a} actions={actions} /></td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}><AppointmentActionsMenu appointment={a} actions={actions} /></td>
                     </tr>
                   ))}
                 </tbody>

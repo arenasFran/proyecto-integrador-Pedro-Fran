@@ -134,7 +134,7 @@ export const ProductsPage: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
       <AdminPageHeader icon={FiPackage} title="Productos" description="Gestioná el catálogo de productos" action={<Button size="sm" icon={FiPlus} onClick={openCreate}>
             Nuevo producto
           </Button>} />

@@ -9,9 +9,9 @@ import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider, CookieConsent } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { RequireAdminRoute, RequireClientRoute } from './components/guards';
+import { RequireAdminRoute, RequireClientRoute, SessionExpiredRedirect } from './components/guards';
 import { logout } from './store/slices/authSlice';
-import { isTokenValid } from './utils/token';
+import { decodeTokenPayload, isTokenValid } from './utils/token';
 
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
 const BookingPage = lazy(() => import('./pages/client/BookingPage'));
@@ -65,7 +65,7 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       const refreshed = await silentRefresh();
       if (refreshed) {
         await dispatch(authApi.endpoints.getProfile.initiate());
-      } else if (token) {
+      } else {
         dispatch(logout());
       }
       dispatch(setInitialized());
@@ -98,6 +98,21 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       dispatch(authApi.endpoints.getProfile.initiate());
     }
   }, [loginToken, dispatch]);
+
+  useEffect(() => {
+    const token = getAccessToken();
+    const expiresAt = token ? decodeTokenPayload(token)?.exp : undefined;
+    if (!expiresAt) return;
+
+    const refreshDelay = Math.max(expiresAt * 1000 - Date.now() - 60_000, 5_000);
+    const timeoutId = window.setTimeout(() => {
+      void silentRefresh().then((refreshed) => {
+        if (!refreshed) dispatch(logout());
+      });
+    }, refreshDelay);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [dispatch, loginToken]);
 
   return <>{children}</>;
 }
@@ -191,6 +206,7 @@ function RouteFallback() {
 
 function RequireAuthRoute({ children }: { children: React.ReactNode }) {
   const isInitializing = useAppSelector((state) => state.auth.isInitializing);
+  const loginToken = useAppSelector((state) => state.auth.loginToken);
   const token = getAccessToken();
 
   if (isInitializing) {
@@ -201,8 +217,12 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isTokenValid(token)) {
+  if (!token && !loginToken) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!isTokenValid(token)) {
+    return <SessionExpiredRedirect to="/login" />;
   }
 
   return <>{children}</>;
@@ -210,10 +230,31 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
 
 function OptionalAppLayout({ children }: { children: React.ReactNode }) {
   const loginToken = useAppSelector((state) => state.auth.loginToken);
-  const token = loginToken || getAccessToken();
+  const dispatch = useAppDispatch();
+  const token = getAccessToken() || loginToken;
   const [mobileOpen, setMobileOpen] = useState(false);
+  const hasValidSession = isTokenValid(token);
 
-  if (!token) return <>{children}</>;
+  useEffect(() => {
+    if (!token || hasValidSession) {
+      return;
+    }
+
+    let cancelled = false;
+    void silentRefresh().then((refreshed) => {
+      if (cancelled) return;
+
+      if (!refreshed) {
+        dispatch(logout());
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [dispatch, hasValidSession, token]);
+
+  if (!hasValidSession) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-[#050505]">

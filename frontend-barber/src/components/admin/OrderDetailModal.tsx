@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   FiUser, FiMail, FiCalendar, FiDollarSign, FiCreditCard, FiHash, FiClock,
   FiCheckCircle, FiXCircle, FiTruck, FiTrash2, FiPackage, FiChevronDown,
-  FiChevronUp,   FiAlertCircle, FiShoppingBag,
+  FiChevronUp, FiShoppingBag,
 } from 'react-icons/fi';
 import type { Order, OrderStatus, OrderItem } from '../../types/order';
 import { formatDateTime } from '../../utils/formatDate';
@@ -12,15 +12,14 @@ import { ProductDetailModal } from './ProductDetailModal';
 import PaymentTransactionDetail from '../payment/PaymentTransactionDetail';
 import { useGetPaymentByReferenceQuery } from '../../services/paymentApi';
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Partial<Record<OrderStatus, { label: string; bg: string; text: string; icon: React.ReactNode }>> = {
   pending: { label: 'Pendiente', bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: <FiClock size={12} /> },
   paid: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400', icon: <FiCheckCircle size={12} /> },
   delivered: { label: 'Entregado', bg: 'bg-blue-500/10', text: 'text-blue-400', icon: <FiTruck size={12} /> },
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiXCircle size={12} /> },
-  refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400', icon: <FiDollarSign size={12} /> },
-  disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: <FiAlertCircle size={12} /> },
-  stock_issue: { label: 'Problema de stock', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiAlertCircle size={12} /> },
 };
+
+const UNKNOWN_STATUS = { label: 'Estado no disponible', bg: 'bg-gray-500/10', text: 'text-gray-400', icon: <FiPackage size={12} /> };
 
 const MP_STATUS_LABELS: Record<string, string> = {
   accredited: 'Acreditado',
@@ -90,7 +89,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
 
   const statusCfg = order.status === 'pending' && order.paymentMethod === 'local'
     ? { ...STATUS_CONFIG.pending, label: 'Pago al levantar' }
-    : STATUS_CONFIG[order.status];
+    : STATUS_CONFIG[order.status] ?? UNKNOWN_STATUS;
   const isPending = order.status === 'pending';
   const isPaid = order.status === 'paid';
   const manualPaymentLabel = order.paymentMethod === 'local' ? 'Cobrar' : 'Confirmar pago';
@@ -229,7 +228,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
               {expandedSections['history'] && (
                 <div className="mt-3 space-y-2">
                   {[...order.statusHistory].reverse().map((entry, idx) => {
-                    const cfg = STATUS_CONFIG[entry.status];
+                    const cfg = STATUS_CONFIG[entry.status] ?? UNKNOWN_STATUS;
                     return (
                       <div key={idx} className="flex items-center gap-2 text-[13px]">
                         <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${cfg.bg} ${cfg.text}`}>

@@ -192,7 +192,7 @@ export const ServicesPage: React.FC = () => {
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-8">
         <AnimatedContainer animation="fadeInDown">
           <AdminPageHeader icon={FiScissors} title="Servicios" description={<><span>Gestioná los servicios que aparecen en las reservas.</span><span className="sr-only">Administrá los servicios ofrecidos.</span></>} action={<Button icon={FiPlus} onClick={openCreate}>Nuevo servicio</Button>} />
         </AnimatedContainer>

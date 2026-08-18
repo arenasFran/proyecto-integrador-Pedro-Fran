@@ -132,7 +132,7 @@ export default function MembershipsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
       <AnimatedContainer animation="fadeInDown">
         <AdminPageHeader icon={FiAward} title="Membresías" description="Gestioná las membresías de los clientes" action={<Button icon={FiPlus} onClick={() => setShowCreate(true)}>Nueva membresía</Button>} />
       </AnimatedContainer>

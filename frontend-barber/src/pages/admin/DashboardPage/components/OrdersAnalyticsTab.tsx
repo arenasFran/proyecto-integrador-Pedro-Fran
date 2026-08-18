@@ -17,9 +17,6 @@ const STATUS_LABELS: Record<string, string> = {
   paid: 'Pagadas',
   delivered: 'Entregadas',
   cancelled: 'Canceladas',
-  refunded: 'Reembolsadas',
-  disputed: 'En disputa',
-  stock_issue: 'Problema de stock',
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,9 +24,6 @@ const STATUS_COLORS: Record<string, string> = {
   paid: '#4ade80',
   delivered: '#60a5fa',
   cancelled: '#f87171',
-  refunded: '#c084fc',
-  disputed: '#fb923c',
-  stock_issue: '#ef4444',
 };
 
 function formatShortDate(value: string): string {
@@ -61,7 +55,7 @@ export default function OrdersAnalyticsTab({ desde, hasta, showKpis = true }: Or
       .map(([date, values]) => ({ date, label: formatShortDate(date), ...values }));
   }, [orders]);
 
-  const statusData = Object.entries(overview?.ordersByStatus ?? {}).map(([status, count]) => ({
+  const statusData = Object.entries(overview?.ordersByStatus ?? {}).filter(([status]) => STATUS_LABELS[status]).map(([status, count]) => ({
     status,
     label: STATUS_LABELS[status] ?? status,
     count,

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiPlus, FiScissors } from 'react-icons/fi';
+import { FiPlus, FiUsers } from 'react-icons/fi';
 import { AnimatedContainer, Button, ConfirmModal, Pagination, useToast } from '../../../components/common';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -32,9 +32,9 @@ export const ProfessionalsPage: React.FC = () => {
   const { list: professionals, totalPages } = useAppSelector((state) => state.barbers);
   const { showToast } = useToast();
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Professional | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [toggleTarget, setToggleTarget] = useState<{ professional: Professional; action: 'deactivate' | 'activate' } | null>(null);
@@ -51,12 +51,15 @@ export const ProfessionalsPage: React.FC = () => {
     [professionals, currentTokenUser]
   );
 
-  const loadProfessionals = useCallback(async (pageNum?: number, search?: string) => {
+  const loadProfessionals = useCallback(async (pageNum?: number) => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      await dispatch(fetchBarbersPaginated({ page: pageNum ?? 1, limit: PAGE_SIZE, search })).unwrap();
+      await dispatch(fetchBarbersPaginated({ page: pageNum ?? 1, limit: PAGE_SIZE })).unwrap();
     } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
+      const message = error instanceof Error ? error.message : 'Error al cargar profesionales';
+      setLoadError(message);
+      showToast(message, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -65,28 +68,21 @@ export const ProfessionalsPage: React.FC = () => {
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage);
     setIsLoading(true);
-    dispatch(fetchBarbersPaginated({ page: newPage, limit: PAGE_SIZE, search: searchTerm.trim() || undefined }))
+    setLoadError(null);
+    dispatch(fetchBarbersPaginated({ page: newPage, limit: PAGE_SIZE }))
       .unwrap()
       .catch((error) => {
-        showToast(error instanceof Error ? error.message : 'Error al cargar profesionales', 'error');
+        const message = error instanceof Error ? error.message : 'Error al cargar profesionales';
+        setLoadError(message);
+        showToast(message, 'error');
       })
       .finally(() => setIsLoading(false));
-  }, [dispatch, showToast, searchTerm]);
+  }, [dispatch, showToast]);
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadProfessionals(1);
-    }, 0);
+    const timeoutId = window.setTimeout(() => void loadProfessionals(1), 0);
     return () => window.clearTimeout(timeoutId);
   }, [loadProfessionals]);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setPage(1);
-      void loadProfessionals(1, searchTerm.trim() || undefined);
-    }, 300);
-    return () => window.clearTimeout(timeoutId);
-  }, [searchTerm, loadProfessionals]);
 
   const kind = getTokenKind(getAccessToken());
   if (kind !== 'Admin') {
@@ -165,12 +161,12 @@ export const ProfessionalsPage: React.FC = () => {
           updateBarberSchedule({ id: editProfessional.id, schedule: payload.schedule })
         ).unwrap();
         await dispatch(fetchBarbers()).unwrap();
-        await loadProfessionals(page, searchTerm.trim() || undefined);
+        await loadProfessionals(page);
         showToast(`Barbero ${updated.name} actualizado con éxito.`);
       } else {
         const created = await dispatch(createBarber(payload)).unwrap();
         await dispatch(fetchBarbers()).unwrap();
-        await loadProfessionals(page, searchTerm.trim() || undefined);
+        await loadProfessionals(page);
         showToast(`Barbero ${created.name} creado con éxito.`);
       }
     } catch (error) {
@@ -185,7 +181,7 @@ export const ProfessionalsPage: React.FC = () => {
     try {
       const result = await dispatch(removeBarber(professional.id)).unwrap();
       await dispatch(fetchBarbers()).unwrap();
-      await loadProfessionals(page, searchTerm.trim() || undefined);
+      await loadProfessionals(page);
       showToast(result.message);
       setDeleteTarget(null);
     } catch (error) {
@@ -208,7 +204,7 @@ export const ProfessionalsPage: React.FC = () => {
         showToast(`${result.name} activado.`);
       }
       await dispatch(fetchBarbers()).unwrap();
-      await loadProfessionals(page, searchTerm.trim() || undefined);
+      await loadProfessionals(page);
       setToggleTarget(null);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Error';
@@ -220,16 +216,19 @@ export const ProfessionalsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <div className="relative mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="relative mx-auto w-full max-w-[1440px] px-0 pb-8 sm:pb-10">
         <AnimatedContainer animation="fadeInDown">
-          <AdminPageHeader icon={FiScissors} title="Barberos" description="Gestioná el equipo, sus horarios y disponibilidad." action={<Button icon={FiPlus} size="md" onClick={openCreateModal}>Nuevo barbero</Button>} />
+          <AdminPageHeader
+            icon={FiUsers}
+            title="Profesionales"
+            description="Gestioná profesionales, horarios y disponibilidad desde un solo lugar."
+            action={<Button icon={FiPlus} size="md" onClick={openCreateModal} className="w-full shrink-0 sm:w-auto">Nuevo barbero</Button>}
+          />
         </AnimatedContainer>
 
-        <div className="mt-8">
+        <div>
           <ProfessionalsList
             professionals={employees}
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
             onEdit={(p) => openEditModal(p)}
             onToggleActive={(p) =>
               setToggleTarget({
@@ -239,6 +238,9 @@ export const ProfessionalsPage: React.FC = () => {
             }
             onDelete={(p) => setDeleteTarget(p)}
             isLoading={isLoading}
+            errorMessage={loadError}
+            onRetry={() => void loadProfessionals(page)}
+            onCreate={openCreateModal}
           />
         </div>
 

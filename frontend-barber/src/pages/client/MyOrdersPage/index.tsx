@@ -7,20 +7,17 @@ import { formatCurrency } from '../../../utils/formatCurrency';
 import { formatDate } from '../../../utils/formatDate';
 import type { Order, OrderStatus } from '../../../types/order';
 
-const statusLabels: Record<OrderStatus, { label: string; tone: 'warning' | 'success' | 'info' | 'danger' | 'purple' | 'accent' }> = {
+const statusLabels: Partial<Record<OrderStatus, { label: string; tone: 'warning' | 'success' | 'info' | 'danger' | 'purple' | 'accent' }>> = {
   pending: { label: 'Pendiente', tone: 'warning' },
   paid: { label: 'Pagado', tone: 'success' },
   delivered: { label: 'Entregado', tone: 'info' },
   cancelled: { label: 'Cancelado', tone: 'danger' },
-  refunded: { label: 'Reembolsado', tone: 'purple' },
-  disputed: { label: 'En disputa', tone: 'accent' },
-  stock_issue: { label: 'Problema de stock', tone: 'danger' },
 };
 
 function getStatusLabel(order: Order) {
   if (order.status === 'pending' && order.paymentMethod === 'local') return { label: 'Pago al levantar', tone: 'warning' as const };
   if (order.status === 'pending' && order.paymentMethod && order.paymentMethod !== 'local') return { label: 'Pago online pendiente', tone: 'warning' as const };
-  return statusLabels[order.status] ?? { label: order.status, tone: 'neutral' as const };
+  return statusLabels[order.status] ?? { label: 'Estado no disponible', tone: 'info' as const };
 }
 
 function ProductImage({ item, size = 'h-10 w-10' }: { item?: Order['items'][number]; size?: string }) {
@@ -75,7 +72,7 @@ function OrderDetailsModal({ order, onClose }: { order: Order | null; onClose: (
               {order.statusHistory.map((entry, index) => (
                 <div key={`${entry.status}-${entry.timestamp}-${index}`} className="flex gap-2.5">
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${index === order.statusHistory.length - 1 ? 'bg-[#FF7A33]' : 'bg-[#555]'}`} />
-                  <div><p className="text-[12px] text-white">{statusLabels[entry.status]?.label ?? entry.status}</p><p className="text-[11px] text-[#666]">{formatDate(entry.timestamp)}</p></div>
+                  <div><p className="text-[12px] text-white">{statusLabels[entry.status]?.label ?? 'Estado no disponible'}</p><p className="text-[11px] text-[#666]">{formatDate(entry.timestamp)}</p></div>
                 </div>
               ))}
             </div>

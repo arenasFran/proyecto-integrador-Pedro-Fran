@@ -86,7 +86,7 @@ export default function DashboardPage() {
     : null;
 
   return (
-    <div className="p-4 lg:p-6 max-w-7xl mx-auto flex flex-col gap-5 overflow-x-hidden">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5 overflow-x-hidden">
       <AdminPageHeader icon={FiBarChart2} title="Métricas" description="Una lectura clara de la operación, los ingresos y el crecimiento." />
 
       <div className="flex gap-1 rounded-[12px] bg-[#1A1A1A] p-1 w-full sm:w-fit" role="tablist" aria-label="Secciones de métricas">

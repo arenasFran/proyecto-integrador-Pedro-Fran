@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FiChevronLeft, FiChevronRight, FiScissors } from 'react-icons/fi';
+import { FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
 import api, { getAccessToken } from '../../../services/api';
 import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
@@ -188,9 +188,9 @@ export const CalendarPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-6">
         <AnimatedContainer animation="fadeInDown">
-          <AdminPageHeader icon={FiScissors} title="Calendario" description="Organizá la agenda y creá turnos desde una vista única." />
+          <AdminPageHeader icon={FiCalendar} title="Calendario" description="Organizá la agenda y creá turnos desde una vista única." />
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[16px] border border-[#282828] bg-[#121212] p-4">

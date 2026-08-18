@@ -187,8 +187,9 @@ const LandingFoldLine: React.FC<{ text: string }> = ({ text }) => (
 
 const LandingProductCard: React.FC<{ product: Product }> = ({ product }) => {
   const gallery = [product.imageUrl, ...product.gallery].filter(Boolean).slice(0, 4);
-  const unavailable = product.status !== 'active' || product.stock === 0;
   const reduceMotion = useReducedMotion();
+
+  if (product.status !== 'active' || product.stock <= 0) return null;
 
   return (
   <motion.article
@@ -210,7 +211,6 @@ const LandingProductCard: React.FC<{ product: Product }> = ({ product }) => {
         <FiTag aria-hidden="true" />
         <span>{product.category || 'Cuidado personal'}</span>
       </span>
-      {unavailable && <span className="catalog-card-badge">{product.stock === 0 ? 'Sin stock' : 'No disponible'}</span>}
     </div>
     <div className="catalog-card-content">
       <div className="catalog-card-topline">
@@ -320,7 +320,7 @@ export const LandingPage: React.FC = () => {
   }, { skip: !shopInView });
   const { data: categoriesData } = useGetCategoriesQuery(undefined, { skip: !shopInView });
   const { data: servicesData } = useGetServicesQuery(undefined, { skip: !servicesInView });
-  const products = productsData?.products ?? [];
+  const products = (productsData?.products ?? []).filter((product) => product.status === 'active' && product.stock > 0);
   const categories = categoriesData?.categories ?? [];
   const landingServices = servicesData
     ? servicesData.map((service, index) => {

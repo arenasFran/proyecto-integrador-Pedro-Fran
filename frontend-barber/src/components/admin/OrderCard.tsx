@@ -1,17 +1,16 @@
-import { FiUser, FiCalendar, FiDollarSign, FiCreditCard, FiClock, FiCheckCircle, FiXCircle, FiTruck, FiAlertCircle, FiPackage, FiUserCheck, FiUserX } from 'react-icons/fi';
+import { FiUser, FiCalendar, FiCreditCard, FiClock, FiCheckCircle, FiXCircle, FiTruck, FiPackage, FiUserCheck, FiUserX } from 'react-icons/fi';
 import type { Order, OrderStatus } from '../../types/order';
 import { formatDateTime } from '../../utils/formatDate';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const STATUS_CONFIG: Record<OrderStatus, { label: string; bg: string; text: string; icon: React.ReactNode }> = {
+const STATUS_CONFIG: Partial<Record<OrderStatus, { label: string; bg: string; text: string; icon: React.ReactNode }>> = {
   pending: { label: 'Pendiente', bg: 'bg-yellow-500/10', text: 'text-yellow-400', icon: <FiClock size={12} /> },
   paid: { label: 'Pagado', bg: 'bg-green-500/10', text: 'text-green-400', icon: <FiCheckCircle size={12} /> },
   delivered: { label: 'Entregado', bg: 'bg-blue-500/10', text: 'text-blue-400', icon: <FiTruck size={12} /> },
   cancelled: { label: 'Cancelado', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiXCircle size={12} /> },
-  refunded: { label: 'Reembolsado', bg: 'bg-purple-500/10', text: 'text-purple-400', icon: <FiDollarSign size={12} /> },
-  disputed: { label: 'En disputa', bg: 'bg-orange-500/10', text: 'text-orange-400', icon: <FiAlertCircle size={12} /> },
-  stock_issue: { label: 'Problema de stock', bg: 'bg-red-500/10', text: 'text-red-400', icon: <FiAlertCircle size={12} /> },
 };
+
+const UNKNOWN_STATUS = { label: 'Estado no disponible', bg: 'bg-gray-500/10', text: 'text-gray-400', icon: <FiPackage size={12} /> };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   account_money: 'Mercado Pago',
@@ -38,7 +37,7 @@ interface OrderCardProps {
 export const OrderCard: React.FC<OrderCardProps> = ({ order, selected, onSelect }) => {
   const cfg = order.status === 'pending' && order.paymentMethod === 'local'
     ? { ...STATUS_CONFIG.pending, label: 'Pago al levantar' }
-    : STATUS_CONFIG[order.status];
+    : STATUS_CONFIG[order.status] ?? UNKNOWN_STATUS;
   const isAnonymous = !!order.clientName;
 
   return (

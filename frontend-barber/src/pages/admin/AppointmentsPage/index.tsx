@@ -9,7 +9,7 @@ import {
     FiClock,
     FiDownload,
     FiInfo,
-    FiScissors,
+    FiList,
     FiSettings,
     FiX,
     FiXCircle,
@@ -52,9 +52,9 @@ export const AdminAppointmentsPage: React.FC = () => {
         <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-8">
         <AnimatedContainer animation="fadeInDown">
-          <AdminPageHeader icon={FiScissors} title="Turnos" description="Visualizá, cancelá, reprogramá y actualizá la agenda." />
+          <AdminPageHeader icon={FiList} title="Turnos" description="Visualizá, cancelá, reprogramá y actualizá la agenda." />
         </AnimatedContainer>
 
         <AnimatedContainer animation="fadeInUp" className="rounded-[16px] border border-[#282828] bg-[#121212] p-5">

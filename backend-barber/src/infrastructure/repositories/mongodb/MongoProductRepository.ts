@@ -74,7 +74,7 @@ export class MongoProductRepository {
   }
 
   async findPublicCatalog(params: ProductCatalogParams = {}): Promise<FindAllResult> {
-    const filter: Record<string, unknown> = { status: { $ne: 'deleted' } };
+    const filter: Record<string, unknown> = { status: 'active', stock: { $gt: 0 } };
 
     if (params.category) {
       filter.category = params.category;
@@ -163,7 +163,7 @@ export class MongoProductRepository {
   }
 
   async getCategories(): Promise<string[]> {
-    return ProductModel.distinct('category', { status: { $ne: 'deleted' } });
+    return ProductModel.distinct('category', { status: 'active', stock: { $gt: 0 } });
   }
 
   private toDomain(doc: IProductDocument): Product {

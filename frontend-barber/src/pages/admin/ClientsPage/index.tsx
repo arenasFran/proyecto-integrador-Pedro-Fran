@@ -65,7 +65,7 @@ export default function ClientsPage() {
   }, [clientes]);
 
   return (
-    <div className="flex flex-col gap-5 p-5">
+    <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-5">
       <AdminPageHeader icon={FiUserCheck} title="Clientes" description="Conocé el historial y el valor de cada cliente." />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

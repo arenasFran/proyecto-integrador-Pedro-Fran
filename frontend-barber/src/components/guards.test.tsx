@@ -2,13 +2,14 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { renderWithProviders } from '../test/utils';
-import { getAccessToken } from '../services/api';
+import { getAccessToken, silentRefresh } from '../services/api';
 import { getTokenKind, isTokenValid } from '../utils/token';
 import { RequireClientRoute } from './guards';
+import type { User } from '../types/auth';
 
 vi.mock('../services/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../services/api')>();
-  return { ...actual, getAccessToken: vi.fn() };
+  return { ...actual, getAccessToken: vi.fn(), silentRefresh: vi.fn() };
 });
 
 vi.mock('../utils/token', async (importOriginal) => {
@@ -17,10 +18,11 @@ vi.mock('../utils/token', async (importOriginal) => {
 });
 
 const mockedGetAccessToken = vi.mocked(getAccessToken);
+const mockedSilentRefresh = vi.mocked(silentRefresh);
 const mockedGetTokenKind = vi.mocked(getTokenKind);
 const mockedIsTokenValid = vi.mocked(isTokenValid);
 
-function renderGuard() {
+function renderGuard(auth: { loginToken: string | null; user: User | null; isInitializing: boolean } = { loginToken: null, user: null, isInitializing: false }) {
   return renderWithProviders(
     <Routes>
       <Route path="/" element={<p>landing</p>} />
@@ -38,7 +40,7 @@ function renderGuard() {
     {
       initialEntries: ['/mis-turnos'],
       preloadedState: {
-        auth: { loginToken: null, user: null, isInitializing: false },
+        auth,
       },
     }
   );
@@ -47,6 +49,8 @@ function renderGuard() {
 describe('RequireClientRoute', () => {
   beforeEach(() => {
     mockedGetAccessToken.mockReset();
+    mockedSilentRefresh.mockReset();
+    mockedSilentRefresh.mockResolvedValue(false);
     mockedGetTokenKind.mockReset();
     mockedIsTokenValid.mockReset();
   });
@@ -82,6 +86,22 @@ describe('RequireClientRoute', () => {
 
     expect(await screen.findByText('landing')).toBeInTheDocument();
     expect(screen.queryByText('cliente')).not.toBeInTheDocument();
+  });
+
+  it('limpia el token Redux stale cuando el JWT expiró', async () => {
+    mockedGetAccessToken.mockReturnValue('token-expirado');
+    mockedGetTokenKind.mockReturnValue(null);
+    mockedIsTokenValid.mockReturnValue(false);
+
+    const { store } = renderGuard({
+      loginToken: 'token-expirado',
+      user: { id: 'admin-1', name: 'Admin' } as User,
+      isInitializing: false,
+    });
+
+    expect(await screen.findByText('landing')).toBeInTheDocument();
+    expect(store.getState().auth.loginToken).toBeNull();
+    expect(store.getState().auth.user).toBeNull();
   });
 
   it('renderiza el contenido de cliente para un usuario Registrado con token válido', async () => {

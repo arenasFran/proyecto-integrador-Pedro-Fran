@@ -261,9 +261,6 @@ const ORDER_STATUS_BADGES: Record<string, { label: string; className: string }> 
   paid: { label: 'Pagada', className: 'bg-green-500/10 text-green-400' },
   delivered: { label: 'Entregada', className: 'bg-blue-500/10 text-blue-400' },
   cancelled: { label: 'Cancelada', className: 'bg-red-500/10 text-red-400' },
-  refunded: { label: 'Reembolsada', className: 'bg-purple-500/10 text-purple-400' },
-  disputed: { label: 'En disputa', className: 'bg-orange-500/10 text-orange-400' },
-  stock_issue: { label: 'Problema de stock', className: 'bg-red-500/10 text-red-400' },
 };
 
 const APPOINTMENT_STATUS_BADGES: Record<string, { label: string; className: string }> = {
@@ -312,7 +309,7 @@ function OrdersKpiModal({ isOpen, onClose, desde, hasta, status, onRefresh }: { 
                   <span className="flex items-center gap-2">
                     <span className="truncate text-[13px] font-medium text-white">{order.userName ?? order.clientName ?? `Orden #${order.id.slice(-6)}`}</span>
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${ORDER_STATUS_BADGES[order.status]?.className ?? 'bg-gray-500/10 text-gray-400'}`}>
-                      {ORDER_STATUS_BADGES[order.status]?.label ?? order.status}
+                      {ORDER_STATUS_BADGES[order.status]?.label ?? 'Estado no disponible'}
                     </span>
                   </span>
                   <span className="mt-1 block truncate text-[11px] text-[#8A8A8A]">{order.items.length} producto(s) · {order.createdAt.slice(0, 10)}</span>

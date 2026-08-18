@@ -16,10 +16,10 @@ export const serviceApi = createApi({
       providesTags: ['Services'],
     }),
 
-    getServicesAdmin: builder.query<Service[], { includeDeleted?: boolean }>({
-      query: ({ includeDeleted } = {}) => ({
+    getServicesAdmin: builder.query<Service[], void>({
+      query: () => ({
         url: '/api/services',
-        params: { includeInactive: 'true', ...(includeDeleted ? { includeDeleted: 'true' } : {}) },
+        params: { includeInactive: 'true' },
       }),
       transformResponse: (response: { services: Service[] }) => response.services,
       providesTags: ['Services'],
@@ -44,24 +44,6 @@ export const serviceApi = createApi({
       invalidatesTags: ['Services'],
       onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
     }),
-
-    deleteService: builder.mutation<{ service: Service }, string>({
-      query: (id) => ({
-        url: `/api/services/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Services'],
-      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
-    }),
-
-    restoreService: builder.mutation<{ service: Service }, string>({
-      query: (id) => ({
-        url: `/api/services/${id}/restore`,
-        method: 'PATCH',
-      }),
-      invalidatesTags: ['Services'],
-      onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
-    }),
   }),
 });
 
@@ -70,6 +52,4 @@ export const {
   useGetServicesAdminQuery,
   useCreateServiceMutation,
   useUpdateServiceMutation,
-  useDeleteServiceMutation,
-  useRestoreServiceMutation,
 } = serviceApi;

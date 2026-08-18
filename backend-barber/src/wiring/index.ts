@@ -25,8 +25,6 @@ import { createUploadRouter } from '../interface-adapters/routes/upload.routes';
 import { MongoServiceRepository } from '../infrastructure/repositories/mongodb/MongoServiceRepository';
 import { CreateServiceUseCase } from '../application/use-cases/service/CreateServiceUseCase';
 import { UpdateServiceUseCase } from '../application/use-cases/service/UpdateServiceUseCase';
-import { DeleteServiceUseCase } from '../application/use-cases/service/DeleteServiceUseCase';
-import { RestoreServiceUseCase } from '../application/use-cases/service/RestoreServiceUseCase';
 import { ServiceController } from '../interface-adapters/controllers/service/ServiceController';
 import { createServiceRouter } from '../interface-adapters/routes/service.routes';
 import { UserController } from '../interface-adapters/controllers/user/UserController';
@@ -86,14 +84,10 @@ export const buildServiceRouter = (deps?: { authenticate?: ReturnType<typeof cre
   const repo = new MongoServiceRepository();
   const createServiceUseCase = new CreateServiceUseCase(repo);
   const updateServiceUseCase = new UpdateServiceUseCase(repo);
-  const deleteServiceUseCase = new DeleteServiceUseCase(repo);
-  const restoreServiceUseCase = new RestoreServiceUseCase(repo);
   const controller = new ServiceController(
     repo,
     createServiceUseCase,
     updateServiceUseCase,
-    deleteServiceUseCase,
-    restoreServiceUseCase,
   );
 
   return createServiceRouter({ serviceController: controller, authenticate: deps?.authenticate });

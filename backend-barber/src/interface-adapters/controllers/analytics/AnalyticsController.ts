@@ -194,8 +194,8 @@ export class AnalyticsController {
   getClientesListHandler = async (req: Request, res: Response) => {
     try {
       const { desde, hasta, search } = req.query as Record<string, string | undefined>;
-      if (!desde || !hasta) {
-        return sendError(res, new Error('Debe proporcionar "desde" y "hasta".'), 'Parámetros de fecha inválidos');
+      if ((desde && !hasta) || (!desde && hasta)) {
+        return sendError(res, new Error('Debe proporcionar "desde" y "hasta" juntos o ninguno.'), 'Parámetros de fecha inválidos');
       }
       const result = await this.repository.getClientesList(desde, hasta, search);
       return sendSuccess(res, result);

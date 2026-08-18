@@ -98,50 +98,32 @@ describeIfMongo('Service routes — integración real', () => {
     expect(response.body.service.price).toBe(200);
   });
 
-  it('debe hacer soft-delete como admin', async () => {
+  it('debe devolver servicios activos e inactivos como admin', async () => {
     const { adminId } = await seedAdmin();
     const { token } = signToken({ id: adminId, kind: 'Admin' });
-    const { serviceId } = await seedService({ name: 'Eliminar', price: 100 });
+
+    await seedService({ name: 'Activo', price: 100 });
+    await seedService({ name: 'Inactivo', price: 200, status: 'inactive' });
 
     const response = await request(app)
-      .delete(`/api/services/${serviceId}`)
+      .get('/api/services?includeInactive=true')
       .set('Authorization', `Bearer ${token}`);
 
     expect(response.status).toBe(200);
-    expect(response.body.service.status).toBe('deleted');
+    expect(response.body.services).toHaveLength(2);
   });
 
-  it('debe restaurar servicio eliminado como admin', async () => {
+  it('debe permitir cambiar el estado de un servicio como admin', async () => {
     const { adminId } = await seedAdmin();
     const { token } = signToken({ id: adminId, kind: 'Admin' });
-    const { serviceId } = await seedService({ name: 'Restaurar', price: 100 });
-
-    await request(app)
-      .delete(`/api/services/${serviceId}`)
-      .set('Authorization', `Bearer ${token}`);
-
-    const response = await request(app)
-      .patch(`/api/services/${serviceId}/restore`)
-      .set('Authorization', `Bearer ${token}`);
-
-    expect(response.status).toBe(200);
-    expect(response.body.service.status).toBe('inactive');
-  });
-
-  it('debe rechazar actualizar un servicio eliminado', async () => {
-    const { adminId } = await seedAdmin();
-    const { token } = signToken({ id: adminId, kind: 'Admin' });
-    const { serviceId } = await seedService({ name: 'NoUpdate', price: 100 });
-
-    await request(app)
-      .delete(`/api/services/${serviceId}`)
-      .set('Authorization', `Bearer ${token}`);
+    const { serviceId } = await seedService({ name: 'Toggle', price: 100 });
 
     const response = await request(app)
       .put(`/api/services/${serviceId}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ price: 999 });
+      .send({ status: 'inactive' });
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
+    expect(response.body.service.status).toBe('inactive');
   });
 });

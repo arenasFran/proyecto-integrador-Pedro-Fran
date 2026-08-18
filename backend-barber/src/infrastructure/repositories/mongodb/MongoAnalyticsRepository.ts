@@ -652,10 +652,20 @@ export class MongoAnalyticsRepository {
     return result;
   }
 
-  async getClientesList(desde: string, hasta: string, search?: string): Promise<ClienteListEntry[]> {
-    const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+  async getClientesList(desde?: string, hasta?: string, search?: string): Promise<ClienteListEntry[]> {
+    const matchStage: Record<string, unknown> = {};
+    const activityConditions: Record<string, unknown>[] = [
+      { $in: ['$status', STATUS_CATEGORIES.countsAsActivity] },
+    ];
 
-    const matchStage: Record<string, unknown> = { registeredAt: { $lte: endOfDayDate(hasta) } };
+    if (desde && hasta) {
+      const { desdeDate, hastaDate } = parseLocalDateRange(desde, hasta);
+      matchStage.registeredAt = { $lte: endOfDayDate(hasta) };
+      activityConditions.push(
+        { $gte: ['$dateObj', desdeDate] },
+        { $lte: ['$dateObj', hastaDate] }
+      );
+    }
 
     if (search && search.trim()) {
       const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -697,11 +707,7 @@ export class MongoAnalyticsRepository {
             {
               $match: {
                 $expr: {
-                  $and: [
-                    { $gte: ['$dateObj', desdeDate] },
-                    { $lte: ['$dateObj', hastaDate] },
-                    { $in: ['$status', STATUS_CATEGORIES.countsAsActivity] },
-                  ],
+                  $and: activityConditions,
                 },
               },
             },

@@ -99,7 +99,20 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, ap
           {appointments.map((a) => {
             const style = statusStyles[a.status] ?? statusStyles.Confirmado;
             return (
-              <div key={a.id} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4">
+              <div
+                key={a.id}
+                onClick={() => actions.setDetailTarget(a)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    actions.setDetailTarget(a);
+                  }
+                }}
+                className="cursor-pointer rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 transition-colors hover:border-[#FF5C00]/50"
+                title="Ver detalle del turno"
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <BarberAvatar
@@ -115,7 +128,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, ap
                       <p className="text-[12px] text-[#8A8A8A] truncate">{a.serviceName}</p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
+                  <div className="flex shrink-0 items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${style.bg} ${style.text}`}>
                       {style.label}
                     </span>
@@ -127,15 +140,10 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, ap
                     <FiClock className="text-[#FF5C00]" />
                     {formatTime(a.startTime)} - {formatTime(a.endTime)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => actions.setDetailTarget(a)}
-                    className="flex items-center gap-1.5 text-[#8A8A8A] hover:text-[#FF5C00] transition-colors cursor-pointer"
-                    title="Ver detalle del turno"
-                  >
+                  <span className="flex items-center gap-1.5">
                     <FiUser className="text-[#FF5C00]" />
                     <span className="underline decoration-dotted underline-offset-2">{a.clientName} {a.clientLastname}</span>
-                  </button>
+                  </span>
                 </div>
               </div>
             );

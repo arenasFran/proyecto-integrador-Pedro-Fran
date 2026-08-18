@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiDollarSign, FiInfo, FiSearch, FiTrendingUp, FiUser, FiUserCheck } from 'react-icons/fi';
+import { FiAward, FiCalendar, FiChevronLeft, FiChevronRight, FiSearch, FiTrendingUp, FiUser, FiUserCheck, FiUserX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { AnimatedContainer } from '../../../components/common';
-import DateRangeFilter from '../../../components/common/DateRangeFilter';
 import { Spinner } from '../../../components/common/Spinner';
 import { useGetClientesListQuery } from '../../../services/analyticsApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
@@ -28,15 +27,10 @@ const sanctionBadge = (c: ClienteData) => {
 
 export default function ClientsPage() {
   const navigate = useNavigate();
-  const [desde, setDesde] = useState(() => {
-    const d = new Date(); d.setMonth(d.getMonth() - 1);
-    return d.toISOString().slice(0, 10);
-  });
-  const [hasta, setHasta] = useState(() => new Date().toISOString().slice(0, 10));
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  const { data: clientes = [], isLoading, isFetching } = useGetClientesListQuery({ desde, hasta });
+  const { data: clientes = [], isLoading, isFetching } = useGetClientesListQuery({});
 
   const filtered = useMemo(() => {
     if (!search) return clientes;
@@ -60,8 +54,7 @@ export default function ClientsPage() {
     const reg = clientes.filter(c => c.kind === 'Registrado').length;
     const anon = total - reg;
     const totalVisits = clientes.reduce((s, c) => s + c.totalVisits, 0);
-    const totalSpent = clientes.reduce((s, c) => s + c.totalSpent, 0);
-    return { total, reg, anon, totalVisits, totalSpent };
+    return { total, reg, anon, totalVisits };
   }, [clientes]);
 
   return (
@@ -78,25 +71,16 @@ export default function ClientsPage() {
           <span className="text-2xl font-bold text-purple-400">{stats.reg}</span>
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
-          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiCalendar size={12} /> Reservas</span>
-          <span className="text-2xl font-bold text-blue-400">{stats.totalVisits}</span>
+          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiUserX size={12} /> No registrados</span>
+          <span className="text-2xl font-bold text-gray-400">{stats.anon}</span>
         </div>
         <div className="rounded-[12px] bg-[#121212] border border-[#282828] p-4 flex flex-col gap-1">
-          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiDollarSign size={12} /> Gastado</span>
-          <span className="text-2xl font-bold text-green-400">{formatCurrency(stats.totalSpent)}</span>
+          <span className="text-[10px] text-[#6A6A6A] uppercase tracking-wider flex items-center gap-1"><FiCalendar size={12} /> Reservas</span>
+          <span className="text-2xl font-bold text-blue-400">{stats.totalVisits}</span>
         </div>
       </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <DateRangeFilter onChange={(d, h) => { setDesde(d); setHasta(h); setPage(1); }} skipMountEffect />
-          <span
-            title="Este rango afecta las estadísticas de reservas y gastado por cliente, no cuáles clientes aparecen en la lista."
-            className="text-[#6A6A6A] hover:text-[#8A8A8A] cursor-help shrink-0"
-          >
-            <FiInfo size={14} />
-          </span>
-        </div>
         <div className="relative flex-1 max-w-xs">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6A6A6A]" size={16} />
           <input

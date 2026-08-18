@@ -41,7 +41,7 @@ export default function DistribucionDonut({ desde: desdeProp, hasta: hastaProp }
         <div className="flex justify-center">
           <div className="flex flex-col lg:flex-row items-center gap-6">
           <div className="w-[280px] h-[280px] max-w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
                   data={dataEntries}

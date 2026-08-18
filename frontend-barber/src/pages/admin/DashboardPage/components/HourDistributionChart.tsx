@@ -47,7 +47,7 @@ export default function HourDistributionChart({ desde: desdeProp, hasta: hastaPr
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <ChartContainer isFetching={isFetching} loading={loading} hasData={chartData.some(d => d.cantidad > 0)} height={280} className="mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
             <XAxis

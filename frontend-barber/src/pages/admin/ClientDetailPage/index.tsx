@@ -106,8 +106,7 @@ export default function ClientDetailPage() {
   const [motivo, setMotivo] = useState('');
 
   // El state pasado por ClientsPage es solo un placeholder para el primer render:
-  // refleja los totales del rango de fechas que tenía seleccionado ClientsPage,
-  // no los totales de por vida, y puede haber quedado desactualizado (ej. un
+  // refleja los totales de por vida, y puede haber quedado desactualizado (ej. un
   // turno recién completado). La fuente real siempre es el fetch de abajo.
   const stateClient = (location.state as { client?: ClienteData } | null)?.client;
 

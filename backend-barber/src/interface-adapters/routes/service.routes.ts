@@ -11,7 +11,7 @@ export const createServiceRouter = (deps: {
   const router = express.Router();
 
   router.get('/', (req, res, next) => {
-    if (req.query.includeInactive === 'true' || req.query.includeDeleted === 'true') {
+    if (req.query.includeInactive === 'true') {
       if (!deps.authenticate) {
         return res.status(401).json({ error: 'Autenticación requerida' });
       }
@@ -39,20 +39,6 @@ export const createServiceRouter = (deps: {
       authorize('Admin'),
       validate({ params: serviceIdParamSchema, body: updateServiceSchema }),
       deps.serviceController.update
-    );
-
-    router.delete(
-      '/:id',
-      authorize('Admin'),
-      validate({ params: serviceIdParamSchema }),
-      deps.serviceController.delete
-    );
-
-    router.patch(
-      '/:id/restore',
-      authorize('Admin'),
-      validate({ params: serviceIdParamSchema }),
-      deps.serviceController.restore
     );
   }
 

@@ -12,7 +12,7 @@ export type BarberPublic = {
   schedule: BarberSchedule;
 };
 
-export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+export type ServiceStatus = 'active' | 'inactive';
 
 export type Service = {
   id: string;

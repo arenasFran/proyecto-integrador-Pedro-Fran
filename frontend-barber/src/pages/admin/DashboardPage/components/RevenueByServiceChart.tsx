@@ -37,7 +37,7 @@ export default function RevenueByServiceChart({ desde: desdeProp, hasta: hastaPr
       {error && <p className="text-[#FF5C00] text-sm mb-2">{error}</p>}
 
       <ChartContainer isFetching={isFetching} loading={loading} hasData={data.length > 0} height={300} className="mt-4">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={300}>
           <BarChart data={data} layout="vertical">
             <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
             <XAxis

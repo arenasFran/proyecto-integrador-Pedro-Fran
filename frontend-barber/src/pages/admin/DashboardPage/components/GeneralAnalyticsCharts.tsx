@@ -137,7 +137,7 @@ export default function GeneralAnalyticsCharts({ desde, hasta }: GeneralAnalytic
             <span className="text-green-400 text-sm font-semibold whitespace-nowrap">{formatCurrency(totalRevenue)}</span>
           </div>
           <ChartContainer isFetching={activityFetching} loading={activityLoading} hasData={revenueByDay.length > 0} height={280}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={280}>
               <AreaChart data={revenueByDay}>
                 <defs>
                   <linearGradient id="generalRevenueGradient" x1="0" y1="0" x2="0" y2="1">
@@ -163,7 +163,7 @@ export default function GeneralAnalyticsCharts({ desde, hasta }: GeneralAnalytic
           <h3 id="revenue-source-heading" className="text-white text-base font-bold mb-1">Origen de los ingresos</h3>
           <p className="text-[11px] text-[#6A6A6A] mb-3">Qué parte aporta cada línea del negocio</p>
           <ChartContainer isFetching={activityFetching} loading={activityLoading} hasData={revenueBySource.length > 0} height={210}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={210}>
               <PieChart>
                 <Pie data={revenueBySource} dataKey="value" nameKey="name" innerRadius={55} outerRadius={82} stroke="none">
                   {revenueBySource.map((entry) => <Cell key={entry.source} fill={entry.color} />)}
@@ -197,7 +197,7 @@ export default function GeneralAnalyticsCharts({ desde, hasta }: GeneralAnalytic
             <span className="text-[#FF5C00] text-sm font-semibold">{newClients.length}</span>
           </div>
           <ChartContainer isFetching={clientsFetching} loading={clientsLoading} hasData={newClientsByDay.length > 0} height={250}>
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={newClientsByDay}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
                 <XAxis dataKey="label" tick={{ fill: '#8A8A8A', fontSize: 11 }} stroke="#282828" />

@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type ServiceStatus = 'active' | 'inactive' | 'deleted';
+export type ServiceStatus = 'active' | 'inactive';
 
 export interface IServiceDocument extends Document {
   name: string;
@@ -36,7 +36,7 @@ const serviceSchema = new Schema<IServiceDocument>(
     },
     status: {
       type: String,
-      enum: ['active', 'inactive', 'deleted'],
+      enum: ['active', 'inactive'],
       default: 'active',
     },
   },

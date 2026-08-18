@@ -103,7 +103,7 @@ export const analyticsApi = createApi({
       providesTags: ['Analytics'],
     }),
 
-    getClientesList: builder.query<ClienteData[], { desde: string; hasta: string; search?: string }>({
+    getClientesList: builder.query<ClienteData[], { desde?: string; hasta?: string; search?: string }>({
       query: (params) => ({
         url: '/api/analytics/clientes',
         params,

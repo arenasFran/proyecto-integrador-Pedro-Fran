@@ -88,7 +88,7 @@ function IncomeBreakdownModal({ isOpen, onClose, desde, hasta, ecommerceData }: 
             <span className="text-[11px] text-[#6A6A6A] uppercase tracking-wider">Total combinado</span>
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 mt-2">
               <div className="w-[120px] h-[120px] shrink-0 relative">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={120}>
                   <PieChart>
                     <Pie
                       data={donutData.length > 0 ? donutData : [{ name: 'Sin datos', value: 1, hex: '#282828' }]}

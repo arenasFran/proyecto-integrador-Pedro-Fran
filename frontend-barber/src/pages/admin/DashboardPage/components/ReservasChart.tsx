@@ -76,7 +76,7 @@ export default function ReservasChart({ desde: desdeProp, hasta: hastaProp }: Re
       {error && <p className="text-[#FF5C00] text-sm mt-2">{error}</p>}
 
       <ChartContainer isFetching={isFetching} loading={loading} hasData={data.length > 0} height={280} className="mt-4 overflow-x-hidden">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#282828" />
             <XAxis

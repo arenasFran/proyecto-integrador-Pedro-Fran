@@ -217,7 +217,7 @@ export const ProfessionalsPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#050505] text-white">
       <div className="relative mx-auto w-full max-w-[1440px] px-0 pb-8 sm:pb-10">
-        <AnimatedContainer animation="fadeInDown">
+<AnimatedContainer animation="fadeInDown" className="mb-8">
           <AdminPageHeader
             icon={FiUsers}
             title="Profesionales"

@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import mongoose, { ClientSession } from 'mongoose';
 import TempLockModel from './models/tempLock.model';
 
@@ -8,24 +9,54 @@ export type TempLockData = {
   clientId?: string;
 };
 
-export type TempLockWithId = TempLockData & { id: string };
+export type TempLockWithId = TempLockData & { id: string; createdAt: Date };
+
+export type TempLockCreationResult = {
+  id: string;
+  ownerToken: string;
+};
+
+export type TempLockReleaseResult = 'released' | 'not_found' | 'forbidden';
+
+const tokensMatch = (a: string, b: string): boolean => {
+  const bufA = Buffer.from(a, 'hex');
+  const bufB = Buffer.from(b, 'hex');
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+};
 
 export class MongoTempLockRepository {
-  async create(data: TempLockData): Promise<string> {
+  async create(data: TempLockData): Promise<TempLockCreationResult> {
     try {
+      const ownerToken = crypto.randomBytes(32).toString('hex');
       const doc = await TempLockModel.create({
         barberId: new mongoose.Types.ObjectId(data.barberId),
         date: data.date,
         startTime: data.startTime,
         clientId: data.clientId,
+        ownerToken,
       });
-      return doc._id.toString();
+      return { id: doc._id.toString(), ownerToken };
     } catch (error: any) {
       if (error?.code === 11000) {
         throw new Error('El horario ya fue apartado por otro usuario.');
       }
       throw error;
     }
+  }
+
+  async release(id: string, ownerToken: string): Promise<TempLockReleaseResult> {
+    const doc = await TempLockModel.findById(id);
+    if (!doc) {
+      return 'not_found';
+    }
+    if (!tokensMatch(doc.ownerToken, ownerToken)) {
+      return 'forbidden';
+    }
+    await doc.deleteOne();
+    return 'released';
   }
 
   async deleteMany(filter: { barberId: string }): Promise<void> {
@@ -73,6 +104,7 @@ export class MongoTempLockRepository {
       date: doc.date,
       startTime: doc.startTime,
       clientId: doc.clientId,
+      createdAt: doc.createdAt,
     };
   }
 }

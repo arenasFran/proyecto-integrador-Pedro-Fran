@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiAward, FiCreditCard, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar } from 'react-icons/fi';
+import { FiAward, FiCreditCard, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar, FiArrowRight } from 'react-icons/fi';
 import { Button, Input } from '../../common';
 import { formatDate } from '../../../utils/formatDate';
 import type { BarberPublic, PaymentMethod, Service } from '../../../types/booking';
@@ -20,11 +20,13 @@ interface ClientDataOverlayProps {
   remainingCoupons: number;
   isConfirming: boolean;
   confirmError: string | null;
+  emailRegisteredError?: boolean;
   isLoggedIn?: boolean;
   onChange: (data: { name: string; lastname: string; phone: string; email: string }) => void;
   onPaymentMethodChange: (method: PaymentMethod) => void;
   onSubmit: () => void;
   onClose: () => void;
+  onGoToLogin?: () => void;
 }
 
 function validateField(field: string, value: string): string | undefined {
@@ -65,11 +67,13 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
   remainingCoupons,
   isConfirming,
   confirmError,
+  emailRegisteredError = false,
   isLoggedIn,
   onChange,
   onPaymentMethodChange,
   onSubmit,
   onClose,
+  onGoToLogin,
 }) => {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -202,7 +206,19 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
             </div>
 
             {confirmError && (
-              <p className="text-[12px] text-red-400 mb-4">{confirmError}</p>
+              <div className="mb-4">
+                <p className="text-[12px] text-red-400">{confirmError}</p>
+                {emailRegisteredError && onGoToLogin && (
+                  <button
+                    type="button"
+                    onClick={onGoToLogin}
+                    className="mt-2 inline-flex items-center gap-1 text-[12px] font-medium text-[#FF5C00] underline underline-offset-2 hover:text-[#FF7A2E]"
+                  >
+                    Iniciar sesión
+                    <FiArrowRight className="shrink-0" size={13} />
+                  </button>
+                )}
+              </div>
             )}
 
             <p className="mb-4 text-[12px] leading-snug text-[#8A8A8A]">

@@ -32,6 +32,7 @@ const initialState = {
     servicesError: null,
     slotsError: null,
     confirmError: null,
+    emailRegisteredError: false,
     createdAppointment: null,
     submitSuccess: false,
   },
@@ -104,7 +105,7 @@ function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
 describe('bookingSlice', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123' }) }));
+    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) }) }));
     mockReleaseLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve(undefined) }));
   });
 
@@ -330,7 +331,7 @@ describe('bookingSlice', () => {
         clientName: 'Juan', clientLastname: 'Pérez', clientPhone: '123456789', clientEmail: 'juan@test.com',
         paymentMethod: 'local', tempLockId: 'lock-123',
       });
-      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     });
 
     it('rejected libera temp lock y asigna error', async () => {
@@ -342,7 +343,7 @@ describe('bookingSlice', () => {
       const state = store.getState().booking;
       expect(state.async.isConfirming).toBe(false);
       expect(state.async.confirmError).toBe('Horario no disponible');
-      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     });
 
     it('rejected sin temp lock no intenta liberar', async () => {
@@ -369,6 +370,42 @@ describe('bookingSlice', () => {
       await store.dispatch(submitAppointment());
       const state = store.getState().booking;
       expect(state.async.confirmError).toBe('Estás sancionado por inasistencias y no podés reservar turnos.');
+    });
+
+    it('rejected con code EMAIL_ALREADY_REGISTERED expone emailRegisteredError', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 409,
+          error: 'Rejected',
+          originalStatus: 409,
+          data: {
+            error: 'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+            code: 'EMAIL_ALREADY_REGISTERED',
+          },
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(state.async.emailRegisteredError).toBe(true);
+    });
+
+    it('rejected con code a nivel superior (baseQuery) expone emailRegisteredError', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 409,
+          error: 'Rejected',
+          originalStatus: 409,
+          data: 'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+          code: 'EMAIL_ALREADY_REGISTERED',
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(state.async.emailRegisteredError).toBe(true);
     });
   });
 });

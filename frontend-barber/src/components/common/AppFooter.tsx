@@ -2,7 +2,6 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getTokenUser } from '../../utils/token';
 import { getAccessToken } from '../../services/api';
-import { openCookiePreferences } from '../../utils/cookieConsent';
 
 export const AppFooter: React.FC = () => {
   const navigate = useNavigate();
@@ -77,9 +76,6 @@ export const AppFooter: React.FC = () => {
           </button>
           <button onClick={() => navigate('/cookies')} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
             Política de Cookies
-          </button>
-          <button onClick={openCookiePreferences} className="block text-sm mb-3 text-white/85 hover:text-[#FF5C00] transition">
-            Preferencias de cookies
           </button>
         </div>
       </div>

@@ -105,7 +105,7 @@ export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const authUser = useAppSelector((state) => state.auth.user);
-  const { async: { barbers, services, availableSlots, slotsReason, isLoadingBarbers, isLoadingServices, isLoadingSlots, isConfirming, barbersError, servicesError, slotsError, confirmError, submitSuccess, preferenceId }, flow: { currentStep, selectedBarber, selectedService, selectedDate, selectedTime, clientName, clientLastname, clientPhone, clientEmail, paymentMethod } } = useAppSelector((state) => state.booking);
+  const { async: { barbers, services, availableSlots, slotsReason, isLoadingBarbers, isLoadingServices, isLoadingSlots, isConfirming, barbersError, servicesError, slotsError, confirmError, emailRegisteredError, submitSuccess, preferenceId }, flow: { currentStep, selectedBarber, selectedService, selectedDate, selectedTime, clientName, clientLastname, clientPhone, clientEmail, paymentMethod } } = useAppSelector((state) => state.booking);
 
   const { data: myMembership } = useGetMyMembershipQuery(undefined, { skip: !authUser });
   const activeMembership = myMembership?.active ?? null;
@@ -287,7 +287,7 @@ export const BookingPage: React.FC = () => {
           </div>
         </div>
       </motion.div>
-      <ClientDataOverlay isOpen={showClientForm} barber={selectedBarber} service={selectedService} selectedDate={selectedDate} selectedTime={selectedTime} clientName={clientName} clientLastname={clientLastname} clientPhone={clientPhone} clientEmail={clientEmail} paymentMethod={paymentMethod} hasActiveMembership={hasActiveMembership} remainingCoupons={remainingCoupons} isConfirming={isConfirming} confirmError={confirmError} isLoggedIn={Boolean(authUser)} onChange={(data) => dispatch(setClientData(data))} onPaymentMethodChange={handlePaymentMethodChange} onSubmit={handleSubmit} onClose={() => setShowClientForm(false)} />
+      <ClientDataOverlay isOpen={showClientForm} barber={selectedBarber} service={selectedService} selectedDate={selectedDate} selectedTime={selectedTime} clientName={clientName} clientLastname={clientLastname} clientPhone={clientPhone} clientEmail={clientEmail} paymentMethod={paymentMethod} hasActiveMembership={hasActiveMembership} remainingCoupons={remainingCoupons} isConfirming={isConfirming} confirmError={confirmError} emailRegisteredError={emailRegisteredError} isLoggedIn={Boolean(authUser)} onChange={(data) => dispatch(setClientData(data))} onPaymentMethodChange={handlePaymentMethodChange} onSubmit={handleSubmit} onClose={() => setShowClientForm(false)} onGoToLogin={() => navigate('/login')} />
       <PaymentModal isOpen={showPaymentModal} preferenceId={preferenceId || ''} onClose={handlePaymentClose} title="Pagar turno" />
     </>
   );

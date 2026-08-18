@@ -54,13 +54,6 @@ export class MercadoPagoService implements IPaymentService {
       ...(params.expirationDateTo ? { expires: true, expiration_date_to: params.expirationDateTo } : {}),
     };
 
-    console.log('[MP-DEBUG] ===== CREANDO PREFERENCIA =====');
-    console.log('[MP-DEBUG] AccessToken (primeros 15 chars):', this.accessToken?.substring(0, 15));
-    console.log('[MP-DEBUG] Environment:', this.accessToken?.startsWith('TEST') ? 'TEST' : 'PRODUCTION');
-    console.log('[MP-DEBUG] notification_url:', params.notificationUrl);
-    console.log('[MP-DEBUG] back_urls:', JSON.stringify(params.backUrls));
-    console.log('[MP-DEBUG] Body completo:', JSON.stringify(body, null, 2));
-
     const requestOptions = params.idempotencyKey
       ? { idempotencyKey: params.idempotencyKey }
       : undefined;
@@ -68,40 +61,13 @@ export class MercadoPagoService implements IPaymentService {
     try {
       const response = await preference.create({ body, requestOptions });
 
-      const responseAny = response as any;
-
-      console.log('[MP-DEBUG] ===== RESPUESTA PREFERENCIA =====');
-      console.log('[MP-DEBUG] response.id:', responseAny.id);
-      console.log('[MP-DEBUG] collector_id:', responseAny.collector_id, '(quien recibe el pago)');
-      console.log('[MP-DEBUG] collector es test?', String(responseAny.collector_id).startsWith('353'));
-      console.log('[MP-DEBUG] live_mode:', responseAny.live_mode, '(false=test, true=produccion)');
-      console.log('[MP-DEBUG] client_id:', responseAny.client_id);
-      console.log('[MP-DEBUG] init_point:', responseAny.init_point);
-      console.log('[MP-DEBUG] sandbox_init_point:', responseAny.sandbox_init_point);
-      console.log('[MP-DEBUG] payer:', JSON.stringify(responseAny.payer));
-      console.log('[MP-DEBUG] site_id:', responseAny.site_id);
-      console.log('[MP-DEBUG] operation_type:', responseAny.operation_type);
-      console.log('[MP-DEBUG] items[0].currency_id:', responseAny.items?.[0]?.currency_id);
-      console.log('[MP-DEBUG] Response completo:', JSON.stringify(responseAny, null, 2));
-
       return {
         preferenceId: response.id!,
         initPoint: response.init_point!,
         sandboxInitPoint: response.sandbox_init_point,
       };
     } catch (error: any) {
-      console.error('[MP-DEBUG] ===== ERROR CREANDO PREFERENCIA =====');
-      console.error('[MP-DEBUG] error.message:', error?.message);
-      console.error('[MP-DEBUG] error.name:', error?.name);
-      console.error('[MP-DEBUG] error.stack:', error?.stack);
-      console.error('[MP-DEBUG] error.cause:', error?.cause);
-      console.error('[MP-DEBUG] error.status:', error?.status);
-      if (error?.details) {
-        console.error('[MP-DEBUG] error.details:', JSON.stringify(error.details));
-      }
-      if (error?.response) {
-        console.error('[MP-DEBUG] error.response:', JSON.stringify(error.response));
-      }
+      console.error('Error creando preferencia en MercadoPago:', error?.message || error?.cause || 'Error desconocido');
       throw new Error(error?.message || error?.cause || 'Error creando preferencia en MercadoPago');
     }
   }
@@ -154,11 +120,7 @@ export class MercadoPagoService implements IPaymentService {
       });
       return true;
     } catch {
-      const ts = params.xSignature?.match(/ts=(\d+)/)?.[1] || '?';
-      const manifest = `id:${params.dataId};request-id:${params.xRequestId};ts:${ts};`;
-      console.log('[MP-DEBUG-WEBHOOK] HMAC inválida. Verificá que el secret en el Dashboard de MP (Tus integraciones → Webhooks) coincida exactamente con MP_WEBHOOK_SECRET del .env');
-      console.log('[MP-DEBUG-WEBHOOK] Manifest usado:', manifest);
-      console.log('[MP-DEBUG-WEBHOOK] xSignature:', params.xSignature);
+      console.error('[PaymentWebhook] HMAC inválida para data.id:', params.dataId);
       return false;
     }
   }

@@ -162,11 +162,19 @@ describe('Membership routes', () => {
     });
   });
 
-  describe('POST /api/memberships — create (solo staff)', () => {
+  describe('POST /api/memberships — create (solo Admin)', () => {
     it('debe retornar 403 si no es Admin ni Empleado', async () => {
       const response = await request(app)
         .post('/api/memberships')
         .send({ userId: '507f1f77bcf86cd799439099' });
+
+      expect(response.status).toBe(403);
+    });
+
+    it('debe retornar 403 si quien crea es un Empleado', async () => {
+      const response = await request(empleadoApp)
+        .post('/api/memberships')
+        .send({ userId: '507f1f77bcf86cd799439099', paymentMethod: 'local' });
 
       expect(response.status).toBe(403);
     });

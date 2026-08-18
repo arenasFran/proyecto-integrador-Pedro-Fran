@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { PaymentModel, IPaymentDocument } from './models/payment.model';
 import { Payment } from '../../../domain/entities/Payment';
+import type { PaymentType } from '../../../domain/types/payment.types';
 
 export class MongoPaymentRepository {
   async findById(id: string, session?: mongoose.ClientSession): Promise<Payment | null> {
@@ -24,7 +25,7 @@ export class MongoPaymentRepository {
     return doc ? this.toDomain(doc) : null;
   }
 
-  async findByReference(referenceId: string, type: string, session?: mongoose.ClientSession): Promise<Payment | null> {
+  async findByReference(referenceId: string, type: PaymentType, session?: mongoose.ClientSession): Promise<Payment | null> {
     const query = PaymentModel.findOne({ referenceId, type });
     if (session) query.session(session);
     const doc = await query;

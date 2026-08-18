@@ -45,7 +45,7 @@ const makeMpPayment = (overrides?: Record<string, unknown>) => ({
   transactionAmount: 500,
   paymentMethodId: 'master',
   payerEmail: 'buyer@test.com',
-  externalReference: 'ref-1',
+  externalReference: 'pay-1',
   ...overrides,
 });
 
@@ -282,6 +282,65 @@ describe('ProcessWebhookUseCase', () => {
       await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
       expect(paymentRepository.findById).toHaveBeenCalledWith('pay-1');
       expect(paymentRepository.save).toHaveBeenCalled();
+    });
+
+    it('debe bloquear si el monto no coincide con el esperado (F6)', async () => {
+      const payment = makePayment();
+      paymentService.getPayment.mockResolvedValue(
+        makeMpPayment({ status: 'approved', transactionAmount: 400 }),
+      );
+      paymentRepository.findByMpPaymentId.mockResolvedValue(payment);
+
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
+
+      expect(payment.status).toBe('pending');
+      expect(paymentRepository.save).not.toHaveBeenCalled();
+      expect(appointmentRepository.updateStatus).not.toHaveBeenCalled();
+    });
+
+    it('debe aprobar si el monto difiere solo por redondeo (dentro de tolerancia F6)', async () => {
+      const payment = makePayment();
+      paymentService.getPayment.mockResolvedValue(
+        makeMpPayment({ status: 'approved', transactionAmount: 500.49 }),
+      );
+      paymentRepository.findByMpPaymentId.mockResolvedValue(payment);
+      appointmentRepository.findById.mockResolvedValue({
+        id: 'ref-1',
+        paymentStatus: 'Pendiente',
+        status: 'Confirmado',
+        pay: jest.fn(),
+      } as any);
+
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
+
+      expect(payment.status).toBe('approved');
+      expect(paymentRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'approved' }),
+      );
+    });
+
+    it('debe bloquear si la referencia no coincide con el payment local (F6)', async () => {
+      const payment = makePayment();
+      paymentService.getPayment.mockResolvedValue(
+        makeMpPayment({ status: 'approved', externalReference: 'otro-id' }),
+      );
+      paymentRepository.findByMpPaymentId.mockResolvedValue(payment);
+
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
+
+      expect(payment.status).toBe('pending');
+      expect(paymentRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('debe ignorar duplicados de pago ya aprobado (idempotencia F6)', async () => {
+      const payment = makePayment({ status: 'approved', mpPaymentId: '123456' });
+      paymentService.getPayment.mockResolvedValue(makeMpPayment({ status: 'approved' }));
+      paymentRepository.findByMpPaymentId.mockResolvedValue(payment);
+
+      await useCase.execute(paymentPayload, 'x-sig', 'x-req', '');
+
+      expect(paymentRepository.save).not.toHaveBeenCalled();
+      expect(appointmentRepository.updateStatus).not.toHaveBeenCalled();
     });
   });
 });

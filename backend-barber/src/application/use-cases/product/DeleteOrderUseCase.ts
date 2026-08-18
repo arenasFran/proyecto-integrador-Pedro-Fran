@@ -16,7 +16,9 @@ export class DeleteOrderUseCase {
     const order = await this.orderRepository.findById(dto.orderId);
     if (!order) throw new AppError('Orden no encontrada.', 404);
 
-    await this.orderStockService.restoreStock(order);
+    if (order.status === 'paid' || order.status === 'delivered') {
+      await this.orderStockService.restoreStock(order);
+    }
 
     await this.orderRepository.delete(dto.orderId);
   }

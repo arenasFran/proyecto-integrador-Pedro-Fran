@@ -1,0 +1,1 @@
+process.env.RATE_LIMIT_APPOINTMENT_CREATE_MAX = '5';

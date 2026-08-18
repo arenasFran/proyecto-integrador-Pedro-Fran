@@ -143,7 +143,9 @@ export default function MembershipsPage() {
               <p className="text-[13px] text-[#8A8A8A]">Gestioná las membresías de los clientes</p>
             </div>
           </div>
-          <Button icon={FiPlus} onClick={() => setShowCreate(true)}>Nueva membresía</Button>
+          {kind === 'Admin' && (
+            <Button icon={FiPlus} onClick={() => setShowCreate(true)}>Nueva membresía</Button>
+          )}
         </div>
       </AnimatedContainer>
 
@@ -396,7 +398,7 @@ export default function MembershipsPage() {
         </>
       )}
 
-      <CreateMembershipModal isOpen={showCreate} onClose={() => setShowCreate(false)} />
+      {kind === 'Admin' && <CreateMembershipModal isOpen={showCreate} onClose={() => setShowCreate(false)} />}
     </div>
   );
 }

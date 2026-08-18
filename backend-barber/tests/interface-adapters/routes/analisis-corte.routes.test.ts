@@ -79,9 +79,11 @@ describe('analisisCorte.routes — orden de middlewares', () => {
       hasActiveMembership: true,
     });
 
+    const validJpegBuffer = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]);
+
     const res = await request(app)
       .post('/api/analisis-corte')
-      .attach('foto', Buffer.from('fake-photo-bytes'), { filename: 'foto.jpg', contentType: 'image/jpeg' });
+      .attach('foto', validJpegBuffer, { filename: 'foto.jpg', contentType: 'image/jpeg' });
 
     expect(res.status).toBe(201);
     expect(analisisCorteController.analizar).toHaveBeenCalled();

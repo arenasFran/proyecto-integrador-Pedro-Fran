@@ -20,6 +20,7 @@ export const makeMockTempLockRepository = () => ({
   deleteById: jest.fn(),
   findByBarberAndDate: jest.fn(),
   findById: jest.fn(),
+  release: jest.fn(),
 });
 
 export const makeMockAppointmentRepository = () => ({
@@ -151,6 +152,7 @@ export const makeMockClientRepository = () => ({
   incrementarNoShow: jest.fn(),
   aplicarSancion: jest.fn(),
   levantarSancion: jest.fn(),
+  findRegisteredByEmail: jest.fn(),
 });
 
 export const makeMockAnalisisCorteRepository = () => ({

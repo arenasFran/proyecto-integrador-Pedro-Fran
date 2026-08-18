@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiScissors } from 'react-icons/fi';
 import { AppFooter } from '../../components/common';
 import { legalDocuments, legalConfig } from '../../constants/legal';
 import type { LegalBlock } from '../../constants/legal';
@@ -53,7 +52,7 @@ export const LegalLayout: React.FC<LegalLayoutProps> = ({ slug }) => {
           className="flex cursor-pointer items-center gap-2 text-[16px] font-bold text-white"
           onClick={() => navigate('/')}
         >
-          <FiScissors className="text-[#FF5C00]" />
+          <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-6 w-auto" />
           Barbería SA
         </div>
         <span className="text-[12px] text-[#8A8A8A]">Legal</span>

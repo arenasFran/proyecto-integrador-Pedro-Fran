@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { AnalisisCorteController } from '../controllers/analisis-corte/AnalisisCorteController';
 import { createAuthenticate, authorize } from '../middlewares/auth.middleware';
 import { createRequireActiveMembership } from '../middlewares/membership.middleware';
-import { uploadAnalisisFoto, handleUploadErrors } from '../middlewares/upload.middleware';
+import { uploadAnalisisFoto, handleUploadErrors, assertImageContent } from '../middlewares/upload.middleware';
 import { MongoMembershipRepository } from '../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 
 const analisisCorteLimiter = rateLimit({
@@ -40,6 +40,7 @@ export const createAnalisisCorteRouter = (deps: {
     analisisCorteLimiter,
     requireActiveMembership,
     handleUploadErrors(uploadAnalisisFoto),
+    assertImageContent,
     deps.analisisCorteController.analizar
   );
 

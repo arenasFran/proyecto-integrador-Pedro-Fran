@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { MongoPaymentRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { PaymentModel } from '../../../../src/infrastructure/repositories/mongodb/models/payment.model';
 import { Payment } from '../../../../src/domain/entities/Payment';
+import type { PaymentType, PaymentStatus } from '../../../../src/domain/types/payment.types';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
@@ -10,7 +11,7 @@ describeIfMongo('MongoPaymentRepository', () => {
   let repository: MongoPaymentRepository;
   const userId = new mongoose.Types.ObjectId().toString();
 
-  const createPaymentDoc = async (overrides: Partial<{ type: string; status: string; referenceId: string; mpPreferenceId: string; mpPaymentId: string; createdAt: Date }> = {}) => {
+  const createPaymentDoc = async (overrides: Partial<{ type: PaymentType; status: PaymentStatus; referenceId: string; mpPreferenceId: string; mpPaymentId: string; createdAt: Date }> = {}) => {
     const doc = await PaymentModel.create({
       type: overrides.type ?? 'product_order',
       referenceId: overrides.referenceId ?? 'ref-1',

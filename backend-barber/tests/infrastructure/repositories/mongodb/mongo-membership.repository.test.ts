@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { MongoMembershipRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MembershipModel } from '../../../../src/infrastructure/repositories/mongodb/models/membership.model';
-import { MEMBERSHIP_DEFAULTS } from '../../../../src/domain/types/membership';
+import { MEMBERSHIP_DEFAULTS, type MembershipStatus } from '../../../../src/domain/types/membership';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
@@ -15,7 +15,7 @@ describeIfMongo('MongoMembershipRepository — expireExpiredMemberships', () => 
 
   const createMembershipDoc = async (overrides: {
     userId?: mongoose.Types.ObjectId;
-    status?: string;
+    status?: MembershipStatus;
     endDate: Date;
     couponsUsed?: number;
   }) => {

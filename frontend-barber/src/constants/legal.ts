@@ -98,7 +98,7 @@ export const legalDocuments: LegalDocument[] = [
           {
             kind: 'list',
             items: [
-              'La duración del turno depende del servicio seleccionado.',
+              'La duración del turno depende del barbero seleccionado.',
               'Si llegás tarde, es posible que el turno deba acortarse o reprogramarse según la disponibilidad.',
               'Si la barbería debe cancelar un turno, te lo comunicaremos a la brevedad y coordinaremos la reprogramación del mismo.',
             ],

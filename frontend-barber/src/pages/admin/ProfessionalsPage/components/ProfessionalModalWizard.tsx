@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { FiChevronLeft, FiChevronRight, FiClock, FiSave, FiUser } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { FiChevronLeft, FiChevronRight, FiClock, FiPlus, FiSave, FiTrash2, FiUser } from 'react-icons/fi';
 import { uploadAvatar } from '../../../../services/upload.service';
 import { ImageUpload, Modal, Button, Input, PasswordInput, useToast } from '../../../../components/common';
 import type { DayKey, Professional } from '../../../../types/professional';
 import {
+  createEmptyDay,
   createEmptySchedule,
   days,
   mapScheduleToForm,
@@ -13,11 +14,8 @@ import {
 
 const STEPS = [
   { number: 1, title: 'Datos personales', description: 'Identidad y contacto' },
-  { number: 2, title: 'Servicios', description: 'Oferta y duración' },
-  { number: 3, title: 'Horarios', description: 'Disponibilidad semanal' },
+  { number: 2, title: 'Turnos y horarios', description: 'Duración del turno y horario semanal' },
 ];
-
-const dayKeys: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const dayLabels: Record<string, string> = {
   monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié',
@@ -32,7 +30,6 @@ type WizardFormState = {
   password: string;
   age: string;
   slotDuration: string;
-  services: string;
   photoFile: File | null;
   photoUrl: string;
   schedule: Record<DayKey, ScheduleDayForm>;
@@ -52,7 +49,6 @@ type ProfessionalModalWizardProps = {
       age: string;
       slotDuration: string;
       photoUrl: string;
-      services: string;
     };
     schedule: Record<DayKey, ScheduleDayForm>;
   }) => Promise<void>;
@@ -66,7 +62,6 @@ const createEmptyWizardForm = (): WizardFormState => ({
   password: '',
   age: '',
   slotDuration: '30',
-  services: '',
   photoFile: null,
   photoUrl: '',
   schedule: createEmptySchedule(),
@@ -80,7 +75,6 @@ const wizardFormFromProfessional = (p: Professional): WizardFormState => ({
   password: '',
   age: p.age ? String(p.age) : '',
   slotDuration: String(p.slotDuration ?? 30),
-  services: p.services.join(', '),
   photoFile: null,
   photoUrl: p.photoUrl ?? '',
   schedule: p.schedule ? mapScheduleToForm(p.schedule) : createEmptySchedule(),
@@ -128,40 +122,59 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
       }));
     };
 
-  const handleScheduleShortcut = useCallback(
-    (action: 'copyToNext' | 'copyToAll' | 'copyToWeekdays', sourceDay: DayKey) => {
-      setForm((prev) => {
-        const source = prev.schedule[sourceDay];
-        if (!source) return prev;
-        const newSchedule = { ...prev.schedule };
-        const weekdays: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-        if (action === 'copyToNext') {
-          const idx = dayKeys.indexOf(sourceDay);
-          const nextKey = dayKeys[idx + 1];
-          if (nextKey) newSchedule[nextKey] = { ...source };
-        } else {
-          const targetDays = action === 'copyToAll' ? dayKeys : weekdays;
-          targetDays.forEach((day) => { newSchedule[day] = { ...source }; });
-        }
-        return { ...prev, schedule: newSchedule };
-      });
-    },
-    []
-  );
+  const toggleDay = (day: DayKey) => {
+    setForm((prev) => {
+      const current = prev.schedule[day];
+      const isActive = Boolean(current.startTime) && Boolean(current.endTime);
+      return {
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          [day]: isActive
+            ? createEmptyDay()
+            : {
+                startTime: current.startTime || '09:00',
+                endTime: current.endTime || '18:00',
+                breakStart: current.breakStart,
+                breakEnd: current.breakEnd,
+              },
+        },
+      };
+    });
+  };
+
+  const toggleBreak = (day: DayKey) => {
+    setForm((prev) => {
+      const current = prev.schedule[day];
+      const hasBreak = Boolean(current.breakStart) && Boolean(current.breakEnd);
+      return {
+        ...prev,
+        schedule: {
+          ...prev.schedule,
+          [day]: {
+            ...current,
+            breakStart: hasBreak ? '' : (current.breakStart || '12:00'),
+            breakEnd: hasBreak ? '' : (current.breakEnd || '13:00'),
+          },
+        },
+      };
+    });
+  };
 
   const applyPreset = (preset: 'weekdays' | 'saturday' | 'clear') => {
     setForm((prev) => {
       const newSchedule = { ...prev.schedule };
       if (preset === 'weekdays') {
-        const weekdays: DayKey[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-        weekdays.forEach((day) => {
-          newSchedule[day] = { startTime: '09:00', endTime: '18:00', breakStart: '13:00', breakEnd: '14:00' };
+        days.forEach((d) => {
+          if (d.key !== 'saturday' && d.key !== 'sunday') {
+            newSchedule[d.key] = { startTime: '09:00', endTime: '18:00', breakStart: '', breakEnd: '' };
+          }
         });
       } else if (preset === 'saturday') {
-        newSchedule['saturday'] = { startTime: '09:00', endTime: '13:00', breakStart: '', breakEnd: '' };
-      } else if (preset === 'clear') {
-        dayKeys.forEach((day) => {
-          newSchedule[day] = { startTime: '', endTime: '', breakStart: '', breakEnd: '' };
+        newSchedule['saturday'] = { startTime: '09:00', endTime: '14:00', breakStart: '', breakEnd: '' };
+      } else {
+        days.forEach((d) => {
+          newSchedule[d.key] = createEmptyDay();
         });
       }
       return { ...prev, schedule: newSchedule };
@@ -214,7 +227,6 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
           age: form.age,
           slotDuration: form.slotDuration,
           photoUrl,
-          services: form.services,
         },
         schedule: form.schedule,
       });
@@ -229,10 +241,19 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
   const isLastStep = step === STEPS.length;
   const title = professional ? 'Editar barbero' : 'Nuevo barbero';
 
+  const activeDaysCount = days.filter(
+    (d) => form.schedule[d.key].startTime && form.schedule[d.key].endTime
+  ).length;
+
+  const scheduleSummary = days
+    .filter((d) => form.schedule[d.key].startTime && form.schedule[d.key].endTime)
+    .map((d) => `${dayLabels[d.key]} ${form.schedule[d.key].startTime}-${form.schedule[d.key].endTime}`)
+    .join(' · ');
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="xl">
       <div className="mb-5 rounded-[12px] border border-[#242424] bg-[#171717] px-4 py-3">
-        <p className="text-[12px] font-medium text-[#B9B9B9]">Configurá la información del profesional en tres pasos.</p>
+        <p className="text-[12px] font-medium text-[#B9B9B9]">Configurá la información del profesional en dos pasos.</p>
         <p className="mt-1 text-[11px] text-[#707070]">Podés volver a cualquier paso anterior sin perder los cambios.</p>
       </div>
 
@@ -317,117 +338,169 @@ export const ProfessionalModalWizard: React.FC<ProfessionalModalWizardProps> = (
       )}
 
       {step === 2 && (
-        <div className="grid gap-4" aria-label="Servicios y duración">
-          <div className="mb-1 flex items-center gap-2 text-[13px] font-semibold text-white">
-            <FiClock className="h-4 w-4 text-[#FF8A4C]" aria-hidden="true" />
-            Configuración de reservas
-          </div>
-          <Input
-            label="Servicios"
-            value={form.services}
-            onChange={handleFieldChange('services')}
-            placeholder="Corte, barba, color"
-            helperText="Separá cada servicio con una coma."
-          />
-          <Input
-            label="Duración del slot"
-            type="number"
-            min={1}
-            value={form.slotDuration}
-            onChange={handleFieldChange('slotDuration')}
-            required
-            placeholder="30"
-            helperText="En minutos. Define cada cuánto tiempo se genera un slot disponible."
-          />
-        </div>
-      )}
-
-      {step === 3 && (
-        <div className="grid gap-4" aria-label="Horarios de atención">
-          <div className="flex flex-col gap-3 rounded-[12px] border border-[#242424] bg-[#171717] p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-[13px] font-medium text-white">Disponibilidad semanal</p>
-              <p className="mt-1 text-[11px] text-[#707070]">Usá una plantilla para completar los días más rápido.</p>
+        <div className="grid gap-4" aria-label="Turnos y horarios">
+          <div className="rounded-[12px] border border-[#242424] bg-[#171717] p-4">
+            <div className="mb-4 flex items-center gap-2 text-[13px] font-semibold text-white">
+              <FiClock className="h-4 w-4 text-[#FF8A4C]" aria-hidden="true" />
+              Configuración de reservas
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              <Button type="button" variant="ghost" size="sm" onClick={() => applyPreset('weekdays')}>Lun a vie</Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => applyPreset('saturday')}>Sábado</Button>
-              <Button type="button" variant="ghost" size="sm" onClick={() => applyPreset('clear')}>Limpiar</Button>
-            </div>
+            <Input
+              label="Duración del turno"
+              type="number"
+              min={1}
+              value={form.slotDuration}
+              onChange={handleFieldChange('slotDuration')}
+              required
+              placeholder="30"
+              helperText="En minutos. Define cuánto dura cada turno disponible."
+            />
           </div>
 
-          {/* Schedule table */}
-          <div className="overflow-x-auto rounded-[12px] border border-[#242424]">
-            <table className="w-full min-w-[680px] text-[13px]">
-              <thead>
-                <tr className="border-b border-[#282828] bg-[#171717]">
-                  <th className="px-3 py-3 text-left text-[11px] font-medium text-[#8A8A8A]">Día</th>
-                  <th className="px-2 py-3 text-left text-[11px] font-medium text-[#8A8A8A]">Inicio</th>
-                  <th className="px-2 py-3 text-left text-[11px] font-medium text-[#8A8A8A]">Fin</th>
-                  <th className="px-2 py-3 text-left text-[11px] font-medium text-[#8A8A8A]">Break inicio</th>
-                  <th className="px-2 py-3 text-left text-[11px] font-medium text-[#8A8A8A]">Break fin</th>
-                  <th className="px-2 py-3" />
-                </tr>
-              </thead>
-              <tbody>
-                {days.map((day) => (
-                  <tr key={day.key} className="border-b border-[#282828]/50 transition-colors last:border-0 hover:bg-[#1A1A1A]/50">
-                    <td className="px-3 py-2.5">
-                      <span className="text-white font-medium">{day.label}</span>
-                      <span className="ml-1.5 text-[10px] text-[#555]">{dayLabels[day.key]}</span>
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <input
-                        aria-label={`Inicio ${day.label}`}
-                        type="time"
-                        value={form.schedule[day.key].startTime}
-                        onChange={handleDayChange(day.key, 'startTime')}
-                        className="w-full bg-[#1A1A1A] border border-[#282828] rounded-[8px] px-2 py-1.5 text-[13px] text-white outline-none focus:border-[#FF5C00] transition-colors"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <input
-                        aria-label={`Fin ${day.label}`}
-                        type="time"
-                        value={form.schedule[day.key].endTime}
-                        onChange={handleDayChange(day.key, 'endTime')}
-                        className="w-full bg-[#1A1A1A] border border-[#282828] rounded-[8px] px-2 py-1.5 text-[13px] text-white outline-none focus:border-[#FF5C00] transition-colors"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <input
-                        aria-label={`Break inicio ${day.label}`}
-                        type="time"
-                        value={form.schedule[day.key].breakStart}
-                        onChange={handleDayChange(day.key, 'breakStart')}
-                        className="w-full bg-[#1A1A1A] border border-[#282828] rounded-[8px] px-2 py-1.5 text-[13px] text-white outline-none focus:border-[#FF5C00] transition-colors"
-                      />
-                    </td>
-                    <td className="py-2.5 px-2">
-                      <input
-                        aria-label={`Break fin ${day.label}`}
-                        type="time"
-                        value={form.schedule[day.key].breakEnd}
-                        onChange={handleDayChange(day.key, 'breakEnd')}
-                        className="w-full bg-[#1A1A1A] border border-[#282828] rounded-[8px] px-2 py-1.5 text-[13px] text-white outline-none focus:border-[#FF5C00] transition-colors"
-                      />
-                    </td>
-                    <td className="py-2.5 pl-2">
-                      {day.key !== 'sunday' && (
-                        <button
-                          type="button"
-                          onClick={() => handleScheduleShortcut('copyToNext', day.key)}
-                          className="whitespace-nowrap rounded-[6px] px-1 text-[11px] text-[#777] transition-colors hover:bg-[#242424] hover:text-[#FF5C00]"
-                          title={`Copiar a ${dayLabels[dayKeys[dayKeys.indexOf(day.key) + 1]]}`}
-                        >
-                          Copiar →
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="rounded-[12px] border border-[#242424] bg-[#171717] p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <FiClock className="h-4 w-4 text-[#FF5C00]" aria-hidden="true" />
+                <div>
+                  <h3 className="text-[14px] font-semibold text-white">Horario semanal</h3>
+                  <p className="text-[11px] text-[#707070]">
+                    <span className="font-semibold text-[#FF5C00]">{activeDaysCount}</span> de {days.length} días con horario
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => applyPreset('weekdays')}
+                  className="rounded-[8px] border border-[#282828] px-3 py-1.5 text-[11px] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/40 hover:text-[#FF5C00]"
+                >
+                  Lun a Vie
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPreset('saturday')}
+                  className="rounded-[8px] border border-[#282828] px-3 py-1.5 text-[11px] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/40 hover:text-[#FF5C00]"
+                >
+                  Sábado
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyPreset('clear')}
+                  className="rounded-[8px] border border-[#282828] px-3 py-1.5 text-[11px] text-red-400/80 transition-colors hover:border-red-500/40 hover:text-red-400"
+                >
+                  Limpiar todo
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-col gap-2">
+              {days.map((day) => {
+                const isActive = Boolean(form.schedule[day.key].startTime) && Boolean(form.schedule[day.key].endTime);
+                const hasBreak = Boolean(form.schedule[day.key].breakStart) && Boolean(form.schedule[day.key].breakEnd);
+                return (
+                  <div key={day.key} className="overflow-hidden rounded-[14px] border border-[#282828] bg-[#151515]">
+                    <div className="flex items-center justify-between gap-3 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[12px] font-bold ${
+                          isActive ? 'bg-[#FF5C00]/15 text-[#FF5C00]' : 'bg-[#242424] text-[#8A8A8A]'
+                        }`}>
+                          {dayLabels[day.key]}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[14px] font-semibold text-white">{day.label}</p>
+                          {isActive && (
+                            <p className="truncate text-[11px] text-[#8A8A8A]">
+                              {form.schedule[day.key].startTime} - {form.schedule[day.key].endTime}
+                              {hasBreak && ` · Break ${form.schedule[day.key].breakStart} - ${form.schedule[day.key].breakEnd}`}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isActive}
+                        aria-label={`${isActive ? 'Desactivar' : 'Activar'} horario de ${day.label}`}
+                        onClick={() => toggleDay(day.key)}
+                        className={`relative inline-flex h-[24px] w-[44px] shrink-0 items-center rounded-full transition-colors ${
+                          isActive ? 'bg-[#FF5C00]' : 'bg-[#282828]'
+                        }`}
+                      >
+                        <span className={`inline-block h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform ${
+                          isActive ? 'translate-x-[23px]' : 'translate-x-[3px]'
+                        }`} />
+                      </button>
+                    </div>
+
+                    {isActive && (
+                      <div className="border-t border-[#282828] px-4 py-3">
+                        <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr] sm:items-center">
+                          <span className="text-[11px] uppercase tracking-wide text-[#8A8A8A]">Horario</span>
+                          <input
+                            type="time"
+                            aria-label={`Inicio ${day.label}`}
+                            value={form.schedule[day.key].startTime}
+                            onChange={handleDayChange(day.key, 'startTime')}
+                            className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                          />
+                          <input
+                            type="time"
+                            aria-label={`Fin ${day.label}`}
+                            value={form.schedule[day.key].endTime}
+                            onChange={handleDayChange(day.key, 'endTime')}
+                            className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                          />
+                        </div>
+
+                        <div className="mt-3">
+                          {hasBreak ? (
+                            <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-center">
+                              <span className="text-[11px] uppercase tracking-wide text-[#8A8A8A]">Break</span>
+                              <input
+                                type="time"
+                                aria-label={`Break inicio ${day.label}`}
+                                value={form.schedule[day.key].breakStart}
+                                onChange={handleDayChange(day.key, 'breakStart')}
+                                className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                              />
+                              <input
+                                type="time"
+                                aria-label={`Break fin ${day.label}`}
+                                value={form.schedule[day.key].breakEnd}
+                                onChange={handleDayChange(day.key, 'breakEnd')}
+                                className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => toggleBreak(day.key)}
+                                className="inline-flex items-center justify-center gap-1.5 rounded-[8px] border border-red-500/30 px-2.5 py-2 text-[11px] text-red-400 transition-colors hover:border-red-500/60 hover:text-red-300"
+                              >
+                                <FiTrash2 className="h-3.5 w-3.5" />
+                                Quitar
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => toggleBreak(day.key)}
+                              className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#282828] px-3 py-2 text-[12px] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/40 hover:text-[#FF5C00]"
+                            >
+                              <FiPlus className="h-3.5 w-3.5" />
+                              Agregar break
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="mt-3 text-[12px] text-[#8A8A8A]">
+              {scheduleSummary || 'Todavía no configuraste ningún horario. Usá los accesos rápidos o activá cada día.'}
+            </p>
           </div>
         </div>
       )}

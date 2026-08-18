@@ -84,13 +84,6 @@ export const validateSchedule = (schedule: Record<DayKey, ScheduleDayForm>) => {
   return null;
 };
 
-export const normalizeServices = (value: string) => {
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
 export const scheduleFromForm = (
   schedule: Record<DayKey, ScheduleDayForm>
 ): BarberSchedule => {

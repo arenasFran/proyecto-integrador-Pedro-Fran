@@ -17,7 +17,6 @@ import { getAccessToken } from '../../../services/api';
 import { Navigate } from 'react-router-dom';
 import type { DayKey, Professional, ProfessionalPayload } from '../../../types/professional';
 import {
-  normalizeServices,
   scheduleFromForm,
   type ScheduleDayForm,
 } from '../../admin/utils/schedule-helpers';
@@ -117,7 +116,6 @@ export const ProfessionalsPage: React.FC = () => {
       age: string;
       slotDuration: string;
       photoUrl: string;
-      services: string;
     };
     schedule: Record<DayKey, ScheduleDayForm>;
   }) => {
@@ -128,7 +126,7 @@ export const ProfessionalsPage: React.FC = () => {
       name: form.name.trim(),
       lastname: form.lastname.trim(),
       phone: form.phone.trim(),
-      services: normalizeServices(form.services),
+      services: [],
       age: form.age ? Number(form.age) : undefined,
       photoUrl: form.photoUrl.trim() || null,
       slotDuration,
@@ -148,7 +146,6 @@ export const ProfessionalsPage: React.FC = () => {
           name: payload.name,
           lastname: payload.lastname,
           phone: payload.phone,
-          services: payload.services,
           age: payload.age ?? null,
           photoUrl: payload.photoUrl,
           slotDuration: payload.slotDuration,

@@ -36,27 +36,33 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   await expect.poll(async () => page.evaluate(() => localStorage.getItem('authToken'))).not.toBeNull();
 
   await page.goto('/admin/profesionales');
-  await expect(page.getByRole('heading', { name: 'Empleados' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Profesionales' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Nuevo barbero' }).click();
 
   await page.getByLabel('Nombre').fill(nameValue);
   await page.getByLabel('Apellido').fill(lastnameValue);
   await page.getByLabel('Email').fill(createdEmail);
   await page.getByLabel('Teléfono').fill(createdPhone);
   await page.getByLabel('Contraseña').fill('Admin123!');
-  await page.getByLabel('Duración del slot').fill('45');
-  await page.getByLabel('Servicios').fill('corte, barba');
   await page.getByLabel('Edad').fill('28');
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+
+  await page.getByLabel('Duración del turno').fill('45');
+  await page.getByRole('switch', { name: 'Activar horario de Lunes' }).click();
   await page.getByLabel('Inicio Lunes', { exact: true }).fill('09:00');
   await page.getByLabel('Fin Lunes', { exact: true }).fill('18:00');
+  await page.getByRole('button', { name: 'Agregar break' }).click();
   await page.getByLabel('Break inicio Lunes').fill('13:00');
   await page.getByLabel('Break fin Lunes').fill('14:00');
+  await page.getByRole('switch', { name: 'Activar horario de Sábado' }).click();
   await page.getByLabel('Inicio Sábado', { exact: true }).fill('09:00');
   await page.getByLabel('Fin Sábado', { exact: true }).fill('13:00');
 
   const createResponsePromise = page.waitForResponse(
     (response) => response.url().includes('/api/barbers') && response.request().method() === 'POST'
   );
-  await page.getByRole('button', { name: 'Crear profesional' }).click();
+  await page.getByRole('button', { name: 'Crear barbero' }).click();
   const createResponse = await createResponsePromise;
   expect(createResponse.status()).toBe(201);
   const createdProfessional = (await createResponse.json()) as { id: string };
@@ -67,7 +73,8 @@ test('crud de profesionales desde el panel', async ({ page }) => {
 
   const cardContainer = createdCard.locator('xpath=ancestor::div[contains(@class,"rounded-[18px]")]');
   await cardContainer.getByRole('button', { name: 'Editar' }).click();
-  await page.getByLabel('Duración del slot').fill('60');
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await page.getByLabel('Duración del turno').fill('60');
 
   const updateBarberPromise = page.waitForResponse(
     (response) =>
@@ -83,15 +90,6 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   expect((await updateSchedulePromise).status()).toBe(200);
 
   await expect(cardContainer.getByText('60 min')).toBeVisible();
-
-  await page.getByLabel('Fecha').fill('2026-06-08');
-  const slotsPromise = page.waitForResponse(
-    (response) => response.url().includes('/slots') && response.request().method() === 'GET'
-  );
-  await page.getByRole('button', { name: 'Ver slots' }).click();
-  const slotsResponse = await slotsPromise;
-  expect(slotsResponse.status()).toBe(200);
-  await expect(page.getByText('09:00')).toBeVisible();
 
   const deletePromise = page.waitForResponse(
     (response) =>

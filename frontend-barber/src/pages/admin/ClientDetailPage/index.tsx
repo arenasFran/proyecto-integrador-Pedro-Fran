@@ -233,13 +233,14 @@ export default function ClientDetailPage() {
             <Button
               variant="outline"
               icon={FiCalendar}
-              className="w-full shrink-0 sm:w-auto"
+className="w-full shrink-0 sm:w-auto"
               onClick={() => actions.handleCreateForClient({
                 clientId: client.clientId ?? undefined,
                 clientName: client.clientName,
                 clientLastname: client.clientLastname,
                 clientPhone: client.clientPhone,
                 clientEmail: client.clientEmail,
+                clientKind: client.kind,
               } as Appointment)}
             >
               Crear turno para este cliente

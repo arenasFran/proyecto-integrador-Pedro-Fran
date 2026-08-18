@@ -137,6 +137,11 @@ export function useAppointmentActions() {
       lastname: appointment.clientLastname,
       phone: appointment.clientPhone,
       email: appointment.clientEmail,
+      kind: appointment.clientKind
+        ? appointment.clientKind === 'Registrado'
+          ? 'registered'
+          : 'anonymous'
+        : undefined,
     });
     setShowQuickCreate(true);
   }, []);

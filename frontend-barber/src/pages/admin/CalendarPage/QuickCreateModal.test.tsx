@@ -139,4 +139,72 @@ describe('QuickCreateModal', () => {
     expect(await screen.findByText(/buscá y seleccioná un cliente/i)).toBeInTheDocument();
     expect(mockCreateAppointment).not.toHaveBeenCalled();
   });
+
+  it('opens in data-entry mode with prefilled fields when the initial client is anonymous', () => {
+    renderWithProviders(
+      <QuickCreateModal
+        dateStr="2026-07-05"
+        onClose={vi.fn()}
+        initialClient={{
+          id: 'anon-1',
+          name: 'Carlos',
+          lastname: 'Ruiz',
+          phone: '099111333',
+          email: 'carlos@test.com',
+          kind: 'anonymous',
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText(/^nombre/i)).toHaveValue('Carlos');
+    expect(screen.getByLabelText(/apellido/i)).toHaveValue('Ruiz');
+    expect(screen.getByLabelText(/^teléfono/i)).toHaveValue('099111333');
+    expect(screen.getByLabelText(/email/i)).toHaveValue('carlos@test.com');
+    expect(screen.queryByLabelText(/buscar cliente/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
+  });
+
+  it('falls back to data-entry mode when the initial client is not in the registered list', async () => {
+    renderWithProviders(
+      <QuickCreateModal
+        dateStr="2026-07-05"
+        onClose={vi.fn()}
+        initialClient={{
+          id: 'anon-1',
+          name: 'Carlos',
+          lastname: 'Ruiz',
+          phone: '099111333',
+          email: 'carlos@test.com',
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/^nombre/i)).toHaveValue('Carlos');
+    });
+    expect(screen.getByLabelText(/^teléfono/i)).toHaveValue('099111333');
+    expect(screen.queryByLabelText(/buscar cliente/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
+  });
+
+  it('finds the prefilled registered client when searching full name and lastname', () => {
+    renderWithProviders(
+      <QuickCreateModal
+        dateStr="2026-07-05"
+        onClose={vi.fn()}
+        initialClient={{
+          id: 'c2',
+          name: 'Luis',
+          lastname: 'Pérez',
+          phone: '',
+          email: 'luis@test.com',
+          kind: 'registered',
+        }}
+      />
+    );
+
+    expect(screen.getByLabelText(/buscar cliente/i)).toHaveValue('Luis Pérez');
+    expect(screen.getByText('Luis Pérez')).toBeInTheDocument();
+    expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
+  });
 });

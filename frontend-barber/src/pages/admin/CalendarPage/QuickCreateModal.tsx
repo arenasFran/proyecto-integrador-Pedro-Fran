@@ -14,6 +14,7 @@ export interface QuickCreateInitialClient {
   lastname: string;
   phone?: string;
   email?: string;
+  kind?: 'registered' | 'anonymous';
 }
 
 interface QuickCreateModalProps {
@@ -66,15 +67,32 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const registeredClients = useMemo(() => clientsData?.clients ?? [], [clientsData]);
   const barbersById = useMemo(() => new Map(barbers.map((b) => [b.id, b])), [barbers]);
 
+  // Un cliente anónimo no está en la lista de registrados (/api/users/clients).
+  // Si el cliente predefinido no figura ahí, lo tratamos como anónimo y pasamos
+  // al modo "Cliente sin registro" con sus datos precargados en vez de quedar
+  // atascados en el buscador de registrados.
+  const isAnonymousClient = useMemo(() => {
+    if (!initialClient) return false;
+    if (initialClient.kind === 'anonymous') return true;
+    if (initialClient.kind === 'registered') return false;
+    if (loadingClients) return false;
+    return !registeredClients.some((c) => c.id === initialClient.id);
+  }, [initialClient, loadingClients, registeredClients]);
+
+  const effectiveClientMode: ClientMode = initialClient && isAnonymousClient ? 'new' : clientMode;
+
   const filteredClients = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
     if (!q) return registeredClients;
-    return registeredClients.filter(
-      (c) =>
-        c.name.toLowerCase().includes(q) ||
-        c.lastname.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q)
-    );
+    // Tokeniza la búsqueda ("Nombre Apellido") para que cada término pueda
+    // matchear en un campo distinto (nombre, apellido o email), en vez de exigir
+    // que la query completa esté contenida en un solo campo.
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return registeredClients.filter((c) => {
+      const fullName = `${c.name} ${c.lastname}`.toLowerCase();
+      const email = c.email.toLowerCase();
+      return tokens.every((t) => fullName.includes(t) || email.includes(t));
+    });
   }, [registeredClients, clientSearch]);
 
   const resetClientFields = () => {
@@ -154,7 +172,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const isLoadingSlots = Boolean(barberId && dateStr && availableSlots.length === 0 && !localError);
   // En modo registrado los inputs no se muestran; el teléfono solo vuelve a aparecer
   // si el cliente elegido no lo tiene cargado, para poder completarlo antes de crear el turno.
-  const isExisting = clientMode === 'existing';
+  const isExisting = effectiveClientMode === 'existing';
   const isNameLocked = isExisting && !!selectedClient;
   const isPhoneLocked = isNameLocked && !!selectedClient?.phone;
 
@@ -162,7 +180,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     if (!barberId) return 'Seleccioná un barbero.';
     if (!serviceId) return 'Seleccioná un servicio.';
     if (!selectedTime) return 'Seleccioná un horario.';
-    if (clientMode === 'existing' && !selectedClient) return 'Buscá y seleccioná un cliente registrado.';
+    if (effectiveClientMode === 'existing' && !selectedClient) return 'Buscá y seleccioná un cliente registrado.';
     if (clientName.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
     if (clientLastname.trim().length < 2) return 'El apellido debe tener al menos 2 caracteres.';
     if (clientPhone.trim().length < 7) return 'El teléfono debe tener al menos 7 dígitos.';
@@ -268,7 +286,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
               type="button"
               onClick={() => handleClientModeChange('new')}
               className={`flex-1 h-9 rounded-[10px] text-[12.5px] font-medium transition-colors border
-                ${clientMode === 'new'
+                ${effectiveClientMode === 'new'
                   ? 'bg-[#FF5C00]/10 border-[#FF5C00] text-[#FF5C00]'
                   : 'border-[#282828] text-[#8A8A8A] hover:text-white'
                 }`}
@@ -279,7 +297,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
               type="button"
               onClick={() => handleClientModeChange('existing')}
               className={`flex-1 h-9 rounded-[10px] text-[12.5px] font-medium transition-colors border
-                ${clientMode === 'existing'
+                ${effectiveClientMode === 'existing'
                   ? 'bg-[#FF5C00]/10 border-[#FF5C00] text-[#FF5C00]'
                   : 'border-[#282828] text-[#8A8A8A] hover:text-white'
                 }`}
@@ -289,7 +307,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           </div>
         )}
 
-        {clientMode === 'existing' && (
+        {effectiveClientMode === 'existing' && (
           <div className="flex flex-col gap-2">
             <Input
               label="Buscar cliente"
@@ -343,7 +361,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           </div>
         )}
 
-        {clientMode === 'new' && (
+        {effectiveClientMode === 'new' && (
           <div className="grid grid-cols-2 gap-3">
             <Input
               label="Nombre"
@@ -364,7 +382,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           </div>
         )}
 
-        {(clientMode === 'new' || (isExisting && isNameLocked && !isPhoneLocked)) && (
+        {(effectiveClientMode === 'new' || (isExisting && isNameLocked && !isPhoneLocked)) && (
           <Input
             label="Teléfono"
             required
@@ -377,7 +395,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           />
         )}
 
-        {clientMode === 'new' && (
+        {effectiveClientMode === 'new' && (
           <Input
             label="Email"
             required

@@ -70,9 +70,9 @@ const services = [
 
 
 const aboutStats = [
-  { value: '+XX', label: 'clientes' },
-  { value: '+10', label: 'años de experiencia' },
-  { value: '+4.5', label: 'stars en Google Reviews' },
+  { value: '+1200', label: 'clientes felices' },
+  { value: '+10', label: 'años de oficio' },
+  { value: '4.9', label: 'puntaje en Google' },
 ];
 
 const faqItems = [
@@ -847,11 +847,11 @@ export const LandingPage: React.FC = () => {
           
                 <div className="about-info-row">
                   <div className="about-info-icon-wrap">
-                    <FiMapPin className="about-info-icon" />
+                    <FiClock className="about-info-icon" />
                   </div>
                   <div className="about-info-copy">
-                    <strong>+10 años</strong>
-                    <span>de oficio y dedicación</span>
+                    <strong>Lunes a sábados</strong>
+                    <span>09:00 a 19:00</span>
                   </div>
                 </div>
               </div>

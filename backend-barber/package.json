@@ -14,7 +14,8 @@
     "seed:full": "ts-node src/infrastructure/scripts/seed-full.ts",
     "seed:analytics": "ts-node src/infrastructure/scripts/seed-analytics.ts cleanup && ts-node src/infrastructure/scripts/seed-analytics.ts",
     "seed:analytics:clean": "ts-node src/infrastructure/scripts/seed-analytics.ts cleanup",
-    "reconcile:revenue": "ts-node src/infrastructure/scripts/reconcile-revenue.ts"
+    "reconcile:revenue": "ts-node src/infrastructure/scripts/reconcile-revenue.ts",
+    "repair:membership-revenue": "ts-node src/infrastructure/scripts/repair-membership-revenue.ts"
   },
   "keywords": [],
   "author": "",

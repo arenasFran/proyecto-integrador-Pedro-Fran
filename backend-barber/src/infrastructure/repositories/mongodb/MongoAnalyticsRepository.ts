@@ -127,9 +127,14 @@ export class MongoAnalyticsRepository {
   private static revenueMatchExpr(prefix = '$'): Record<string, unknown> {
     const s = (f: string) => `${prefix}${f}`;
     return {
-      $or: [
-        { $in: [s('status'), STATUS_CATEGORIES.countsAsRevenue] },
-        { $and: [{ $eq: [s('status'), 'Confirmado'] }, { $eq: [s('paymentStatus'), 'Pagado'] }] },
+      $and: [
+        { $ne: [s('paymentMethod'), 'memberPass'] },
+        {
+          $or: [
+            { $in: [s('status'), STATUS_CATEGORIES.countsAsRevenue] },
+            { $and: [{ $eq: [s('status'), 'Confirmado'] }, { $eq: [s('paymentStatus'), 'Pagado'] }] },
+          ],
+        },
       ],
     };
   }
@@ -140,9 +145,14 @@ export class MongoAnalyticsRepository {
       return {
         $cond: [
           {
-            $or: [
-              { $in: [s('status'), STATUS_CATEGORIES.countsAsRevenue] },
-              { $and: [{ $eq: [s('status'), 'Confirmado'] }, { $eq: [s('paymentStatus'), 'Pagado'] }] },
+            $and: [
+              { $ne: [s('paymentMethod'), 'memberPass'] },
+              {
+                $or: [
+                  { $in: [s('status'), STATUS_CATEGORIES.countsAsRevenue] },
+                  { $and: [{ $eq: [s('status'), 'Confirmado'] }, { $eq: [s('paymentStatus'), 'Pagado'] }] },
+                ],
+              },
             ],
           },
           priceField,
@@ -162,6 +172,7 @@ export class MongoAnalyticsRepository {
           $match: {
             date: { $gte: dateDesde, $lte: dateHasta },
             paymentStatus: 'Pendiente',
+            paymentMethod: { $ne: 'memberPass' },
             status: { $in: STATUS_CATEGORIES.countsAsDuration },
           },
         },

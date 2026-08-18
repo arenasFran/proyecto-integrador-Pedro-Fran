@@ -310,8 +310,8 @@ export async function runFullSeed() {
   // From appointments
   const revenueAppts = await AppointmentModel.find({
     $or: [
-      { status: 'Completado' },
-      { status: 'Confirmado', paymentStatus: 'Pagado' },
+      { status: 'Completado', paymentMethod: { $ne: 'memberPass' } },
+      { status: 'Confirmado', paymentStatus: 'Pagado', paymentMethod: { $ne: 'memberPass' } },
     ],
   });
   for (const apt of revenueAppts) {

@@ -81,6 +81,16 @@ describe('AppointmentActionsMenu', () => {
     expect(screen.queryByText('Marcar pagado')).toBeNull();
   });
 
+  it('oculta Marcar pagado para turnos cubiertos por membresía', async () => {
+    const user = userEvent.setup();
+    const actions = makeActions();
+    renderWithProviders(
+      <AppointmentActionsMenu appointment={{ ...baseAppointment, paymentMethod: 'memberPass', paymentStatus: 'Pagado' }} actions={actions} />
+    );
+    await user.click(screen.getByLabelText('Acciones del turno'));
+    expect(screen.queryByText('Marcar pagado')).toBeNull();
+  });
+
   it('oculta Recordatorio si el cliente no tiene email', async () => {
     const user = userEvent.setup();
     const actions = makeActions();

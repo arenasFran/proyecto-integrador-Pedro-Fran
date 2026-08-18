@@ -67,10 +67,10 @@ export function Select({ label, value, onChange, options, placeholder = 'Selecci
             id={listboxId}
             role="listbox"
             tabIndex={-1}
-            className="absolute left-0 right-0 z-50 mt-1 rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl max-h-60 overflow-y-auto"
+            className="absolute left-0 z-50 mt-1 rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl max-h-60 overflow-y-auto w-max min-w-[180px]"
           >
             {options.length === 0 && (
-              <li className="px-3 py-2 text-[13px] text-[#8A8A8A]">Sin opciones</li>
+              <li className="px-3 py-2 text-[13px] text-[#8A8A8A] whitespace-nowrap">Sin opciones</li>
             )}
             {options.map((opt) => (
               <li
@@ -78,7 +78,7 @@ export function Select({ label, value, onChange, options, placeholder = 'Selecci
                 role="option"
                 aria-selected={value === opt.value}
                 onClick={() => { onChange(opt.value); setOpen(false); }}
-                className={`px-3 py-2 text-[13px] cursor-pointer transition-colors
+                className={`px-3 py-2 text-[13px] cursor-pointer transition-colors whitespace-nowrap
                   ${value === opt.value
                     ? 'bg-[#FF5C00]/10 text-[#FF5C00]'
                     : 'text-white hover:bg-[#282828]'

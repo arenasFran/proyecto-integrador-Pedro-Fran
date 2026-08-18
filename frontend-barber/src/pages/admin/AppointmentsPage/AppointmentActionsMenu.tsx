@@ -24,6 +24,7 @@ export const AppointmentActionsMenu: React.FC<AppointmentActionsMenuProps> = ({ 
   if (appointment.status !== 'Confirmado') return null;
 
   const isPaid = appointment.paymentStatus === 'Pagado';
+  const canRegisterPayment = !isPaid && appointment.paymentMethod !== 'memberPass';
   const close = () => { setIsOpen(false); setMenuRect(null); };
 
   return (
@@ -60,7 +61,7 @@ export const AppointmentActionsMenu: React.FC<AppointmentActionsMenuProps> = ({ 
             >
               <FiCheck className="text-sm" /> Completar
             </button>
-            {!isPaid && (
+            {canRegisterPayment && (
               <button
                 onClick={() => { setCombinedActionTarget({ appointment, primaryAction: 'Pagado' }); close(); }}
                 className="flex w-full items-center gap-2 px-3 py-2 text-[13px] text-emerald-400 hover:bg-[#242424] transition-colors"

@@ -22,6 +22,10 @@ export class UpdatePaymentStatusUseCase {
       throw new AppError('Turno no encontrado.', 404);
     }
 
+    if (appointment.paymentMethod === 'memberPass') {
+      throw new AppError('Este turno ya fue cubierto por un cupón de membresía.', 400);
+    }
+
     if (appointment.paymentStatus === 'Pagado') {
       return { message: 'El turno ya se encontraba pagado' };
     }

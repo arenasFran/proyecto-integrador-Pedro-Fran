@@ -35,6 +35,7 @@ describe('UpdateAppointmentStatusUseCase', () => {
   let emailService: jest.Mocked<IEmailService>;
   let barberRepository: ReturnType<typeof makeMockBarberRepository>;
   let clientRepository: ReturnType<typeof makeMockClientRepository>;
+  let revenueTracker: { trackAppointment: jest.Mock };
   let useCase: UpdateAppointmentStatusUseCase;
   let capturedSession: any;
 
@@ -55,8 +56,9 @@ describe('UpdateAppointmentStatusUseCase', () => {
     );
     clientRepository = makeMockClientRepository();
     clientRepository.incrementarNoShow.mockResolvedValue(undefined);
+    revenueTracker = { trackAppointment: jest.fn().mockResolvedValue(undefined) };
 
-    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, clientRepository as any, 0, barberRepository as any);
+    useCase = new UpdateAppointmentStatusUseCase(appointmentRepository, membershipRepository as any, emailService, clientRepository as any, 0, barberRepository as any, revenueTracker as any);
 
     capturedSession = {
       startTransaction: jest.fn(),
@@ -93,6 +95,19 @@ describe('UpdateAppointmentStatusUseCase', () => {
       statusHistoryEntry: { status: 'Completado', timestamp: expect.any(Date), actor: 'Carlos Ruiz' },
     }, capturedSession);
     expect(result.message).toMatch(/Completado/);
+  });
+
+  it('no debe registrar ingreso al completar un turno cubierto por membresía', async () => {
+    appointmentRepository.findById.mockResolvedValue(
+      makeAppointment({ paymentMethod: 'memberPass', paymentStatus: 'Pagado' })
+    );
+    appointmentRepository.updateStatus.mockResolvedValue(
+      makeAppointment({ status: 'Completado', paymentMethod: 'memberPass', paymentStatus: 'Pagado' })
+    );
+
+    await useCase.execute('apt-1', { status: 'Completado' }, 'admin-1', 'Admin');
+
+    expect(revenueTracker.trackAppointment).not.toHaveBeenCalled();
   });
 
   it('debe cancelar el turno con razon', async () => {

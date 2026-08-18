@@ -378,6 +378,10 @@ export class MembershipController {
         throw new AppError('Membresía no encontrada.', 404);
       }
 
+      if (membership.isExpired) {
+        throw new AppError('No se pueden agregar cupones a una membresía vencida o inactiva.', 400);
+      }
+
       const updated = await this.membershipRepo.addCouponsTotal(membershipId, count);
       if (!updated) {
         throw new AppError('Error al agregar cupones.', 500);

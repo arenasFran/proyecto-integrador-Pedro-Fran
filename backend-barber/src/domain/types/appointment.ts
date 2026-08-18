@@ -25,8 +25,11 @@ export const STATUS_CATEGORIES = {
 
 export function appointmentCountsAsRevenue(
   status: AppointmentStatus,
-  paymentStatus: PaymentStatus
+  paymentStatus: PaymentStatus,
+  paymentMethod?: PaymentMethod
 ): boolean {
+  if (paymentMethod === 'memberPass') return false;
+
   return (
     STATUS_CATEGORIES.countsAsRevenue.includes(status) ||
     (status === 'Confirmado' && paymentStatus === 'Pagado')

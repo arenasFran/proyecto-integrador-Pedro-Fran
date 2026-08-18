@@ -149,7 +149,9 @@ export class UpdateAppointmentStatusUseCase {
       session.endSession();
     }
 
-    if (dto.status === 'Completado') {
+    // Los turnos cubiertos por un cupón ya fueron pagados al reservarse.
+    // Completar el servicio no debe convertir el precio de lista en ingreso.
+    if (dto.status === 'Completado' && appointment.paymentMethod !== 'memberPass') {
       await this.revenueTracker?.trackAppointment(
         id,
         appointment.servicePrice,

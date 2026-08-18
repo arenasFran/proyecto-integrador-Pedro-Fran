@@ -1,6 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCalendar, FiChevronDown, FiChevronUp, FiLock, FiSave, FiSend, FiSettings, FiUser } from 'react-icons/fi';
+import {
+  FiCalendar,
+  FiChevronDown,
+  FiChevronUp,
+  FiClock,
+  FiEdit2,
+  FiLock,
+  FiPlus,
+  FiSave,
+  FiSend,
+  FiSettings,
+  FiTrash2,
+  FiUser,
+} from 'react-icons/fi';
 import { AnimatedContainer, Button, ImageUpload, Input, PasswordInput, Spinner, useToast } from '../../../components/common';
 import { uploadAvatar } from '../../../services/upload.service';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
@@ -11,10 +24,10 @@ import { useGenerateTelegramLinkTokenMutation } from '../../../services/telegram
 import { getErrorMessage } from '../../../utils/errorMessages';
 import type { DayKey } from '../../../types/professional';
 import {
+  createEmptyDay,
   createEmptySchedule,
   days,
   mapScheduleToForm,
-  normalizeServices,
   scheduleFromForm,
   validateSchedule,
   type ScheduleDayForm,
@@ -30,6 +43,15 @@ const dayLabels: Record<string, string> = {
   monday: 'Lun', tuesday: 'Mar', wednesday: 'Mié',
   thursday: 'Jue', friday: 'Vie', saturday: 'Sáb', sunday: 'Dom',
 };
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-[12px] border border-[#282828] bg-[#1A1A1A] px-4 py-3">
+      <span className="text-[11px] uppercase tracking-wide text-[#8A8A8A]">{label}</span>
+      <span className="break-all text-right text-[13px] font-medium text-white">{value}</span>
+    </div>
+  );
+}
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -68,10 +90,10 @@ export const ProfilePage: React.FC = () => {
   const [telegramLinkCommand, setTelegramLinkCommand] = useState<string | null>(null);
   const { showToast } = useToast();
 
+  const [editingPersonal, setEditingPersonal] = useState(false);
   const [editedFields, setEditedFields] = useState<Record<string, unknown>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [editedSchedule, setEditedSchedule] = useState<Record<DayKey, ScheduleDayForm> | null>(null);
-  const [scheduleExpanded, setScheduleExpanded] = useState(false);
   const [barberConfigExpanded, setBarberConfigExpanded] = useState(false);
 
   useEffect(() => {
@@ -110,13 +132,16 @@ export const ProfilePage: React.FC = () => {
   const originalEmail = isBarber ? barberData?.email : authUser?.email;
   const emailChanged = String(formData?.email ?? '').trim() !== String(originalEmail ?? '').trim();
 
-  const scheduleSummary = isBarber ? days
+  const displayName = isBarber
+    ? `${String(formData?.name ?? '')} ${String(formData?.lastname ?? '')}`.trim()
+    : `${String(formData?.name ?? '')} ${String(formData?.lastname ?? '')}`.trim();
+
+  const activeDaysCount = days.filter((d) => schedule[d.key].startTime && schedule[d.key].endTime).length;
+
+  const scheduleSummary = days
     .filter((d) => schedule[d.key].startTime && schedule[d.key].endTime)
-    .map((d) => {
-      const day = schedule[d.key];
-      return `${dayLabels[d.key]} ${day.startTime}-${day.endTime}`;
-    })
-    .join(' · ') : '';
+    .map((d) => `${dayLabels[d.key]} ${schedule[d.key].startTime}-${schedule[d.key].endTime}`)
+    .join(' · ');
 
   const handleFieldChange = (field: string) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,15 +151,77 @@ export const ProfilePage: React.FC = () => {
   const handleDayChange = (day: DayKey, field: keyof ScheduleDayForm) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
-      const base = editedSchedule ?? (barberData?.schedule ? mapScheduleToForm(barberData.schedule) : createEmptySchedule());
       setEditedSchedule({
-        ...base,
+        ...schedule,
         [day]: {
-          ...base[day],
+          ...schedule[day],
           [field]: value,
         },
       });
     };
+
+  const toggleDay = (day: DayKey) => {
+    const current = schedule[day];
+    const isActive = Boolean(current.startTime) && Boolean(current.endTime);
+    setEditedSchedule({
+      ...schedule,
+      [day]: isActive
+        ? createEmptyDay()
+        : {
+            startTime: current.startTime || '09:00',
+            endTime: current.endTime || '18:00',
+            breakStart: current.breakStart,
+            breakEnd: current.breakEnd,
+          },
+    });
+  };
+
+  const toggleBreak = (day: DayKey) => {
+    const current = schedule[day];
+    const hasBreak = Boolean(current.breakStart) && Boolean(current.breakEnd);
+    setEditedSchedule({
+      ...schedule,
+      [day]: {
+        ...current,
+        breakStart: hasBreak ? '' : (current.breakStart || '12:00'),
+        breakEnd: hasBreak ? '' : (current.breakEnd || '13:00'),
+      },
+    });
+  };
+
+  const applyPreset = (preset: 'weekdays' | 'saturday' | 'clear') => {
+    const next = { ...schedule };
+    if (preset === 'weekdays') {
+      days.forEach((d) => {
+        if (d.key !== 'saturday' && d.key !== 'sunday') {
+          next[d.key] = { startTime: '09:00', endTime: '18:00', breakStart: '', breakEnd: '' };
+        }
+      });
+    } else if (preset === 'saturday') {
+      next.saturday = { startTime: '09:00', endTime: '14:00', breakStart: '', breakEnd: '' };
+    } else {
+      days.forEach((d) => {
+        next[d.key] = createEmptyDay();
+      });
+    }
+    setEditedSchedule(next);
+  };
+
+  const cancelPersonal = () => {
+    setEditingPersonal(false);
+    setEditedFields({});
+    setPhotoFile(null);
+    setEmailCurrentPassword('');
+    setEmailPasswordError(null);
+    setPageError(null);
+    setPageMessage(null);
+  };
+
+  const discardSchedule = () => {
+    setEditedSchedule(null);
+    setPageError(null);
+    setPageMessage(null);
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -153,7 +240,7 @@ export const ProfilePage: React.FC = () => {
 
       const slotDuration = Number(formData.slotDuration || 30);
       if (!Number.isInteger(slotDuration) || slotDuration < 1) {
-        setPageError('La duración del slot debe ser un número entero mayor o igual a 1.');
+        setPageError('La duración del turno debe ser un número entero mayor o igual a 1.');
         return;
       }
     }
@@ -180,8 +267,6 @@ export const ProfilePage: React.FC = () => {
           name: String(formData.name ?? '').trim(),
           lastname: String(formData.lastname ?? '').trim(),
           phone: String(formData.phone ?? '').trim(),
-          services: formData.services,
-          age: formData.age ?? null,
           photoUrl,
           slotDuration: Number(formData.slotDuration ?? 30),
           maxAdvanceDays: formData.maxAdvanceDays,
@@ -198,6 +283,7 @@ export const ProfilePage: React.FC = () => {
         await dispatch(updateBarberMe(payload)).unwrap();
         setEditedFields({});
         setEmailCurrentPassword('');
+        setEditingPersonal(false);
         setPageMessage('Perfil actualizado con éxito.');
       } else {
         await dispatch(updateCurrentUser({
@@ -210,6 +296,7 @@ export const ProfilePage: React.FC = () => {
         })).unwrap();
         setEditedFields({});
         setEmailCurrentPassword('');
+        setEditingPersonal(false);
         setPageMessage('Perfil actualizado con éxito.');
       }
     } catch (error: unknown) {
@@ -275,7 +362,8 @@ export const ProfilePage: React.FC = () => {
 
     try {
       await requestReset({ email: authUser.email }).unwrap();
-      showToast('Te enviamos un email para restablecer tu contraseña.', 'success');
+      showToast(`Te enviamos un código de 6 dígitos a ${authUser.email}.`, 'success');
+      navigate(`/recovery?email=${encodeURIComponent(authUser.email)}&from=profile`, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al solicitar el restablecimiento'), 'error');
     }
@@ -308,10 +396,6 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
-  const displayName = isBarber
-    ? `${String(formData.name ?? '')} ${String(formData.lastname ?? '')}`
-    : `${String(formData.name ?? '')} ${String(formData.lastname ?? '')}`;
-
   return (
     <div className="min-h-screen bg-[#050505] text-white">
 
@@ -328,11 +412,16 @@ export const ProfilePage: React.FC = () => {
                   setPhotoFile(file);
                   setEditedFields((prev) => ({ ...prev, photoUrl: null }));
                 }}
-                helperText="Arrastrá o hacé clic para cambiar"
+                helperText="Tocá para cambiar"
               />
+              <div>
                 <h1 className="text-[25px] font-semibold tracking-[-0.02em] text-white sm:text-[32px]">
-                {displayName}
-              </h1>
+                  {displayName || 'Mi perfil'}
+                </h1>
+                {(isBarber || role === 'Registrado') && (
+                  <p className="mt-1 text-[12px] text-[#8A8A8A]">{roleTitle[role ?? '']}</p>
+                )}
+              </div>
             </div>
 
             {role && role !== 'Registrado' && (
@@ -380,26 +469,51 @@ export const ProfilePage: React.FC = () => {
           <form className="grid gap-4" onSubmit={handleSubmit}>
             {activeTab === 'personal' && (
               <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input label="Nombre" value={String(formData.name ?? '')} onChange={handleFieldChange('name')} required placeholder="Nombre" />
-                  <Input label="Apellido" value={String(formData.lastname ?? '')} onChange={handleFieldChange('lastname')} required placeholder="Apellido" />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <InfoRow label="Nombre completo" value={displayName || '—'} />
+                  <InfoRow label="Email" value={String(formData.email ?? '') || '—'} />
+                  <InfoRow label="Teléfono" value={String(formData.phone ?? '') || '—'} />
+                  {isBarber && (
+                    <InfoRow label="Rol" value={roleTitle[role ?? ''] || '—'} />
+                  )}
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
-                  <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
-                </div>
-                {emailChanged && (
-                  <PasswordInput
-                    label="Contraseña actual"
-                    value={emailCurrentPassword}
-                    onChange={(e) => {
-                      setEmailCurrentPassword(e.target.value);
-                      setEmailPasswordError(null);
-                    }}
-                    placeholder="Ingresá tu contraseña actual"
-                    helperText="Requerida para confirmar el cambio de email"
-                    error={emailPasswordError ?? undefined}
-                  />
+
+                {!editingPersonal ? (
+                  <div className="flex gap-3 pt-2">
+                    <Button type="button" icon={FiEdit2} onClick={() => { setEditingPersonal(true); setPageError(null); setPageMessage(null); }}>
+                      Editar perfil
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2 pt-1">
+                      <Input label="Nombre" value={String(formData.name ?? '')} onChange={handleFieldChange('name')} required placeholder="Nombre" />
+                      <Input label="Apellido" value={String(formData.lastname ?? '')} onChange={handleFieldChange('lastname')} required placeholder="Apellido" />
+                      <Input label="Email" type="email" value={String(formData.email ?? '')} onChange={handleFieldChange('email')} required placeholder="email@ejemplo.com" />
+                      <Input label="Teléfono" value={String(formData.phone ?? '')} onChange={handleFieldChange('phone')} required placeholder="598 91 234 567" />
+                    </div>
+                    {emailChanged && (
+                      <PasswordInput
+                        label="Contraseña actual"
+                        value={emailCurrentPassword}
+                        onChange={(e) => {
+                          setEmailCurrentPassword(e.target.value);
+                          setEmailPasswordError(null);
+                        }}
+                        placeholder="Ingresá tu contraseña actual"
+                        helperText="Requerida para confirmar el cambio de email"
+                        error={emailPasswordError ?? undefined}
+                      />
+                    )}
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      <Button type="submit" icon={FiSave} loading={isSaving}>
+                        Guardar cambios
+                      </Button>
+                      <Button type="button" variant="secondary" onClick={cancelPersonal}>
+                        Cancelar
+                      </Button>
+                    </div>
+                  </>
                 )}
               </>
             )}
@@ -411,8 +525,8 @@ export const ProfilePage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <FiSettings className="w-4 h-4 text-[#FF5C00]" />
                       <div>
-                        <h3 className="text-[14px] font-semibold text-white">Configuración de barbero</h3>
-                        <p className="text-[11px] text-[#8A8A8A]">{barberConfigExpanded ? 'Duración, servicios y datos personales' : 'Slot, servicios, edad y más'}</p>
+                        <h3 className="text-[14px] font-semibold text-white">Configuración de reservas</h3>
+                        <p className="text-[11px] text-[#8A8A8A]">Duración del turno y anticipación</p>
                       </div>
                     </div>
                     <Button type="button" variant="ghost" size="sm" icon={barberConfigExpanded ? FiChevronUp : FiChevronDown} onClick={() => setBarberConfigExpanded(!barberConfigExpanded)}>
@@ -423,69 +537,170 @@ export const ProfilePage: React.FC = () => {
                   {barberConfigExpanded && (
                     <div className="mt-4 grid gap-4">
                       <div className="grid gap-4 md:grid-cols-2">
-                        <Input label="Duración del slot" type="number" min={1} value={String(formData.slotDuration ?? 30)} onChange={(e) => setEditedFields((prev) => ({ ...prev, slotDuration: Number(e.target.value) || 30 }))} required placeholder="30" helperText="En minutos" />
+                        <Input label="Duración del turno" type="number" min={1} value={String(formData.slotDuration ?? 30)} onChange={(e) => setEditedFields((prev) => ({ ...prev, slotDuration: Number(e.target.value) || 30 }))} required placeholder="30" helperText="En minutos" />
                         <Input label="Días máximos para reservar" type="number" min={1} value={String(formData.maxAdvanceDays ?? 30)} onChange={(e) => setEditedFields((prev) => ({ ...prev, maxAdvanceDays: Number(e.target.value) || 30 }))} required placeholder="30" helperText="Anticipación máxima" />
-                      </div>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <Input label="Servicios" value={String(formData.services ? (formData.services as string[]).join(', ') : '')} onChange={(e) => setEditedFields((prev) => ({ ...prev, services: normalizeServices(e.target.value) }))} placeholder="corte, barba, color" helperText="Separadas por coma" />
-                        <Input label="Edad" type="number" min={0} value={formData.age ? String(formData.age) : ''} onChange={(e) => setEditedFields((prev) => ({ ...prev, age: e.target.value ? Number(e.target.value) : undefined }))} placeholder="30" />
                       </div>
                     </div>
                   )}
                 </div>
 
                 <div className="rounded-[20px] border border-[#282828] bg-[#1A1A1A] p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-[14px] font-semibold text-white">Calendario</h3>
-                      <p className="text-[11px] text-[#8A8A8A]">{scheduleExpanded ? 'Definí horarios y breaks por día.' : 'Horario semanal.'}</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-center gap-2">
+                      <FiClock className="w-4 h-4 text-[#FF5C00]" />
+                      <div>
+                        <h3 className="text-[14px] font-semibold text-white">Horario semanal</h3>
+                        <p className="text-[11px] text-[#8A8A8A]">
+                          <span className="font-semibold text-[#FF5C00]">{activeDaysCount}</span> de {days.length} días con horario
+                        </p>
+                      </div>
                     </div>
-                    <Button type="button" variant="ghost" size="sm" icon={scheduleExpanded ? FiChevronUp : FiChevronDown} onClick={() => setScheduleExpanded(!scheduleExpanded)}>
-                      {scheduleExpanded ? 'Colapsar' : 'Expandir'}
-                    </Button>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('weekdays')}
+                        className="rounded-[8px] border border-[#282828] px-3 py-1.5 text-[11px] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/40 hover:text-[#FF5C00]"
+                      >
+                        Lun a Vie
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('saturday')}
+                        className="rounded-[8px] border border-[#282828] px-3 py-1.5 text-[11px] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/40 hover:text-[#FF5C00]"
+                      >
+                        Sábado
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyPreset('clear')}
+                        className="rounded-[8px] border border-[#282828] px-3 py-1.5 text-[11px] text-red-400/80 transition-colors hover:border-red-500/40 hover:text-red-400"
+                      >
+                        Limpiar todo
+                      </button>
+                    </div>
                   </div>
 
-                  {scheduleExpanded ? (
-                    <div className="mt-4 grid gap-4">
-                      {days.map((day) => (
-                        <div key={day.key} className="rounded-[16px] border border-[#282828] bg-[#1A1A1A] p-4 grid gap-3">
-                          <div className="flex items-center justify-between gap-4">
-                            <div>
-                              <p className="text-[14px] font-semibold text-white">{day.label}</p>
-                              <p className="text-[11px] text-[#8A8A8A]">Horario y breaks del día</p>
+                  <div className="mt-4 flex flex-col gap-2">
+                    {days.map((day) => {
+                      const isActive = Boolean(schedule[day.key].startTime) && Boolean(schedule[day.key].endTime);
+                      const hasBreak = Boolean(schedule[day.key].breakStart) && Boolean(schedule[day.key].breakEnd);
+                      return (
+                        <div key={day.key} className="overflow-hidden rounded-[14px] border border-[#282828] bg-[#151515]">
+                          <div className="flex items-center justify-between gap-3 px-4 py-3">
+                            <div className="flex min-w-0 items-center gap-3">
+                              <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] text-[12px] font-bold ${
+                                isActive ? 'bg-[#FF5C00]/15 text-[#FF5C00]' : 'bg-[#242424] text-[#8A8A8A]'
+                              }`}>
+                                {dayLabels[day.key]}
+                              </span>
+                              <div className="min-w-0">
+                                <p className="text-[14px] font-semibold text-white">{day.label}</p>
+                                {isActive && (
+                                  <p className="truncate text-[11px] text-[#8A8A8A]">
+                                    {schedule[day.key].startTime} - {schedule[day.key].endTime}
+                                    {hasBreak && ` · Break ${schedule[day.key].breakStart} - ${schedule[day.key].breakEnd}`}
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                            <span className="rounded-full bg-[#242424] px-3 py-1 text-[11px] text-[#FF5C00]">{day.key}</span>
+
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={isActive}
+                              aria-label={`${isActive ? 'Desactivar' : 'Activar'} horario de ${day.label}`}
+                              onClick={() => toggleDay(day.key)}
+                              className={`relative inline-flex h-[24px] w-[44px] shrink-0 items-center rounded-full transition-colors ${
+                                isActive ? 'bg-[#FF5C00]' : 'bg-[#282828]'
+                              }`}
+                            >
+                              <span className={`inline-block h-[18px] w-[18px] transform rounded-full bg-white shadow transition-transform ${
+                                isActive ? 'translate-x-[23px]' : 'translate-x-[3px]'
+                              }`} />
+                            </button>
                           </div>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <Input label={`Inicio ${day.label}`} type="time" value={schedule[day.key].startTime} onChange={handleDayChange(day.key, 'startTime')} />
-                            <Input label={`Fin ${day.label}`} type="time" value={schedule[day.key].endTime} onChange={handleDayChange(day.key, 'endTime')} />
-                          </div>
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <Input label={`Break inicio ${day.label}`} type="time" value={schedule[day.key].breakStart} onChange={handleDayChange(day.key, 'breakStart')} />
-                            <Input label={`Break fin ${day.label}`} type="time" value={schedule[day.key].breakEnd} onChange={handleDayChange(day.key, 'breakEnd')} />
-                          </div>
+
+                          {isActive && (
+                            <div className="border-t border-[#282828] px-4 py-3">
+                              <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr] sm:items-center">
+                                <span className="text-[11px] uppercase tracking-wide text-[#8A8A8A]">Horario</span>
+                                <input
+                                  type="time"
+                                  aria-label={`Inicio ${day.label}`}
+                                  value={schedule[day.key].startTime}
+                                  onChange={handleDayChange(day.key, 'startTime')}
+                                  className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                                />
+                                <input
+                                  type="time"
+                                  aria-label={`Fin ${day.label}`}
+                                  value={schedule[day.key].endTime}
+                                  onChange={handleDayChange(day.key, 'endTime')}
+                                  className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                                />
+                              </div>
+
+                              <div className="mt-3">
+                                {hasBreak ? (
+                                  <div className="grid gap-3 sm:grid-cols-[auto_1fr_1fr_auto] sm:items-center">
+                                    <span className="text-[11px] uppercase tracking-wide text-[#8A8A8A]">Break</span>
+                                    <input
+                                      type="time"
+                                      aria-label={`Break inicio ${day.label}`}
+                                      value={schedule[day.key].breakStart}
+                                      onChange={handleDayChange(day.key, 'breakStart')}
+                                      className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                                    />
+                                    <input
+                                      type="time"
+                                      aria-label={`Break fin ${day.label}`}
+                                      value={schedule[day.key].breakEnd}
+                                      onChange={handleDayChange(day.key, 'breakEnd')}
+                                      className="w-full rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-white outline-none transition-colors focus:border-[#FF5C00]"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => toggleBreak(day.key)}
+                                      className="inline-flex items-center justify-center gap-1.5 rounded-[8px] border border-red-500/30 px-2.5 py-2 text-[11px] text-red-400 transition-colors hover:border-red-500/60 hover:text-red-300"
+                                    >
+                                      <FiTrash2 className="h-3.5 w-3.5" />
+                                      Quitar
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleBreak(day.key)}
+                                    className="inline-flex items-center gap-1.5 rounded-[8px] border border-[#282828] px-3 py-2 text-[12px] text-[#8A8A8A] transition-colors hover:border-[#FF5C00]/40 hover:text-[#FF5C00]"
+                                  >
+                                    <FiPlus className="h-3.5 w-3.5" />
+                                    Agregar break
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="mt-4">
-                      {scheduleSummary ? (
-                        <p className="text-[13px] text-[#8A8A8A] leading-relaxed">{scheduleSummary}</p>
-                      ) : (
-                        <p className="text-[13px] text-[#8A8A8A] italic">Sin horarios cargados.</p>
-                      )}
-                      <p className="mt-2 text-[11px] text-[#555]">{days.filter((d) => schedule[d.key].startTime).length}/7 días con horario</p>
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-3 text-[12px] text-[#8A8A8A]">
+                    {scheduleSummary || 'Todavía no configuraste ningún horario. Usá los accesos rápidos o activá cada día.'}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3 pt-2">
+                  <Button type="submit" icon={FiSave} loading={isSaving}>
+                    Guardar cambios
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={discardSchedule}>
+                    Descartar cambios
+                  </Button>
                 </div>
               </div>
             )}
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <Button type="submit" icon={FiSave} loading={isSaving}>
-                Guardar perfil
-              </Button>
-            </div>
           </form>
         </AnimatedContainer>
 

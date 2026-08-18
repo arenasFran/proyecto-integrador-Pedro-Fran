@@ -127,13 +127,6 @@ export function useAppointmentActions() {
     }
   }, [sendReminder, showToast]);
 
-  const handleDuplicate = useCallback((appointment: Appointment) => {
-    setDetailTarget(null);
-    setQuickCreateDate(appointment.date);
-    setQuickCreateClient(null);
-    setShowQuickCreate(true);
-  }, []);
-
   const handleCreateForClient = useCallback((appointment: Appointment) => {
     if (!appointment.clientId) return;
     setDetailTarget(null);
@@ -203,7 +196,7 @@ export function useAppointmentActions() {
     setQuickCreateDate, setChangeBarberTarget, setChangeBarberNewId, setCombinedActionTarget,
     handleCancelConfirm, handleStatusChange, handleRescheduleConfirm,
     handleRescheduleDateChange, handleRescheduleBarberChange, handleRescheduleClose,
-    handleSendReminder, handleDuplicate, handleCreateForClient, handleQuickCreateClose, handleChangeBarberConfirm,
+    handleSendReminder, handleCreateForClient, handleQuickCreateClose, handleChangeBarberConfirm,
     handleCompleteOnly, handleCompleteAndPaid, handleMarkPaidOnly,
   };
 }

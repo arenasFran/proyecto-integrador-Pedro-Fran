@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { FiUser, FiPhone, FiMail, FiX, FiSearch } from 'react-icons/fi';
-import { Modal, Select, Input, Button, DatePicker, useToast } from '../../../components/common';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FiUser, FiPhone, FiMail, FiX, FiSearch, FiCheck } from 'react-icons/fi';
+import { Modal, Select, Input, Button, DatePicker, Spinner, BarberAvatar, useToast } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
-import { useCreateAppointmentMutation, useLazySearchClientsQuery } from '../../../services/appointmentApi';
+import { useCreateAppointmentMutation } from '../../../services/appointmentApi';
+import { useGetRegisteredClientsQuery, type RegisteredClientSummary } from '../../../services/clientApi';
 import type { BarberPublic, ClientSearchResult } from '../../../types/booking';
 
 export interface QuickCreateInitialClient {
@@ -55,16 +56,26 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
   const { data: services = [] } = useGetServicesQuery();
   const [createAppointment, { isLoading: isSubmitting }] = useCreateAppointmentMutation();
-  const [triggerSearchClients, { data: clientResults = [], isFetching: isSearchingClients }] =
-    useLazySearchClientsQuery();
+  const {
+    data: clientsData,
+    isFetching: loadingClients,
+  } = useGetRegisteredClientsQuery(undefined, {
+    skip: clientMode !== 'existing',
+  });
 
-  useEffect(() => {
-    if (clientMode !== 'existing' || selectedClient) return;
-    const query = clientSearch.trim();
-    if (query.length < 2) return;
-    const timeout = setTimeout(() => triggerSearchClients(query), 300);
-    return () => clearTimeout(timeout);
-  }, [clientSearch, clientMode, selectedClient, triggerSearchClients]);
+  const registeredClients = useMemo(() => clientsData?.clients ?? [], [clientsData]);
+  const barbersById = useMemo(() => new Map(barbers.map((b) => [b.id, b])), [barbers]);
+
+  const filteredClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return registeredClients;
+    return registeredClients.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.lastname.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q)
+    );
+  }, [registeredClients, clientSearch]);
 
   const resetClientFields = () => {
     setClientId('');
@@ -82,14 +93,20 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     resetClientFields();
   };
 
-  const handleSelectClient = (client: ClientSearchResult) => {
-    setSelectedClient(client);
+  const handleSelectClient = (client: RegisteredClientSummary) => {
+    setSelectedClient({
+      id: client.id,
+      name: client.name,
+      lastname: client.lastname,
+      phone: client.phone,
+      contactEmail: client.email,
+      photoUrl: client.photoUrl,
+    });
     setClientId(client.id);
-    setClientSearch(`${client.name} ${client.lastname}`);
     setClientName(client.name);
     setClientLastname(client.lastname);
     setClientPhone(client.phone ?? '');
-    setClientEmail(client.contactEmail ?? '');
+    setClientEmail(client.email ?? '');
   };
 
   useEffect(() => {
@@ -135,14 +152,11 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   }));
 
   const isLoadingSlots = Boolean(barberId && dateStr && availableSlots.length === 0 && !localError);
-  // Nombre/apellido quedan siempre bloqueados al elegir un cliente (para no desvincular
-  // el clientId), pero teléfono/email solo se bloquean si el cliente YA TENÍA ese dato al
-  // momento de seleccionarlo (de `selectedClient`, no del valor editable en vivo — si se
-  // derivara de clientPhone/clientEmail, el campo se re-bloquearía solo apenas se tipea el
-  // primer carácter). Si viene vacío, el campo queda editable para completarlo antes de crear el turno.
-  const isNameLocked = clientMode === 'existing' && !!selectedClient;
+  // En modo registrado los inputs no se muestran; el teléfono solo vuelve a aparecer
+  // si el cliente elegido no lo tiene cargado, para poder completarlo antes de crear el turno.
+  const isExisting = clientMode === 'existing';
+  const isNameLocked = isExisting && !!selectedClient;
   const isPhoneLocked = isNameLocked && !!selectedClient?.phone;
-  const isEmailLocked = isNameLocked && !!selectedClient?.contactEmail;
 
   const validate = (): string | null => {
     if (!barberId) return 'Seleccioná un barbero.';
@@ -212,6 +226,16 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           onChange={handleBarberChange}
           options={barberOptions}
           placeholder="Seleccionar barbero"
+          renderOption={(option) => {
+            const barber = barbersById.get(option.value);
+            if (!barber) return option.label;
+            return (
+              <span className="flex min-w-0 items-center gap-2">
+                <BarberAvatar name={barber.name} lastname={barber.lastname} photoUrl={barber.photoUrl} size="sm" />
+                <span className="truncate">{option.label}</span>
+              </span>
+            );
+          }}
         />
 
         <Select
@@ -265,8 +289,8 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           </div>
         )}
 
-        {!initialClient && clientMode === 'existing' && (
-          <div className="relative">
+        {clientMode === 'existing' && (
+          <div className="flex flex-col gap-2">
             <Input
               label="Buscar cliente"
               icon={<FiSearch className="w-3.5 h-3.5 text-[#8A8A8A]" />}
@@ -280,75 +304,90 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
               }}
               placeholder="Buscar por nombre, apellido o email"
             />
-            {!selectedClient && clientSearch.trim().length >= 2 && (
-              <ul className="absolute left-0 right-0 z-50 mt-1 rounded-[10px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-xl max-h-48 overflow-y-auto">
-                {isSearchingClients && (
-                  <li className="px-3 py-2 text-[12.5px] text-[#8A8A8A]">Buscando...</li>
-                )}
-                {!isSearchingClients && clientResults.length === 0 && (
-                  <li className="px-3 py-2 text-[12.5px] text-[#8A8A8A]">Sin resultados</li>
-                )}
-                {clientResults.map((client) => (
-                  <li
-                    key={client.id}
-                    onClick={() => handleSelectClient(client)}
-                    className="px-3 py-2 text-[12.5px] text-white cursor-pointer hover:bg-[#282828] transition-colors"
+            {loadingClients ? (
+              <div className="flex justify-center py-4">
+                <Spinner size="sm" />
+              </div>
+            ) : (
+              <div className="max-h-[160px] overflow-y-auto space-y-1 rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-1.5">
+                {filteredClients.slice(0, 30).map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => handleSelectClient(c)}
+                    className={`w-full flex items-center gap-2.5 p-2 rounded-[8px] text-left transition-colors cursor-pointer ${
+                      selectedClient?.id === c.id
+                        ? 'bg-[#FF5C00]/10 border border-[#FF5C00]/30'
+                        : 'hover:bg-[#282828] border border-transparent'
+                    }`}
                   >
-                    <div className="font-medium">{client.name} {client.lastname}</div>
-                    {client.contactEmail && (
-                      <div className="text-[11px] text-[#8A8A8A]">{client.contactEmail}</div>
-                    )}
-                  </li>
+                    <div className="w-8 h-8 rounded-full bg-[#242424] border border-[#333] shrink-0 overflow-hidden flex items-center justify-center">
+                      {c.photoUrl ? (
+                        <img src={c.photoUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <FiUser size={14} className="text-[#555]" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] text-white truncate">{c.name} {c.lastname}</p>
+                      <p className="text-[11px] text-[#6A6A6A] truncate">{c.email}</p>
+                    </div>
+                    {selectedClient?.id === c.id && <FiCheck size={14} className="text-[#FF5C00] shrink-0" />}
+                  </button>
                 ))}
-              </ul>
+                {filteredClients.length === 0 && (
+                  <p className="text-[12px] text-[#6A6A6A] text-center py-3">Sin resultados</p>
+                )}
+              </div>
             )}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Nombre"
-            required
-            disabled={isNameLocked}
-            icon={<FiUser className="w-3.5 h-3.5 text-[#8A8A8A]" />}
-            value={clientName}
-            onChange={(e) => setClientName(e.target.value)}
-            placeholder="Nombre"
-          />
-          <Input
-            label="Apellido"
-            required
-            disabled={isNameLocked}
-            icon={<FiUser className="w-3.5 h-3.5 text-[#8A8A8A]" />}
-            value={clientLastname}
-            onChange={(e) => setClientLastname(e.target.value)}
-            placeholder="Apellido"
-          />
-        </div>
+        {clientMode === 'new' && (
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Nombre"
+              required
+              icon={<FiUser className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Nombre"
+            />
+            <Input
+              label="Apellido"
+              required
+              icon={<FiUser className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+              value={clientLastname}
+              onChange={(e) => setClientLastname(e.target.value)}
+              placeholder="Apellido"
+            />
+          </div>
+        )}
 
-        <Input
-          label="Teléfono"
-          required
-          disabled={isPhoneLocked}
-          icon={<FiPhone className="w-3.5 h-3.5 text-[#8A8A8A]" />}
-          type="tel"
-          value={clientPhone}
-          onChange={(e) => setClientPhone(e.target.value)}
-          placeholder="598 91 234 567"
-          helperText={isNameLocked && !isPhoneLocked ? 'Este cliente no tiene teléfono cargado — completalo para continuar' : undefined}
-        />
+        {(clientMode === 'new' || (isExisting && isNameLocked && !isPhoneLocked)) && (
+          <Input
+            label="Teléfono"
+            required
+            icon={<FiPhone className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+            type="tel"
+            value={clientPhone}
+            onChange={(e) => setClientPhone(e.target.value)}
+            placeholder="598 91 234 567"
+            helperText={isExisting && isNameLocked ? 'Este cliente no tiene teléfono cargado — completalo para continuar' : undefined}
+          />
+        )}
 
-        <Input
-          label="Email"
-          required
-          disabled={isEmailLocked}
-          icon={<FiMail className="w-3.5 h-3.5 text-[#8A8A8A]" />}
-          type="email"
-          value={clientEmail}
-          onChange={(e) => setClientEmail(e.target.value)}
-          placeholder="Email"
-          helperText={isNameLocked && !isEmailLocked ? 'Este cliente no tiene email cargado — completalo para continuar' : undefined}
-        />
+        {clientMode === 'new' && (
+          <Input
+            label="Email"
+            required
+            icon={<FiMail className="w-3.5 h-3.5 text-[#8A8A8A]" />}
+            type="email"
+            value={clientEmail}
+            onChange={(e) => setClientEmail(e.target.value)}
+            placeholder="Email"
+          />
+        )}
 
         {localError && (
           <p className="text-[12px] text-red-400">{localError}</p>

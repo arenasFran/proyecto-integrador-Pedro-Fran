@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import LoginPage from './index';
@@ -77,32 +77,50 @@ describe('LoginPage', () => {
     });
   });
 
-  it('shows resend button on code step and resends code when clicked', async () => {
-    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Código enviado' }) });
+  it('shows resend button on code step with a 60s cooldown and resends code when clicked', async () => {
+    vi.useFakeTimers();
+    try {
+      mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Código enviado' }) });
 
-    const user = userEvent.setup({ delay: 50 });
-    renderWithProviders(<LoginPage />);
+      renderWithProviders(<LoginPage />);
 
-    await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
-    await user.type(screen.getByLabelText(/contraseña/i), 'Password1');
-    await user.click(screen.getByRole('button', { name: /enviar código de verificación/i }));
+      fireEvent.change(screen.getByLabelText(/correo electrónico/i), { target: { value: 'user@test.com' } });
+      fireEvent.change(screen.getByLabelText(/contraseña/i), { target: { value: 'Password1' } });
+      fireEvent.click(screen.getByRole('button', { name: /enviar código de verificación/i }));
 
-    await waitFor(() => {
-      expect(screen.getByText('Reenviar código')).toBeInTheDocument();
-    });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
 
-    mockSendTwoFactorCode.mockClear();
-    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Nuevo código enviado' }) });
+      const countdownButton = screen.getByRole('button', { name: /enviar código en \d+s/i });
+      expect(countdownButton).toBeDisabled();
 
-    await user.click(screen.getByText('Reenviar código'));
+      for (let second = 0; second < 60; second += 1) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(1000);
+        });
+      }
 
-    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /enviar código en \d+s/i })).not.toBeInTheDocument();
+      const resendAgainButton = screen.getByRole('button', { name: 'Reenviar código' });
+      expect(resendAgainButton).toBeEnabled();
+
+      mockSendTwoFactorCode.mockClear();
+      mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Nuevo código enviado' }) });
+
+      fireEvent.click(resendAgainButton);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
       expect(screen.getByText('Nuevo código enviado')).toBeInTheDocument();
-    });
-
-    expect(mockSendTwoFactorCode).toHaveBeenCalledWith({
-      email: 'user@test.com',
-      password: 'Password1',
-    });
+      expect(mockSendTwoFactorCode).toHaveBeenCalledWith({
+        email: 'user@test.com',
+        password: 'Password1',
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -177,7 +177,7 @@ export const OrdersPage: React.FC = () => {
       <section className="grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_350px]" aria-label="Listado y detalle de órdenes">
         <div className="min-w-0 overflow-hidden rounded-[14px] border border-[#282828] bg-[#101010]" aria-busy={isFetching}>
           <div className="flex items-center justify-between border-b border-[#282828] px-3 py-2.5 sm:px-4">
-            <div><h2 className="text-[12px] font-semibold text-white">Órdenes {data && <span className="font-normal text-[#6A6A6A]">· página {data.page} de {data.totalPages || 1}</span>}</h2></div>
+            <div><h2 className="text-[12px] font-semibold text-white">{data && <span className="font-normal text-[#6A6A6A]">página {data.page} de {data.totalPages || 1}</span>}</h2></div>
             {isFetching && !isLoading && <span className="flex items-center gap-1.5 text-[10px] text-[#8A8A8A]"><Spinner size="sm" />Actualizando</span>}
           </div>
 

@@ -12,10 +12,9 @@ const mockServices = [{ id: 's1', name: 'Corte', price: 500 }];
 const mockSlots = ['10:00', '10:30', '11:00'];
 
 const mockCreateAppointment = vi.fn().mockResolvedValue({});
-const mockTriggerSearchClients = vi.fn();
 const mockRegisteredClients = [
-  { id: 'c1', name: 'Ana', lastname: 'Gómez', phone: '099111222', contactEmail: 'ana@test.com' },
-  { id: 'c2', name: 'Luis', lastname: 'Pérez', contactEmail: 'luis@test.com' },
+  { id: 'c1', name: 'Ana', lastname: 'Gómez', phone: '099111222', email: 'ana@test.com', photoUrl: null },
+  { id: 'c2', name: 'Luis', lastname: 'Pérez', phone: '', email: 'luis@test.com', photoUrl: 'http://img/luis.jpg' },
 ];
 
 vi.mock('../../../services/service.api', () => ({
@@ -24,10 +23,13 @@ vi.mock('../../../services/service.api', () => ({
 
 vi.mock('../../../services/appointmentApi', () => ({
   useCreateAppointmentMutation: vi.fn(() => [mockCreateAppointment, { isLoading: false }]),
-  useLazySearchClientsQuery: vi.fn(() => [
-    mockTriggerSearchClients,
-    { data: mockRegisteredClients, isFetching: false },
-  ]),
+}));
+
+vi.mock('../../../services/clientApi', () => ({
+  useGetRegisteredClientsQuery: vi.fn(() => ({
+    data: { clients: mockRegisteredClients },
+    isFetching: false,
+  })),
 }));
 
 vi.mock('../../../services/professional.service', () => ({
@@ -74,35 +76,39 @@ describe('QuickCreateModal', () => {
     expect(mockCreateAppointment).not.toHaveBeenCalled();
   });
 
-  it('lets staff search and select a registered client, prefilling and locking all fields', async () => {
+  it('hides the client inputs and shows the searchable client list (with photos) when "cliente registrado" is selected', async () => {
     const user = userEvent.setup();
     renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
 
+    expect(screen.getByLabelText(/^nombre/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: /cliente registrado/i }));
+
+    expect(screen.queryByLabelText(/^nombre/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/apellido/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
+
     await user.type(screen.getByLabelText(/buscar cliente/i), 'ana');
 
-    const result = await screen.findByText('Ana Gómez');
-    await user.click(result);
+    await user.click(screen.getByText('Ana Gómez'));
 
-    expect(screen.getByDisplayValue('Ana')).toBeDisabled();
-    expect(screen.getByDisplayValue('Gómez')).toBeDisabled();
-    expect(screen.getByDisplayValue('099111222')).toBeDisabled();
-    expect(screen.getByDisplayValue('ana@test.com')).toBeDisabled();
+    expect(screen.getByText('ana@test.com')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^nombre/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/^teléfono/i)).not.toBeInTheDocument();
   });
 
-  it('leaves the phone field editable when the selected client has no phone on file', async () => {
+  it('shows the phone field when the selected registered client has no phone on file', async () => {
     const user = userEvent.setup();
     renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: /cliente registrado/i }));
     await user.type(screen.getByLabelText(/buscar cliente/i), 'luis');
 
-    const result = await screen.findByText('Luis Pérez');
-    await user.click(result);
+    await user.click(screen.getByText('Luis Pérez'));
 
-    expect(screen.getByDisplayValue('Luis')).toBeDisabled();
-    expect(screen.getByDisplayValue('Pérez')).toBeDisabled();
-    expect(screen.getByDisplayValue('luis@test.com')).toBeDisabled();
+    expect(screen.queryByLabelText(/apellido/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^teléfono/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^teléfono/i)).not.toBeDisabled();
     expect(screen.getByText(/este cliente no tiene teléfono cargado/i)).toBeInTheDocument();
 

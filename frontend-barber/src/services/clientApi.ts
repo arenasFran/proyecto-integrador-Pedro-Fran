@@ -6,11 +6,26 @@ type SancionResponse = {
   message: string;
 };
 
+export type RegisteredClientSummary = {
+  id: string;
+  name: string;
+  lastname: string;
+  email: string;
+  phone: string;
+  photoUrl: string | null;
+};
+
 export const clientApi = createApi({
   reducerPath: 'clientApi',
   baseQuery: axiosBaseQuery,
   tagTypes: ['ClientSanction'],
   endpoints: (builder) => ({
+    getRegisteredClients: builder.query<{ clients: RegisteredClientSummary[] }, void>({
+      query: () => ({
+        url: '/api/users/clients',
+      }),
+    }),
+
     sancionarCliente: builder.mutation<
       SancionResponse,
       { clientId: string; motivo: string }
@@ -36,6 +51,7 @@ export const clientApi = createApi({
 });
 
 export const {
+  useGetRegisteredClientsQuery,
   useSancionarClienteMutation,
   useLevantarSancionMutation,
 } = clientApi;

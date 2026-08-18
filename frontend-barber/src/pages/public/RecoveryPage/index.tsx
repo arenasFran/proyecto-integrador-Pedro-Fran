@@ -31,8 +31,9 @@ export const RecoveryPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const codeFromUrl = searchParams.get('code') ?? '';
   const emailFromUrl = searchParams.get('email') ?? '';
+  const fromProfile = searchParams.get('from') === 'profile';
 
-  const [currentStep, setCurrentStep] = useState(codeFromUrl ? 3 : 1);
+  const [currentStep, setCurrentStep] = useState(codeFromUrl ? 3 : emailFromUrl ? 2 : 1);
   const [resetEmail, setResetEmail] = useState(emailFromUrl);
   const [verifiedCode, setVerifiedCode] = useState(codeFromUrl);
 
@@ -62,11 +63,11 @@ export const RecoveryPage: React.FC = () => {
       >
         <motion.div variants={itemVariants} className="mb-6">
           <Link
-            to="/login"
+            to={fromProfile ? '/perfil' : '/login'}
             className="inline-flex items-center gap-2 text-[#8A8A8A] hover:text-white transition-colors"
           >
             <FiArrowLeft className="w-4 h-4" />
-            <span className="text-[14px]">Volver al login</span>
+            <span className="text-[14px]">{fromProfile ? 'Volver al perfil' : 'Volver al login'}</span>
           </Link>
         </motion.div>
 
@@ -102,7 +103,12 @@ export const RecoveryPage: React.FC = () => {
           )}
 
           {currentStep === 2 && (
-            <VerifyCodeForm email={resetEmail} onSuccess={handleCodeVerified} />
+            <>
+              <p className="mb-4 text-[12px] text-[#8A8A8A] text-center">
+                Te enviamos un código de 6 dígitos a <span className="font-medium text-white">{resetEmail}</span>
+              </p>
+              <VerifyCodeForm email={resetEmail} onSuccess={handleCodeVerified} />
+            </>
           )}
 
           {currentStep === 3 && (

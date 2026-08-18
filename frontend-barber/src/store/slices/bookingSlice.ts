@@ -24,6 +24,7 @@ interface BookingAsyncState {
   servicesError: string | null;
   slotsError: string | null;
   confirmError: string | null;
+  emailRegisteredError: boolean;
   createdAppointment: Appointment | null;
   submitSuccess: boolean;
   preferenceId?: string;
@@ -53,7 +54,7 @@ const initialState: BookingState = {
     services: [],
     availableSlots: [],
     slotsReason: undefined,
-    isLoadingBarbers: false,
+    isLoadingBarbers: true,
     isLoadingServices: false,
     isLoadingSlots: false,
     isConfirming: false,
@@ -61,6 +62,7 @@ const initialState: BookingState = {
     servicesError: null,
     slotsError: null,
     confirmError: null,
+    emailRegisteredError: false,
     createdAppointment: null,
     submitSuccess: false,
   },
@@ -109,6 +111,7 @@ export const submitAppointment = createAsyncThunk(
   'booking/submitAppointment',
   async (_, { getState, rejectWithValue, dispatch }) => {
     let tempLockId: string | undefined;
+    let ownerToken: string | undefined;
     try {
       const { flow } = (getState() as { booking: BookingState }).booking;
       const barberId = flow.selectedBarber!.id;
@@ -116,6 +119,7 @@ export const submitAppointment = createAsyncThunk(
       const startTime = flow.selectedTime!;
       const lockResult = await dispatch(appointmentApi.endpoints.acquireTempLock.initiate({ barberId, date, startTime })).unwrap();
       tempLockId = lockResult.tempLockId;
+      ownerToken = lockResult.ownerToken;
       const payload: CreateAppointmentPayload = {
         barberId,
         serviceId: flow.selectedService!.id,
@@ -137,20 +141,31 @@ export const submitAppointment = createAsyncThunk(
       return response.appointment;
     } catch (error: unknown) {
       let message = 'Error al crear la reserva';
+      let emailRegistered = false;
       if (error && typeof error === 'object') {
         const errObj = error as Record<string, unknown>;
-        if (typeof errObj.data === 'string') {
-          message = errObj.data;
-        } else if (typeof errObj.error === 'string') {
-          message = errObj.error;
+        const data = errObj.data;
+        if (data && typeof data === 'object') {
+          const payload = data as Record<string, unknown>;
+          if (typeof payload.error === 'string') {
+            message = payload.error;
+          } else if (typeof payload.message === 'string') {
+            message = payload.message;
+          }
+          emailRegistered = payload.code === 'EMAIL_ALREADY_REGISTERED';
+        } else if (typeof data === 'string') {
+          message = data;
         } else if (typeof errObj.message === 'string') {
           message = errObj.message;
+        } else if (typeof errObj.error === 'string') {
+          message = errObj.error;
         }
+        emailRegistered = emailRegistered || errObj.code === 'EMAIL_ALREADY_REGISTERED';
       }
-      return rejectWithValue(message);
+      return rejectWithValue({ message, emailRegistered });
     } finally {
-      if (tempLockId) {
-        dispatch(appointmentApi.endpoints.releaseTempLock.initiate(tempLockId));
+      if (tempLockId && ownerToken) {
+        dispatch(appointmentApi.endpoints.releaseTempLock.initiate({ tempLockId, ownerToken }));
       }
     }
   }
@@ -166,12 +181,16 @@ const bookingSlice = createSlice({
     setCurrentStep: (state, action: PayloadAction<BookingStep>) => {
       state.flow.currentStep = action.payload;
     },
+    restoreBookingFlow: (state, action: PayloadAction<Partial<BookingFlowState>>) => {
+      state.flow = { ...state.flow, ...action.payload };
+    },
     setSelectedBarber: (state, action: PayloadAction<BarberPublic | null>) => {
       state.flow.selectedBarber = action.payload;
       state.flow.selectedDate = null;
       state.flow.selectedTime = null;
       state.async.availableSlots = [];
       state.async.slotsReason = undefined;
+      state.async.isLoadingSlots = false;
       if (action.payload) {
         state.flow.currentStep = 'service';
       }
@@ -188,6 +207,7 @@ const bookingSlice = createSlice({
       state.flow.selectedTime = null;
       state.async.availableSlots = [];
       state.async.slotsReason = undefined;
+      state.async.isLoadingSlots = Boolean(action.payload);
     },
     setSelectedTime: (state, action: PayloadAction<string | null>) => {
       state.flow.selectedTime = action.payload;
@@ -214,6 +234,7 @@ const bookingSlice = createSlice({
       state.async.servicesError = null;
       state.async.slotsError = null;
       state.async.confirmError = null;
+      state.async.emailRegisteredError = false;
     },
     resetBooking: () => initialState,
     resetBookingFlow: (state) => {
@@ -222,6 +243,7 @@ const bookingSlice = createSlice({
       state.async.createdAppointment = null;
       state.async.isConfirming = false;
       state.async.confirmError = null;
+      state.async.emailRegisteredError = false;
       state.async.preferenceId = undefined;
     },
   },
@@ -270,7 +292,15 @@ const bookingSlice = createSlice({
       })
       .addCase(submitAppointment.rejected, (state, action) => {
         state.async.isConfirming = false;
-        state.async.confirmError = action.payload as string;
+        const payload = action.payload;
+        if (typeof payload === 'string') {
+          state.async.confirmError = payload;
+          state.async.emailRegisteredError = false;
+        } else if (payload && typeof payload === 'object') {
+          const err = payload as { message: string; emailRegistered: boolean };
+          state.async.confirmError = err.message;
+          state.async.emailRegisteredError = err.emailRegistered;
+        }
       });
   },
 });
@@ -278,6 +308,7 @@ const bookingSlice = createSlice({
 export const {
   setServices,
   setCurrentStep,
+  restoreBookingFlow,
   setSelectedBarber,
   setSelectedService,
   setSelectedDate,

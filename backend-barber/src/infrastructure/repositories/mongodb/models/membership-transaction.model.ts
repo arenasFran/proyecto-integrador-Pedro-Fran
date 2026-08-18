@@ -6,6 +6,7 @@ export interface IMembershipTransactionDocument extends Document {
   amount: number;
   paymentMethod: 'mercadopago' | 'local';
   mpPaymentId?: string;
+  paymentId?: string;
   createdBy: 'client' | 'admin';
   adminId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -18,6 +19,7 @@ const membershipTransactionSchema = new Schema<IMembershipTransactionDocument>(
     amount: { type: Number, required: true, default: 0 },
     paymentMethod: { type: String, enum: ['mercadopago', 'local'], required: true },
     mpPaymentId: { type: String, required: false },
+    paymentId: { type: String, required: false },
     createdBy: { type: String, enum: ['client', 'admin'], required: true },
     adminId: { type: Schema.Types.ObjectId, ref: 'User', required: false },
   },

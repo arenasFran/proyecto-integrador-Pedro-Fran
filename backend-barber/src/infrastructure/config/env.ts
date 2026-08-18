@@ -45,6 +45,11 @@ export type Config = {
     reset: { max: number; windowMs: number };
     twoFA: { max: number; windowMs: number };
     google: { max: number; windowMs: number };
+    appointmentCreate: { max: number; windowMs: number };
+    api: { max: number; windowMs: number };
+    order: { max: number; windowMs: number };
+    cart: { max: number; windowMs: number };
+    upload: { max: number; windowMs: number };
   };
   telegram: {
     enabled: boolean;
@@ -164,6 +169,11 @@ export function loadConfig(): Config {
       reset: { max: parseIntEnv('RATE_LIMIT_RESET_MAX', 20), windowMs: 15 * 60 * 1000 },
       twoFA: { max: parseIntEnv('RATE_LIMIT_2FA_MAX', 30), windowMs: 15 * 60 * 1000 },
       google: { max: parseIntEnv('RATE_LIMIT_GOOGLE_MAX', 20), windowMs: 15 * 60 * 1000 },
+      appointmentCreate: { max: parseIntEnv('RATE_LIMIT_APPOINTMENT_CREATE_MAX', 5), windowMs: 15 * 60 * 1000 },
+      api: { max: parseIntEnv('RATE_LIMIT_API_MAX', 300), windowMs: 60 * 1000 },
+      order: { max: parseIntEnv('RATE_LIMIT_ORDER_MAX', 20), windowMs: 60 * 1000 },
+      cart: { max: parseIntEnv('RATE_LIMIT_CART_MAX', 60), windowMs: 60 * 1000 },
+      upload: { max: parseIntEnv('RATE_LIMIT_UPLOAD_MAX', 10), windowMs: 60 * 1000 },
     },
     telegram: {
       enabled: telegramEnabled,

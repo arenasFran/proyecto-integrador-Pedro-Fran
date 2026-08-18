@@ -1,4 +1,5 @@
 import { RequestPasswordResetUseCase } from '../../../../src/application/use-cases/password/RequestPasswordResetUseCase';
+import { VerifyPasswordResetCodeUseCase } from '../../../../src/application/use-cases/password/VerifyPasswordResetCodeUseCase';
 import { ResetPasswordUseCase } from '../../../../src/application/use-cases/password/ResetPasswordUseCase';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { IEmailService } from '../../../../src/application/ports/IEmailService';
@@ -24,6 +25,13 @@ describe('Password reset use cases', () => {
     });
   };
 
+  const makeTokenDoc = () =>
+    PasswordResetToken.create({
+      id: 'token-1',
+      userId: 'user-1',
+      expiresAt: now,
+    });
+
   let userRepository: ReturnType<typeof makeMockUserRepository>;
   let passwordResetRepository: ReturnType<typeof makeMockPasswordResetRepository>;
   let refreshTokenRepository: ReturnType<typeof makeMockRefreshTokenRepository>;
@@ -41,7 +49,7 @@ describe('Password reset use cases', () => {
   });
 
   describe('RequestPasswordResetUseCase', () => {
-    it('debe NO enviar email ni generar token si el usuario es authProvider google', async () => {
+    it('debe NO enviar email ni generar código si el usuario es authProvider google', async () => {
       const googleUser = User.create({
         id: 'user-1',
         email: 'test@example.com',
@@ -58,7 +66,6 @@ describe('Password reset use cases', () => {
         passwordResetRepository,
         emailService,
         hashService,
-        'http://localhost:5173',
         60
       );
 
@@ -77,7 +84,6 @@ describe('Password reset use cases', () => {
         passwordResetRepository,
         emailService,
         hashService,
-        'http://localhost:5173',
         60
       );
 
@@ -88,7 +94,7 @@ describe('Password reset use cases', () => {
       expect(result.message).toMatch(/Si el email existe/);
     });
 
-    it('debe generar token y enviar email si el usuario existe', async () => {
+    it('debe generar un código de 6 dígitos, guardarlo hasheado y enviar el email', async () => {
       userRepository.findByEmail.mockResolvedValue(makeUser());
       hashService.sha256.mockReturnValue('hash');
       jest.useFakeTimers({ now: now });
@@ -98,11 +104,18 @@ describe('Password reset use cases', () => {
         passwordResetRepository,
         emailService,
         hashService,
-        'http://localhost:5173',
         60
       );
 
       const result = await useCase.execute({ email: 'test@example.com' });
+
+      const sentEmail = emailService.sendMail.mock.calls[0][0];
+      const codeInEmail = /(\d{6})/.exec(sentEmail.html ?? '');
+      expect(codeInEmail).not.toBeNull();
+      expect(codeInEmail![1]).toMatch(/^\d{6}$/);
+      expect(sentEmail.html).not.toContain('href=');
+      expect(sentEmail.html).not.toContain('localhost');
+      expect(sentEmail.html).toContain('60 minutos');
 
       expect(passwordResetRepository.create).toHaveBeenCalledWith(
         'user-1',
@@ -112,7 +125,7 @@ describe('Password reset use cases', () => {
       expect(emailService.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'test@example.com',
-          subject: 'Restablece tu contraseña',
+          subject: 'Tu código para restablecer la contraseña',
         })
       );
       expect(result.message).toMatch(/Si el email existe/);
@@ -120,10 +133,110 @@ describe('Password reset use cases', () => {
     });
   });
 
+  describe('VerifyPasswordResetCodeUseCase', () => {
+    it('debe verificar el código sin consumirlo', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser());
+      hashService.sha256.mockReturnValue('hash');
+      passwordResetRepository.verify.mockResolvedValue(makeTokenDoc());
+
+      const useCase = new VerifyPasswordResetCodeUseCase(
+        userRepository,
+        passwordResetRepository,
+        hashService
+      );
+
+      const result = await useCase.execute({ email: 'test@example.com', code: '123456' });
+
+      expect(hashService.sha256).toHaveBeenCalledWith('123456');
+      expect(passwordResetRepository.verify).toHaveBeenCalledWith('hash');
+      expect(passwordResetRepository.verifyAndConsume).not.toHaveBeenCalled();
+      expect(result.message).toMatch(/Código verificado/);
+    });
+
+    it('debe fallar si el código es inválido e incrementar el contador de intentos', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser());
+      hashService.sha256.mockReturnValue('hash');
+      passwordResetRepository.verify.mockResolvedValue(null);
+
+      const useCase = new VerifyPasswordResetCodeUseCase(
+        userRepository,
+        passwordResetRepository,
+        hashService
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', code: '000000' })
+      ).rejects.toBeInstanceOf(AppError);
+
+      expect(userRepository.updateUserSecurity).toHaveBeenCalledWith('user-1', {
+        resetFailedAttempts: 1,
+      });
+    });
+
+    it('debe fallar si el código pertenece a otro usuario', async () => {
+      userRepository.findByEmail.mockResolvedValue(makeUser());
+      hashService.sha256.mockReturnValue('hash');
+      passwordResetRepository.verify.mockResolvedValue(
+        PasswordResetToken.create({ id: 'token-1', userId: 'user-2', expiresAt: now })
+      );
+
+      const useCase = new VerifyPasswordResetCodeUseCase(
+        userRepository,
+        passwordResetRepository,
+        hashService
+      );
+
+      await expect(
+        useCase.execute({ email: 'test@example.com', code: '123456' })
+      ).rejects.toBeInstanceOf(AppError);
+    });
+
+    it('debe bloquear al usuario al alcanzar 5 intentos fallidos', async () => {
+      let currentAttempts = 0;
+      userRepository.findByEmail.mockImplementation(async () =>
+        User.create({
+          id: 'user-1',
+          email: 'test@example.com',
+          name: 'Juan',
+          lastname: 'Perez',
+          phone: '123456789',
+          kind: 'Registrado',
+          authProvider: 'local',
+          passwordHash: 'hash',
+          resetFailedAttempts: currentAttempts,
+        })
+      );
+      userRepository.updateUserSecurity.mockImplementation(async (_userId, update) => {
+        if (update.resetFailedAttempts !== undefined) {
+          currentAttempts = update.resetFailedAttempts;
+        }
+      });
+      hashService.sha256.mockReturnValue('hash');
+      passwordResetRepository.verify.mockResolvedValue(null);
+
+      const useCase = new VerifyPasswordResetCodeUseCase(
+        userRepository,
+        passwordResetRepository,
+        hashService
+      );
+
+      for (let i = 0; i < 5; i++) {
+        await expect(
+          useCase.execute({ email: 'test@example.com', code: '000000' })
+        ).rejects.toBeInstanceOf(AppError);
+      }
+
+      expect(userRepository.updateUserSecurity).toHaveBeenLastCalledWith(
+        'user-1',
+        expect.objectContaining({ resetLockedUntil: expect.any(Date) })
+      );
+    });
+  });
+
   describe('ResetPasswordUseCase', () => {
-    it('debe fallar si el token es invalido', async () => {
+    it('debe fallar si el código es inválido', async () => {
       passwordResetRepository.verifyAndConsume.mockResolvedValue(null);
-      userRepository.findByEmail.mockResolvedValue(null);
+      userRepository.findByEmail.mockResolvedValue(makeUser());
 
       const useCase = new ResetPasswordUseCase(
         userRepository,
@@ -134,19 +247,14 @@ describe('Password reset use cases', () => {
       );
 
       await expect(
-        useCase.execute({ token: 'token', password: 'Abcd1234', repeatPassword: 'Abcd1234', email: 'test@example.com' })
+        useCase.execute({ code: '000000', password: 'Abcd1234', repeatPassword: 'Abcd1234', email: 'test@example.com' })
       ).rejects.toBeInstanceOf(AppError);
     });
 
-    it('debe actualizar el password si el token es valido', async () => {
-      passwordResetRepository.verifyAndConsume.mockResolvedValue(
-        PasswordResetToken.create({
-          id: 'token-1',
-          userId: 'user-1',
-          expiresAt: now,
-        })
-      );
+    it('debe actualizar el password si el código es valido (y consumirlo)', async () => {
+      passwordResetRepository.verifyAndConsume.mockResolvedValue(makeTokenDoc());
       passwordHasher.hash.mockResolvedValue('hash');
+      hashService.sha256.mockReturnValue('hash');
       userRepository.findByEmail.mockResolvedValue(makeUser());
 
       const useCase = new ResetPasswordUseCase(
@@ -158,15 +266,35 @@ describe('Password reset use cases', () => {
       );
 
       const result = await useCase.execute({
-        token: 'token',
+        code: '123456',
         password: 'Abcd1234',
         repeatPassword: 'Abcd1234',
         email: 'test@example.com',
       });
 
+      expect(hashService.sha256).toHaveBeenCalledWith('123456');
+      expect(passwordResetRepository.verifyAndConsume).toHaveBeenCalledWith('hash');
       expect(userRepository.updatePassword).toHaveBeenCalledWith('user-1', 'hash');
       expect(refreshTokenRepository.revokeAllByUserId).toHaveBeenCalledWith('user-1');
       expect(result.message).toMatch(/Contraseña restablecida/);
+    });
+
+    it('debe fallar si el usuario no existe', async () => {
+      userRepository.findByEmail.mockResolvedValue(null);
+
+      const useCase = new ResetPasswordUseCase(
+        userRepository,
+        passwordResetRepository,
+        passwordHasher,
+        hashService,
+        refreshTokenRepository
+      );
+
+      await expect(
+        useCase.execute({ code: '123456', password: 'Abcd1234', repeatPassword: 'Abcd1234', email: 'nadie@example.com' })
+      ).rejects.toBeInstanceOf(AppError);
+
+      expect(passwordResetRepository.verifyAndConsume).not.toHaveBeenCalled();
     });
   });
 });

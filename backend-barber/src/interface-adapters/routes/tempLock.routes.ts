@@ -18,7 +18,17 @@ const tempLockIdParamSchema = Joi.object({
   tempLockId: Joi.string().trim().min(1).max(100).required(),
 });
 
+const releaseBodySchema = Joi.object({
+  ownerToken: Joi.string().pattern(/^[a-f0-9]{64}$/).required(),
+});
+
 const tempLockLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 20,
+  message: { error: 'Demasiados intentos. Esperá 5 minutos.' },
+});
+
+const releaseLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 20,
   message: { error: 'Demasiados intentos. Esperá 5 minutos.' },
@@ -38,7 +48,8 @@ export const createTempLockRouter = (deps: {
 
   router.delete(
     '/:tempLockId',
-    validate({ params: tempLockIdParamSchema }),
+    releaseLimiter,
+    validate({ params: tempLockIdParamSchema, body: releaseBodySchema }),
     deps.tempLockController.release
   );
 

@@ -26,6 +26,12 @@ export type UserSecurityUpdate = {
   resetLockedUntil?: Date | null;
 };
 
+export type LegalConsent = {
+  termsVersion: string;
+  privacyVersion: string;
+  acceptedAt: Date;
+};
+
 const userFromBarber = (doc: Record<string, any>): User =>
   User.create({
     id: doc._id.toString(),
@@ -168,14 +174,27 @@ export class MongoUserRepository {
     return null;
   }
 
-  async createRegisteredClient(user: User): Promise<User> {
+  async createRegisteredClient(user: User, consent?: LegalConsent): Promise<User> {
     const data = userToRegisteredClientData(user);
     const expectedId = new mongoose.Types.ObjectId();
 
     try {
       const doc = await RegisteredClient.findOneAndUpdate(
         { email: data.email, kind: 'Registrado' },
-        { $setOnInsert: { ...data, _id: expectedId, kind: 'Registrado' as const } },
+        {
+          $setOnInsert: {
+            ...data,
+            ...(consent
+              ? {
+                  termsVersion: consent.termsVersion,
+                  privacyVersion: consent.privacyVersion,
+                  acceptedAt: consent.acceptedAt,
+                }
+              : {}),
+            _id: expectedId,
+            kind: 'Registrado' as const,
+          },
+        },
         { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
 

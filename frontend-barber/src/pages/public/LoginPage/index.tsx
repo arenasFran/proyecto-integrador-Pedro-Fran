@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { FiArrowLeft } from 'react-icons/fi';
 import { PublicFooter } from '../../../components/client/PublicFooter';
 import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
@@ -321,7 +322,15 @@ export const LoginPage: React.FC = () => {
           animate="visible"
           className="w-full max-w-md"
         >
-          <motion.div variants={itemVariants} className="text-center mb-6">
+          <motion.div variants={itemVariants} className="relative text-center mb-6">
+            <Link
+              to="/"
+              aria-label="Volver a la página principal"
+              title="Volver a la página principal"
+              className="group absolute left-0 top-8 z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#282828] bg-[#121212]/90 text-[#8A8A8A] shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-x-0.5 hover:border-[#FF5C00]/60 hover:bg-[#FF5C00]/10 hover:text-[#FF5C00] hover:shadow-[0_0_20px_rgba(255,92,0,0.18)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#FF5C00]/70"
+            >
+              <FiArrowLeft size={18} className="transition-transform duration-300 group-hover:-translate-x-0.5" aria-hidden="true" />
+            </Link>
             <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-72 w-auto mx-auto mb-1" />
             <h1 className="text-[32px] font-extrabold text-white tracking-tight mb-2">
               Iniciar sesión

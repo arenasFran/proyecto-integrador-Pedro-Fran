@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Navigate, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import { initMercadoPago } from '@mercadopago/sdk-react';
 import { store } from './store';
 import { useAppDispatch, useAppSelector } from './store/hooks';
 import { authApi } from './services/authApi';
@@ -9,34 +8,45 @@ import { silentRefresh, getAccessToken } from './services/api';
 import { setInitialized } from './store/slices/authSlice';
 import { Spinner, ToastProvider } from './components/common';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { AppSidebar } from './components/sidebar/AppSidebar';
-import AdminLayout from './pages/admin/AdminLayout';
-import AppLayout from './pages/app/AppLayout';
-import DashboardPage from './pages/admin/DashboardPage';
-import ProfessionalsPage from './pages/admin/ProfessionalsPage';
-import AdminAppointmentsPage from './pages/admin/AppointmentsPage';
-import CalendarPage from './pages/admin/CalendarPage';
-import ServicesPage from './pages/admin/ServicesPage';
-import ClientsPage from './pages/admin/ClientsPage';
-import ClientDetailPage from './pages/admin/ClientDetailPage';
-import MembershipsPage from './pages/admin/MembershipsPage';
-import ProductsPage from './pages/admin/ProductsPage';
-import OrdersPage from './pages/admin/OrdersPage';
-import MembershipPage from './pages/app/MembershipPage';
-import ProfilePage from './pages/app/ProfilePage';
-import { RegisterPage } from './pages/public/RegisterPage';
-import { RecoveryPage } from './pages/public/RecoveryPage';
-import { NotFoundPage } from './pages/public/NotFoundPage';
-import LandingPage from './pages/public/LandingPage';
-import LoginPage from './pages/public/LoginPage';
-import BookingPage from './pages/client/BookingPage';
-import MyAppointmentsPage from './pages/client/MyAppointmentsPage';
-import MyOrdersPage from './pages/client/MyOrdersPage';
-import AiHaircutPage from './pages/client/AiHaircutPage';
-import ShopPage from './pages/public/ShopPage';
-import ProductDetailPage from './pages/public/ProductDetailPage';
-import PaymentResultPage from './pages/public/PaymentResultPage';
-import { getTokenKind, isTokenValid } from './utils/token';
+import { RequireAdminRoute, RequireClientRoute } from './components/guards';
+import { logout } from './store/slices/authSlice';
+import { isTokenValid } from './utils/token';
+
+const LandingPage = lazy(() => import('./pages/public/LandingPage'));
+const BookingPage = lazy(() => import('./pages/client/BookingPage'));
+const ShopPage = lazy(() => import('./pages/public/ShopPage'));
+const ProductDetailPage = lazy(() => import('./pages/public/ProductDetailPage'));
+const PaymentResultPage = lazy(() => import('./pages/public/PaymentResultPage'));
+const LoginPage = lazy(() => import('./pages/public/LoginPage'));
+const RegisterPage = lazy(() =>
+  import('./pages/public/RegisterPage').then(({ RegisterPage: Component }) => ({ default: Component }))
+);
+const RecoveryPage = lazy(() => import('./pages/public/RecoveryPage'));
+const NotFoundPage = lazy(() => import('./pages/public/NotFoundPage'));
+const TermsPage = lazy(() => import('./pages/legal/TermsPage'));
+const PrivacyPage = lazy(() => import('./pages/legal/PrivacyPage'));
+const CancellationsPage = lazy(() => import('./pages/legal/CancellationsPage'));
+const CookiesPage = lazy(() => import('./pages/legal/CookiesPage'));
+
+const AdminLayout = lazy(() => import('./pages/admin/AdminLayout'));
+const DashboardPage = lazy(() => import('./pages/admin/DashboardPage'));
+const ProfessionalsPage = lazy(() => import('./pages/admin/ProfessionalsPage'));
+const AdminAppointmentsPage = lazy(() => import('./pages/admin/AppointmentsPage'));
+const CalendarPage = lazy(() => import('./pages/admin/CalendarPage'));
+const ServicesPage = lazy(() => import('./pages/admin/ServicesPage'));
+const ClientsPage = lazy(() => import('./pages/admin/ClientsPage'));
+const ClientDetailPage = lazy(() => import('./pages/admin/ClientDetailPage'));
+const MembershipsPage = lazy(() => import('./pages/admin/MembershipsPage'));
+const ProductsPage = lazy(() => import('./pages/admin/ProductsPage'));
+const OrdersPage = lazy(() => import('./pages/admin/OrdersPage'));
+
+const AppLayout = lazy(() => import('./pages/app/AppLayout'));
+const MembershipPage = lazy(() => import('./pages/app/MembershipPage'));
+const ProfilePage = lazy(() => import('./pages/app/ProfilePage'));
+const MyAppointmentsPage = lazy(() => import('./pages/client/MyAppointmentsPage'));
+const MyOrdersPage = lazy(() => import('./pages/client/MyOrdersPage'));
+const AiHaircutPage = lazy(() => import('./pages/client/AiHaircutPage'));
+const AppSidebar = lazy(() => import('./components/sidebar/AppSidebar').then(({ AppSidebar: Component }) => ({ default: Component })));
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
   const dispatch = useAppDispatch();
@@ -54,11 +64,32 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
       const refreshed = await silentRefresh();
       if (refreshed) {
         await dispatch(authApi.endpoints.getProfile.initiate());
+      } else if (token) {
+        dispatch(logout());
       }
       dispatch(setInitialized());
     };
 
-    init();
+    let idleId: number | undefined;
+    let timeoutId: number | undefined;
+    const scheduleInit = () => {
+      if (window.location.pathname !== '/') {
+        void init();
+        return;
+      }
+
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(() => void init(), { timeout: 1200 });
+      } else {
+        timeoutId = window.setTimeout(() => void init(), 0);
+      }
+    };
+
+    scheduleInit();
+    return () => {
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+    };
   }, [dispatch]);
 
   useEffect(() => {
@@ -69,8 +100,6 @@ function AppInitializer({ children }: { children: React.ReactNode }) {
 
   return <>{children}</>;
 }
-
-initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY, { locale: 'es-UY' });
 
 function App() {
   return (
@@ -83,6 +112,7 @@ function App() {
             <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-[#FF5C00]/5 blur-3xl" />
           </div>
           <ErrorBoundary>
+          <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<OptionalAppLayout><BookingPage /></OptionalAppLayout>} />
@@ -90,8 +120,12 @@ function App() {
             <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPageWrapper />} />
+            <Route path="/register" element={<RegisterPage />} />
             <Route path="/recovery" element={<RecoveryPage />} />
+            <Route path="/terminos" element={<TermsPage />} />
+            <Route path="/privacidad" element={<PrivacyPage />} />
+            <Route path="/cancelaciones" element={<CancellationsPage />} />
+            <Route path="/cookies" element={<CookiesPage />} />
             <Route
               path="/admin"
               element={
@@ -115,19 +149,28 @@ function App() {
             </Route>
             <Route
               element={
-                <RequireAuthRoute>
+                <RequireClientRoute>
                   <AppLayout />
-                </RequireAuthRoute>
+                </RequireClientRoute>
               }
             >
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
               <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
               <Route path="/recomendacion-corte" element={<AiHaircutPage />} />
+            </Route>
+            <Route
+              element={
+                <RequireAuthRoute>
+                  <AppLayout />
+                </RequireAuthRoute>
+              }
+            >
               <Route path="/perfil" element={<ProfilePage />} />
             </Route>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          </Suspense>
           </ErrorBoundary>
         </Router>
         </ToastProvider>
@@ -136,24 +179,12 @@ function App() {
   );
 }
 
-function RequireAdminRoute({ children }: { children: React.ReactNode }) {
-  const isInitializing = useAppSelector((state) => state.auth.isInitializing);
-  const token = getAccessToken();
-  const role = getTokenKind(token);
-
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!isTokenValid(token) || (role !== 'Admin' && role !== 'Empleado')) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
+function RouteFallback() {
+  return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center" aria-busy="true">
+      <Spinner size="lg" />
+    </div>
+  );
 }
 
 function RequireAuthRoute({ children }: { children: React.ReactNode }) {
@@ -173,10 +204,6 @@ function RequireAuthRoute({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
-
-function RegisterPageWrapper() {
-  return <RegisterPage />;
 }
 
 function OptionalAppLayout({ children }: { children: React.ReactNode }) {

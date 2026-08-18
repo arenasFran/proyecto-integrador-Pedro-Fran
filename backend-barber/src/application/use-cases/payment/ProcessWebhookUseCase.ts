@@ -1,6 +1,6 @@
 import { Payment } from '../../../domain/entities/Payment';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
-import { IPaymentService } from '../../ports/IPaymentService';
+import { IPaymentService, GetPaymentResult } from '../../ports/IPaymentService';
 import { IEmailService } from '../../ports/IEmailService';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
 import { AppointmentPaymentHandler } from './handlers/AppointmentPaymentHandler';
@@ -39,13 +39,11 @@ export class ProcessWebhookUseCase {
   ): Promise<void> {
 
     if (!notification || !notification.data?.id) {
-      console.log('[MP-DEBUG-WEBHOOK] Webhook recibido SIN data.id — no se puede procesar');
-      console.log('[MP-DEBUG-WEBHOOK] body raw:', JSON.stringify(notification));
+      console.log('[MP-WEBHOOK] Webhook recibido SIN data.id — no se puede procesar');
       return;
     }
 
     const topic = notification.type || notification.topic;
-    console.log('[MP-DEBUG-WEBHOOK] topic:', topic, '| action:', notification.action, '| data.id:', notification.data.id);
 
     if (topic === 'payment') {
       await this.processPaymentNotification(notification.data.id);
@@ -66,8 +64,6 @@ export class ProcessWebhookUseCase {
   }
 
   private async processPaymentNotification(mpPaymentId: string): Promise<void> {
-    console.log('[MP-DEBUG-WEBHOOK] Notificación de pago recibida — payment_id:', mpPaymentId);
-
     const mpPayment = await this.mercadoPagoService.getPayment(mpPaymentId);
     if (!mpPayment) {
       console.log(`[MP-DEBUG-WEBHOOK] Pago ${mpPaymentId} no encontrado en MercadoPago — ignorando.`);
@@ -83,6 +79,21 @@ export class ProcessWebhookUseCase {
     }
 
     if (!payment) {
+      return;
+    }
+
+    // F6 — Idempotencia: no re-procesar un pago ya aprobado.
+    if (payment.status === 'approved' && mpPayment.status === 'approved') {
+      console.log(`[MP-WEBHOOK] Pago ${mpPaymentId} ya aprobado previamente — ignorando duplicado.`);
+      return;
+    }
+
+    // F6 — Integridad: el monto y la referencia de MercadoPago deben coincidir
+    // con lo que el backend espera. Si no coinciden, bloqueamos (no se aprueba).
+    if (!this.validatePaymentIntegrity(mpPayment, payment)) {
+      console.error(
+        `[MP-WEBHOOK] Pago ${mpPaymentId} bloqueado por inconsistencia (monto o referencia). No se procesa.`
+      );
       return;
     }
 
@@ -154,6 +165,28 @@ export class ProcessWebhookUseCase {
       default:
         break;
     }
+  }
+
+  // F6 — Tolerancia mínima en el monto (centavos) para cubrir redondeos legítimos de fees.
+  private static readonly AMOUNT_TOLERANCE = 0.5;
+
+  private validatePaymentIntegrity(mpPayment: GetPaymentResult, payment: Payment): boolean {
+    if (mpPayment.externalReference !== payment.id) {
+      console.error(
+        `[MP-WEBHOOK] Referencia inconsistente: MercadoPago external_reference="${mpPayment.externalReference}" != payment.id="${payment.id}".`
+      );
+      return false;
+    }
+
+    const amountDiff = Math.abs(mpPayment.transactionAmount - payment.amount);
+    if (amountDiff > ProcessWebhookUseCase.AMOUNT_TOLERANCE) {
+      console.error(
+        `[MP-WEBHOOK] Monto inconsistente: MercadoPago transaction_amount=${mpPayment.transactionAmount} != payment.amount=${payment.amount} (diff=${amountDiff}).`
+      );
+      return false;
+    }
+
+    return true;
   }
 
   private async handleChargebackNotification(chargebackId: string): Promise<void> {

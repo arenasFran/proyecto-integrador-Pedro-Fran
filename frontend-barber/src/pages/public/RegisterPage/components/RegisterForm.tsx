@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
-import { Input, PasswordInput, Button, PasswordStrength } from '../../../../components/common';
+import { Input, PasswordInput, Button } from '../../../../components/common';
 import { useFormValidation } from '../../../../hooks/useFormValidation';
 import { getErrorMessage } from '../../../../utils/errorMessages';
 import { useRegisterMutation } from '../../../../services/authApi';
 import type { RegisterFormData } from '../../../../types/auth';
+import { legalConfig } from '../../../../constants/legal';
 
 const initialValues: RegisterFormData = {
   email: '',
@@ -19,12 +20,19 @@ const initialValues: RegisterFormData = {
 export const RegisterForm: React.FC = () => {
   const [register, { isLoading, error }] = useRegisterMutation();
   const navigate = useNavigate();
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [acceptanceError, setAcceptanceError] = useState(false);
 
   const { values, errors, touched, validateAll, getFieldProps } = useFormValidation(initialValues);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const isValid = validateAll();
+    if (!acceptedLegal) {
+      setAcceptanceError(true);
+      return;
+    }
+    setAcceptanceError(false);
     if (!isValid) return;
 
     try {
@@ -35,6 +43,8 @@ export const RegisterForm: React.FC = () => {
         name: values.name,
         lastname: values.lastname,
         phone: values.phone,
+        termsVersion: legalConfig.termsVersion,
+        privacyVersion: legalConfig.privacyVersion,
       }).unwrap();
       navigate('/login', { state: { toast: 'Registro exitoso. Ya podés iniciar sesión.', toastType: 'success' } });
     } catch {
@@ -90,7 +100,6 @@ export const RegisterForm: React.FC = () => {
         required
         error={touched.password ? errors.password : undefined}
       />
-      <PasswordStrength password={values.password} />
 
       <PasswordInput
         label="Confirmar"
@@ -99,6 +108,32 @@ export const RegisterForm: React.FC = () => {
         required
         error={touched.repeatPassword ? errors.repeatPassword : undefined}
       />
+
+      <label className="flex items-start gap-2.5 mt-1 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={acceptedLegal}
+          onChange={(e) => {
+            setAcceptedLegal(e.target.checked);
+            if (e.target.checked) setAcceptanceError(false);
+          }}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-[#FF5C00]"
+        />
+        <span className="text-[12px] leading-snug text-[#8A8A8A]">
+          He leído y acepto los{' '}
+          <a href="/terminos" target="_blank" rel="noopener noreferrer" className="text-[#FF5C00] hover:underline">
+            Términos y Condiciones
+          </a>{' '}
+          y la{' '}
+          <a href="/privacidad" target="_blank" rel="noopener noreferrer" className="text-[#FF5C00] hover:underline">
+            Política de Privacidad
+          </a>
+          .
+        </span>
+      </label>
+      {acceptanceError && (
+        <p className="text-[12px] text-red-500">Debés aceptar los Términos y Condiciones y la Política de Privacidad.</p>
+      )}
 
       {errorMessage && (
         <p className="text-[12px] text-red-500 text-center">{errorMessage}</p>

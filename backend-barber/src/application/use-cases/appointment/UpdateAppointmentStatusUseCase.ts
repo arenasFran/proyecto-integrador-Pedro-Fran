@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { MongoAppointmentRepository, UpdateStatusData } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
+import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { AppointmentStatus } from '../../../domain/types/appointment';
 import { IEmailService } from '../../ports/IEmailService';
@@ -19,6 +20,7 @@ export class UpdateAppointmentStatusUseCase {
     private readonly appointmentRepository: MongoAppointmentRepository,
     private readonly membershipRepository: MongoMembershipRepository,
     private readonly emailService: IEmailService,
+    private readonly clientRepository: MongoClientRepository,
     private readonly cancelMinHoursBefore: number,
     private readonly barberRepository: MongoBarberRepository,
     private readonly revenueTracker?: RevenueTracker
@@ -132,6 +134,11 @@ export class UpdateAppointmentStatusUseCase {
         if (restored) {
           appointment.markCouponRestored();
         }
+      }
+
+      // Contador de inasistencias (NoShow) del cliente
+      if (dto.status === 'NoShow' && appointment.clientId) {
+        await this.clientRepository.incrementarNoShow(appointment.clientId, session);
       }
 
       await session.commitTransaction();

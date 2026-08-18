@@ -28,10 +28,7 @@ const adminNavItems = [
 const employeeNavItems = [
   { to: '/admin/turnos', icon: FiList, label: 'Turnos' },
   { to: '/admin/calendario', icon: FiCalendar, label: 'Calendario' },
-  { to: '/admin/servicios', icon: FiScissors, label: 'Servicios' },
-  { to: '/admin/productos', icon: FiPackage, label: 'Productos' },
   { to: '/admin/ordenes', icon: FiShoppingBag, label: 'Órdenes' },
-  { to: '/admin/clientes', icon: FiUserCheck, label: 'Clientes' },
   { to: '/admin/perfil', icon: FiUser, label: 'Perfil' },
 ];
 
@@ -100,7 +97,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
       >
         <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#282828] px-4">
           <button
-            onClick={() => navigate(isStaff ? '/admin/dashboard' : '/reservar')}
+            onClick={() => navigate(kind === 'Admin' ? '/admin/dashboard' : kind === 'Empleado' ? '/admin/turnos' : '/reservar')}
             className="flex items-center gap-2"
           >
             <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-12 w-auto" />

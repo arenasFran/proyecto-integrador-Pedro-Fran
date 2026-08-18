@@ -106,6 +106,14 @@ describe('CreateAppointmentUseCase', () => {
   let useCase: CreateAppointmentUseCase;
   let capturedSession: any;
 
+  const TEST_TEMP_LOCK_ID = new mongoose.Types.ObjectId().toString();
+  let mockTempLockData: { barberId: string; date: string; startTime: string; createdAt: Date } = {
+    barberId: 'barber-1',
+    date: '2099-01-01',
+    startTime: '10:00',
+    createdAt: new Date(),
+  };
+
   beforeEach(() => {
     appointmentRepository = makeMockAppointmentRepository();
     appointmentRepository.findByClientId.mockResolvedValue([]);
@@ -118,6 +126,19 @@ describe('CreateAppointmentUseCase', () => {
     membershipRepository = makeMockMembershipRepository();
     membershipRepository.findActiveByUser.mockResolvedValue(null);
     tempLockRepository = makeMockTempLockRepository();
+    mockTempLockData = {
+      barberId: 'barber-1',
+      date: '2099-01-01',
+      startTime: '10:00',
+      createdAt: new Date(),
+    };
+    tempLockRepository.findById.mockImplementation((_id: string, _session?: any) =>
+      Promise.resolve({
+        id: _id,
+        ...mockTempLockData,
+      })
+    );
+    tempLockRepository.deleteOne.mockResolvedValue(undefined);
     emailService = makeMockEmailService();
     blockRepository = makeMockBarberBlockRepository();
     blockRepository.findByBarberAndDate.mockResolvedValue([]);
@@ -157,6 +178,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -172,6 +194,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -188,6 +211,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -207,6 +231,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -228,6 +253,7 @@ describe('CreateAppointmentUseCase', () => {
       clientLastname: 'Perez',
       clientPhone: '123456789',
       clientEmail: 'juan@test.com',
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -260,6 +286,7 @@ describe('CreateAppointmentUseCase', () => {
     appointmentRepository.findByClientId.mockResolvedValue([]);
     clientRepository.createUnregistered.mockResolvedValue(makeClient());
     appointmentRepository.create.mockResolvedValue(makeAppointment());
+    mockTempLockData = { ...mockTempLockData, startTime: '09:45' };
 
     const result = await useCase.execute({
       barberId: 'barber-1',
@@ -268,6 +295,7 @@ describe('CreateAppointmentUseCase', () => {
       startTime: '09:45',
       clientName: 'Juan',
       clientLastname: 'Perez',
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -290,6 +318,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -297,6 +326,7 @@ describe('CreateAppointmentUseCase', () => {
   it('debe fallar si el turno esta fuera del horario laboral', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber());
     serviceRepository.findById.mockResolvedValue(makeService());
+    mockTempLockData = { ...mockTempLockData, startTime: '20:00' };
 
     await expect(
       useCase.execute({
@@ -306,6 +336,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '20:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -316,6 +347,7 @@ describe('CreateAppointmentUseCase', () => {
     const barberWithBreak = makeBarber({ schedule });
     barberRepository.findBarberById.mockResolvedValue(barberWithBreak);
     serviceRepository.findById.mockResolvedValue(makeService());
+    mockTempLockData = { ...mockTempLockData, date: '2099-01-05', startTime: '13:00' };
 
     await expect(
       useCase.execute({
@@ -325,6 +357,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '13:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toBeInstanceOf(AppError);
   });
@@ -347,6 +380,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       clientEmail: 'juan@test.com',
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -374,6 +408,7 @@ describe('CreateAppointmentUseCase', () => {
         startTime: '10:00',
         clientName: 'Juan',
         clientLastname: 'Perez',
+        tempLockId: TEST_TEMP_LOCK_ID,
       })
     ).rejects.toThrow(/anticipación/);
   });
@@ -396,6 +431,7 @@ describe('CreateAppointmentUseCase', () => {
       clientEmail: 'juan@test.com',
       clientId: 'user-1',
       createdBy: { type: 'registered', userId: 'user-1' },
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -423,6 +459,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       createdBy: { type: 'staff', userId: 'emp-1' },
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -454,6 +491,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       createdBy: { type: 'anonymous' },
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -481,6 +519,7 @@ describe('CreateAppointmentUseCase', () => {
       clientLastname: 'Perez',
       clientEmail: 'juan@test.com',
       createdBy: { type: 'registered', userId: 'user-1' },
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -509,6 +548,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       createdBy: { type: 'staff', userId: 'emp-1' },
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -536,6 +576,7 @@ describe('CreateAppointmentUseCase', () => {
       clientName: 'Juan',
       clientLastname: 'Perez',
       clientEmail: 'juan@test.com',
+      tempLockId: TEST_TEMP_LOCK_ID,
     });
 
     expect(result.message).toMatch(/Turno creado/);
@@ -588,6 +629,7 @@ describe('CreateAppointmentUseCase', () => {
         clientLastname: 'Perez',
         clientId: 'client-1',
         paymentMethod: 'memberPass',
+        tempLockId: TEST_TEMP_LOCK_ID,
       });
 
       expect(membershipRepository.atomicConsumeCoupon).toHaveBeenCalledWith('mem-1', capturedSession);
@@ -608,6 +650,7 @@ describe('CreateAppointmentUseCase', () => {
         clientLastname: 'Perez',
         clientId: 'client-1',
         paymentMethod: 'memberPass',
+        tempLockId: TEST_TEMP_LOCK_ID,
       });
 
       expect(appointmentRepository.create).toHaveBeenCalledWith(
@@ -633,6 +676,7 @@ describe('CreateAppointmentUseCase', () => {
           clientLastname: 'Perez',
           clientId: 'client-1',
           paymentMethod: 'memberPass',
+          tempLockId: TEST_TEMP_LOCK_ID,
         })
       ).rejects.toBeInstanceOf(AppError);
     });
@@ -649,6 +693,7 @@ describe('CreateAppointmentUseCase', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           paymentMethod: 'memberPass',
+          tempLockId: TEST_TEMP_LOCK_ID,
         })
       ).rejects.toBeInstanceOf(AppError);
     });
@@ -665,6 +710,7 @@ describe('CreateAppointmentUseCase', () => {
         clientLastname: 'Perez',
         clientEmail: 'juan@test.com',
         paymentMethod: 'local',
+        tempLockId: TEST_TEMP_LOCK_ID,
       });
 
       expect(membershipRepository.atomicConsumeCoupon).not.toHaveBeenCalled();
@@ -687,6 +733,7 @@ describe('CreateAppointmentUseCase', () => {
     it('debe permitir crear turno si tiene menos de 10 turnos activos', async () => {
       appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(9));
       setupBaseMocks();
+      mockTempLockData = { ...mockTempLockData, date: '2099-06-15' };
 
       const result = await useCase.execute({
         barberId: 'barber-1',
@@ -696,6 +743,7 @@ describe('CreateAppointmentUseCase', () => {
         clientName: 'Juan',
         clientLastname: 'Perez',
         clientId: 'client-1',
+        tempLockId: TEST_TEMP_LOCK_ID,
       });
 
       expect(result.message).toMatch(/Turno creado/);
@@ -704,6 +752,7 @@ describe('CreateAppointmentUseCase', () => {
     it('debe bloquear si el cliente ya tiene 10 turnos activos', async () => {
       appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(10));
       setupBaseMocks();
+      mockTempLockData = { ...mockTempLockData, date: '2099-06-15', startTime: '14:00' };
 
       await expect(
         useCase.execute({
@@ -714,6 +763,7 @@ describe('CreateAppointmentUseCase', () => {
           clientName: 'Juan',
           clientLastname: 'Perez',
           clientId: 'client-1',
+          tempLockId: TEST_TEMP_LOCK_ID,
         })
       ).rejects.toThrow(AppError);
     });
@@ -721,6 +771,7 @@ describe('CreateAppointmentUseCase', () => {
     it('no cuenta turnos Cancelado para el límite de activos', async () => {
       appointmentRepository.findByClientId.mockResolvedValue(makeActiveAppointments(10, 'Cancelado'));
       setupBaseMocks();
+      mockTempLockData = { ...mockTempLockData, date: '2099-06-15' };
 
       const result = await useCase.execute({
         barberId: 'barber-1',
@@ -730,9 +781,161 @@ describe('CreateAppointmentUseCase', () => {
         clientName: 'Juan',
         clientLastname: 'Perez',
         clientId: 'client-1',
+        tempLockId: TEST_TEMP_LOCK_ID,
       });
 
       expect(result.message).toMatch(/Turno creado/);
+    });
+  });
+
+  describe('No-Show — bloqueo de clientes sancionados', () => {
+    const setupBaseMocks = () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber());
+      serviceRepository.findById.mockResolvedValue(makeService());
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+      appointmentRepository.findByClientId.mockResolvedValue([]);
+      appointmentRepository.create.mockResolvedValue(makeAppointment());
+    };
+
+    const makeSanctionedClient = () =>
+      Client.create({ ...makeClient().toPrimitives(), noShowCount: 3, sancionado: true, fechaSancion: new Date(), motivoSancion: '3 inasistencias', sancionadoPor: 'admin@test.com' });
+
+    it('debe bloquear la reserva de un cliente registrado sancionado', async () => {
+      setupBaseMocks();
+      clientRepository.findById.mockResolvedValue(makeSanctionedClient());
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientId: 'client-1',
+          tempLockId: TEST_TEMP_LOCK_ID,
+        })
+      ).rejects.toThrow(AppError);
+
+      expect(appointmentRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('debe bloquear la reserva de un cliente anónimo sancionado encontrado por teléfono', async () => {
+      setupBaseMocks();
+      clientRepository.findByPhone.mockResolvedValue(makeSanctionedClient());
+      clientRepository.findById.mockResolvedValue(makeSanctionedClient());
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientPhone: '+59899123456',
+          clientEmail: 'juan@test.com',
+          tempLockId: TEST_TEMP_LOCK_ID,
+        })
+      ).rejects.toThrow(AppError);
+
+      expect(appointmentRepository.create).not.toHaveBeenCalled();
+    });
+
+    it('debe permitir la reserva de un cliente no sancionado', async () => {
+      setupBaseMocks();
+      clientRepository.findById.mockResolvedValue(makeClient());
+
+      const result = await useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        clientId: 'client-1',
+        tempLockId: TEST_TEMP_LOCK_ID,
+      });
+
+      expect(result.message).toMatch(/Turno creado/);
+    });
+  });
+
+  describe('TempLock — validación obligatoria', () => {
+    const setupBaseMocks = () => {
+      barberRepository.findBarberById.mockResolvedValue(makeBarber());
+      serviceRepository.findById.mockResolvedValue(makeService());
+      appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+      appointmentRepository.findByClientId.mockResolvedValue([]);
+      clientRepository.findByEmail.mockResolvedValue(makeClient());
+      appointmentRepository.create.mockResolvedValue(makeAppointment());
+    };
+
+    it('debe rechazar si el tempLock no existe', async () => {
+      setupBaseMocks();
+      tempLockRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientEmail: 'juan@test.com',
+          tempLockId: TEST_TEMP_LOCK_ID,
+        })
+      ).rejects.toThrow(/ya fue reservado/);
+    });
+
+    it('debe rechazar si el tempLock no coincide con barberId/date/startTime', async () => {
+      setupBaseMocks();
+      tempLockRepository.findById.mockResolvedValue({
+        id: TEST_TEMP_LOCK_ID,
+        barberId: 'other-barber',
+        date: '2099-01-01',
+        startTime: '10:00',
+        createdAt: new Date(),
+      });
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientEmail: 'juan@test.com',
+          tempLockId: TEST_TEMP_LOCK_ID,
+        })
+      ).rejects.toThrow(/ya fue reservado/);
+    });
+
+    it('debe rechazar si el tempLock esta expirado (>300s)', async () => {
+      setupBaseMocks();
+      const expiredDate = new Date(Date.now() - 301_000);
+      tempLockRepository.findById.mockResolvedValue({
+        id: TEST_TEMP_LOCK_ID,
+        barberId: 'barber-1',
+        date: '2099-01-01',
+        startTime: '10:00',
+        createdAt: expiredDate,
+      });
+
+      await expect(
+        useCase.execute({
+          barberId: 'barber-1',
+          serviceId: TEST_SERVICE_ID,
+          date: '2099-01-01',
+          startTime: '10:00',
+          clientName: 'Juan',
+          clientLastname: 'Perez',
+          clientEmail: 'juan@test.com',
+          tempLockId: TEST_TEMP_LOCK_ID,
+        })
+      ).rejects.toThrow(/expiró/);
     });
   });
 });

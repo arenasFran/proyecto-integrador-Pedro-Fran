@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { MongoClientRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoClientRepository';
 import { RegisteredClient, UnregisteredClient } from '../../../../src/infrastructure/repositories/mongodb/models/client.model';
 
@@ -49,5 +50,45 @@ describeIfMongo('MongoClientRepository — searchRegistered', () => {
     const results = await repository.searchRegistered('Invitado');
 
     expect(results).toHaveLength(0);
+  });
+});
+
+describeIfMongo('MongoClientRepository — sanciones por inasistencias', () => {
+  let repository: MongoClientRepository;
+
+  beforeEach(() => {
+    repository = new MongoClientRepository();
+  });
+
+  afterEach(async () => {
+    await RegisteredClient.deleteMany({});
+    await UnregisteredClient.deleteMany({});
+  });
+
+  it('debe incrementar noShowCount', async () => {
+    const doc = await UnregisteredClient.create({ name: 'Juan', lastname: 'Perez', phone: '098111333' });
+    const id = (doc._id as mongoose.Types.ObjectId).toString();
+
+    await repository.incrementarNoShow(id);
+
+    const reloaded = await repository.findById(id);
+    expect(reloaded?.noShowCount).toBe(1);
+  });
+
+  it('debe aplicar y levantar la sanción (reseteando el contador)', async () => {
+    const doc = await UnregisteredClient.create({ name: 'Juan', lastname: 'Perez', phone: '098111334' });
+    const id = (doc._id as mongoose.Types.ObjectId).toString();
+    await repository.incrementarNoShow(id);
+    await repository.incrementarNoShow(id);
+    await repository.incrementarNoShow(id);
+
+    const sanctioned = await repository.aplicarSancion(id, { motivo: '3 inasistencias', sancionadoPor: 'admin@test.com' });
+    expect(sanctioned?.sancionado).toBe(true);
+    expect(sanctioned?.noShowCount).toBe(3);
+    expect(sanctioned?.motivoSancion).toBe('3 inasistencias');
+
+    const lifted = await repository.levantarSancion(id);
+    expect(lifted?.sancionado).toBe(false);
+    expect(lifted?.noShowCount).toBe(0);
   });
 });

@@ -4,6 +4,7 @@ import type { PaymentMethod } from '../../types/booking';
 import reducer, {
   setServices,
   setCurrentStep,
+  restoreBookingFlow,
   setSelectedBarber,
   setSelectedService,
   setSelectedDate,
@@ -23,7 +24,7 @@ const initialState = {
     barbers: [],
     services: [],
     availableSlots: [],
-    isLoadingBarbers: false,
+    isLoadingBarbers: true,
     isLoadingServices: false,
     isLoadingSlots: false,
     isConfirming: false,
@@ -31,6 +32,7 @@ const initialState = {
     servicesError: null,
     slotsError: null,
     confirmError: null,
+    emailRegisteredError: false,
     createdAppointment: null,
     submitSuccess: false,
   },
@@ -103,7 +105,7 @@ function createStore(preloaded?: Partial<ReturnType<typeof reducer>>) {
 describe('bookingSlice', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123' }) }));
+    mockAcquireLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) }) }));
     mockReleaseLock.mockImplementation(() => () => ({ unwrap: () => Promise.resolve(undefined) }));
   });
 
@@ -119,6 +121,18 @@ describe('bookingSlice', () => {
       expect(state.flow.currentStep).toBe('datetime');
     });
 
+    it('restoreBookingFlow recupera el borrador sin tocar el estado async', () => {
+      const state = reducer(
+        { ...initialState, async: { ...initialState.async, barbers: [mockBarber] } },
+        restoreBookingFlow({ currentStep: 'service', selectedBarber: mockBarber, clientName: 'Juan' })
+      );
+
+      expect(state.flow.currentStep).toBe('service');
+      expect(state.flow.selectedBarber).toEqual(mockBarber);
+      expect(state.flow.clientName).toBe('Juan');
+      expect(state.async.barbers).toEqual([mockBarber]);
+    });
+
     it('setSelectedBarber selecciona barbero y avanza a service', () => {
       const state = reducer(initialState, setSelectedBarber(mockBarber));
       expect(state.flow.selectedBarber).toEqual(mockBarber);
@@ -126,6 +140,7 @@ describe('bookingSlice', () => {
       expect(state.flow.selectedDate).toBeNull();
       expect(state.flow.selectedTime).toBeNull();
       expect(state.async.availableSlots).toEqual([]);
+      expect(state.async.isLoadingSlots).toBe(false);
     });
 
     it('setSelectedBarber con null mantiene el paso actual', () => {
@@ -154,6 +169,7 @@ describe('bookingSlice', () => {
       expect(state.flow.selectedDate).toBe('2025-06-16');
       expect(state.flow.selectedTime).toBeNull();
       expect(state.async.availableSlots).toEqual([]);
+      expect(state.async.isLoadingSlots).toBe(true);
     });
 
     it('setSelectedTime asigna la hora', () => {
@@ -315,7 +331,7 @@ describe('bookingSlice', () => {
         clientName: 'Juan', clientLastname: 'Pérez', clientPhone: '123456789', clientEmail: 'juan@test.com',
         paymentMethod: 'local', tempLockId: 'lock-123',
       });
-      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     });
 
     it('rejected libera temp lock y asigna error', async () => {
@@ -327,7 +343,7 @@ describe('bookingSlice', () => {
       const state = store.getState().booking;
       expect(state.async.isConfirming).toBe(false);
       expect(state.async.confirmError).toBe('Horario no disponible');
-      expect(mockReleaseLock).toHaveBeenCalledWith('lock-123');
+      expect(mockReleaseLock).toHaveBeenCalledWith({ tempLockId: 'lock-123', ownerToken: 'a'.repeat(64) });
     });
 
     it('rejected sin temp lock no intenta liberar', async () => {
@@ -339,6 +355,57 @@ describe('bookingSlice', () => {
       const state = store.getState().booking;
       expect(state.async.confirmError).toBe('Bloqueo fallido');
       expect(mockReleaseLock).not.toHaveBeenCalled();
+    });
+
+    it('rejected por sanción muestra el mensaje del servidor (error.data.error)', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 403,
+          error: 'Rejected',
+          originalStatus: 403,
+          data: { error: 'Estás sancionado por inasistencias y no podés reservar turnos.' },
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Estás sancionado por inasistencias y no podés reservar turnos.');
+    });
+
+    it('rejected con code EMAIL_ALREADY_REGISTERED expone emailRegisteredError', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 409,
+          error: 'Rejected',
+          originalStatus: 409,
+          data: {
+            error: 'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+            code: 'EMAIL_ALREADY_REGISTERED',
+          },
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(state.async.emailRegisteredError).toBe(true);
+    });
+
+    it('rejected con code a nivel superior (baseQuery) expone emailRegisteredError', async () => {
+      mockCreateAppointment.mockImplementation(() => () => ({
+        unwrap: () => Promise.reject({
+          status: 409,
+          error: 'Rejected',
+          originalStatus: 409,
+          data: 'Este email ya está registrado. Iniciá sesión para reservar tu turno.',
+          code: 'EMAIL_ALREADY_REGISTERED',
+        }),
+      }));
+      const store = createStoreWithFlow();
+      await store.dispatch(submitAppointment());
+      const state = store.getState().booking;
+      expect(state.async.confirmError).toBe('Este email ya está registrado. Iniciá sesión para reservar tu turno.');
+      expect(state.async.emailRegisteredError).toBe(true);
     });
   });
 });

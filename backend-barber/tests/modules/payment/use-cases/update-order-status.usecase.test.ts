@@ -131,14 +131,24 @@ describe('UpdateOrderStatusUseCase', () => {
   });
 
   describe('cancelación', () => {
-    it('debe cancelar la orden y restaurar el stock', async () => {
-      const order = makeOrder();
+    it('debe cancelar una orden paga y restaurar el stock', async () => {
+      const order = makeOrder({ status: 'paid' });
       orderRepository.findById.mockResolvedValue(order);
 
       const result = await useCase.execute({ orderId: 'order-1', status: 'cancelled', actor: 'admin' });
 
       expect(result.order.status).toBe('cancelled');
       expect(orderStockService.restoreStock).toHaveBeenCalledWith(order);
+    });
+
+    it('debe cancelar una orden pendiente sin restaurar stock (nunca se descontó)', async () => {
+      const order = makeOrder();
+      orderRepository.findById.mockResolvedValue(order);
+
+      const result = await useCase.execute({ orderId: 'order-1', status: 'cancelled', actor: 'admin' });
+
+      expect(result.order.status).toBe('cancelled');
+      expect(orderStockService.restoreStock).not.toHaveBeenCalled();
     });
 
     it('debe rechazar la cancelación si el payment asociado ya está aprobado', async () => {

@@ -16,6 +16,7 @@ import {
 } from '../validators/auth.validator';
 import {
     requestResetSchema,
+    verifyResetCodeSchema,
     resetPasswordSchema,
 } from '../validators/recovery.validator';
 
@@ -93,6 +94,11 @@ export const createAuthRouter = (deps: {
     '/request-reset',
     validate({ body: requestResetSchema }),
     deps.passwordRecoveryController.requestReset
+  );
+  router.post(
+    '/verify-reset-code',
+    validate({ body: verifyResetCodeSchema }),
+    deps.passwordRecoveryController.verifyCode
   );
   router.post(
     '/reset-password',

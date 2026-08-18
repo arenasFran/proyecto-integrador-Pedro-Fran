@@ -73,7 +73,7 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({ onSuccess })
       </motion.div>
 
       <p className="text-[12px] text-[#8A8A8A] text-center">
-        Te enviaremos un enlace para restablecer tu contraseña
+        Te enviaremos un código de 6 dígitos para restablecer tu contraseña
       </p>
     </form>
   );

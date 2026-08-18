@@ -254,8 +254,8 @@ describeIfMongo('Payment routes — integración real (webhook, consultas)', () 
     });
   });
 
-  describe('GET /api/payments — listado (autenticado)', () => {
-    it('devuelve los pagos paginados', async () => {
+  describe('GET /api/payments — listado (solo Admin)', () => {
+    it('devuelve los pagos paginados al admin', async () => {
       await checkoutOnline();
       const { token: adminToken } = signToken({ kind: 'Admin' });
 
@@ -268,6 +268,24 @@ describeIfMongo('Payment routes — integración real (webhook, consultas)', () 
     it('rechaza sin autenticación', async () => {
       const res = await request(app).get('/api/payments');
       expect(res.status).toBe(401);
+    });
+
+    it('rechaza a un cliente autenticado (403)', async () => {
+      await checkoutOnline();
+      const { token: clientToken } = signToken({ kind: 'Registrado' });
+
+      const res = await request(app).get('/api/payments').set('Authorization', `Bearer ${clientToken}`);
+
+      expect(res.status).toBe(403);
+    });
+
+    it('rechaza a un empleado (403) — el listado es exclusivo de Admin', async () => {
+      await checkoutOnline();
+      const { token: employeeToken } = signToken({ kind: 'Empleado' });
+
+      const res = await request(app).get('/api/payments').set('Authorization', `Bearer ${employeeToken}`);
+
+      expect(res.status).toBe(403);
     });
   });
 

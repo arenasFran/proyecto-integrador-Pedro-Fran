@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { Barber, BarberSchedule } from '../../../domain/entities/Barber';
 import { Barber as BarberModel, Employee } from './models/barber.model';
 import { isBarberRaw } from './guards/barber.guards';
+import { escapeRegex } from '../../utils/regex';
 
 export type BarberUpdate = {
   email?: string;
@@ -100,7 +101,8 @@ export class MongoBarberRepository {
     const filter: Record<string, unknown> = { kind: { $in: ['Empleado', 'Admin'] } };
 
     if (search?.trim()) {
-      const regex = { $regex: search.trim(), $options: 'i' };
+      const escaped = escapeRegex(search.trim());
+      const regex = { $regex: escaped, $options: 'i' };
       filter.$or = [
         { name: regex },
         { lastname: regex },

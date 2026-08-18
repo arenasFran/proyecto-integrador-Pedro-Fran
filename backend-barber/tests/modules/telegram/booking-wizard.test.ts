@@ -67,6 +67,8 @@ describe('booking.wizard', () => {
     setGeminiEnabled(false);
     mockedBackendClient.getServices.mockResolvedValue({ services: [makeService()] });
     mockedBackendClient.getBarbersPublic.mockResolvedValue({ barbers: [makeBarber()] });
+    mockedBackendClient.acquireTempLock.mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'a'.repeat(64) });
+    mockedBackendClient.releaseTempLock.mockResolvedValue(undefined as any);
   });
 
   describe('step 0 — inicio', () => {
@@ -390,7 +392,8 @@ describe('booking.wizard', () => {
       expect(ctx.scene.leave).toHaveBeenCalled();
     });
 
-    it('confirm:yes crea el turno y confirma al usuario', async () => {
+    it('confirm:yes adquiere el temp lock, crea el turno y confirma al usuario', async () => {
+      mockedBackendClient.acquireTempLock.mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'a'.repeat(64) });
       mockedBackendClient.createGuestAppointment.mockResolvedValue({ id: 'apt-1' } as any);
       const ctx = makeCtx({
         callbackQuery: { data: 'confirm:yes' },
@@ -399,8 +402,9 @@ describe('booking.wizard', () => {
 
       await steps[10](ctx);
 
+      expect(mockedBackendClient.acquireTempLock).toHaveBeenCalledWith('b1', '2026-06-01', '10:00');
       expect(mockedBackendClient.createGuestAppointment).toHaveBeenCalledWith(
-        expect.objectContaining({ barberId: 'b1', serviceId: 's1' }),
+        expect.objectContaining({ barberId: 'b1', serviceId: 's1', tempLockId: 'lock-1' }),
         undefined,
       );
       expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('quedó reservado'));
@@ -409,6 +413,7 @@ describe('booking.wizard', () => {
 
     it('confirm:yes con accessToken: pide una sesión fresca antes de crear el turno', async () => {
       mockedGetSession.mockResolvedValue({ accessToken: 'fresh-tok' });
+      mockedBackendClient.acquireTempLock.mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'a'.repeat(64) });
       mockedBackendClient.createGuestAppointment.mockResolvedValue({ id: 'apt-1' } as any);
       const ctx = makeCtx({
         callbackQuery: { data: 'confirm:yes' },
@@ -418,10 +423,14 @@ describe('booking.wizard', () => {
       await steps[10](ctx);
 
       expect(mockedGetSession).toHaveBeenCalledWith(555);
-      expect(mockedBackendClient.createGuestAppointment).toHaveBeenCalledWith(expect.anything(), 'fresh-tok');
+      expect(mockedBackendClient.createGuestAppointment).toHaveBeenCalledWith(
+        expect.objectContaining({ tempLockId: 'lock-1' }),
+        'fresh-tok',
+      );
     });
 
-    it('confirm:yes con error del backend: avisa y sale de la escena igual', async () => {
+    it('confirm:yes con error del backend: libera el temp lock, avisa y sale de la escena igual', async () => {
+      mockedBackendClient.acquireTempLock.mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'a'.repeat(64) });
       mockedBackendClient.createGuestAppointment.mockRejectedValue(new Error('El horario ya está ocupado.'));
       const ctx = makeCtx({
         callbackQuery: { data: 'confirm:yes' },
@@ -431,6 +440,7 @@ describe('booking.wizard', () => {
       await steps[10](ctx);
 
       expect(ctx.reply).toHaveBeenCalledWith(expect.stringContaining('El horario ya está ocupado.'));
+      expect(mockedBackendClient.releaseTempLock).toHaveBeenCalledWith('lock-1', 'a'.repeat(64));
       expect(ctx.scene.leave).toHaveBeenCalled();
     });
   });

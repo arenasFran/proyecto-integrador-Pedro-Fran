@@ -4,7 +4,7 @@ import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { buildAppointmentRouter } from "./wiring/appointment";
 import { buildAuthRouter } from "./wiring/auth";
-import { buildBarberRouter, buildMembershipRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter, buildPaymentRouter, buildProductRouter, buildOrderRouter } from "./wiring";
+import { buildBarberRouter, buildMembershipRouter, buildServiceRouter, buildTempLockRouter, buildUploadRouter, buildUserRouter, buildPaymentRouter, buildProductRouter, buildOrderRouter, buildClientRouter } from "./wiring";
 import { buildAnalisisCorteRouter } from "./wiring/analisisCorte";
 import { buildCartRouter } from "./wiring/cart";
 import { ReportsController } from "./interface-adapters/controllers/reports/ReportsController";
@@ -18,6 +18,8 @@ import { createAuthenticate } from "./interface-adapters/middlewares/auth.middle
 import { buildTokenService } from "./wiring/auth";
 import { getConfig } from "./infrastructure/config/env";
 import { buildTelegramRouter } from "./wiring/telegram";
+import { sendError } from "./common/response";
+import { AppError } from "./domain/errors/AppError";
 
 const app = express();
 app.set('trust proxy', 1);
@@ -30,7 +32,6 @@ const corsOrigins = config.corsOrigin
 app.use(express.json());
 app.use(
   helmet({
-    crossOriginOpenerPolicy: false,
     contentSecurityPolicy: false,
   })
 );
@@ -87,11 +88,21 @@ const refreshLimiter = rateLimit({
 app.use("/auth/register", registerLimiter);
 app.use("/auth/refresh", refreshLimiter);
 app.use("/auth/request-reset", resetLimiter);
+app.use("/auth/verify-reset-code", resetLimiter);
 app.use("/auth/reset-password", resetLimiter);
 app.use("/auth/2fa/send", twoFALimiter);
 app.use("/auth/2fa/verify", twoFALimiter);
 app.use("/auth/google", googleLimiter);
 app.use("/auth/google/complete-profile", googleLimiter);
+
+const globalApiLimiter = rateLimit({
+  windowMs: config.rateLimit.api.windowMs,
+  max: config.rateLimit.api.max,
+  message: { error: 'Demasiadas solicitudes. Esperá un momento.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use("/api", globalApiLimiter);
 
 app.use("/auth", buildAuthRouter());
 app.use("/api/barbers", buildBarberRouter());
@@ -101,6 +112,7 @@ app.use("/api/services", buildServiceRouter({ authenticate: serviceAuth }));
 app.use("/api/appointments", buildAppointmentRouter());
 app.use("/api/appointments/temp-lock", buildTempLockRouter());
 app.use("/api/users", buildUserRouter());
+app.use("/api/clients", buildClientRouter());
 app.use("/api/upload", buildUploadRouter());
 const analyticsAuth = createAuthenticate(tokenService);
 app.use("/api/analytics", createAnalyticsRouter(analyticsAuth));
@@ -125,9 +137,19 @@ app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
-app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error("Error no manejado:", err instanceof Error ? err.message : err);
+export const errorHandler = (
+  err: unknown,
+  _req: express.Request,
+  res: express.Response,
+  _next: express.NextFunction
+) => {
+  if (err instanceof AppError) {
+    return sendError(res, err, "Error interno del servidor");
+  }
+  console.error("Error no manejado:", err);
   res.status(500).json({ error: "Error interno del servidor" });
-});
+};
+
+app.use(errorHandler);
 
 export default app;

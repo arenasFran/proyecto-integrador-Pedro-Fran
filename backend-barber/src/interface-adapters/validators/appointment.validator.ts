@@ -17,7 +17,7 @@ export const createAppointmentSchema = Joi.object({
   clientPhone: Joi.string().trim().min(7).max(20).required(),
   clientEmail: Joi.string().pattern(EMAIL_REGEX).trim().required(),
   paymentMethod: Joi.string().valid('local', 'online', 'memberPass').optional(),
-  tempLockId: Joi.string().optional(),
+  tempLockId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
 });
 
 export const appointmentQuerySchema = Joi.object({

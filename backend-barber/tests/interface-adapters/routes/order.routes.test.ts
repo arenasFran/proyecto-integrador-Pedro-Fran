@@ -20,6 +20,7 @@ import app from '../../../src/app';
 import { ProductModel } from '../../../src/infrastructure/repositories/mongodb/models/product.model';
 import { OrderModel } from '../../../src/infrastructure/repositories/mongodb/models/order.model';
 import { PaymentModel } from '../../../src/infrastructure/repositories/mongodb/models/payment.model';
+import { RevenueEntryModel } from '../../../src/infrastructure/repositories/mongodb/models/revenue-entry.model';
 import { signToken, seedProduct, seedRegisteredClient } from '../../test-utils/factories';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
@@ -31,6 +32,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
     await ProductModel.deleteMany({});
     await OrderModel.deleteMany({});
     await PaymentModel.deleteMany({});
+    await RevenueEntryModel.deleteMany({});
   });
 
   describe('POST /api/orders — checkout', () => {
@@ -42,7 +44,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.status).toBe(401);
     });
 
-    it('pago local: crea la orden ya paga y descuenta stock inmediatamente', async () => {
+    it('pago local: crea la orden pendiente sin descontar stock ni crear preferencia', async () => {
       const { productId } = await seedProduct({ price: 500, stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -56,10 +58,10 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.body.orderId).toBeTruthy();
 
       const order = await OrderModel.findById(res.body.orderId);
-      expect(order!.status).toBe('paid');
+      expect(order!.status).toBe('pending');
 
       const product = await ProductModel.findById(productId);
-      expect(product!.stock).toBe(8);
+      expect(product!.stock).toBe(10);
 
       expect(createPreferenceMock).not.toHaveBeenCalled();
     });
@@ -176,11 +178,11 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       const res = await request(app)
         .get('/api/orders')
         .set('Authorization', `Bearer ${adminToken}`)
-        .query({ status: 'paid' });
+        .query({ status: 'pending' });
 
       expect(res.status).toBe(200);
       expect(res.body.orders).toHaveLength(1);
-      expect(res.body.orders[0].status).toBe('paid');
+      expect(res.body.orders[0].status).toBe('pending');
     });
   });
 
@@ -318,7 +320,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(payment!.status).toBe('pending');
     });
 
-    it('un Admin cancela una orden paga y restaura el stock', async () => {
+    it('un Admin cancela una orden pendiente local y NO suma stock (nunca se descontó)', async () => {
       const { productId } = await seedProduct({ stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -335,6 +337,67 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.status).toBe(200);
       const product = await ProductModel.findById(productId);
       expect(product!.stock).toBe(10);
+    });
+
+    it('un Admin cancela una orden pagada y restaura el stock', async () => {
+      const { productId } = await seedProduct({ stock: 10 });
+      const { clientId, email } = await seedRegisteredClient();
+      const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
+      const { token: adminToken } = signToken({ kind: 'Admin' });
+
+      const created = await request(app).post('/api/orders').set('Authorization', `Bearer ${clientToken}`)
+        .send({ items: [{ productId, quantity: 2 }], paymentMethod: 'local' });
+
+      await request(app)
+        .patch(`/api/orders/${created.body.orderId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'paid' });
+
+      const res = await request(app)
+        .patch(`/api/orders/${created.body.orderId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'cancelled' });
+
+      expect(res.status).toBe(200);
+      const product = await ProductModel.findById(productId);
+      expect(product!.stock).toBe(10);
+    });
+
+    it('flujo local completo: crear pendiente, confirmar desde admin, stock baja UNA sola vez y se registra payment aprobado + revenue', async () => {
+      const { productId } = await seedProduct({ stock: 10 });
+      const { clientId, email } = await seedRegisteredClient();
+      const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
+      const { token: adminToken } = signToken({ kind: 'Admin' });
+
+      const created = await request(app).post('/api/orders').set('Authorization', `Bearer ${clientToken}`)
+        .send({ items: [{ productId, quantity: 2 }], paymentMethod: 'local' });
+      expect(created.body.orderId).toBeTruthy();
+
+      const pendingOrder = await OrderModel.findById(created.body.orderId);
+      expect(pendingOrder!.status).toBe('pending');
+
+      const productBefore = await ProductModel.findById(productId);
+      expect(productBefore!.stock).toBe(10);
+
+      const res = await request(app)
+        .patch(`/api/orders/${created.body.orderId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'paid' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.order.status).toBe('paid');
+
+      const productAfter = await ProductModel.findById(productId);
+      expect(productAfter!.stock).toBe(8);
+
+      const payment = await PaymentModel.findOne({ referenceId: created.body.orderId });
+      expect(payment).not.toBeNull();
+      expect(payment!.status).toBe('approved');
+
+      const revenue = await RevenueEntryModel.findOne({ referenceId: created.body.orderId });
+      expect(revenue).not.toBeNull();
+      expect(revenue!.source).toBe('product_order');
+      expect(revenue!.amount).toBe(1000);
     });
 
     it('rechaza un status inválido (validación de Joi)', async () => {
@@ -389,7 +452,7 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(res.status).toBe(403);
     });
 
-    it('un Admin elimina la orden y restaura el stock', async () => {
+    it('un Admin elimina una orden pendiente y NO suma stock de más (nunca se descontó)', async () => {
       const { productId } = await seedProduct({ stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
@@ -397,6 +460,31 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
 
       const created = await request(app).post('/api/orders').set('Authorization', `Bearer ${clientToken}`)
         .send({ items: [{ productId, quantity: 2 }], paymentMethod: 'local' });
+
+      const res = await request(app)
+        .delete(`/api/orders/${created.body.orderId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      const order = await OrderModel.findById(created.body.orderId);
+      expect(order).toBeNull();
+      const product = await ProductModel.findById(productId);
+      expect(product!.stock).toBe(10);
+    });
+
+    it('un Admin elimina una orden pagada y restaura el stock', async () => {
+      const { productId } = await seedProduct({ stock: 10 });
+      const { clientId, email } = await seedRegisteredClient();
+      const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
+      const { token: adminToken } = signToken({ kind: 'Admin' });
+
+      const created = await request(app).post('/api/orders').set('Authorization', `Bearer ${clientToken}`)
+        .send({ items: [{ productId, quantity: 2 }], paymentMethod: 'local' });
+
+      await request(app)
+        .patch(`/api/orders/${created.body.orderId}/status`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ status: 'paid' });
 
       const res = await request(app)
         .delete(`/api/orders/${created.body.orderId}`)

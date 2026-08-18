@@ -8,6 +8,7 @@ export type MembershipTransactionData = {
   amount: number;
   paymentMethod: 'mercadopago' | 'local';
   mpPaymentId?: string;
+  paymentId?: string;
   createdBy: 'client' | 'admin';
   adminId?: string;
   createdAt: Date;
@@ -20,6 +21,7 @@ export class MongoMembershipTransactionRepository {
     amount: number;
     paymentMethod: 'mercadopago' | 'local';
     mpPaymentId?: string;
+    paymentId?: string;
     createdBy: 'client' | 'admin';
     adminId?: string;
   }, session?: mongoose.ClientSession): Promise<MembershipTransactionData> {
@@ -29,6 +31,7 @@ export class MongoMembershipTransactionRepository {
       amount: data.amount,
       paymentMethod: data.paymentMethod,
       mpPaymentId: data.mpPaymentId,
+      paymentId: data.paymentId,
       createdBy: data.createdBy,
       adminId: data.adminId ? new mongoose.Types.ObjectId(data.adminId) : undefined,
     }], session ? { session } : {});
@@ -152,6 +155,7 @@ export class MongoMembershipTransactionRepository {
       amount: doc.amount,
       paymentMethod: doc.paymentMethod,
       mpPaymentId: doc.mpPaymentId,
+      paymentId: doc.paymentId,
       createdBy: doc.createdBy,
       adminId: doc.adminId?.toString(),
       createdAt: doc.createdAt,

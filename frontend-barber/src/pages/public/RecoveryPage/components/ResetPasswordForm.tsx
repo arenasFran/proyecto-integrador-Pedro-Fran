@@ -10,21 +10,21 @@ import type { ResetPasswordFormData } from '../../../../types/auth';
 
 interface ResetPasswordFormProps {
   email: string;
-  initialToken?: string;
+  code: string;
 }
 
 const initialValues: ResetPasswordFormData = {
-  token: '',
+  code: '',
   password: '',
   repeatPassword: '',
   email: '',
 };
 
-export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email, initialToken }) => {
+export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email, code }) => {
   const [resetPassword, { isLoading, error }] = useResetPasswordMutation();
   const navigate = useNavigate();
 
-  const formInit = { ...initialValues, email, token: initialToken ?? '' };
+  const formInit = { ...initialValues, email, code };
   const { values, getFieldProps, validateAll, touched, errors } = useFormValidation(formInit);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,7 +34,7 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email, ini
 
     try {
       await resetPassword({
-        token: values.token,
+        code: values.code,
         password: values.password,
         repeatPassword: values.repeatPassword,
         email: values.email,
@@ -52,20 +52,6 @@ export const ResetPasswordForm: React.FC<ResetPasswordFormProps> = ({ email, ini
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-      >
-        <PasswordInput
-          label="Token de recuperación"
-          placeholder="Ingresa el token recibido por email"
-          {...getFieldProps('token')}
-          required
-          error={touched.token ? errors.token : undefined}
-        />
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
       >
         <PasswordInput
           label="Nueva contraseña"

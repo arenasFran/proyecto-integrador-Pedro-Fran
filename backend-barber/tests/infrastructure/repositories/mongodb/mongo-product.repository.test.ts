@@ -1,6 +1,7 @@
 import { MongoProductRepository } from '../../../../src/infrastructure/repositories/mongodb/MongoProductRepository';
 import { ProductModel } from '../../../../src/infrastructure/repositories/mongodb/models/product.model';
 import { Product } from '../../../../src/domain/entities/Product';
+import type { ProductStatus } from '../../../../src/domain/types/product.types';
 
 const isMongoReady = process.env.MONGO_READY === 'true';
 const describeIfMongo = isMongoReady ? describe : describe.skip;
@@ -8,7 +9,7 @@ const describeIfMongo = isMongoReady ? describe : describe.skip;
 describeIfMongo('MongoProductRepository', () => {
   let repository: MongoProductRepository;
 
-  const createProductDoc = (overrides: Partial<{ name: string; status: string; category: string; stock: number }> = {}) =>
+  const createProductDoc = (overrides: Partial<{ name: string; status: ProductStatus; category: string; stock: number }> = {}) =>
     ProductModel.create({
       name: overrides.name ?? 'Cera',
       description: 'Fija el pelo',
@@ -78,6 +79,18 @@ describeIfMongo('MongoProductRepository', () => {
       const result = await repository.findAll({ search: 'especial' });
 
       expect(result.total).toBe(1);
+    });
+
+    it('debe tratar caracteres especiales de regex como texto literal (ReDoS safety)', async () => {
+      await createProductDoc({ name: 'Cera (especial)' });
+      await createProductDoc({ name: 'Shampoo' });
+
+      const start = Date.now();
+      const result = await repository.findAll({ search: '(a+)+$' });
+      const elapsed = Date.now() - start;
+
+      expect(result.total).toBe(0);
+      expect(elapsed).toBeLessThan(2000);
     });
 
     it('debe paginar los resultados', async () => {

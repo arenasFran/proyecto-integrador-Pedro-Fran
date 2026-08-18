@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { ProductModel, IProductDocument } from './models/product.model';
 import { Product } from '../../../domain/entities/Product';
+import { escapeRegex } from '../../utils/regex';
 
 type FindAllParams = {
   status?: string;
@@ -16,6 +17,13 @@ type FindAllResult = {
   page: number;
   totalPages: number;
   limit: number;
+};
+
+export type ProductCatalogParams = {
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
 };
 
 export class MongoProductRepository {
@@ -40,14 +48,48 @@ export class MongoProductRepository {
     }
 
     if (params.search) {
+      const search = escapeRegex(params.search);
       filter.$or = [
-        { name: { $regex: params.search, $options: 'i' } },
-        { description: { $regex: params.search, $options: 'i' } },
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
       ];
     }
 
     const page = params.page || 1;
     const limit = params.limit || 50;
+    const skip = (page - 1) * limit;
+
+    const [docs, total] = await Promise.all([
+      ProductModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      ProductModel.countDocuments(filter),
+    ]);
+
+    return {
+      data: docs.map((d) => this.toDomain(d)),
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+      limit,
+    };
+  }
+
+  async findPublicCatalog(params: ProductCatalogParams = {}): Promise<FindAllResult> {
+    const filter: Record<string, unknown> = { status: { $ne: 'deleted' } };
+
+    if (params.category) {
+      filter.category = params.category;
+    }
+
+    if (params.search) {
+      const search = escapeRegex(params.search);
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    const page = Math.min(Math.max(params.page ?? 1, 1), 10000);
+    const limit = Math.min(Math.max(params.limit ?? 100, 1), 100);
     const skip = (page - 1) * limit;
 
     const [docs, total] = await Promise.all([

@@ -3,6 +3,7 @@ import { Client } from '../../../domain/entities/Client';
 import { AppError } from '../../../domain/errors/AppError';
 import { Client as ClientModel, RegisteredClient, UnregisteredClient } from './models/client.model';
 import { CUPO_DIAS_ANALISIS_CORTE } from '../../../application/use-cases/analisis-corte/calcularCupoAnalisisCorte';
+import { escapeRegex } from '../../utils/regex';
 
 export type UnregisteredClientData = {
   name: string;
@@ -17,8 +18,6 @@ const ANALISIS_LOCK_STALE_MS = 2 * 60 * 1000;
 
 const normalizeEmail = (email: string): string => email.trim().toLowerCase();
 
-const escapeRegex = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
 const toClientEntity = (doc: Record<string, any>): Client =>
   Client.create({
     id: (doc._id as mongoose.Types.ObjectId).toString(),
@@ -32,6 +31,11 @@ const toClientEntity = (doc: Record<string, any>): Client =>
     consentimientoAnalisisIA: doc.consentimientoAnalisisIA ?? false,
     consentimientoAnalisisIAFecha: doc.consentimientoAnalisisIAFecha ?? null,
     ultimoAnalisisFecha: doc.ultimoAnalisisFecha ?? null,
+    noShowCount: doc.noShowCount ?? 0,
+    sancionado: doc.sancionado ?? false,
+    fechaSancion: doc.fechaSancion ?? null,
+    motivoSancion: doc.motivoSancion ?? null,
+    sancionadoPor: doc.sancionadoPor ?? null,
   });
 
 export class MongoClientRepository {
@@ -92,6 +96,12 @@ export class MongoClientRepository {
     return toClientEntity(doc);
   }
 
+  async findRegisteredByEmail(email: string): Promise<Client | null> {
+    const doc = await RegisteredClient.findOne({ email: normalizeEmail(email) }).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
   async findByPhone(phone: string): Promise<Client | null> {
     const doc = await UnregisteredClient.findOne({ phone }).lean();
     if (!doc) return null;
@@ -138,5 +148,55 @@ export class MongoClientRepository {
       .limit(limit)
       .lean();
     return docs.map(toClientEntity);
+  }
+
+  async incrementarNoShow(clientId: string, session?: mongoose.ClientSession): Promise<void> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return;
+    await ClientModel.findByIdAndUpdate(
+      clientId,
+      { $inc: { noShowCount: 1 } },
+      session ? { session } : {}
+    );
+  }
+
+  async aplicarSancion(
+    clientId: string,
+    data: { motivo: string; sancionadoPor: string },
+    session?: mongoose.ClientSession
+  ): Promise<Client | null> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return null;
+    const doc = await ClientModel.findByIdAndUpdate(
+      clientId,
+      {
+        $set: {
+          sancionado: true,
+          fechaSancion: new Date(),
+          motivoSancion: data.motivo,
+          sancionadoPor: data.sancionadoPor,
+        },
+      },
+      { returnDocument: 'after', ...(session ? { session } : {}) }
+    ).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
+  }
+
+  async levantarSancion(clientId: string, session?: mongoose.ClientSession): Promise<Client | null> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return null;
+    const doc = await ClientModel.findByIdAndUpdate(
+      clientId,
+      {
+        $set: {
+          sancionado: false,
+          fechaSancion: null,
+          motivoSancion: null,
+          sancionadoPor: null,
+          noShowCount: 0,
+        },
+      },
+      { returnDocument: 'after', ...(session ? { session } : {}) }
+    ).lean();
+    if (!doc) return null;
+    return toClientEntity(doc);
   }
 }

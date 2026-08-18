@@ -4,6 +4,11 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-test-secret-test
 process.env.FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 process.env.RESET_TOKEN_EXPIRATION_MIN = process.env.RESET_TOKEN_EXPIRATION_MIN || '60';
 process.env.TELEGRAM_TOKEN_ENC_KEY = process.env.TELEGRAM_TOKEN_ENC_KEY || 'a'.repeat(64);
+process.env.RATE_LIMIT_APPOINTMENT_CREATE_MAX = process.env.RATE_LIMIT_APPOINTMENT_CREATE_MAX || '1000';
+process.env.RATE_LIMIT_API_MAX = process.env.RATE_LIMIT_API_MAX || '10000';
+process.env.RATE_LIMIT_ORDER_MAX = process.env.RATE_LIMIT_ORDER_MAX || '10000';
+process.env.RATE_LIMIT_CART_MAX = process.env.RATE_LIMIT_CART_MAX || '10000';
+process.env.RATE_LIMIT_UPLOAD_MAX = process.env.RATE_LIMIT_UPLOAD_MAX || '10000';
 const mongoDisabled = process.env.MONGO_READY === 'false';
 // mongodb-memory-server descarga el binario 5.0.x por default, que en distros
 // recientes (sin libssl1.1, ej. Arch/CachyOS) no arranca. 7.0.x no depende de esa lib.

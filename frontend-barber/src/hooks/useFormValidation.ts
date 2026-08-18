@@ -41,6 +41,11 @@ const validationSchema: Record<string, (value: string, allValues?: Record<string
     if (value.length < VALIDATION_RULES.token.minLength) return ERROR_MESSAGES.token;
     return undefined;
   },
+  code: (value) => {
+    if (!value) return ERROR_MESSAGES.required;
+    if (!VALIDATION_RULES.code.pattern.test(value)) return ERROR_MESSAGES.code;
+    return undefined;
+  },
 };
 
 export function useFormValidation(initialValues: Record<string, string>) {

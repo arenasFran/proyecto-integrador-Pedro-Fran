@@ -18,6 +18,7 @@ import type {
 export const analyticsApi = createApi({
   reducerPath: 'analyticsApi',
   baseQuery: axiosBaseQuery,
+  tagTypes: ['ClientSanction'],
   endpoints: (builder) => ({
     getOverview: builder.query<OverviewData, { preset?: string; desde?: string; hasta?: string }>({
       query: (params) => ({
@@ -87,6 +88,7 @@ export const analyticsApi = createApi({
         url: '/api/analytics/clientes',
         params,
       }),
+      providesTags: ['ClientSanction'],
     }),
 
     getNuevosClientes: builder.query<NuevoClienteData[], { desde: string; hasta: string }>({

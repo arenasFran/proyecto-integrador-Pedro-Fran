@@ -16,6 +16,14 @@ import {
   updateBarberMeSchema,
 } from '../validators/barber.validator';
 
+const publicBarbersLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Demasiadas solicitudes. Esperá un minuto.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 const slotsLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 60,
@@ -30,7 +38,7 @@ export const createBarberRouter = (deps: {
 }) => {
   const router = express.Router({ mergeParams: true });
 
-  router.get('/public', deps.barberController.getAllPublic);
+  router.get('/public', publicBarbersLimiter, deps.barberController.getAllPublic);
 
   router.get(
     '/:id/slots',

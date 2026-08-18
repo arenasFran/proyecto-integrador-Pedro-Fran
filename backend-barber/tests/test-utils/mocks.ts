@@ -20,6 +20,7 @@ export const makeMockTempLockRepository = () => ({
   deleteById: jest.fn(),
   findByBarberAndDate: jest.fn(),
   findById: jest.fn(),
+  release: jest.fn(),
 });
 
 export const makeMockAppointmentRepository = () => ({
@@ -148,6 +149,10 @@ export const makeMockClientRepository = () => ({
   updateAnalisisIA: jest.fn(),
   reservarAnalisisIA: jest.fn(),
   liberarLockAnalisisIA: jest.fn(),
+  incrementarNoShow: jest.fn(),
+  aplicarSancion: jest.fn(),
+  levantarSancion: jest.fn(),
+  findRegisteredByEmail: jest.fn(),
 });
 
 export const makeMockAnalisisCorteRepository = () => ({
@@ -186,6 +191,7 @@ export const makeMockBarberBlockRepository = () => ({
 
 export const makeMockPasswordResetRepository = () => ({
   create: jest.fn(),
+  verify: jest.fn(),
   verifyAndConsume: jest.fn(),
 });
 
@@ -221,6 +227,7 @@ export const makeMockProductRepository = () => ({
   findById: jest.fn(),
   findByIds: jest.fn(),
   findAll: jest.fn(),
+  findPublicCatalog: jest.fn(),
   findByCategory: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),

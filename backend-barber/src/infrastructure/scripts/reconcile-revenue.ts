@@ -32,7 +32,7 @@ async function runReconciliation() {
   for (const payment of approvedPayments) {
     try {
       let referenceId: string;
-      let source: string;
+      let source: 'appointment' | 'product_order' | 'membership';
       let amount: number;
       let date: Date;
       let metadata: Record<string, unknown>;

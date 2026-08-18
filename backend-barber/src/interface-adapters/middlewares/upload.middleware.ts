@@ -53,3 +53,42 @@ export const handleUploadErrors = (upload: RequestHandler) => (req: Request, res
     return next(err);
   });
 };
+
+const isJpeg = (buf: Buffer): boolean =>
+  buf.length > 2 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+
+const isPng = (buf: Buffer): boolean =>
+  buf.length > 7 &&
+  buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47 &&
+  buf[4] === 0x0d && buf[5] === 0x0a && buf[6] === 0x1a && buf[7] === 0x0a;
+
+const isWebp = (buf: Buffer): boolean =>
+  buf.length > 11 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP';
+
+const detectImageType = (buf: Buffer): string | null => {
+  if (isJpeg(buf)) return 'image/jpeg';
+  if (isPng(buf)) return 'image/png';
+  if (isWebp(buf)) return 'image/webp';
+  return null;
+};
+
+// Verifica los "magic bytes" del archivo contra el mimetype declarado, porque el
+// mimetype lo controla el cliente y puede ser falseado.
+export const assertImageContent: RequestHandler = (req: Request, res: Response, next: NextFunction) => {
+  const files = req.file
+    ? [req.file]
+    : (req.files as Express.Multer.File[] | undefined) ?? [];
+
+  for (const file of files) {
+    const detected = detectImageType(file.buffer);
+    if (!detected || detected !== file.mimetype) {
+      return sendError(
+        res,
+        new AppError('El contenido del archivo no coincide con el formato de imagen declarado.', 400, 'INVALID_FILE'),
+        'Formato de archivo inválido'
+      );
+    }
+  }
+
+  next();
+};

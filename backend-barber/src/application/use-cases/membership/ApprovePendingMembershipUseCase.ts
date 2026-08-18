@@ -2,6 +2,7 @@ import { AppError } from '../../../domain/errors/AppError';
 import { MembershipProps } from '../../../domain/entities/Membership';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoMembershipTransactionRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
+import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { RevenueTracker } from '../../services/RevenueTracker';
 
 export interface ApprovePendingMembershipDTO {
@@ -13,6 +14,7 @@ export class ApprovePendingMembershipUseCase {
   constructor(
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly transactionRepo: MongoMembershipTransactionRepository,
+    private readonly paymentRepo: MongoPaymentRepository,
     private readonly revenueTracker?: RevenueTracker,
   ) {}
 
@@ -26,6 +28,11 @@ export class ApprovePendingMembershipUseCase {
       throw new AppError('La membresía no está pendiente de pago.', 400);
     }
 
+    const payment = await this.paymentRepo.findByReference(membership.id, 'membership');
+    if (!payment || payment.status !== 'approved') {
+      throw new AppError('La membresía no tiene un pago aprobado asociado.', 400);
+    }
+
     membership.approve(dto.staffId);
     const updated = await this.membershipRepo.approvePending(dto.membershipId, dto.staffId);
     const result = updated ?? membership;
@@ -35,19 +42,19 @@ export class ApprovePendingMembershipUseCase {
       membershipId: result.id,
       amount: result.price,
       paymentMethod: result.paymentMethod === 'mercadopago' ? 'mercadopago' : 'local',
+      paymentId: payment.id,
       createdBy: 'admin',
       adminId: dto.staffId,
     });
 
-    // Sin paymentId a propósito: este flujo no genera un Payment doc, y
-    // MongoMembershipRepository.approvePending no tiene precondición de estado, por lo
-    // que dos aprobaciones concurrentes de la misma pending podrían persistir ambas.
-    // El fallback por membershipId en RevenueTracker.trackMembership es la única
-    // protección real contra ese duplicado — no reemplazar por una clave sintética.
+    // Con paymentId se registra la trazabilidad del pago aprobado que habilita la
+    // aprobación. El fallback por membershipId en RevenueTracker.trackMembership
+    // sigue siendo la protección real contra duplicados concurrentes — no reemplazar.
     await this.revenueTracker?.trackMembership(result.id, result.price, new Date(), {
       userId: result.userId,
       staffId: dto.staffId,
-    });
+      paymentId: payment.id,
+    }, payment.id);
 
     return result.toPrimitives();
   }

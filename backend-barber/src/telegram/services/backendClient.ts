@@ -35,6 +35,12 @@ export interface CreateGuestAppointmentDTO {
   clientLastname: string;
   clientPhone: string;
   clientEmail: string;
+  tempLockId: string;
+}
+
+export interface TempLockResult {
+  tempLockId: string;
+  ownerToken: string;
 }
 
 export interface MyProfileDTO {
@@ -97,6 +103,24 @@ export function createGuestAppointment(
     method: 'POST',
     body: JSON.stringify(dto),
     headers: accessToken ? authHeader(accessToken) : undefined,
+  });
+}
+
+export function acquireTempLock(
+  barberId: string,
+  date: string,
+  startTime: string
+): Promise<TempLockResult> {
+  return request('/appointments/temp-lock', {
+    method: 'POST',
+    body: JSON.stringify({ barberId, date, startTime }),
+  });
+}
+
+export function releaseTempLock(tempLockId: string, ownerToken: string): Promise<unknown> {
+  return request(`/appointments/temp-lock/${tempLockId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ ownerToken }),
   });
 }
 

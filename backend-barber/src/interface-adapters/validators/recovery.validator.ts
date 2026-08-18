@@ -5,8 +5,22 @@ export const requestResetSchema = Joi.object({
   email: Joi.string().pattern(EMAIL_REGEX).required(),
 });
 
+const codeSchema = Joi.string()
+  .pattern(/^\d{6}$/)
+  .required()
+  .messages({
+    'string.pattern.base': 'El código debe tener 6 dígitos',
+    'any.required': 'El código es requerido',
+  });
+
+export const verifyResetCodeSchema = Joi.object({
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
+  code: codeSchema,
+});
+
 export const resetPasswordSchema = Joi.object({
-  token: Joi.string().required(),
+  email: Joi.string().pattern(EMAIL_REGEX).required(),
+  code: codeSchema,
   password: Joi.string()
     .min(8)
     .pattern(/[A-Z]/, 'mayúscula')
@@ -21,7 +35,6 @@ export const resetPasswordSchema = Joi.object({
     .valid(Joi.ref('password'))
     .required()
     .messages({ 'any.only': 'Las contraseñas deben coincidir' }),
-  email: Joi.string().email().required(),
 });
 
-export default { requestResetSchema, resetPasswordSchema };
+export default { requestResetSchema, verifyResetCodeSchema, resetPasswordSchema };

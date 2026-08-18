@@ -10,6 +10,7 @@ const validPayload = {
   clientLastname: 'Perez',
   clientEmail: 'juan@test.com',
   clientPhone: '099123456',
+  tempLockId: new mongoose.Types.ObjectId().toString(),
 };
 
 describe('createAppointmentSchema', () => {
@@ -88,6 +89,20 @@ describe('createAppointmentSchema', () => {
     const { error } = createAppointmentSchema.validate({
       ...validPayload,
       clientPhone: '',
+    });
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar tempLockId ausente', () => {
+    const { tempLockId, ...payload } = validPayload;
+    const { error } = createAppointmentSchema.validate(payload);
+    expect(error).toBeDefined();
+  });
+
+  it('debe rechazar tempLockId con formato invalido', () => {
+    const { error } = createAppointmentSchema.validate({
+      ...validPayload,
+      tempLockId: 'not-a-valid-id',
     });
     expect(error).toBeDefined();
   });

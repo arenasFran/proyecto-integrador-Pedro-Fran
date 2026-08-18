@@ -24,8 +24,13 @@ export interface RequestResetFormData extends Record<string, string> {
   email: string;
 }
 
+export interface VerifyResetCodeFormData extends Record<string, string> {
+  email: string;
+  code: string;
+}
+
 export interface ResetPasswordFormData extends Record<string, string> {
-  token: string;
+  code: string;
   password: string;
   repeatPassword: string;
   email: string;

@@ -94,7 +94,7 @@ describe('authApi', () => {
     it('register envía POST a /auth/register', async () => {
       mockApi.mockResolvedValueOnce({ data: { message: 'Registrado' } });
       const store = createStore();
-      const data = { email: 'a@b.com', password: '123', repeatPassword: '123', name: 'A', lastname: 'B', phone: '123' };
+      const data = { email: 'a@b.com', password: '123', repeatPassword: '123', name: 'A', lastname: 'B', phone: '123', termsVersion: '1.0', privacyVersion: '1.0' };
       await store.dispatch(authApi.endpoints.register.initiate(data));
       expect(mockApi).toHaveBeenCalledWith({ url: '/auth/register', method: 'POST', data });
     });
@@ -111,9 +111,17 @@ describe('authApi', () => {
     it('resetPassword envía POST a /auth/reset-password', async () => {
       mockApi.mockResolvedValueOnce({ data: { message: 'Contraseña restablecida' } });
       const store = createStore();
-      const data = { token: 'rt', password: 'new123', repeatPassword: 'new123', email: 'test@test.com' };
+      const data = { code: '123456', password: 'new123', repeatPassword: 'new123', email: 'test@test.com' };
       await store.dispatch(authApi.endpoints.resetPassword.initiate(data));
       expect(mockApi).toHaveBeenCalledWith({ url: '/auth/reset-password', method: 'POST', data });
+    });
+
+    it('verifyResetCode envía POST a /auth/verify-reset-code', async () => {
+      mockApi.mockResolvedValueOnce({ data: { message: 'Código válido' } });
+      const store = createStore();
+      const data = { email: 'test@test.com', code: '123456' };
+      await store.dispatch(authApi.endpoints.verifyResetCode.initiate(data));
+      expect(mockApi).toHaveBeenCalledWith({ url: '/auth/verify-reset-code', method: 'POST', data });
     });
   });
 

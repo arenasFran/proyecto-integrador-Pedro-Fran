@@ -29,6 +29,10 @@ export const VALIDATION_RULES = {
     minLength: 6,
     message: 'El token debe tener al menos 6 caracteres',
   },
+  code: {
+    pattern: /^\d{6}$/,
+    message: 'El código debe tener 6 dígitos',
+  },
 };
 
 export const ERROR_MESSAGES = {
@@ -40,4 +44,5 @@ export const ERROR_MESSAGES = {
   lastname: 'El apellido debe tener al menos 3 caracteres',
   phone: 'Número de teléfono inválido',
   token: 'Token inválido',
+  code: 'Código inválido',
 };

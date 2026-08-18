@@ -75,6 +75,10 @@ export interface ClienteData {
   firstVisit: string | null;
   lastVisit: string | null;
   membershipStatus: 'active' | null;
+  noShowCount: number;
+  sancionado: boolean;
+  fechaSancion?: string | null;
+  motivoSancion?: string | null;
 }
 
 export interface NuevoClienteData {

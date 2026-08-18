@@ -5,6 +5,7 @@ export interface ITempLockDocument extends Document {
   date: string;
   startTime: string;
   clientId?: string;
+  ownerToken: string;
   createdAt: Date;
 }
 
@@ -26,6 +27,10 @@ const tempLockSchema = new Schema<ITempLockDocument>(
     clientId: {
       type: String,
       required: false,
+    },
+    ownerToken: {
+      type: String,
+      required: true,
     },
   },
   {

@@ -20,8 +20,8 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import { Admin } from '../src/infrastructure/repositories/mongodb/models/barber.model';
 import { FakeEmailService } from '../src/infrastructure/services/FakeEmailService';
-import { buildAuthRouter } from '../src/wiring/auth';
 import { buildBarberRouter, buildServiceRouter, buildMembershipRouter } from '../src/wiring';
+import { buildTestAuthRouter } from './test-auth-router';
 
 const PORT = Number(process.env.TEST_PORT || 3000);
 
@@ -40,7 +40,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(helmet());
-app.use('/auth', buildAuthRouter({ emailService: new FakeEmailService() }));
+app.use('/auth', buildTestAuthRouter({ emailService: new FakeEmailService() }));
 app.use('/api/barbers', buildBarberRouter());
 app.use('/api/memberships', buildMembershipRouter());
 app.use('/api/services', buildServiceRouter());

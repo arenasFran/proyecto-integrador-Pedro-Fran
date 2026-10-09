@@ -13,6 +13,7 @@ test('register -> login -> 2FA', async ({ page }) => {
   await page.getByPlaceholder('598 91 234 567').fill(user.phone);
   await page.getByPlaceholder('Mínimo 8 caracteres, mayúscula, minúscula y número').fill(user.password);
   await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
+  await page.getByRole('checkbox', { name: /He leído y acepto/i }).check();
 
   const regPromise = page.waitForResponse(
     (res) => res.url().includes('/auth/register')
@@ -21,7 +22,7 @@ test('register -> login -> 2FA', async ({ page }) => {
   const regResponse = await regPromise;
   expect(regResponse.status()).toBe(201);
 
-  await expect(page.getByText('¡Registro exitoso!')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(/Registro exitoso/)).toBeVisible({ timeout: 5000 });
   await page.waitForURL(/\/login/, { timeout: 5000 });
 
   await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
@@ -34,7 +35,7 @@ test('register -> login -> 2FA', async ({ page }) => {
   const sendResponse = await sendPromise;
   expect(sendResponse.status()).toBe(200);
 
-  await expect(page.getByText(`Código enviado a ${user.email}`)).toBeVisible();
+  await expect(page.getByText('Código enviado al email', { exact: true })).toBeVisible();
   const code = await getTwoFactorCode(user.email);
   await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
 
@@ -45,8 +46,5 @@ test('register -> login -> 2FA', async ({ page }) => {
   const verifyResponse = await verifyPromise;
   expect(verifyResponse.status()).toBe(200);
 
-  await expect(page.getByText('Login exitoso')).toBeVisible();
-  await expect.poll(async () =>
-    page.evaluate(() => localStorage.getItem('authToken'))
-  ).not.toBeNull();
+  await expect(page).toHaveURL(/\/mis-turnos/, { timeout: 5000 });
 });

@@ -32,7 +32,7 @@ test('muestra error cuando el codigo 2FA expira', async ({ page }) => {
   await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
   await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
 
-  await expect(page.getByText(`Código enviado a ${user.email}`)).toBeVisible();
+  await expect(page.getByText('Código enviado al email', { exact: true })).toBeVisible();
 
   await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(twoFactorCode);
   await page.getByRole('button', { name: 'Verificar código' }).click();
@@ -68,6 +68,7 @@ test('registro rechaza email ya existente', async ({ page }) => {
   await page.getByPlaceholder('598 91 234 567').fill(user.phone);
   await page.getByPlaceholder('Mínimo 8 caracteres, mayúscula, minúscula y número').fill(user.password);
   await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
+  await page.getByRole('checkbox', { name: /He leído y acepto/i }).check();
   await page.getByRole('button', { name: 'Crear cuenta' }).click();
 
   await expect(page.getByText('Email en uso.')).toBeVisible();

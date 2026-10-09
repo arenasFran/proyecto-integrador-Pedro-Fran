@@ -12,6 +12,7 @@ test('registro exitoso', async ({ page }) => {
   await page.getByPlaceholder('598 91 234 567').fill(user.phone);
   await page.getByPlaceholder('Mínimo 8 caracteres, mayúscula, minúscula y número').fill(user.password);
   await page.getByPlaceholder('Repite tu contraseña').fill(user.repeatPassword);
+  await page.getByRole('checkbox', { name: /He leído y acepto/i }).check();
 
   const responsePromise = page.waitForResponse(
     (res) => res.url().includes('/auth/register')
@@ -20,5 +21,5 @@ test('registro exitoso', async ({ page }) => {
   const response = await responsePromise;
 
   expect(response.status()).toBe(201);
-  await expect(page.getByText('¡Registro exitoso!')).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText(/Registro exitoso/)).toBeVisible({ timeout: 5000 });
 });

@@ -20,7 +20,7 @@ test('login con 2FA exitoso', async ({ page }) => {
   const sendResponse = await sendPromise;
   expect(sendResponse.status()).toBe(200);
 
-  await expect(page.getByText(`Código enviado a ${user.email}`)).toBeVisible();
+  await expect(page.getByText('Código enviado al email', { exact: true })).toBeVisible();
   const code = await getTwoFactorCode(user.email);
   await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
 
@@ -31,8 +31,5 @@ test('login con 2FA exitoso', async ({ page }) => {
   const verifyResponse = await verifyPromise;
   expect(verifyResponse.status()).toBe(200);
 
-  await expect(page.getByText('Login exitoso')).toBeVisible();
-  await expect.poll(async () =>
-    page.evaluate(() => localStorage.getItem('authToken'))
-  ).not.toBeNull();
+  await expect(page).toHaveURL(/\/mis-turnos/, { timeout: 5000 });
 });

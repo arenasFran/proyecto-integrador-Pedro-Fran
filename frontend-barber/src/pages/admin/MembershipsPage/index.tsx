@@ -154,7 +154,7 @@ export default function MembershipsPage() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <span className="text-[11px] text-[#8A8A8A]">
-                            {m.paymentMethod === 'mercadopago' ? 'Pago único' : m.paymentMethod === 'local' ? 'Local' : '—'}
+                            {m.paymentMethod === 'local' ? 'Local' : '—'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-center">{statusBadge(m.status)}</td>
@@ -185,7 +185,7 @@ export default function MembershipsPage() {
                         <td className="px-4 py-3 text-center text-[#8A8A8A]">{m.durationDays} días</td>
                         <td className="px-4 py-3 text-center text-[#8A8A8A] text-[12px]">{formatDate(m.endDate)}</td>
                         <td className="px-4 py-3 text-center">
-                          <span className="text-[11px] text-[#6A6A6A]">{m.paymentMethod === 'mercadopago' ? 'MP' : m.paymentMethod === 'local' ? 'Local' : '—'}</span>
+                          <span className="text-[11px] text-[#6A6A6A]">{m.paymentMethod === 'local' ? 'Local' : '—'}</span>
                         </td>
                       </tr>
                     ))}
@@ -200,7 +200,7 @@ export default function MembershipsPage() {
                          <BarberAvatar name={m.user?.name ?? ''} lastname={m.user?.lastname ?? ''} photoUrl={m.user?.photoUrl ?? null} size="sm" />
                          <div className="min-w-0">
                            <p className="break-words text-[14px] font-semibold text-white">{m.user?.name ?? '—'} {m.user?.lastname ?? ''}</p>
-                           <p className="text-[11px] text-[#8A8A8A]">{m.paymentMethod === 'mercadopago' ? 'Pago único' : m.paymentMethod === 'local' ? 'Pago local' : 'Sin método'}</p>
+                           <p className="text-[11px] text-[#8A8A8A]">{m.paymentMethod === 'local' ? 'Pago local' : 'Sin método'}</p>
                          </div>
                        </div>
                        {statusBadge(m.status)}
@@ -266,7 +266,7 @@ export default function MembershipsPage() {
                               {m.user?.name ?? '—'} {m.user?.lastname ?? ''}
                             </p>
                             <p className="text-[11px] text-[#8A8A8A]">
-                              {m.paymentMethod === 'mercadopago' ? 'Iniciado por MercadoPago' : 'Solicitado por cliente'}
+                              Solicitado por cliente
                             </p>
                           </div>
                         </div>

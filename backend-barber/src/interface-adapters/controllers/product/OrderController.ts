@@ -29,7 +29,7 @@ export class OrderController {
       const userId = req.user!._id;
       const { items, paymentMethod } = req.body;
 
-      const result = await this.createOrderUseCase.execute({ userId, items, payerEmail: req.user!.email, paymentMethod });
+      const result = await this.createOrderUseCase.execute({ userId, items, paymentMethod });
 
       return sendSuccess(res, result, 201);
     } catch (error) {

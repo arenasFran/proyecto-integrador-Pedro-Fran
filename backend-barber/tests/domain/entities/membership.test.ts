@@ -49,9 +49,9 @@ describe('Membership entity', () => {
       expect(m.createdBy).toBe('admin');
     });
 
-    it('debe crear membresía con paymentMethod mercadopago', () => {
-      const m = Membership.create({ userId: 'u1', createdBy: 'client', paymentMethod: 'mercadopago' });
-      expect(m.paymentMethod).toBe('mercadopago');
+    it('debe crear membresía con pago local', () => {
+      const m = Membership.create({ userId: 'u1', createdBy: 'client', paymentMethod: 'local' });
+      expect(m.paymentMethod).toBe('local');
     });
 
     it('debe crear membresía con paymentMethod local', () => {

@@ -1,17 +1,7 @@
-const createPreferenceMock = jest.fn();
-
 jest.mock('../../../src/infrastructure/config/mailer', () => ({
   __esModule: true,
   default: { sendMail: jest.fn().mockResolvedValue(undefined) },
   sendMail: jest.fn().mockResolvedValue(undefined),
-}));
-
-jest.mock('../../../src/infrastructure/services/MercadoPagoService', () => ({
-  MercadoPagoService: jest.fn().mockImplementation(() => ({
-    createPreference: createPreferenceMock,
-    getPayment: jest.fn(),
-    validateWebhookSignature: jest.fn().mockReturnValue(true),
-  })),
 }));
 
 import mongoose from 'mongoose';
@@ -28,7 +18,6 @@ const describeIfMongo = isMongoReady ? describe : describe.skip;
 
 describeIfMongo('Order routes — integración real (checkout, administración)', () => {
   beforeEach(async () => {
-    createPreferenceMock.mockReset();
     await ProductModel.deleteMany({});
     await OrderModel.deleteMany({});
     await PaymentModel.deleteMany({});
@@ -68,37 +57,20 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       expect(payment).not.toBeNull();
       expect(payment!.status).toBe('pending');
 
-      expect(createPreferenceMock).not.toHaveBeenCalled();
     });
 
-    it('pago online: crea preferencia de MP y deja la orden pendiente sin tocar stock', async () => {
+    it('rechaza el método online que ya no está disponible', async () => {
       const { productId } = await seedProduct({ price: 500, stock: 10 });
       const { clientId, email } = await seedRegisteredClient();
       const { token } = signToken({ id: clientId, email, kind: 'Registrado' });
-      createPreferenceMock.mockResolvedValue({
-        preferenceId: 'pref-123',
-        initPoint: 'https://mp.test/init',
-        sandboxInitPoint: 'https://mp.test/sandbox',
-      });
 
       const res = await request(app)
         .post('/api/orders')
         .set('Authorization', `Bearer ${token}`)
-        .send({ items: [{ productId, quantity: 1 }] });
+        .send({ items: [{ productId, quantity: 1 }], paymentMethod: 'online' });
 
-      expect(res.status).toBe(201);
-      expect(res.body).toMatchObject({ preferenceId: 'pref-123', initPoint: 'https://mp.test/init' });
-
-      const order = await OrderModel.findById(res.body.orderId);
-      expect(order!.status).toBe('pending');
-
-      const product = await ProductModel.findById(productId);
-      expect(product!.stock).toBe(10);
-
-      const payment = await PaymentModel.findOne({ referenceId: res.body.orderId });
-      expect(payment).not.toBeNull();
-      expect(payment!.status).toBe('pending');
-      expect(payment!.mpPreferenceId).toBe('pref-123');
+      expect(res.status).toBe(400);
+      expect(await OrderModel.countDocuments()).toBe(0);
     });
 
     it('rechaza el checkout si no hay stock suficiente', async () => {
@@ -280,7 +252,6 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       const { clientId, email } = await seedRegisteredClient();
       const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
       const { token: adminToken } = signToken({ kind: 'Admin' });
-      createPreferenceMock.mockResolvedValue({ preferenceId: 'pref-1', initPoint: 'https://mp.test/init' });
 
       const created = await request(app).post('/api/orders').set('Authorization', `Bearer ${clientToken}`)
         .send({ items: [{ productId, quantity: 2 }] });
@@ -305,7 +276,6 @@ describeIfMongo('Order routes — integración real (checkout, administración)'
       const { clientId, email } = await seedRegisteredClient();
       const { token: clientToken } = signToken({ id: clientId, email, kind: 'Registrado' });
       const { token: adminToken } = signToken({ kind: 'Admin' });
-      createPreferenceMock.mockResolvedValue({ preferenceId: 'pref-1', initPoint: 'https://mp.test/init' });
 
       const created = await request(app).post('/api/orders').set('Authorization', `Bearer ${clientToken}`)
         .send({ items: [{ productId, quantity: 3 }] });

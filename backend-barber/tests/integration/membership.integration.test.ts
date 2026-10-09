@@ -4,10 +4,8 @@ import { MongoUserRepository } from '../../src/infrastructure/repositories/mongo
 import { MongoPaymentRepository } from '../../src/infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { MongoOrderRepository } from '../../src/infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../../src/infrastructure/repositories/mongodb/MongoProductRepository';
-import { MercadoPagoService } from '../../src/infrastructure/services/MercadoPagoService';
 import { CreateMembershipUseCase } from '../../src/application/use-cases/membership/CreateMembershipUseCase';
 import { CreateOrderUseCase } from '../../src/application/use-cases/product/CreateOrderUseCase';
-import { CreatePaymentUseCase } from '../../src/application/use-cases/payment/CreatePaymentUseCase';
 import { seedRegisteredClient, seedProduct } from '../test-utils/factories';
 
 const membershipRepo = new MongoMembershipRepository();
@@ -16,8 +14,6 @@ const userRepo = new MongoUserRepository();
 const paymentRepo = new MongoPaymentRepository();
 const orderRepo = new MongoOrderRepository();
 const productRepo = new MongoProductRepository();
-const mpService = new MercadoPagoService(undefined);
-const createPaymentUC = new CreatePaymentUseCase(paymentRepo, mpService);
 
 describe('Membresía: persistencia y descuento', () => {
   it('CreateMembershipUseCase guarda la membresía con productDiscount y transacción', async () => {
@@ -55,7 +51,7 @@ describe('Membresía: persistencia y descuento', () => {
       staffId: '000000000000000000000002',
     });
 
-    const createOrderUC = new CreateOrderUseCase(orderRepo, productRepo, membershipRepo, createPaymentUC, paymentRepo);
+    const createOrderUC = new CreateOrderUseCase(orderRepo, productRepo, membershipRepo, paymentRepo);
     const result = await createOrderUC.execute({
       userId: clientId,
       items: [{ productId, quantity: 1 }],

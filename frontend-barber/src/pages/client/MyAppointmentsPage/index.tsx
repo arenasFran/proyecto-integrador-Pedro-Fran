@@ -27,7 +27,6 @@ const statusConfig: Record<AppointmentStatus, { label: string; tone: 'success' |
 const paymentConfig: Record<string, { label: string; tone: 'accent' | 'purple' | 'info' }> = {
   local: { label: 'Pago en local', tone: 'accent' },
   memberPass: { label: 'Cupón de membresía', tone: 'purple' },
-  online: { label: 'Pago online', tone: 'info' },
 };
 
 const paymentStatusConfig: Record<string, { label: string; tone: 'success' | 'danger' | 'warning' }> = {

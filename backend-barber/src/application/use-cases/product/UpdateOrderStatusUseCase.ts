@@ -32,7 +32,7 @@ export class UpdateOrderStatusUseCase {
         ? await this.paymentRepository.findById(order.paymentId)
         : await this.paymentRepository.findByReference(order.id, 'product_order');
       if (paymentForCancellation && paymentForCancellation.status === 'approved') {
-        throw new AppError('No se puede cancelar una orden con un pago ya aprobado. Procesá el reembolso en MercadoPago antes de cancelarla.', 409);
+        throw new AppError('No se puede cancelar una orden con un pago ya registrado. Registrá la devolución antes de cancelarla.', 409);
       }
     }
 
@@ -51,8 +51,8 @@ export class UpdateOrderStatusUseCase {
         throw new AppError('Estado inválido.', 400);
     }
 
-    // La orden solo reserva/descuenta stock una vez, en la transición pending → paid/delivered
-    // (el checkout local y el webhook de MP aprobado ya lo hacen por su cuenta). Si esta
+    // La orden solo reserva/descuenta stock una vez, en la transición pending → paid/delivered.
+    // Si esta
     // aprobación manual es la que hace esa transición por primera vez, hay que descontarlo acá;
     // si no hay stock suficiente, se marca stock_issue en vez de darla por pagada/entregada.
     let stockIssue = false;

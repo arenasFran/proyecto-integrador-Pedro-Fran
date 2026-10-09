@@ -16,7 +16,6 @@ const statusLabels: Partial<Record<OrderStatus, { label: string; tone: 'warning'
 
 function getStatusLabel(order: Order) {
   if (order.status === 'pending' && order.paymentMethod === 'local') return { label: 'Pago al levantar', tone: 'warning' as const };
-  if (order.status === 'pending' && order.paymentMethod && order.paymentMethod !== 'local') return { label: 'Pago online pendiente', tone: 'warning' as const };
   return statusLabels[order.status] ?? { label: 'Estado no disponible', tone: 'info' as const };
 }
 
@@ -156,7 +155,7 @@ function OrdersTable({ orders, onSelect }: { orders: Order[]; onSelect: (order: 
                   <td className="px-4 py-3.5"><StatusBadge label={status.label} tone={status.tone} /></td>
                   <td className="whitespace-nowrap px-4 py-3.5 text-[#b0b0b0]">{formatDate(order.createdAt)}</td>
                   <td className="px-4 py-3.5 text-[#b0b0b0]">{order.items.reduce((total, item) => total + item.quantity, 0)}</td>
-                  <td className="px-4 py-3.5 text-[#b0b0b0]">{order.paymentMethod ? (order.paymentMethod === 'local' ? 'En local' : 'Online') : '—'}</td>
+                  <td className="px-4 py-3.5 text-[#b0b0b0]">{order.paymentMethod === 'local' ? 'En local' : '—'}</td>
                   <td className="whitespace-nowrap px-4 py-3.5 text-[#777]">{order.updatedAt ? formatDate(order.updatedAt) : '—'}</td>
                   <td className="whitespace-nowrap px-4 py-3.5 text-right text-[14px] font-semibold text-[#FF8A4C]">{formatCurrency(order.total)}</td>
                   <td className="px-3 py-3.5 text-[#777]"><FiChevronRight aria-hidden="true" /></td>

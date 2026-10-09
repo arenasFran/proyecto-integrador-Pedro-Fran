@@ -598,7 +598,7 @@ describe('CreateAppointmentUseCase', () => {
         productDiscount: MEMBERSHIP_DEFAULTS.productDiscount,
         durationDays: MEMBERSHIP_DEFAULTS.durationDays,
         billingCycle: 'onetime',
-        paymentMethod: 'mercadopago',
+        paymentMethod: 'local',
         createdBy: 'client',
         createdAt: new Date(),
         updatedAt: new Date(),

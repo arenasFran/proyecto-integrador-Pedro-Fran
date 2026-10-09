@@ -2,7 +2,7 @@ export type MembershipStatus = 'active' | 'expired' | 'pending' | 'cancelled';
 
 export type MembershipSource = 'client' | 'admin';
 
-export type PaymentMethod = 'mercadopago' | 'local' | null;
+export type PaymentMethod = 'local' | null;
 
 export type BillingCycle = 'onetime' | null;
 

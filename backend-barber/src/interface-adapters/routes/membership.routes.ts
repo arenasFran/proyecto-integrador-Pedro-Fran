@@ -8,7 +8,6 @@ import {
   createMembershipSchema,
   redeemCouponSchema,
   queryMembershipsSchema,
-  initiateMembershipPaymentSchema,
   membershipIdParamSchema,
   membershipUserIdParamSchema,
   addCouponsSchema,
@@ -40,6 +39,14 @@ export const createMembershipRouter = (deps: {
     '/mine',
     deps.authenticate,
     deps.membershipController.getMyMembership
+  );
+
+  router.post(
+    '/request',
+    membershipMutationLimiter,
+    deps.authenticate,
+    authorize('Registrado'),
+    deps.membershipController.requestMembership
   );
 
   router.post(
@@ -107,24 +114,6 @@ export const createMembershipRouter = (deps: {
     deps.authenticate,
     validate({ params: membershipIdParamSchema }),
     deps.membershipController.cancel
-  );
-
-  router.post(
-    '/initiate-payment',
-    membershipMutationLimiter,
-    deps.authenticate,
-    authorize('Registrado'),
-    validate({ body: initiateMembershipPaymentSchema }),
-    deps.membershipController.initiatePayment
-  );
-
-  router.post(
-    '/retry-payment',
-    membershipMutationLimiter,
-    deps.authenticate,
-    authorize('Registrado'),
-    validate({ body: initiateMembershipPaymentSchema }),
-    deps.membershipController.retryPayment
   );
 
   router.post(

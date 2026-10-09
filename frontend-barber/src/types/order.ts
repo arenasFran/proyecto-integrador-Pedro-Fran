@@ -44,7 +44,7 @@ export type OrdersResponse = {
 
 export type CreateOrderPayload = {
   items: { productId: string; quantity: number }[];
-  paymentMethod?: 'online' | 'local';
+  paymentMethod?: 'local';
 };
 
 export type CreateManualOrderPayload = {

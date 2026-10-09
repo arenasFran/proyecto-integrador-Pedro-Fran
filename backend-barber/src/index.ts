@@ -7,8 +7,6 @@ const config = getConfig();
 import { connectDB } from './infrastructure/config/db';
 import { runFullSeed } from './infrastructure/scripts/seed-full';
 import { MongoMembershipRepository } from './infrastructure/repositories/mongodb/MongoMembershipRepository';
-import { MongoAppointmentRepository } from './infrastructure/repositories/mongodb/MongoAppointmentRepository';
-import { MongoPaymentRepository } from './infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { MongoUserRepository } from './infrastructure/repositories/mongodb/MongoUserRepository';
 import { NodemailerEmailService } from './infrastructure/services/NodemailerEmailService';
 import { createJob } from './infrastructure/jobs/jobRunner';
@@ -30,8 +28,6 @@ const startServer = async () => {
   }
 
   const membershipRepo = new MongoMembershipRepository();
-  const appointmentRepo = new MongoAppointmentRepository();
-  const paymentRepo = new MongoPaymentRepository();
   const userRepo = new MongoUserRepository();
 
   createJob('expire-memberships', async () => {
@@ -71,23 +67,6 @@ const startServer = async () => {
       }
     }
   }, 24 * 60 * 60 * 1000);
-
-  createJob('cancel-pending-appointments', async () => {
-    const cutoff = new Date(Date.now() - 30 * 60 * 1000);
-    const cancelled = await appointmentRepo.cancelPendingPaymentsOlderThan(cutoff);
-    if (cancelled > 0) {
-      console.log(`[PendingPaymentCancel] ${cancelled} turno(s) cancelado(s) por pago pendiente > 30 min`);
-      await paymentRepo.cancelPendingByAppointments(cutoff);
-    }
-  }, 5 * 60 * 1000);
-
-  createJob('cancel-orphan-payments', async () => {
-    const cutoff = new Date(Date.now() - config.orphanPaymentCutoffHours * 60 * 60 * 1000);
-    const cancelled = await paymentRepo.cancelOrphanPendingPayments(cutoff);
-    if (cancelled > 0) {
-      console.log(`[OrphanPaymentCancel] ${cancelled} pago(s) huérfano(s) cancelado(s) por antigüedad > ${config.orphanPaymentCutoffHours}h`);
-    }
-  }, 60 * 60 * 1000);
 
   const { default: app } = await import('./app');
 

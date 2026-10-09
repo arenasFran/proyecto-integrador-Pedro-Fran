@@ -2,7 +2,7 @@ export type AppointmentStatus = 'Confirmado' | 'Completado' | 'Cancelado' | 'NoS
 
 export type PaymentStatus = 'Pendiente' | 'Pagado' | 'Cancelado';
 
-export type PaymentMethod = 'local' | 'online' | 'memberPass';
+export type PaymentMethod = 'local' | 'memberPass';
 
 export type StatusHistoryEntry = {
   status: AppointmentStatus;

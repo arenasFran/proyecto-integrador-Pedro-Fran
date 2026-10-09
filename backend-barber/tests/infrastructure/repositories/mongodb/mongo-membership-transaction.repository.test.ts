@@ -24,7 +24,7 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
         userId,
         membershipId,
         amount: 500,
-        paymentMethod: 'mercadopago',
+        paymentMethod: 'local',
         mpPaymentId: 'mp-1',
         createdBy: 'client',
       });
@@ -53,7 +53,7 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
 
   describe('findByMpPaymentId', () => {
     it('debe encontrar la transacción por mpPaymentId', async () => {
-      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'mercadopago', mpPaymentId: 'mp-x', createdBy: 'client' });
+      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', mpPaymentId: 'mp-x', createdBy: 'client' });
       const found = await repository.findByMpPaymentId('mp-x');
       expect(found).not.toBeNull();
     });
@@ -78,7 +78,7 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
 
   describe('findByUser', () => {
     it('debe filtrar por paymentMethod', async () => {
-      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'mercadopago', createdBy: 'client' });
+      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', createdBy: 'client' });
       await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', createdBy: 'client' });
 
       const result = await repository.findByUser(userId, { paymentMethod: 'local' });
@@ -111,7 +111,7 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
   describe('findAll', () => {
     it('debe devolver todas las transacciones paginadas', async () => {
       await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', createdBy: 'client' });
-      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'mercadopago', createdBy: 'admin' });
+      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', createdBy: 'admin' });
 
       const result = await repository.findAll({ page: 1, limit: 20 });
 
@@ -121,9 +121,9 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
 
     it('debe filtrar por paymentMethod', async () => {
       await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', createdBy: 'client' });
-      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'mercadopago', createdBy: 'client' });
+      await repository.create({ userId, membershipId, amount: 500, paymentMethod: 'local', createdBy: 'client' });
 
-      const result = await repository.findAll({ paymentMethod: 'mercadopago' });
+      const result = await repository.findAll({ paymentMethod: 'local' });
 
       expect(result.total).toBe(1);
     });

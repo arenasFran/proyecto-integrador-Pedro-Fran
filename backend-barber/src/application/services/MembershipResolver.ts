@@ -15,18 +15,15 @@ export class MembershipResolver {
       throw new AppError('Ya tenés una membresía activa.', 400);
     }
 
-    const existing = await this.membershipRepo.findAnyByUser(userId);
-
-    if (existing && (existing.status === 'expired' || existing.status === 'pending')) {
-      return existing;
-    }
+    const existingPending = await this.membershipRepo.findPendingByUser(userId);
+    if (existingPending) return existingPending;
 
     const membership = Membership.create({
       userId,
       createdBy: 'client',
       status: 'pending',
       price: getConfig().membershipPriceUyu,
-      paymentMethod: 'mercadopago',
+      paymentMethod: 'local',
       billingCycle,
     });
     const saved = await this.membershipRepo.save(membership);

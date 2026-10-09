@@ -31,7 +31,6 @@ describe('CreateOrderUseCase', () => {
   let membershipRepository: ReturnType<typeof makeMockMembershipRepository>;
   let paymentRepository: ReturnType<typeof makeMockPaymentRepository>;
   let revenueTracker: { trackProductOrder: jest.Mock };
-  let createPaymentUseCase: { execute: jest.Mock };
   let useCase: CreateOrderUseCase;
 
   beforeEach(() => {
@@ -40,7 +39,6 @@ describe('CreateOrderUseCase', () => {
     membershipRepository = makeMockMembershipRepository();
     paymentRepository = makeMockPaymentRepository();
     revenueTracker = { trackProductOrder: jest.fn() };
-    createPaymentUseCase = { execute: jest.fn() };
 
     membershipRepository.findActiveByUser.mockResolvedValue(null);
     orderRepository.save.mockImplementation(async (o: Order) => Order.restore({ ...o.toPrimitives(), id: 'order-1' }));
@@ -49,7 +47,6 @@ describe('CreateOrderUseCase', () => {
       orderRepository as any,
       productRepository as any,
       membershipRepository as any,
-      createPaymentUseCase as any,
       paymentRepository as any,
       revenueTracker as any,
     );
@@ -89,7 +86,6 @@ describe('CreateOrderUseCase', () => {
       savedOrder = o;
       return Order.restore({ ...o.toPrimitives(), id: 'order-1' });
     });
-    createPaymentUseCase.execute.mockResolvedValue({ preferenceId: 'pref-1', initPoint: 'init' });
 
     await useCase.execute({ userId: 'u1', items: [{ productId: 'prod-1', quantity: 1 }] });
 
@@ -112,36 +108,16 @@ describe('CreateOrderUseCase', () => {
     expect(productRepository.atomicDecreaseStock).not.toHaveBeenCalled();
     expect(paymentRepository.save).toHaveBeenCalled();
     expect(revenueTracker.trackProductOrder).not.toHaveBeenCalled();
-    expect(createPaymentUseCase.execute).not.toHaveBeenCalled();
   });
 
-  it('pago online (default): debe crear la preferencia de pago y devolver los datos de MP', async () => {
+  it('usa pago local por defecto y crea una orden pendiente', async () => {
     productRepository.findById.mockResolvedValue(makeProduct());
-    createPaymentUseCase.execute.mockResolvedValue({
-      preferenceId: 'pref-1',
-      initPoint: 'https://mp/init',
-      sandboxInitPoint: 'https://mp/sandbox',
-    });
 
     const result = await useCase.execute({ userId: 'u1', items: [{ productId: 'prod-1', quantity: 1 }] });
 
-    expect(result).toEqual({
-      preferenceId: 'pref-1',
-      initPoint: 'https://mp/init',
-      sandboxInitPoint: 'https://mp/sandbox',
-      orderId: 'order-1',
-    });
-    expect(productRepository.atomicDecreaseStock).not.toHaveBeenCalled();
-  });
-
-  it('pago online: debe eliminar la orden creada si falla la generación de la preferencia', async () => {
-    productRepository.findById.mockResolvedValue(makeProduct());
-    createPaymentUseCase.execute.mockRejectedValue(new Error('mp down'));
-
-    await expect(
-      useCase.execute({ userId: 'u1', items: [{ productId: 'prod-1', quantity: 1 }] }),
-    ).rejects.toThrow('mp down');
-
-    expect(orderRepository.delete).toHaveBeenCalledWith('order-1');
+    expect(result).toEqual({ orderId: 'order-1' });
+    const savedOrder = orderRepository.save.mock.calls[0][0] as Order;
+    expect(savedOrder.paymentMethod).toBe('local');
+    expect(savedOrder.status).toBe('pending');
   });
 });

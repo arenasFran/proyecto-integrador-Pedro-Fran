@@ -32,14 +32,7 @@ const UNKNOWN_STATUS_CONFIG: OrderStatusConfig = {
 };
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  account_money: 'Mercado Pago',
-  visa: 'Visa',
-  master: 'Mastercard',
-  amex: 'American Express',
   local: 'Pago al levantar',
-  online: 'Pago online',
-  debvisa: 'Visa débito',
-  debmaster: 'Mastercard débito',
 };
 
 export function getOrderStatusConfig(status: OrderStatus, paymentMethod?: string): OrderStatusConfig {

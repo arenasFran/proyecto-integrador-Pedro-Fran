@@ -20,8 +20,6 @@ import {
 import { BarberAvatar, Modal, Button } from '../../../components/common';
 import type { Appointment, AppointmentStatus, CreatedBy } from '../../../types/booking';
 import { formatDate, formatDateTime } from '../../../utils/formatDate';
-import PaymentTransactionDetail from '../../../components/payment/PaymentTransactionDetail';
-import { useGetPaymentByReferenceQuery } from '../../../services/paymentApi';
 import { formatCurrency } from '../../../utils/formatCurrency';
 
 const statusStyles: Record<AppointmentStatus, { bg: string; text: string; label: string }> = {
@@ -48,7 +46,7 @@ const timelineStyles: Record<'created' | AppointmentStatus, { bg: string; text: 
   ...statusStyles,
 };
 
-const methodLabel: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+const methodLabel: Record<string, string> = { local: 'Local', memberPass: 'Membresía' };
 
 function formatTime(time: string) {
   const [h, m] = time.split(':');
@@ -139,11 +137,6 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
   onAction,
 }) => {
   const navigate = useNavigate();
-
-  const { data: paymentData } = useGetPaymentByReferenceQuery(
-    { referenceId: appointment?.id || '', type: 'appointment' },
-    { skip: !appointment?.id || appointment?.paymentMethod !== 'online' }
-  );
 
   if (!appointment) return null;
 
@@ -267,11 +260,6 @@ export const AppointmentDetailModal: React.FC<AppointmentDetailModalProps> = ({
               <InfoRow icon={FiDollarSign}>{paymentBadge(appointment.paymentStatus)}</InfoRow>
               <InfoRow icon={FiCreditCard}>{methodLabel[appointment.paymentMethod] ?? appointment.paymentMethod}</InfoRow>
             </div>
-            {paymentData?.payment && (
-              <div className="mt-3">
-                <PaymentTransactionDetail payment={paymentData.payment} />
-              </div>
-            )}
           </div>
         </div>
 

@@ -29,9 +29,7 @@ describe('MembershipController', () => {
   let transactionRepo: ReturnType<typeof makeMockMembershipTransactionRepository>;
   let createMembershipUseCase: { execute: jest.Mock };
   let cancelMembershipUseCase: { execute: jest.Mock };
-  let initiateMembershipPaymentUseCase: { execute: jest.Mock };
   let approvePendingMembershipUseCase: { execute: jest.Mock };
-  let retryMembershipPaymentUseCase: { execute: jest.Mock };
   let controller: MembershipController;
 
   const makeFullController = () =>
@@ -39,13 +37,9 @@ describe('MembershipController', () => {
       membershipRepo as any,
       userRepo as any,
       transactionRepo as any,
-      undefined,
-      undefined,
       createMembershipUseCase as any,
       cancelMembershipUseCase as any,
-      initiateMembershipPaymentUseCase as any,
       approvePendingMembershipUseCase as any,
-      retryMembershipPaymentUseCase as any,
     );
 
   beforeEach(() => {
@@ -54,9 +48,7 @@ describe('MembershipController', () => {
     transactionRepo = makeMockMembershipTransactionRepository();
     createMembershipUseCase = { execute: jest.fn() };
     cancelMembershipUseCase = { execute: jest.fn() };
-    initiateMembershipPaymentUseCase = { execute: jest.fn() };
     approvePendingMembershipUseCase = { execute: jest.fn() };
-    retryMembershipPaymentUseCase = { execute: jest.fn() };
     userRepo.findByIds.mockResolvedValue(new Map());
     controller = makeFullController();
   });
@@ -233,32 +225,6 @@ describe('MembershipController', () => {
     });
   });
 
-  describe('initiatePayment', () => {
-    it('debe iniciar el pago y responder 201', async () => {
-      initiateMembershipPaymentUseCase.execute.mockResolvedValue({
-        preferenceId: 'pref-1', initPoint: 'init', sandboxInitPoint: 'sandbox', paymentId: 'pay-1', membershipId: 'mem-1',
-      });
-      const req = createMockReqFull({ body: { userId: 'user-1' } });
-      (req as any).user = { _id: 'user-1', kind: 'Registrado', email: 'user@test.com' };
-      const res = createMockRes();
-
-      await controller.initiatePayment(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(201);
-    });
-
-    it('debe responder 500 si MercadoPago no está configurado', async () => {
-      controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any);
-      const req = createMockReqFull({ body: { userId: 'user-1' } });
-      (req as any).user = { _id: 'user-1', kind: 'Registrado', email: 'user@test.com' };
-      const res = createMockRes();
-
-      await controller.initiatePayment(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-    });
-  });
-
   describe('approvePending', () => {
     it('debe aprobar la membresía pendiente', async () => {
       approvePendingMembershipUseCase.execute.mockResolvedValue({ ok: true });
@@ -278,32 +244,6 @@ describe('MembershipController', () => {
       const res = createMockRes();
 
       await controller.approvePending(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-    });
-  });
-
-  describe('retryPayment', () => {
-    it('debe reintentar el pago y responder 201', async () => {
-      retryMembershipPaymentUseCase.execute.mockResolvedValue({
-        preferenceId: 'pref-2', initPoint: 'init', sandboxInitPoint: 'sandbox', paymentId: 'pay-2', membershipId: 'mem-1',
-      });
-      const req = createMockReqFull({ body: { userId: 'user-1' } });
-      (req as any).user = { _id: 'user-1', kind: 'Registrado', email: 'user@test.com' };
-      const res = createMockRes();
-
-      await controller.retryPayment(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(201);
-    });
-
-    it('debe responder 500 si MercadoPago no está configurado', async () => {
-      controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any);
-      const req = createMockReqFull({ body: { userId: 'user-1' } });
-      (req as any).user = { _id: 'user-1', kind: 'Registrado', email: 'user@test.com' };
-      const res = createMockRes();
-
-      await controller.retryPayment(req, res);
 
       expect(res.status).toHaveBeenCalledWith(500);
     });

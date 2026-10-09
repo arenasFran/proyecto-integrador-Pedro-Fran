@@ -4,22 +4,17 @@ import { MongoOrderRepository } from '../../../infrastructure/repositories/mongo
 import { MongoProductRepository } from '../../../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
-import { CreatePaymentUseCase } from '../payment/CreatePaymentUseCase';
 import { RevenueTracker } from '../../services/RevenueTracker';
 import { AppError } from '../../../domain/errors/AppError';
 
 export type CreateOrderDTO = {
   userId: string;
   items: { productId: string; quantity: number }[];
-  payerEmail?: string;
-  paymentMethod?: 'online' | 'local';
+  paymentMethod?: 'local';
 };
 
 export type CreateOrderResult = {
   orderId: string;
-  preferenceId?: string;
-  initPoint?: string;
-  sandboxInitPoint?: string;
 };
 
 export class CreateOrderUseCase {
@@ -27,7 +22,6 @@ export class CreateOrderUseCase {
     private readonly orderRepository: MongoOrderRepository,
     private readonly productRepository: MongoProductRepository,
     private readonly membershipRepository: MongoMembershipRepository,
-    private readonly createPaymentUseCase: CreatePaymentUseCase,
     private readonly paymentRepository?: MongoPaymentRepository,
     private readonly revenueTracker?: RevenueTracker
   ) {}
@@ -71,7 +65,7 @@ export class CreateOrderUseCase {
       });
     }
 
-    const paymentMethod = dto.paymentMethod || 'online';
+    const paymentMethod = 'local' as const;
     const order = Order.create({
       userId: dto.userId,
       items: resolvedItems,
@@ -80,55 +74,24 @@ export class CreateOrderUseCase {
 
     const saved = await this.orderRepository.save(order);
 
-    if (paymentMethod === 'local') {
-      if (this.paymentRepository) {
-        try {
-          const paymentDoc = Payment.create({
-            type: 'product_order',
-            referenceId: saved.id,
-            amount: saved.total,
-            userId: dto.userId,
-          });
-          const savedPayment = await this.paymentRepository.save(paymentDoc);
-          if (savedPayment?.id) {
-            saved.assignPayment(savedPayment.id);
-            await this.orderRepository.save(saved);
-          }
-        } catch (err) {
-          console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
+    if (this.paymentRepository) {
+      try {
+        const paymentDoc = Payment.create({
+          type: 'product_order',
+          referenceId: saved.id,
+          amount: saved.total,
+          userId: dto.userId,
+        });
+        const savedPayment = await this.paymentRepository.save(paymentDoc);
+        if (savedPayment?.id) {
+          saved.assignPayment(savedPayment.id);
+          await this.orderRepository.save(saved);
         }
+      } catch (err) {
+        console.error('[CreateOrderUseCase] Error creating PaymentModel for local order:', err);
       }
-      return { orderId: saved.id };
     }
 
-    let paymentResult: { preferenceId: string; initPoint: string; sandboxInitPoint?: string; paymentId: string };
-    try {
-      paymentResult = await this.createPaymentUseCase.execute({
-        type: 'product_order',
-        referenceId: saved.id,
-        amount: saved.total,
-        userId: dto.userId,
-        items: resolvedItems.map((i) => ({
-          title: i.name,
-          quantity: i.quantity,
-          unitPrice: i.price,
-          id: i.productId,
-        })),
-        payerEmail: dto.payerEmail,
-      });
-    } catch (error) {
-      await this.orderRepository.delete(saved.id);
-      throw error;
-    }
-
-    saved.assignPayment(paymentResult.paymentId);
-    await this.orderRepository.save(saved);
-
-    return {
-      preferenceId: paymentResult.preferenceId,
-      initPoint: paymentResult.initPoint,
-      sandboxInitPoint: paymentResult.sandboxInitPoint ?? '',
-      orderId: saved.id,
-    };
+    return { orderId: saved.id };
   }
 }

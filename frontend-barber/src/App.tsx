@@ -16,8 +16,8 @@ import { decodeTokenPayload, isTokenValid } from './utils/token';
 const LandingPage = lazy(() => import('./pages/public/LandingPage'));
 const BookingPage = lazy(() => import('./pages/client/BookingPage'));
 const ShopPage = lazy(() => import('./pages/public/ShopPage'));
-const ProductDetailPage = lazy(() => import('./pages/public/ProductDetailPage'));
 const PaymentResultPage = lazy(() => import('./pages/public/PaymentResultPage'));
+const ProductDetailPage = lazy(() => import('./pages/public/ProductDetailPage'));
 const LoginPage = lazy(() => import('./pages/public/LoginPage'));
 const RegisterPage = lazy(() =>
   import('./pages/public/RegisterPage').then(({ RegisterPage: Component }) => ({ default: Component }))
@@ -133,8 +133,8 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/reservar" element={<OptionalAppLayout><BookingPage /></OptionalAppLayout>} />
             <Route path="/tienda" element={<OptionalAppLayout><ShopPage /></OptionalAppLayout>} />
-            <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/payment/result" element={<PaymentResultPage />} />
+            <Route path="/producto/:id" element={<OptionalAppLayout><ProductDetailPage /></OptionalAppLayout>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/recovery" element={<RecoveryPage />} />

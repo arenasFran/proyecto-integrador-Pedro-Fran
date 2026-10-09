@@ -1,7 +1,6 @@
 import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type { Order, OrdersResponse, CreateOrderPayload, CreateManualOrderPayload } from '../types/order';
-import type { InitiatePaymentResponse } from '../types/payment';
 import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 import { invalidateProductsAfterSuccess } from './productCache';
 import { invalidatePaymentsAfterSuccess } from './paymentCache';
@@ -11,7 +10,7 @@ export const orderApi = createApi({
   baseQuery: axiosBaseQuery,
   tagTypes: ['Orders', 'Order'],
   endpoints: (builder) => ({
-    createOrder: builder.mutation<InitiatePaymentResponse, CreateOrderPayload>({
+    createOrder: builder.mutation<{ orderId: string }, CreateOrderPayload>({
       query: (data) => ({
         url: '/api/orders',
         method: 'POST',

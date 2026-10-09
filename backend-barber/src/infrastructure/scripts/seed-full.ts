@@ -45,9 +45,11 @@ export async function runFullSeed() {
   console.log('[SEED] Iniciando seed...');
 
   // Clean previous seed data
+  const previousOrderIds = (await OrderModel.distinct('_id', { clientEmail: { $regex: '@test\\.com$|@barberia\\.com$' } })).map(String);
+  const previousMembershipIds = (await MembershipModel.distinct('_id')).map(String);
   await AppointmentModel.deleteMany({ clientEmail: { $regex: '@test\\.com$' } });
   await OrderModel.deleteMany({ clientEmail: { $regex: '@test\\.com$|@barberia\\.com$' } });
-  await PaymentModel.deleteMany({ mpPaymentId: { $regex: '^seed-mp-' } });
+  await PaymentModel.deleteMany({ referenceId: { $in: [...previousOrderIds, ...previousMembershipIds] } });
   await MembershipTransactionModel.deleteMany({});
   await MembershipModel.deleteMany({});
   await RevenueEntryModel.deleteMany({ referenceId: { $regex: '^[0-9a-f]{24}$' } });
@@ -140,15 +142,15 @@ export async function runFullSeed() {
   // ── 6. Memberships ─────────────────────────────────
   const memberClients = [0, 1, 2, 3, 4]; // todos tienen membresia
   const membershipsData = [
-    { clientIdx: 0, status: 'active', price: 399, paymentMethod: 'mercadopago', billingCycle: 'onetime',
+    { clientIdx: 0, status: 'active', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -15, couponsTotal: 4, couponsUsed: 1, productDiscount: 10 },
-    { clientIdx: 1, status: 'active', price: 399, paymentMethod: 'mercadopago', billingCycle: 'onetime',
+    { clientIdx: 1, status: 'active', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -5, couponsTotal: 4, couponsUsed: 2, productDiscount: 15 },
     { clientIdx: 2, status: 'active', price: 0, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -45, couponsTotal: 6, couponsUsed: 0, productDiscount: 25 },
-    { clientIdx: 3, status: 'expired', price: 399, paymentMethod: 'mercadopago', billingCycle: 'onetime',
+    { clientIdx: 3, status: 'expired', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -60, couponsTotal: 4, couponsUsed: 4, productDiscount: 10 },
-    { clientIdx: 4, status: 'cancelled', price: 399, paymentMethod: 'mercadopago', billingCycle: 'onetime',
+    { clientIdx: 4, status: 'cancelled', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -120, couponsTotal: 4, couponsUsed: 0, productDiscount: 10 },
   ] as const;
   const membershipIds: string[] = [];
@@ -179,7 +181,7 @@ export async function runFullSeed() {
       await PaymentModel.create({
         type: 'membership', referenceId: doc._id.toString(), amount: m.price,
         userId: uid, status: 'approved',
-        currency: 'UYU', mpPaymentId: `seed-mp-mem-${m.clientIdx}`,
+        currency: 'UYU',
         createdAt: startDate,
       });
     }
@@ -188,7 +190,7 @@ export async function runFullSeed() {
 
   // ── 7. Historical Appointments ─────────────────────
   const appointmentStatuses = ['Completado', 'Cancelado', 'NoShow', 'Confirmado'];
-  const paymentMethods = ['local', 'online', 'memberPass'];
+  const paymentMethods = ['local', 'memberPass'];
   const slots = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30',
                   '14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
   const appointmentIds: string[] = [];
@@ -225,7 +227,7 @@ export async function runFullSeed() {
     const endM = parseInt(slot.split(':')[1]) + (service.durationMinutes % 60);
     const endTime = `${String(endH + Math.floor(endM / 60)).padStart(2,'0')}:${String(endM % 60).padStart(2,'0')}`;
 
-    let paymentMethod = paymentMethods[dayOffset % 3];
+    const paymentMethod = paymentMethods[((dayOffset % paymentMethods.length) + paymentMethods.length) % paymentMethods.length];
     let paymentStatus = 'Pendiente';
     if (status === 'Completado') paymentStatus = 'Pagado';
     else if (status === 'Cancelado') paymentStatus = 'Cancelado';
@@ -290,14 +292,14 @@ export async function runFullSeed() {
       await PaymentModel.create({
         type: 'product_order', referenceId: order._id.toString(), amount: total,
         userId: uid, status: 'approved',
-        currency: 'UYU', mpPaymentId: `seed-mp-ord-${i}`,
+        currency: 'UYU',
         createdAt,
       });
     } else if (status === 'pending') {
       await PaymentModel.create({
         type: 'product_order', referenceId: order._id.toString(), amount: total,
         userId: uid, status: 'pending',
-        currency: 'UYU', mpPaymentId: `seed-mp-ord-${i}`,
+        currency: 'UYU',
         createdAt,
       });
     }

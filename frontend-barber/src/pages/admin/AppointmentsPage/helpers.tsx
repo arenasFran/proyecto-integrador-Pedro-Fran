@@ -8,9 +8,9 @@ export const statusStyles: Record<AppointmentStatus, { bg: string; text: string;
   NoShow: { bg: 'bg-yellow-500/10', text: 'text-yellow-400', label: 'No asistió' },
 };
 
-export const methodLabel: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+export const methodLabel: Record<string, string> = { local: 'Local', memberPass: 'Membresía' };
 
-export const methodLabelExport: Record<string, string> = { local: 'Local', online: 'Online', memberPass: 'Membresía' };
+export const methodLabelExport: Record<string, string> = { local: 'Local', memberPass: 'Membresía' };
 
 export const statusLabel: Record<string, string> = {
   Confirmado: 'Confirmado', Completado: 'Completado', Cancelado: 'Cancelado', NoShow: 'No asistió',

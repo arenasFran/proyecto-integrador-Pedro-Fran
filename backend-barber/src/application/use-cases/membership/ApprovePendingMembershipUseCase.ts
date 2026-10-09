@@ -4,6 +4,7 @@ import { MongoMembershipRepository } from '../../../infrastructure/repositories/
 import { MongoMembershipTransactionRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
 import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { RevenueTracker } from '../../services/RevenueTracker';
+import { Payment } from '../../../domain/entities/Payment';
 
 export interface ApprovePendingMembershipDTO {
   membershipId: string;
@@ -28,33 +29,42 @@ export class ApprovePendingMembershipUseCase {
       throw new AppError('La membresía no está pendiente de pago.', 400);
     }
 
-    const payment = await this.paymentRepo.findByReference(membership.id, 'membership');
-    if (!payment || payment.status !== 'approved') {
-      throw new AppError('La membresía no tiene un pago aprobado asociado.', 400);
+    const existingPayment = await this.paymentRepo.findByReference(membership.id, 'membership');
+    const paymentMethod = 'local' as const;
+    let paymentId: string | undefined;
+    if (existingPayment?.status === 'approved') {
+      paymentId = existingPayment.id;
+    } else {
+      const payment = existingPayment?.status === 'pending'
+        ? existingPayment
+        : Payment.create({ type: 'membership', referenceId: membership.id, amount: membership.price, userId: membership.userId });
+      payment.approve();
+      paymentId = (await this.paymentRepo.save(payment)).id;
     }
 
     membership.approve(dto.staffId);
     const updated = await this.membershipRepo.approvePending(dto.membershipId, dto.staffId);
     const result = updated ?? membership;
+    if (paymentId) {
+      result.assignPayment(paymentId);
+      await this.membershipRepo.save(result);
+    }
 
     await this.transactionRepo.create({
       userId: result.userId,
       membershipId: result.id,
       amount: result.price,
-      paymentMethod: result.paymentMethod === 'mercadopago' ? 'mercadopago' : 'local',
-      paymentId: payment.id,
+      paymentMethod,
+      paymentId,
       createdBy: 'admin',
       adminId: dto.staffId,
     });
 
-    // Con paymentId se registra la trazabilidad del pago aprobado que habilita la
-    // aprobación. El fallback por membershipId en RevenueTracker.trackMembership
-    // sigue siendo la protección real contra duplicados concurrentes — no reemplazar.
     await this.revenueTracker?.trackMembership(result.id, result.price, new Date(), {
       userId: result.userId,
       staffId: dto.staffId,
-      paymentId: payment.id,
-    }, payment.id);
+      paymentId,
+    }, paymentId);
 
     return result.toPrimitives();
   }

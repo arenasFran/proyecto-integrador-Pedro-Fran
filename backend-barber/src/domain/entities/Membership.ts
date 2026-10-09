@@ -83,6 +83,11 @@ export class Membership {
   get createdAt(): Date { return new Date(this.props.createdAt.getTime()); }
   get updatedAt(): Date { return new Date(this.props.updatedAt.getTime()); }
 
+  assignPayment(paymentId: string): void {
+    this.props.paymentId = paymentId;
+    this.props.updatedAt = new Date();
+  }
+
   get remainingCoupons(): number {
     return Math.max(0, this.props.couponsTotal - this.props.couponsUsed);
   }

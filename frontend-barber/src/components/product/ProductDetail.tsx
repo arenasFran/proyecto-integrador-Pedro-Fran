@@ -9,9 +9,10 @@ interface ProductDetailProps {
   onBack: () => void;
   onAddToCart: (productId: string) => void;
   onBuyNow: (productId: string) => void;
+  isBuying?: boolean;
 }
 
-export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow }: ProductDetailProps) {
+export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow, isBuying = false }: ProductDetailProps) {
   const { data, isLoading, error } = useGetProductByIdQuery(productId);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
@@ -131,7 +132,8 @@ export default function ProductDetail({ productId, onBack, onAddToCart, onBuyNow
             <Button
               className="flex-1"
               onClick={() => onBuyNow(product.id)}
-              disabled={outOfStock || notAvailable}
+              disabled={outOfStock || notAvailable || isBuying}
+              loading={isBuying}
             >
               Comprar ahora
             </Button>

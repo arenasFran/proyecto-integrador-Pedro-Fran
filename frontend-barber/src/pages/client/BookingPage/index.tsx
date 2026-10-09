@@ -6,12 +6,11 @@ import { PublicHeader } from '../../../components/client/PublicHeader';
 import { AccordionStep, BarberSelectionStep, ClientDataOverlay, DateTimeStep, ServiceSelectionStep } from '../../../components/client/booking';
 import { StepIndicator as BookingProgress } from '../../../components/client/booking/StepIndicator';
 import { AppFooter } from '../../../components/common';
-import PaymentModal from '../../../components/payment/PaymentModal';
 import { getAccessToken } from '../../../services/api';
 import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { fetchPublicBarbers, resetBooking, resetBookingFlow, restoreBookingFlow, setClientData, setCurrentStep, setPaymentMethod, setSelectedBarber, setSelectedDate, setSelectedService, setSelectedTime, setServices, submitAppointment } from '../../../store/slices/bookingSlice';
+import { fetchPublicBarbers, resetBookingFlow, restoreBookingFlow, setClientData, setCurrentStep, setPaymentMethod, setSelectedBarber, setSelectedDate, setSelectedService, setSelectedTime, setServices, submitAppointment } from '../../../store/slices/bookingSlice';
 import type { BarberPublic, BookingStep, PaymentMethod } from '../../../types/booking';
 import { formatDate } from '../../../utils/formatDate';
 import { getTokenUser } from '../../../utils/token';
@@ -46,7 +45,7 @@ const isNullableString = (value: unknown): value is string | null => value === n
 
 const isBookingStep = (value: unknown): value is BookingStep => value === 'barber' || value === 'service' || value === 'datetime';
 
-const isPaymentMethod = (value: unknown): value is PaymentMethod => value === 'local' || value === 'online' || value === 'memberPass';
+const isPaymentMethod = (value: unknown): value is PaymentMethod => value === 'local' || value === 'memberPass';
 
 const getBookingDraftStorageKey = (): string => {
   const tokenUser = getTokenUser(getAccessToken());
@@ -105,7 +104,7 @@ export const BookingPage: React.FC = () => {
   const navigate = useNavigate();
   const reduceMotion = useReducedMotion();
   const authUser = useAppSelector((state) => state.auth.user);
-  const { async: { barbers, services, availableSlots, slotsReason, isLoadingBarbers, isLoadingServices, isLoadingSlots, isConfirming, barbersError, servicesError, slotsError, confirmError, emailRegisteredError, submitSuccess, preferenceId }, flow: { currentStep, selectedBarber, selectedService, selectedDate, selectedTime, clientName, clientLastname, clientPhone, clientEmail, paymentMethod } } = useAppSelector((state) => state.booking);
+  const { async: { barbers, services, availableSlots, slotsReason, isLoadingBarbers, isLoadingServices, isLoadingSlots, isConfirming, barbersError, servicesError, slotsError, confirmError, emailRegisteredError, submitSuccess }, flow: { currentStep, selectedBarber, selectedService, selectedDate, selectedTime, clientName, clientLastname, clientPhone, clientEmail, paymentMethod } } = useAppSelector((state) => state.booking);
 
   const { data: myMembership } = useGetMyMembershipQuery(undefined, { skip: !authUser });
   const activeMembership = myMembership?.active ?? null;
@@ -209,11 +208,9 @@ export const BookingPage: React.FC = () => {
     } catch {
       // Ignore storage failures after a successful booking.
     }
-    if (!preferenceId) {
-      dispatch(resetBooking());
-      navigate('/mis-turnos');
-    }
-  }, [bookingDraftStorageKey, dispatch, navigate, preferenceId, submitSuccess]);
+    dispatch(resetBookingFlow());
+    navigate('/mis-turnos');
+  }, [bookingDraftStorageKey, dispatch, navigate, submitSuccess]);
 
   const handleStepToggle = useCallback((step: BookingStep) => {
     if (showClientForm) { setShowClientForm(false); return; }
@@ -225,13 +222,8 @@ export const BookingPage: React.FC = () => {
   const handleTimeSelect = useCallback((time: string) => { dispatch(setSelectedTime(time)); setShowClientForm(true); }, [dispatch]);
   const handlePaymentMethodChange = useCallback((method: PaymentMethod) => dispatch(setPaymentMethod(method)), [dispatch]);
   const handleSubmit = useCallback(() => dispatch(submitAppointment()), [dispatch]);
-  const handlePaymentClose = useCallback(() => {
-    dispatch(resetBooking());
-    navigate('/mis-turnos');
-  }, [dispatch, navigate]);
   const isStep3Complete = Boolean(selectedDate && selectedTime);
   const barberSummary = selectedBarber ? `${selectedBarber.name} ${selectedBarber.lastname}` : null;
-  const showPaymentModal = submitSuccess && Boolean(preferenceId);
 
   const activeStep = currentStep === 'barber' ? (
     <AccordionStep stepNumber={1} title="Tu barbero" summary={barberSummary} isExpanded isCompleted={Boolean(selectedBarber)} isLocked={false} onToggle={() => handleStepToggle('barber')}>
@@ -288,7 +280,6 @@ export const BookingPage: React.FC = () => {
         </div>
       </motion.div>
       <ClientDataOverlay isOpen={showClientForm} barber={selectedBarber} service={selectedService} selectedDate={selectedDate} selectedTime={selectedTime} clientName={clientName} clientLastname={clientLastname} clientPhone={clientPhone} clientEmail={clientEmail} paymentMethod={paymentMethod} hasActiveMembership={hasActiveMembership} remainingCoupons={remainingCoupons} isConfirming={isConfirming} confirmError={confirmError} emailRegisteredError={emailRegisteredError} isLoggedIn={Boolean(authUser)} onChange={(data) => dispatch(setClientData(data))} onPaymentMethodChange={handlePaymentMethodChange} onSubmit={handleSubmit} onClose={() => setShowClientForm(false)} onGoToLogin={() => navigate('/login')} />
-      <PaymentModal isOpen={showPaymentModal} preferenceId={preferenceId || ''} onClose={handlePaymentClose} title="Pagar turno" />
     </>
   );
 

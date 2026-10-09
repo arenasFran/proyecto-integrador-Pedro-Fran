@@ -2,6 +2,7 @@ import { createApi } from '@reduxjs/toolkit/query/react';
 import { axiosBaseQuery } from './baseQuery';
 import type {
   LoginData,
+  LoginAttemptResponse,
   TwoFactorVerifyData,
   LoginResponse,
   GoogleLoginData,
@@ -19,6 +20,10 @@ export const authApi = createApi({
   reducerPath: 'authApi',
   baseQuery: axiosBaseQuery,
   endpoints: (builder) => ({
+    login: builder.mutation<LoginAttemptResponse, LoginData>({
+      query: (data) => ({ url: '/auth/login', method: 'POST', data }),
+    }),
+
     sendTwoFactorCode: builder.mutation<{ message: string }, LoginData>({
       query: (data) => ({
         url: '/auth/2fa/send',
@@ -115,6 +120,7 @@ export const authApi = createApi({
 });
 
 export const {
+  useLoginMutation,
   useSendTwoFactorCodeMutation,
   useVerifyTwoFactorCodeMutation,
   useGoogleLoginMutation,

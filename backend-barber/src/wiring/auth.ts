@@ -3,6 +3,7 @@ import { CompleteGoogleProfileUseCase } from '../application/use-cases/auth/Comp
 import { RefreshTokenUseCase } from '../application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../application/use-cases/auth/RegisterUserUseCase';
 import { SendTwoFactorCodeUseCase } from '../application/use-cases/auth/SendTwoFactorCodeUseCase';
+import { LoginUseCase } from '../application/use-cases/auth/LoginUseCase';
 import { VerifyTwoFactorUseCase } from '../application/use-cases/auth/VerifyTwoFactorUseCase';
 import { LogoutUseCase } from '../application/use-cases/auth/LogoutUseCase';
 import { RequestPasswordResetUseCase } from '../application/use-cases/password/RequestPasswordResetUseCase';
@@ -60,6 +61,7 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     emailService,
     hashService
   );
+  const login = new LoginUseCase(userRepository, passwordHasher, tokenService, refreshTokenRepository, hashService);
   const verifyTwoFactor = new VerifyTwoFactorUseCase(
     userRepository,
     tokenService,
@@ -97,7 +99,7 @@ export const buildAuthRouter = (options?: { emailService?: IEmailService }) => {
     hashService
   );
 
-  const authController = new AuthController(registerUser, refreshTokenUseCase, new LogoutUseCase(hashService, refreshTokenRepository));
+  const authController = new AuthController(registerUser, refreshTokenUseCase, new LogoutUseCase(hashService, refreshTokenRepository), login);
   const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(

@@ -10,6 +10,7 @@ import {
     completeGoogleProfileSchema,
     googleLoginSchema,
     registerSchema,
+    loginSchema,
     refreshTokenSchema,
     twoFactorSendSchema,
     twoFactorVerifySchema,
@@ -59,6 +60,7 @@ export const createAuthRouter = (deps: {
   });
 
   router.post('/register', validate({ body: registerSchema }), deps.authController.register);
+  router.post('/login', loginLimiter, validate({ body: loginSchema }), deps.authController.login);
   router.post('/google', validate({ body: googleLoginSchema }), deps.authGoogleController.googleLogin);
   router.post(
     '/google/complete-profile',

@@ -5,7 +5,7 @@ import { FiArrowLeft } from 'react-icons/fi';
 import { PublicFooter } from '../../../components/client/PublicFooter';
 import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
-import { authApi, useCompleteGoogleProfileMutation, useGoogleLoginMutation, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation } from '../../../services/authApi';
+import { authApi, useCompleteGoogleProfileMutation, useGoogleLoginMutation, useLoginMutation, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation } from '../../../services/authApi';
 import { useAppDispatch } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
 import type { LoginFormData, TwoFactorCodeFormData } from '../../../types/auth';
@@ -53,6 +53,7 @@ export const LoginPage: React.FC = () => {
   const { showToast } = useToast();
 
   const [sendTwoFactorCode, { isLoading: isSending }] = useSendTwoFactorCodeMutation();
+  const [login, { isLoading: isLoggingIn }] = useLoginMutation();
   const [verifyTwoFactorCode, { isLoading: isVerifying }] = useVerifyTwoFactorCodeMutation();
   const [googleLoginMutation, { isLoading: isGoogleLoading }] = useGoogleLoginMutation();
   const [completeGoogleProfileMutation, { isLoading: isCompleting }] = useCompleteGoogleProfileMutation();
@@ -113,7 +114,7 @@ export const LoginPage: React.FC = () => {
   } = useFormValidation(profileInitialValues);
 
   const isCodeStep = Boolean(twoFactorPendingEmail);
-  const isLoading = isSending || isVerifying || isGoogleLoading || isCompleting;
+  const isLoading = isLoggingIn || isSending || isVerifying || isGoogleLoading || isCompleting;
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -158,7 +159,7 @@ export const LoginPage: React.FC = () => {
           // Profile fetch failed — navigate anyway
         }
         const role = getTokenKind(result.token);
-        const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+        const target = returnUrlRef.current ?? (role === 'Admin' || role === 'Empleado' ? '/admin/dashboard' : '/mis-turnos');
         navigate(target, { replace: true });
       }
     } catch (err: unknown) {
@@ -232,15 +233,31 @@ export const LoginPage: React.FC = () => {
     setSuccessMessage(null);
 
     try {
-      const result = await sendTwoFactorCode({
+      const result = await login({
         email: credentialsValues.email,
         password: credentialsValues.password,
       }).unwrap();
-      setTwoFactorPendingEmail(credentialsValues.email);
-      setSuccessMessage(result.message);
-      startResendCooldown();
+      if ('requiresTwoFactor' in result) {
+        const codeResult = await sendTwoFactorCode({
+          email: credentialsValues.email,
+          password: credentialsValues.password,
+        }).unwrap();
+        setTwoFactorPendingEmail(credentialsValues.email);
+        setSuccessMessage(codeResult.message);
+        startResendCooldown();
+        return;
+      }
+
+      try {
+        await dispatch(authApi.endpoints.getProfile.initiate(undefined, { forceRefetch: true }));
+      } catch {
+        // Profile fetch failed — continue with the authenticated session.
+      }
+      const role = getTokenKind(result.token);
+      const target = returnUrlRef.current ?? (role === 'Admin' || role === 'Empleado' ? '/admin/dashboard' : '/mis-turnos');
+      navigate(target, { replace: true });
     } catch (err: unknown) {
-      showToast(getErrorMessage(err, 'Error al enviar el código'), 'error');
+      showToast(getErrorMessage(err, 'Error al iniciar sesión'), 'error');
     }
   };
 
@@ -260,7 +277,7 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+      const target = returnUrlRef.current ?? (role === 'Admin' || role === 'Empleado' ? '/admin/dashboard' : '/mis-turnos');
       navigate(target, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al verificar el código'), 'error');
@@ -319,7 +336,7 @@ export const LoginPage: React.FC = () => {
         // Profile fetch failed — navigate anyway
       }
       const role = getTokenKind(result.token);
-      const target = returnUrlRef.current ?? (role === 'Admin' ? '/admin/dashboard' : '/mis-turnos');
+      const target = returnUrlRef.current ?? (role === 'Admin' || role === 'Empleado' ? '/admin/dashboard' : '/mis-turnos');
       navigate(target, { replace: true });
     } catch (err: unknown) {
       showToast(getErrorMessage(err, 'Error al completar el perfil'), 'error');
@@ -490,7 +507,7 @@ export const LoginPage: React.FC = () => {
                 className="flex flex-col gap-2"
               >
                 <Button type="submit" loading={isLoading} className="w-full">
-                  {requiresProfileCompletion ? 'Completar registro' : isCodeStep ? 'Verificar código' : 'Enviar código de verificación'}
+                  {requiresProfileCompletion ? 'Completar registro' : isCodeStep ? 'Verificar código' : 'Ingresar'}
                 </Button>
                 {isCodeStep && (
                   <Button

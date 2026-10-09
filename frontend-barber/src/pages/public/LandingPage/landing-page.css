@@ -1197,11 +1197,11 @@
   width: auto !important;
   max-width: none !important;
   min-width: 0 !important;
-  line-height: 0.68 !important;
+  line-height: 1 !important;
 }
 
 .hero-word-line + .hero-word-line {
-  margin-top: -0.45em;
+  margin-top: -0.16em;
 }
 
 .hero-stroke-component svg {

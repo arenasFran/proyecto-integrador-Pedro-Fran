@@ -268,12 +268,15 @@ export class CreateAppointmentUseCase {
       const client = await this.clientRepository.findByPhone(dto.clientPhone);
       if (client) return client;
     }
-    return this.clientRepository.createUnregistered({
-      name: dto.clientName,
-      lastname: dto.clientLastname,
-      phone: dto.clientPhone,
-      contactEmail: dto.clientEmail,
-    });
+    return this.clientRepository.createUnregistered(
+      {
+        name: dto.clientName,
+        lastname: dto.clientLastname,
+        phone: dto.clientPhone,
+        contactEmail: dto.clientEmail,
+      },
+      { allowNoContact: dto.createdBy?.type === 'staff' }
+    );
   }
 
   async validateActiveAppointmentsLimit(

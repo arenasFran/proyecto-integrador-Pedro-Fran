@@ -5,7 +5,7 @@ import type { SelectOption } from '../../../components/common';
 import { useGetServicesQuery } from '../../../services/service.api';
 import { professionalService } from '../../../services/professional.service';
 import {
-  useCreateAppointmentMutation,
+  useCreateAdminAppointmentMutation,
   useAcquireTempLockMutation,
   useReleaseTempLockMutation,
   useLazySearchClientsQuery,
@@ -61,7 +61,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const [localError, setLocalError] = useState<string | null>(null);
 
   const { data: services = [] } = useGetServicesQuery();
-  const [createAppointment, { isLoading: isSubmitting }] = useCreateAppointmentMutation();
+  const [createAppointment, { isLoading: isSubmitting }] = useCreateAdminAppointmentMutation();
   const {
     data: clientsData,
     isFetching: loadingClients,
@@ -214,8 +214,8 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     if (effectiveClientMode === 'existing' && !selectedClient) return 'Buscá y seleccioná un cliente registrado.';
     if (clientName.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
     if (clientLastname.trim().length < 2) return 'El apellido debe tener al menos 2 caracteres.';
-    if (clientPhone.trim().length < 7) return 'El teléfono debe tener al menos 7 dígitos.';
-    if (clientEmail.trim().length < 5) return 'El email es obligatorio.';
+    if (clientPhone.trim().length > 0 && clientPhone.trim().length < 7) return 'El teléfono debe tener al menos 7 dígitos.';
+    if (clientEmail.trim().length > 0 && clientEmail.trim().length < 5) return 'El email debe tener al menos 5 caracteres.';
     return null;
   };
 
@@ -430,8 +430,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
         {(effectiveClientMode === 'new' || (isExisting && isNameLocked && !isPhoneLocked)) && (
           <Input
-            label="Teléfono"
-            required
+            label="Teléfono (opcional)"
             icon={<FiPhone className="w-3.5 h-3.5 text-[#8A8A8A]" />}
             type="tel"
             value={clientPhone}
@@ -443,8 +442,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
         {effectiveClientMode === 'new' && (
           <Input
-            label="Email"
-            required
+            label="Email (opcional)"
             icon={<FiMail className="w-3.5 h-3.5 text-[#8A8A8A]" />}
             type="email"
             value={clientEmail}

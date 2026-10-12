@@ -20,6 +20,13 @@ export const createAppointmentSchema = Joi.object({
   tempLockId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
 });
 
+// Los datos de contacto siguen siendo obligatorios en las reservas públicas.
+// El personal puede crear turnos para clientes sin cuenta sin teléfono ni correo.
+export const createStaffAppointmentSchema = createAppointmentSchema.fork(
+  ['clientEmail', 'clientPhone'],
+  (schema) => schema.optional().empty('')
+);
+
 export const appointmentQuerySchema = Joi.object({
   barberId: Joi.string(),
   clientId: Joi.string(),

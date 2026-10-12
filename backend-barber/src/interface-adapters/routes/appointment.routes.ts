@@ -11,6 +11,7 @@ import {
     cancelAppointmentSchema,
     changeBarberSchema,
     createAppointmentSchema,
+    createStaffAppointmentSchema,
     rescheduleAppointmentSchema,
     searchClientsQuerySchema,
     updateAppointmentStatusSchema,
@@ -58,7 +59,7 @@ export const createAppointmentRouter = (deps: {
     '/admin',
     deps.authenticate,
     authorize('Admin', 'Empleado'),
-    validate({ body: createAppointmentSchema }),
+    validate({ body: createStaffAppointmentSchema }),
     deps.appointmentController.create
   );
 

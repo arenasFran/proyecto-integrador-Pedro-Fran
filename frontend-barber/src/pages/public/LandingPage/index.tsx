@@ -903,7 +903,7 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-            <div className="contact-map-slot" aria-hidden={!isMapOpen}>
+            <div className={`contact-map-slot ${isMapOpen ? 'is-open' : ''}`} aria-hidden={!isMapOpen}>
               <AnimatePresence initial={false} mode="wait">
                 {isMapOpen && (
                   <motion.div

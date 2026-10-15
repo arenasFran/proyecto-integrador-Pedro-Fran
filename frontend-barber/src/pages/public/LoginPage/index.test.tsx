@@ -59,13 +59,15 @@ describe('LoginPage', () => {
     renderWithProviders(<LoginPage />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
-    await user.type(screen.getByLabelText(/contraseña/i), 'Password1!');
+    await user.type(screen.getByLabelText(/contraseña/i), 'abc');
+    expect(mockLogin).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: /ingresar/i }));
 
     await waitFor(() => {
       expect(screen.getByLabelText(/código de verificación/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /verificar código/i })).toBeInTheDocument();
     });
+    expect(mockLogin).toHaveBeenCalledWith({ email: 'user@test.com', password: 'abc' });
   });
 
   it('shows error message on failed login', async () => {

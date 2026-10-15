@@ -5,6 +5,7 @@ import { FiArrowLeft } from 'react-icons/fi';
 import { PublicFooter } from '../../../components/client/PublicFooter';
 import { Button, Input, PasswordInput, useToast } from '../../../components/common';
 import { useFormValidation } from '../../../hooks/useFormValidation';
+import { ERROR_MESSAGES } from '../../../constants/validation';
 import { authApi, useCompleteGoogleProfileMutation, useGoogleLoginMutation, useLoginMutation, useSendTwoFactorCodeMutation, useVerifyTwoFactorCodeMutation } from '../../../services/authApi';
 import { useAppDispatch } from '../../../store/hooks';
 import { logout } from '../../../store/slices/authSlice';
@@ -93,7 +94,10 @@ export const LoginPage: React.FC = () => {
     touched: credentialsTouched,
     validateAll: validateCredentials,
     getFieldProps: getCredentialsFieldProps,
-  } = useFormValidation(credentialsInitialValues);
+  } = useFormValidation(credentialsInitialValues, {
+    // Existing passwords are authenticated as stored; strength rules apply at registration/reset.
+    password: (value) => value ? undefined : ERROR_MESSAGES.required,
+  });
 
   const {
     values: codeValues,

@@ -27,6 +27,9 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           <input
             ref={ref}
             type={showPassword ? 'text' : 'password'}
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             className={`
               w-full h-[40px] px-3 pr-10 bg-[#1A1A1A] border rounded-[10px] 
               text-[13px] text-white placeholder:text-[12px] placeholder:text-[#8A8A8A]
@@ -44,6 +47,7 @@ export const PasswordInput = forwardRef<HTMLInputElement, PasswordInputProps>(
           />
           <button
             type="button"
+            onMouseDown={(event) => event.preventDefault()}
             onClick={() => setShowPassword(!showPassword)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-white transition-colors p-1"
             tabIndex={-1}

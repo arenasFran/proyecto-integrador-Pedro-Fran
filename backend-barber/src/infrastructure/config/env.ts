@@ -215,11 +215,7 @@ export function validateEnv(): Config {
       console.log('[EMAIL] Proveedor: Ethereal (modo test, los mails no se entregan de verdad).');
     }
 
-    if (config.telegram.enabled) {
-      console.log('[TELEGRAM-BOT] TELEGRAM_BOT_ENABLED=true. El bot se iniciará en modo polling contra ' + config.telegram.apiBaseUrl);
-    } else {
-      console.log('[TELEGRAM-BOT] Deshabilitado (TELEGRAM_BOT_ENABLED=false).');
-    }
+    console.log('[TELEGRAM-BOT] Desactivado en código.');
 
     if (config.gemini.enabled) {
       console.log('[GEMINI] Texto libre habilitado (modelo: ' + config.gemini.model + ').');

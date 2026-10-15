@@ -5,6 +5,8 @@ import LoginPage from './index';
 import { renderWithProviders } from '../../../test/utils';
 
 const mockSendTwoFactorCode = vi.hoisted(() => vi.fn());
+const mockLogin = vi.hoisted(() => vi.fn());
+const mockUseLoginMutation = vi.hoisted(() => vi.fn(() => [mockLogin, { isLoading: false, error: null }]));
 const mockUseSendTwoFactorCodeMutation = vi.hoisted(() => vi.fn(() => [mockSendTwoFactorCode, { isLoading: false, error: null }]));
 const mockUseVerifyTwoFactorCodeMutation = vi.hoisted(() => vi.fn(() => [vi.fn(), { isLoading: false, error: null }]));
 const mockUseGoogleLoginMutation = vi.hoisted(() => vi.fn(() => [vi.fn(), { isLoading: false, error: null }]));
@@ -18,6 +20,7 @@ vi.mock('../../../services/authApi', () => ({
     reducer: (s: Record<string, unknown> = {}) => s,
     middleware: [],
     endpoints: {
+      login: { matchFulfilled: mockEndpointMatcher },
       verifyTwoFactorCode: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
       completeGoogleProfile: { matchFulfilled: mockEndpointMatcher },
       googleLogin: { matchFulfilled: mockEndpointMatcher },
@@ -25,6 +28,7 @@ vi.mock('../../../services/authApi', () => ({
       getProfile: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher, initiate: vi.fn(() => ({ abort: vi.fn() })) },
     },
   },
+  useLoginMutation: mockUseLoginMutation,
   useSendTwoFactorCodeMutation: mockUseSendTwoFactorCodeMutation,
   useVerifyTwoFactorCodeMutation: mockUseVerifyTwoFactorCodeMutation,
   useGoogleLoginMutation: mockUseGoogleLoginMutation,
@@ -33,6 +37,8 @@ vi.mock('../../../services/authApi', () => ({
 
 describe('LoginPage', () => {
   beforeEach(() => {
+    mockLogin.mockReset();
+    mockLogin.mockReturnValue({ unwrap: () => Promise.resolve({ requiresTwoFactor: true }) });
     mockSendTwoFactorCode.mockReset();
     mockUseSendTwoFactorCodeMutation.mockReset();
     mockUseSendTwoFactorCodeMutation.mockReturnValue([mockSendTwoFactorCode, { isLoading: false, error: null }]);
@@ -43,7 +49,7 @@ describe('LoginPage', () => {
 
     expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /enviar código de verificación/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ingresar/i })).toBeInTheDocument();
   });
 
   it('shows code step after submitting valid credentials', async () => {
@@ -54,7 +60,7 @@ describe('LoginPage', () => {
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
     await user.type(screen.getByLabelText(/contraseña/i), 'Password1!');
-    await user.click(screen.getByRole('button', { name: /enviar código de verificación/i }));
+    await user.click(screen.getByRole('button', { name: /ingresar/i }));
 
     await waitFor(() => {
       expect(screen.getByLabelText(/código de verificación/i)).toBeInTheDocument();
@@ -63,14 +69,14 @@ describe('LoginPage', () => {
   });
 
   it('shows error message on failed login', async () => {
-    mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.reject(new Error('Credenciales inválidas')) });
+    mockLogin.mockReturnValue({ unwrap: () => Promise.reject(new Error('Credenciales inválidas')) });
 
     const user = userEvent.setup({ delay: 50 });
     renderWithProviders(<LoginPage />);
 
     await user.type(screen.getByLabelText(/correo electrónico/i), 'user@test.com');
     await user.type(screen.getByLabelText(/contraseña/i), 'Password1');
-    await user.click(screen.getByRole('button', { name: /enviar código de verificación/i }));
+    await user.click(screen.getByRole('button', { name: /ingresar/i }));
 
     await waitFor(() => {
       expect(screen.getByText('Credenciales inválidas')).toBeInTheDocument();
@@ -81,12 +87,13 @@ describe('LoginPage', () => {
     vi.useFakeTimers();
     try {
       mockSendTwoFactorCode.mockReturnValue({ unwrap: () => Promise.resolve({ message: 'Código enviado' }) });
+      mockLogin.mockReturnValue({ unwrap: () => Promise.resolve({ requiresTwoFactor: true }) });
 
       renderWithProviders(<LoginPage />);
 
       fireEvent.change(screen.getByLabelText(/correo electrónico/i), { target: { value: 'user@test.com' } });
       fireEvent.change(screen.getByLabelText(/contraseña/i), { target: { value: 'Password1' } });
-      fireEvent.click(screen.getByRole('button', { name: /enviar código de verificación/i }));
+      fireEvent.click(screen.getByRole('button', { name: /ingresar/i }));
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0);

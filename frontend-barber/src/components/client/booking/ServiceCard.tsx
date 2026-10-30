@@ -36,7 +36,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, isSelected, o
       aria-label={`Elegir servicio ${service.name}`}
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.99 }}
-      className={`group relative w-full overflow-hidden rounded-[17px] border px-4 py-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-300 focus-visible:ring-2 focus-visible:ring-[#FF5C00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] ${
+      className={`group relative h-full w-full overflow-hidden rounded-[17px] border px-4 py-4 text-left outline-none transition-[border-color,background-color,box-shadow] duration-300 focus-visible:ring-2 focus-visible:ring-[#FF5C00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#171717] ${
         isSelected
           ? 'border-[#FF5C00] bg-[#211813] shadow-[0_14px_32px_rgba(255,92,0,0.1)]'
           : 'border-[#292929] bg-[#151515] hover:border-[#FF5C00]/55 hover:bg-[#191919]'

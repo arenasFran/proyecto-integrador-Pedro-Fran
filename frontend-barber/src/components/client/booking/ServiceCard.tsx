@@ -1,22 +1,19 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FiCheck } from 'react-icons/fi';
-import { MdContentCut, MdFace, MdFlashOn, MdStar, MdCleaningServices } from 'react-icons/md';
+import { MdContentCut, MdCleaningServices, MdFlashOn, MdStar } from 'react-icons/md';
+import { GiBeard, GiRazor } from 'react-icons/gi';
 import type { IconType } from 'react-icons';
 import type { Service } from '../../../types/booking';
 
-const serviceIconMap: Record<string, IconType> = {
-  corte: MdContentCut,
-  barba: MdFace,
-  lavado: MdCleaningServices,
-  arreglo: MdFlashOn,
-  premium: MdStar,
-};
-
-const resolveIcon = (name: string): IconType => {
+const resolveServiceIcon = (name: string): IconType => {
   const lower = name.toLowerCase();
-  const key = Object.keys(serviceIconMap).find((candidate) => lower.includes(candidate));
-  return key ? serviceIconMap[key] : MdContentCut;
+  if (/(afeitad|rasur|depil)/.test(lower)) return GiRazor;
+  if (/(barba|barb)/.test(lower)) return GiBeard;
+  if (lower.includes('lavado')) return MdCleaningServices;
+  if (lower.includes('arreglo')) return MdFlashOn;
+  if (lower.includes('premium')) return MdStar;
+  return MdContentCut;
 };
 
 interface ServiceCardProps {
@@ -26,7 +23,7 @@ interface ServiceCardProps {
 }
 
 export const ServiceCard: React.FC<ServiceCardProps> = ({ service, isSelected, onSelect }) => {
-  const icon = React.createElement(resolveIcon(service.name), { className: 'h-5 w-5' });
+  const ServiceIcon = resolveServiceIcon(service.name);
 
   return (
     <motion.button
@@ -44,7 +41,7 @@ export const ServiceCard: React.FC<ServiceCardProps> = ({ service, isSelected, o
     >
       <div className="flex items-center gap-3">
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[13px] transition-colors duration-300 ${isSelected ? 'bg-[#FF5C00] text-white' : 'bg-[#25201D] text-[#FF8A4C] group-hover:bg-[#2D231E]'}`}>
-          {service.imageUrl ? <img src={service.imageUrl} alt="" className="h-full w-full rounded-[13px] object-cover" loading="lazy" /> : icon}
+          <ServiceIcon className="h-5 w-5" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[14px] font-semibold text-white">{service.name}</span>

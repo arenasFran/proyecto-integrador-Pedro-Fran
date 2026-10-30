@@ -715,7 +715,7 @@ export const LandingPage: React.FC = () => {
                   className="hero-stroke-component hero-word-line"
                 />
                 <StrokeText
-                  text="estilo."
+                  text="categoría."
                   strokeColor="#ff5c00"
                   fillColor="#ff5c00"
                   strokeWidth={1}
@@ -726,10 +726,10 @@ export const LandingPage: React.FC = () => {
                   ease="power3.out"
                   trigger="mount"
                   fillMode="wipe"
-                  fontSize={132}
+                  fontSize={112}
                   fontWeight={400}
                   letterSpacing={-5}
-                  className="hero-stroke-component hero-word-line hero-italic-word"
+                  className="hero-stroke-component hero-word-line hero-italic-word hero-category-line"
                 />
                 <StrokeText
                   text="Sin"
@@ -857,9 +857,9 @@ export const LandingPage: React.FC = () => {
               </div>
             </motion.div>
             <motion.div className="about-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-               <h2><LandingFoldLine text="Nosotros" /><br /><em><LandingFoldLine text="de verdad." /></em></h2>
-              <p>Somos una barbería de barrio donde el oficio importa y cada visita tiene su propio ritmo. Escuchamos lo que buscás, cuidamos el detalle y hacemos que volver sea fácil.</p>
-              <p className="about-tagline"><span className="about-tagline-text">Vení por el corte, quedate por el ambiente.</span></p>
+              <h2><LandingFoldLine text="Nosotros" /><br /><LandingFoldLine text="de verdad" /></h2>
+              <p>Un espacio creado para quienes valoran su imagen, disfrutan los detalles y buscan un servicio de alta calidad.</p>
+              <p>Escuchamos lo que buscás, asesoramos con criterio y trabajamos para encontrar tu mejor versión.</p>
               <div className="about-stats" aria-label="Datos destacados de Barbería SA">
                 {aboutStats.map((stat) => (
                   <div className="about-stat" key={stat.label}>
@@ -879,7 +879,14 @@ export const LandingPage: React.FC = () => {
         >
           <div className="landing-container contact-grid">
             <motion.div className="contact-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-               <h2><LandingFoldLine text="Nos vemos" /><br /><em><LandingFoldLine text="en la silla." /></em></h2>
+              <h2 className="contact-copy-title">
+                <LandingFoldLine text="Tu imagen" /><br />
+                <LandingFoldLine text="habla por vos." /><br />
+                <em>
+                  <LandingFoldLine text="Asegurate que" /><br />
+                  <LandingFoldLine text="diga lo mejor." />
+                </em>
+              </h2>
               <div className="contact-body">
                 <p className="contact-address"><FiMapPin aria-hidden="true" /><span>Avenida Artigas 397.</span></p>
                 <div className="contact-detail-list">

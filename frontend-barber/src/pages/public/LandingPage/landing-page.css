@@ -1204,6 +1204,10 @@
   margin-top: -0.3em;
 }
 
+.hero-stroke-component.hero-category-line + .hero-word-line {
+  margin-top: 0.12em !important;
+}
+
 .hero-stroke-component svg {
   display: block;
   width: auto;
@@ -2755,6 +2759,10 @@
   line-height: 1.7;
 }
 
+.contact-copy .contact-copy-title {
+  font-size: clamp(3rem, 5vw, 4.75rem);
+}
+
 .contact-copy .contact-address {
   display: flex;
   align-items: center;
@@ -3302,6 +3310,9 @@
   .faq-heading h2,
   .contact-copy h2 {
     font-size: clamp(3rem, 15vw, 4.7rem);
+  }
+  .contact-copy .contact-copy-title {
+    font-size: clamp(2.4rem, 9vw, 3rem);
   }
   .section-heading h2 {
     margin-top: 22px;

@@ -83,7 +83,7 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
 
       const result = await repository.findByUser(userId, { paymentMethod: 'local' });
 
-      expect(result.total).toBe(1);
+      expect(result.total).toBe(2);
       expect(result.data[0].paymentMethod).toBe('local');
     });
 
@@ -125,7 +125,7 @@ describeIfMongo('MongoMembershipTransactionRepository', () => {
 
       const result = await repository.findAll({ paymentMethod: 'local' });
 
-      expect(result.total).toBe(1);
+      expect(result.total).toBe(2);
     });
 
     it('debe filtrar por rango de fechas', async () => {

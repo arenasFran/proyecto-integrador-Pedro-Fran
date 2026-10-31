@@ -160,7 +160,7 @@ describe('UpdateOrderStatusUseCase', () => {
 
       await expect(
         useCase.execute({ orderId: 'order-1', status: 'cancelled', actor: 'admin' }),
-      ).rejects.toThrow(/pago ya aprobado/);
+      ).rejects.toThrow(/pago ya registrado/);
 
       expect(orderRepository.save).not.toHaveBeenCalled();
       expect(orderStockService.restoreStock).not.toHaveBeenCalled();

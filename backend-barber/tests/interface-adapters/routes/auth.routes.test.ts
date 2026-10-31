@@ -18,7 +18,9 @@ import bcrypt from 'bcrypt';
 import app from '../../../src/app';
 import { HashService } from '../../../src/infrastructure/services/HashService';
 import { RegisteredClient } from '../../../src/infrastructure/repositories/mongodb/models/client.model';
+import { Employee } from '../../../src/infrastructure/repositories/mongodb/models/barber.model';
 import PasswordReset from '../../../src/infrastructure/repositories/mongodb/models/passwordReset.model';
+import { seedBarber } from '../../test-utils/factories';
 
 const hashService = new HashService();
 const isMongoReady = process.env.MONGO_READY === 'true';
@@ -53,19 +55,11 @@ describeIfMongo('Auth routes', () => {
   });
 
   it('debe enviar codigo 2FA', async () => {
-    const hash = await bcrypt.hash('123456', 10);
-    await RegisteredClient.create({
-      email: '2fa-enviar@example.com',
-      password: hash,
-      name: 'Juan',
-      lastname: 'Perez',
-      phone: '333333',
-      authProvider: 'local',
-    });
+    await seedBarber({ email: '2fa-enviar@example.com' });
 
     const response = await request(app).post('/auth/2fa/send').send({
       email: '2fa-enviar@example.com',
-      password: '123456',
+      password: 'Test1234!',
     });
 
     expect(response.status).toBe(200);
@@ -76,16 +70,8 @@ describeIfMongo('Auth routes', () => {
     const codeHash = hashService.sha256(code);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-    await RegisteredClient.create({
-      email: '2fa-verify@example.com',
-      password: 'hash',
-      name: 'Juan',
-      lastname: 'Perez',
-      phone: '444444',
-      authProvider: 'local',
-      twoFactorCode: codeHash,
-      twoFactorExpires: expiresAt,
-    });
+    const { barberId } = await seedBarber({ email: '2fa-verify@example.com' });
+    await Employee.updateOne({ _id: barberId }, { $set: { twoFactorCode: codeHash, twoFactorExpires: expiresAt } });
 
     const response = await request(app).post('/auth/2fa/verify').send({
       email: '2fa-verify@example.com',

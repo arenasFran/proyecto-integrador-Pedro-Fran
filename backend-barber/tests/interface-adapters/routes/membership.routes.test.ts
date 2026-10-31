@@ -93,7 +93,7 @@ describe('Membership routes', () => {
       const response = await request(empleadoApp).get(`/api/memberships/user/${userId}`);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ active: null, pending: null, history: [] });
+      expect(response.body).toEqual({ active: null, pending: null, history: [], membershipPrice: 399 });
     });
 
     it('debe retornar 403 si quien pide no es Admin ni Empleado', async () => {

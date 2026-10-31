@@ -8,7 +8,7 @@ import { BcryptPasswordHasher } from '../../src/infrastructure/services/BcryptPa
 import { HashService } from '../../src/infrastructure/services/HashService';
 import { JwtTokenService } from '../../src/infrastructure/services/JwtTokenService';
 import { FakeEmailService } from '../../src/infrastructure/services/FakeEmailService';
-import { seedRegisteredClient } from '../test-utils/factories';
+import { seedBarber } from '../test-utils/factories';
 import { AppError } from '../../src/domain/errors/AppError';
 import { RegisteredClient } from '../../src/infrastructure/repositories/mongodb/models/client.model';
 import jwt from 'jsonwebtoken';
@@ -58,12 +58,13 @@ describe('RegisterUserUseCase (hash real en DB)', () => {
   });
 });
 
-describe('Login completo con código 2FA', () => {
+describe('Login de personal con código 2FA', () => {
   it('envía código, lo verifica y devuelve token + refreshToken válidos', async () => {
-    const { clientId, email } = await seedRegisteredClient({ email: 'login@test.com' });
+    const email = 'login@test.com';
+    const { barberId } = await seedBarber({ email });
 
     const sendUC = new SendTwoFactorCodeUseCase(userRepo, hasher, emailService, hashService);
-    const sendResult = await sendUC.execute({ email, password: 'Client1234!' });
+    const sendResult = await sendUC.execute({ email, password: 'Test1234!' });
     expect(sendResult.message).toBe('Código enviado al email');
 
     const code = FakeEmailService.getCode(email);
@@ -81,12 +82,12 @@ describe('Login completo con código 2FA', () => {
       issuer: 'barberia-api',
       audience: 'barberia-client',
     }) as { id: string };
-    expect(decoded.id).toBe(clientId);
+    expect(decoded.id).toBe(barberId);
 
     const tokenHash = hashService.sha256(verifyResult.refreshToken);
     const storedRefreshToken = await refreshTokenRepo.findByTokenHash(tokenHash);
     expect(storedRefreshToken).not.toBeNull();
-    expect(storedRefreshToken!.userId).toBe(clientId);
+    expect(storedRefreshToken!.userId).toBe(barberId);
 
     const userAfter = await userRepo.findByEmail(email);
     expect(userAfter!.lastLoginAt).toBeDefined();
@@ -95,7 +96,8 @@ describe('Login completo con código 2FA', () => {
 
 describe('Bloqueo por intentos fallidos (lockout)', () => {
   it('lanza 401 en los primeros 4 intentos y 429 en el quinto', async () => {
-    await seedRegisteredClient({ email: 'lockout@test.com' });
+    const email = 'lockout@test.com';
+    await seedBarber({ email });
 
     const sendUC = new SendTwoFactorCodeUseCase(userRepo, hasher, emailService, hashService);
 

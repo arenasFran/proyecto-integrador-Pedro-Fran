@@ -1,8 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { buildTestUser } from '../helpers/test-data';
-import { getTwoFactorCode } from '../helpers/api';
 
-test('register -> login -> 2FA', async ({ page }) => {
+test('register -> login de cliente', async ({ page }) => {
   const user = buildTestUser();
 
   await page.goto('/register');
@@ -28,23 +27,10 @@ test('register -> login -> 2FA', async ({ page }) => {
   await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
   await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
 
-  const sendPromise = page.waitForResponse(
-    (res) => res.url().includes('/auth/2fa/send')
-  );
-  await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
-  const sendResponse = await sendPromise;
-  expect(sendResponse.status()).toBe(200);
-
-  await expect(page.getByText('Código enviado al email', { exact: true })).toBeVisible();
-  const code = await getTwoFactorCode(user.email);
-  await page.getByPlaceholder('Ingresa el código de 6 dígitos').fill(code);
-
-  const verifyPromise = page.waitForResponse(
-    (res) => res.url().includes('/auth/2fa/verify')
-  );
-  await page.getByRole('button', { name: 'Verificar código' }).click();
-  const verifyResponse = await verifyPromise;
-  expect(verifyResponse.status()).toBe(200);
+  const loginPromise = page.waitForResponse((res) => res.url().includes('/auth/login'));
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  const loginResponse = await loginPromise;
+  expect(loginResponse.status()).toBe(200);
 
   await expect(page).toHaveURL(/\/mis-turnos/, { timeout: 5000 });
 });

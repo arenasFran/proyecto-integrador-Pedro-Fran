@@ -5,14 +5,14 @@ import { abortRequest, mockJson } from '../helpers/mocks';
 test('login rechaza credenciales invalidas', async ({ page }) => {
   const user = buildTestUser();
 
-  await page.route('**/auth/2fa/send', (route) =>
+  await page.route('**/auth/login', (route) =>
     mockJson(route, 401, { error: 'Email y/o contraseña incorrectos.' })
   );
 
   await page.goto('/login');
   await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
   await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
-  await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
+  await page.getByRole('button', { name: 'Ingresar' }).click();
 
   await expect(page.getByText('Email y/o contraseña incorrectos.')).toBeVisible();
 });
@@ -20,6 +20,9 @@ test('login rechaza credenciales invalidas', async ({ page }) => {
 test('muestra error cuando el codigo 2FA expira', async ({ page }) => {
   const user = buildTestUser();
 
+  await page.route('**/auth/login', (route) =>
+    mockJson(route, 200, { requiresTwoFactor: true })
+  );
   await page.route('**/auth/2fa/send', (route) =>
     mockJson(route, 200, { message: 'Código enviado al email' })
   );
@@ -30,7 +33,7 @@ test('muestra error cuando el codigo 2FA expira', async ({ page }) => {
   await page.goto('/login');
   await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
   await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
-  await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
+  await page.getByRole('button', { name: 'Ingresar' }).click();
 
   await expect(page.getByText('Código enviado al email', { exact: true })).toBeVisible();
 
@@ -43,12 +46,12 @@ test('muestra error cuando el codigo 2FA expira', async ({ page }) => {
 test('muestra error de red en login', async ({ page }) => {
   const user = buildTestUser();
 
-  await page.route('**/auth/2fa/send', (route) => abortRequest(route));
+  await page.route('**/auth/login', (route) => abortRequest(route));
 
   await page.goto('/login');
   await page.getByPlaceholder('Ingresa tu correo').fill(user.email);
   await page.getByPlaceholder('Ingresa tu contraseña').fill(user.password);
-  await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
+  await page.getByRole('button', { name: 'Ingresar' }).click();
 
   await expect(page.getByText('No se pudo conectar al servidor')).toBeVisible();
 });

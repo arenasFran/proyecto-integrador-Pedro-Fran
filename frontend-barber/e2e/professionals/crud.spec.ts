@@ -18,8 +18,12 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   await page.getByPlaceholder('Ingresa tu correo').fill(admin.email);
   await page.getByPlaceholder('Ingresa tu contraseña').fill(admin.password);
 
+  const loginPromise = page.waitForResponse((response) => response.url().includes('/auth/login'));
   const sendPromise = page.waitForResponse((response) => response.url().includes('/auth/2fa/send'));
-  await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  const loginResponse = await loginPromise;
+  expect(loginResponse.status(), await loginResponse.text()).toBe(200);
+
   const sendResponse = await sendPromise;
   expect(sendResponse.status()).toBe(200);
 

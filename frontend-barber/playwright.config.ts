@@ -9,7 +9,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 1,
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
   },
   projects: [
@@ -20,18 +20,18 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: 'npx ts-node --project tsconfig.test.json tests/test-server.ts',
+      command: 'TEST_PORT=3001 TEST_FRONTEND_URL=http://localhost:5174 npx ts-node --project tsconfig.test.json tests/test-server.ts',
       cwd: '../backend-barber',
-      port: 3000,
+      port: 3001,
       timeout: 120000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
-      command: 'npm run dev',
+      command: 'VITE_API_URL=http://localhost:3001 npm run dev -- --host localhost --port 5174',
       cwd: '.',
-      port: 5173,
+      port: 5174,
       timeout: 120000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
   ],
 });

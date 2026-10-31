@@ -31,7 +31,7 @@ let mongoServer: MongoMemoryServer | null = null;
 const app = express();
 
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: process.env.TEST_FRONTEND_URL || 'http://localhost:5174',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
@@ -68,11 +68,11 @@ function appListen(port: number) {
 }
 
 const start = async () => {
-  process.env.TEST_ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@example.com';
-  process.env.TEST_ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Admin123!';
-  process.env.TEST_ADMIN_NAME = process.env.TEST_ADMIN_NAME || 'Admin';
-  process.env.TEST_ADMIN_LASTNAME = process.env.TEST_ADMIN_LASTNAME || 'Barber';
-  process.env.TEST_ADMIN_PHONE = process.env.TEST_ADMIN_PHONE || '099000000';
+  process.env.TEST_ADMIN_EMAIL = 'admin@example.com';
+  process.env.TEST_ADMIN_PASSWORD = 'Admin123!';
+  process.env.TEST_ADMIN_NAME = 'Admin';
+  process.env.TEST_ADMIN_LASTNAME = 'Barber';
+  process.env.TEST_ADMIN_PHONE = '099000000';
 
   const externalUri = USE_EXTERNAL_MONGO ? process.env.MONGO_URI : undefined;
 
@@ -98,6 +98,7 @@ const start = async () => {
     name: process.env.TEST_ADMIN_NAME,
     lastname: process.env.TEST_ADMIN_LASTNAME,
     phone: process.env.TEST_ADMIN_PHONE,
+    twoFactorFailedAttempts: 0,
     slotDuration: 30,
     schedule: {
       monday: createEmptyDay(),

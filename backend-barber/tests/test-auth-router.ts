@@ -3,6 +3,7 @@ import { AuthenticateWithGoogleUseCase } from '../src/application/use-cases/auth
 import { CompleteGoogleProfileUseCase } from '../src/application/use-cases/auth/CompleteGoogleProfileUseCase';
 import { RefreshTokenUseCase } from '../src/application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../src/application/use-cases/auth/RegisterUserUseCase';
+import { LoginUseCase } from '../src/application/use-cases/auth/LoginUseCase';
 import { SendTwoFactorCodeUseCase } from '../src/application/use-cases/auth/SendTwoFactorCodeUseCase';
 import { VerifyTwoFactorUseCase } from '../src/application/use-cases/auth/VerifyTwoFactorUseCase';
 import { LogoutUseCase } from '../src/application/use-cases/auth/LogoutUseCase';
@@ -27,6 +28,7 @@ import { validate } from '../src/interface-adapters/middlewares/validation.middl
 import {
   completeGoogleProfileSchema,
   googleLoginSchema,
+  loginSchema,
   refreshTokenSchema,
   registerSchema,
   twoFactorSendSchema,
@@ -76,6 +78,7 @@ export const buildTestAuthRouter = (options?: { emailService?: IEmailService }) 
 
   const appointmentRepository = new MongoAppointmentRepository();
   const registerUser = new RegisterUserUseCase(userRepository, passwordHasher, appointmentRepository);
+  const login = new LoginUseCase(userRepository, passwordHasher, tokenService, refreshTokenRepository, hashService);
   const authenticateWithGoogle = new AuthenticateWithGoogleUseCase(
     userRepository,
     googleAuthService,
@@ -127,7 +130,12 @@ export const buildTestAuthRouter = (options?: { emailService?: IEmailService }) 
     hashService
   );
 
-  const authController = new AuthController(registerUser, refreshTokenUseCase, new LogoutUseCase(hashService, refreshTokenRepository));
+  const authController = new AuthController(
+    registerUser,
+    refreshTokenUseCase,
+    new LogoutUseCase(hashService, refreshTokenRepository),
+    login
+  );
   const authGoogleController = new AuthGoogleController(authenticateWithGoogle, completeGoogleProfile);
   const twoFactorController = new TwoFactorController(sendTwoFactorCode, verifyTwoFactor);
   const passwordRecoveryController = new PasswordRecoveryController(
@@ -137,6 +145,7 @@ export const buildTestAuthRouter = (options?: { emailService?: IEmailService }) 
   );
 
   router.post('/register', validate({ body: registerSchema }), authController.register);
+  router.post('/login', validate({ body: loginSchema }), authController.login);
   router.post('/google', validate({ body: googleLoginSchema }), authGoogleController.googleLogin);
   router.post(
     '/google/complete-profile',

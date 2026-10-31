@@ -47,7 +47,7 @@ const services = [
     name: 'Corte clásico',
     desc: 'Tijera y máquina, lavado incluido y una terminación prolija.',
     price: '$ 490',
-    image: '/service-hair.webp',
+    image: '/cote de pelo.png',
     position: '50% 25%',
   },
   {
@@ -55,7 +55,7 @@ const services = [
     name: 'Corte a máquina',
     desc: 'Rápido, parejo y bien definido para salir listo en poco tiempo.',
     price: '$ 350',
-    image: '/service-machine.webp',
+    image: '/corte a maquina.png',
     position: '50% 50%',
   },
   {
@@ -63,7 +63,7 @@ const services = [
     name: 'Barba',
     desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
     price: '$ 250',
-    image: '/service-beard.webp',
+    image: '/Corte de barba.png',
     position: '35% 35%',
   },
 ];

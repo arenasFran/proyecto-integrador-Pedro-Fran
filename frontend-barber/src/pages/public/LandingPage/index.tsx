@@ -319,7 +319,10 @@ export const LandingPage: React.FC = () => {
     limit: 100,
   }, { skip: !shopInView });
   const { data: categoriesData } = useGetCategoriesQuery(undefined, { skip: !shopInView });
-  const { data: servicesData } = useGetServicesQuery(undefined, { skip: !servicesInView });
+  const {
+    data: servicesData,
+    isError: servicesError,
+  } = useGetServicesQuery(undefined, { skip: !servicesInView });
   const products = (productsData?.products ?? []).filter((product) => product.status === 'active' && product.stock > 0);
   const categories = categoriesData?.categories ?? [];
   const landingServices = servicesData
@@ -341,7 +344,10 @@ export const LandingPage: React.FC = () => {
         position: artwork.position,
       };
     })
-    : services;
+    : servicesError
+      ? services
+      : [];
+  const servicesLoading = servicesInView && !servicesData && !servicesError;
   const motionReveal = reduceMotion
     ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
     : revealVariants;
@@ -807,8 +813,33 @@ export const LandingPage: React.FC = () => {
               </div>
             </motion.div>
 
-            <div className="services-grid">
-              {landingServices.map((service, index) => (
+            <div className="services-grid" aria-busy={servicesLoading}>
+              {servicesLoading ? (
+                <>
+                  <span role="status" className="sr-only">Cargando servicios</span>
+                  {services.map((_, index) => (
+                    <motion.article
+                      className="service-card"
+                      key={`service-loading-${index}`}
+                      aria-hidden="true"
+                      variants={motionItem}
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={{ once: true, amount: 0.2 }}
+                    >
+                      <div className="service-card-media">
+                        <div className="h-full w-full animate-pulse bg-[#181818]" />
+                      </div>
+                      <div className="service-card-content">
+                        <div className="h-5 w-2/3 animate-pulse rounded bg-[#252525]" />
+                        <div className="mt-4 h-4 w-full animate-pulse rounded bg-[#202020]" />
+                        <div className="mt-2 h-4 w-4/5 animate-pulse rounded bg-[#202020]" />
+                        <div className="mt-5 h-10 animate-pulse rounded bg-[#252525]" />
+                      </div>
+                    </motion.article>
+                  ))}
+                </>
+              ) : landingServices.map((service, index) => (
                 <motion.article
                   className="service-card"
                   key={`${service.name}-${index}`}

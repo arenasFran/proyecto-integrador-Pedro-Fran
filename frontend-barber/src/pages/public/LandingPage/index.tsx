@@ -71,8 +71,7 @@ const services = [
 
 const aboutStats = [
   { value: '+1200', label: 'clientes felices' },
-  { value: '+10', label: 'años de oficio' },
-  { value: '4.9', label: 'puntaje en Google' },
+  { value: '+ 8', label: 'años de oficio' },
 ];
 
 const faqItems = [
@@ -328,6 +327,7 @@ export const LandingPage: React.FC = () => {
   const landingServices = servicesData
     ? servicesData.map((service, index) => {
       const normalizedName = service.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const isShave = normalizedName.includes('afeitado');
       const artworkIndex = normalizedName.includes('barba')
         ? 2
         : normalizedName.includes('maquina')
@@ -340,7 +340,7 @@ export const LandingPage: React.FC = () => {
         name: service.name,
         desc: service.description,
         price: formatCurrency(service.price),
-        image: artwork.image,
+        image: isShave ? '/afeitado.png' : artwork.image,
         position: artwork.position,
       };
     })

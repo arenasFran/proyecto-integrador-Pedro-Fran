@@ -1,6 +1,7 @@
 name: Backend - Deploy to Lightsail
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:

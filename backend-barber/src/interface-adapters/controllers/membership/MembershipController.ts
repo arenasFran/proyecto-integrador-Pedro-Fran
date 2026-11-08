@@ -2,29 +2,24 @@ import { Request, Response } from 'express';
 import { MongoMembershipRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipRepository';
 import { MongoMembershipTransactionRepository } from '../../../infrastructure/repositories/mongodb/MongoMembershipTransactionRepository';
 import { MongoUserRepository } from '../../../infrastructure/repositories/mongodb/MongoUserRepository';
-import { MongoPaymentRepository } from '../../../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { sendSuccess, sendError } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import { assertOwnershipOrAdmin } from '../../../common/ownership';
-import { CreatePaymentUseCase } from '../../../application/use-cases/payment/CreatePaymentUseCase';
 import { CreateMembershipUseCase } from '../../../application/use-cases/membership/CreateMembershipUseCase';
 import { CancelMembershipUseCase } from '../../../application/use-cases/membership/CancelMembershipUseCase';
-import { InitiateMembershipPaymentUseCase } from '../../../application/use-cases/membership/InitiateMembershipPaymentUseCase';
 import { ApprovePendingMembershipUseCase } from '../../../application/use-cases/membership/ApprovePendingMembershipUseCase';
-import { RetryMembershipPaymentUseCase } from '../../../application/use-cases/membership/RetryMembershipPaymentUseCase';
+import { MembershipResolver } from '../../../application/services/MembershipResolver';
+import { getConfig } from '../../../infrastructure/config/env';
 
 export class MembershipController {
   constructor(
     private readonly membershipRepo: MongoMembershipRepository,
     private readonly userRepo: MongoUserRepository,
     private readonly transactionRepo: MongoMembershipTransactionRepository,
-    private readonly createPaymentUseCase?: CreatePaymentUseCase,
-    private readonly paymentRepository?: MongoPaymentRepository,
     private readonly createMembershipUseCase?: CreateMembershipUseCase,
     private readonly cancelMembershipUseCase?: CancelMembershipUseCase,
-    private readonly initiateMembershipPaymentUseCase?: InitiateMembershipPaymentUseCase,
     private readonly approvePendingMembershipUseCase?: ApprovePendingMembershipUseCase,
-    private readonly retryMembershipPaymentUseCase?: RetryMembershipPaymentUseCase,
+    private readonly membershipResolver?: MembershipResolver,
   ) {}
 
   private async buildMembershipSummary(userId: string) {
@@ -35,6 +30,7 @@ export class MembershipController {
       active: active ? active.toPrimitives() : null,
       pending: pending ? pending.toPrimitives() : null,
       history: history.map((m) => m.toPrimitives()),
+      membershipPrice: getConfig().membershipPriceUyu,
     };
   }
 
@@ -53,6 +49,19 @@ export class MembershipController {
       return sendSuccess(res, summary);
     } catch (error) {
       return sendError(res, error, 'Error al obtener membresía');
+    }
+  };
+
+  requestMembership = async (req: Request, res: Response) => {
+    try {
+      if (!this.membershipResolver) {
+        throw new AppError('Servicio no disponible.', 500);
+      }
+
+      const membership = await this.membershipResolver.findOrCreatePending(req.user!._id, 'onetime');
+      return sendSuccess(res, membership.toPrimitives(), 201);
+    } catch (error) {
+      return sendError(res, error, 'Error al solicitar membresía');
     }
   };
 
@@ -145,33 +154,6 @@ export class MembershipController {
     }
   };
 
-  initiatePayment = async (req: Request, res: Response) => {
-    try {
-      const { userId } = req.body;
-
-      if (!this.initiateMembershipPaymentUseCase) {
-        throw new AppError('MercadoPago no está configurado.', 500);
-      }
-
-      const result = await this.initiateMembershipPaymentUseCase.execute({
-        userId,
-        actorId: req.user!._id,
-        actorKind: req.user!.kind,
-        payerEmail: req.user!.email,
-      });
-
-      return sendSuccess(res, {
-        preferenceId: result.preferenceId,
-        initPoint: result.initPoint,
-        sandboxInitPoint: result.sandboxInitPoint,
-        paymentId: result.paymentId,
-        membershipId: result.membershipId,
-      }, 201);
-    } catch (error) {
-      return sendError(res, error, 'Error al iniciar pago de membresía');
-    }
-  };
-
   approvePending = async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
@@ -188,33 +170,6 @@ export class MembershipController {
       return sendSuccess(res, result);
     } catch (error) {
       return sendError(res, error, 'Error al aprobar membresía');
-    }
-  };
-
-  retryPayment = async (req: Request, res: Response) => {
-    try {
-      const { userId } = req.body;
-
-      if (!this.retryMembershipPaymentUseCase) {
-        throw new AppError('MercadoPago no está configurado.', 500);
-      }
-
-      const result = await this.retryMembershipPaymentUseCase.execute({
-        userId,
-        actorId: req.user!._id,
-        actorKind: req.user!.kind,
-        payerEmail: req.user!.email,
-      });
-
-      return sendSuccess(res, {
-        preferenceId: result.preferenceId,
-        initPoint: result.initPoint,
-        sandboxInitPoint: result.sandboxInitPoint,
-        paymentId: result.paymentId,
-        membershipId: result.membershipId,
-      }, 201);
-    } catch (error) {
-      return sendError(res, error, 'Error al reintentar pago de membresía');
     }
   };
 

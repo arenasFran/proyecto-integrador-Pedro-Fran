@@ -26,12 +26,6 @@ export default defineConfig({
               entriesAware: true,
             },
             {
-              name: 'payment-vendor',
-              test: /node_modules[\\/]@mercadopago[\\/]/,
-              priority: 30,
-              entriesAware: true,
-            },
-            {
               name: 'vendor',
               test: /node_modules[\\/]/,
               priority: 10,

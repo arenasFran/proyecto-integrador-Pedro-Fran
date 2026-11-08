@@ -15,6 +15,7 @@ vi.mock('../../../../services/authApi', () => ({
     reducer: (s: Record<string, unknown> = {}) => s,
     middleware: [],
     endpoints: {
+      login: { matchFulfilled: mockEndpointMatcher },
       verifyTwoFactorCode: { matchFulfilled: mockEndpointMatcher, matchRejected: mockEndpointMatcher },
       completeGoogleProfile: { matchFulfilled: mockEndpointMatcher },
       googleLogin: { matchFulfilled: mockEndpointMatcher },

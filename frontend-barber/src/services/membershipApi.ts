@@ -7,7 +7,6 @@ import type {
   MembershipWithUser,
   MembershipTransaction,
 } from '../types/membership';
-import type { InitiatePaymentResponse } from '../types/payment';
 import { invalidateAnalyticsAfterSuccess } from './analyticsCache';
 
 export const membershipApi = createApi({
@@ -24,6 +23,11 @@ export const membershipApi = createApi({
       query: (data) => ({ url: '/api/memberships', method: 'POST', data }),
       invalidatesTags: ['Membership', 'Memberships'],
       onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
+    }),
+
+    requestMembership: builder.mutation<Membership, void>({
+      query: () => ({ url: '/api/memberships/request', method: 'POST' }),
+      invalidatesTags: ['Membership', 'Memberships'],
     }),
 
     getAllMemberships: builder.query<{ data: MembershipWithUser[]; total: number; page: number; totalPages: number; limit: number }, { status?: string; search?: string; page?: number; limit?: number }>({
@@ -55,16 +59,6 @@ export const membershipApi = createApi({
       query: (id) => ({ url: `/api/memberships/${id}/cancel`, method: 'POST' }),
       invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
       onQueryStarted: (_arg, { dispatch, queryFulfilled }) => invalidateAnalyticsAfterSuccess(queryFulfilled, dispatch),
-    }),
-
-    initiateMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
-      query: (data) => ({ url: '/api/memberships/initiate-payment', method: 'POST', data }),
-      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
-    }),
-
-    retryMembershipPayment: builder.mutation<InitiatePaymentResponse, { userId: string }>({
-      query: (data) => ({ url: '/api/memberships/retry-payment', method: 'POST', data }),
-      invalidatesTags: ['Membership', 'Memberships', 'Transactions'],
     }),
 
     redeemCoupon: builder.mutation<{ remainingCoupons: number; couponsUsed: number }, { userId: string }>({
@@ -112,14 +106,13 @@ export const membershipApi = createApi({
 export const {
   useGetMyMembershipQuery,
   useCreateMembershipMutation,
+  useRequestMembershipMutation,
   useGetAllMembershipsQuery,
   useGetPendingMembershipsQuery,
   useGetExpiringSoonQuery,
   useGetMembershipByIdQuery,
   useGetMembershipByUserIdQuery,
   useCancelMembershipMutation,
-  useInitiateMembershipPaymentMutation,
-  useRetryMembershipPaymentMutation,
   useRedeemCouponMutation,
   useApprovePendingMembershipMutation,
   useGetTransactionsQuery,

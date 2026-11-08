@@ -26,11 +26,3 @@ export type Payment = {
   mpDateApproved?: string;
   mpOperationType?: string;
 };
-
-export type InitiatePaymentResponse = {
-  preferenceId?: string;
-  initPoint?: string;
-  sandboxInitPoint?: string;
-  paymentId?: string;
-  orderId: string;
-};

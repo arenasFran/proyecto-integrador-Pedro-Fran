@@ -47,7 +47,7 @@ const services = [
     name: 'Corte clásico',
     desc: 'Tijera y máquina, lavado incluido y una terminación prolija.',
     price: '$ 490',
-    image: '/service-hair.webp',
+    image: '/cote de pelo.png',
     position: '50% 25%',
   },
   {
@@ -55,7 +55,7 @@ const services = [
     name: 'Corte a máquina',
     desc: 'Rápido, parejo y bien definido para salir listo en poco tiempo.',
     price: '$ 350',
-    image: '/service-machine.webp',
+    image: '/corte a maquina.png',
     position: '50% 50%',
   },
   {
@@ -63,7 +63,7 @@ const services = [
     name: 'Barba',
     desc: 'Navaja caliente, toallas y aceite. Salís con otra cara.',
     price: '$ 250',
-    image: '/service-beard.webp',
+    image: '/Corte de barba.png',
     position: '35% 35%',
   },
 ];
@@ -71,8 +71,7 @@ const services = [
 
 const aboutStats = [
   { value: '+1200', label: 'clientes felices' },
-  { value: '+10', label: 'años de oficio' },
-  { value: '4.9', label: 'puntaje en Google' },
+  { value: '+ 8', label: 'años de oficio' },
 ];
 
 const faqItems = [
@@ -319,12 +318,16 @@ export const LandingPage: React.FC = () => {
     limit: 100,
   }, { skip: !shopInView });
   const { data: categoriesData } = useGetCategoriesQuery(undefined, { skip: !shopInView });
-  const { data: servicesData } = useGetServicesQuery(undefined, { skip: !servicesInView });
+  const {
+    data: servicesData,
+    isError: servicesError,
+  } = useGetServicesQuery(undefined, { skip: !servicesInView });
   const products = (productsData?.products ?? []).filter((product) => product.status === 'active' && product.stock > 0);
   const categories = categoriesData?.categories ?? [];
   const landingServices = servicesData
     ? servicesData.map((service, index) => {
       const normalizedName = service.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const isShave = normalizedName.includes('afeitado');
       const artworkIndex = normalizedName.includes('barba')
         ? 2
         : normalizedName.includes('maquina')
@@ -337,11 +340,14 @@ export const LandingPage: React.FC = () => {
         name: service.name,
         desc: service.description,
         price: formatCurrency(service.price),
-        image: artwork.image,
+        image: isShave ? '/afeitado.png' : artwork.image,
         position: artwork.position,
       };
     })
-    : services;
+    : servicesError
+      ? services
+      : [];
+  const servicesLoading = servicesInView && !servicesData && !servicesError;
   const motionReveal = reduceMotion
     ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
     : revealVariants;
@@ -715,7 +721,7 @@ export const LandingPage: React.FC = () => {
                   className="hero-stroke-component hero-word-line"
                 />
                 <StrokeText
-                  text="estilo."
+                  text="categoría."
                   strokeColor="#ff5c00"
                   fillColor="#ff5c00"
                   strokeWidth={1}
@@ -726,10 +732,10 @@ export const LandingPage: React.FC = () => {
                   ease="power3.out"
                   trigger="mount"
                   fillMode="wipe"
-                  fontSize={132}
+                  fontSize={112}
                   fontWeight={400}
                   letterSpacing={-5}
-                  className="hero-stroke-component hero-word-line hero-italic-word"
+                  className="hero-stroke-component hero-word-line hero-italic-word hero-category-line"
                 />
                 <StrokeText
                   text="Sin"
@@ -807,8 +813,33 @@ export const LandingPage: React.FC = () => {
               </div>
             </motion.div>
 
-            <div className="services-grid">
-              {landingServices.map((service, index) => (
+            <div className="services-grid" aria-busy={servicesLoading}>
+              {servicesLoading ? (
+                <>
+                  <span role="status" className="sr-only">Cargando servicios</span>
+                  {services.map((_, index) => (
+                    <motion.article
+                      className="service-card"
+                      key={`service-loading-${index}`}
+                      aria-hidden="true"
+                      variants={motionItem}
+                      initial="hidden"
+                      whileInView="visible"
+                      viewport={{ once: true, amount: 0.2 }}
+                    >
+                      <div className="service-card-media">
+                        <div className="h-full w-full animate-pulse bg-[#181818]" />
+                      </div>
+                      <div className="service-card-content">
+                        <div className="h-5 w-2/3 animate-pulse rounded bg-[#252525]" />
+                        <div className="mt-4 h-4 w-full animate-pulse rounded bg-[#202020]" />
+                        <div className="mt-2 h-4 w-4/5 animate-pulse rounded bg-[#202020]" />
+                        <div className="mt-5 h-10 animate-pulse rounded bg-[#252525]" />
+                      </div>
+                    </motion.article>
+                  ))}
+                </>
+              ) : landingServices.map((service, index) => (
                 <motion.article
                   className="service-card"
                   key={`${service.name}-${index}`}
@@ -857,9 +888,9 @@ export const LandingPage: React.FC = () => {
               </div>
             </motion.div>
             <motion.div className="about-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-               <h2><LandingFoldLine text="Nosotros" /><br /><em><LandingFoldLine text="de verdad." /></em></h2>
-              <p>Somos una barbería de barrio donde el oficio importa y cada visita tiene su propio ritmo. Escuchamos lo que buscás, cuidamos el detalle y hacemos que volver sea fácil.</p>
-              <p className="about-tagline"><span className="about-tagline-text">Vení por el corte, quedate por el ambiente.</span></p>
+              <h2><LandingFoldLine text="Nosotros" /><br /><LandingFoldLine text="de verdad" /></h2>
+              <p>Un espacio creado para quienes valoran su imagen, disfrutan los detalles y buscan un servicio de alta calidad.</p>
+              <p>Escuchamos lo que buscás, asesoramos con criterio y trabajamos para encontrar tu mejor versión.</p>
               <div className="about-stats" aria-label="Datos destacados de Barbería SA">
                 {aboutStats.map((stat) => (
                   <div className="about-stat" key={stat.label}>
@@ -879,7 +910,14 @@ export const LandingPage: React.FC = () => {
         >
           <div className="landing-container contact-grid">
             <motion.div className="contact-copy" variants={motionReveal} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.25 }}>
-               <h2><LandingFoldLine text="Nos vemos" /><br /><em><LandingFoldLine text="en la silla." /></em></h2>
+              <h2 className="contact-copy-title">
+                <LandingFoldLine text="Tu imagen" /><br />
+                <LandingFoldLine text="habla por vos." /><br />
+                <em>
+                  <LandingFoldLine text="Asegurate que" /><br />
+                  <LandingFoldLine text="diga lo mejor." />
+                </em>
+              </h2>
               <div className="contact-body">
                 <p className="contact-address"><FiMapPin aria-hidden="true" /><span>Avenida Artigas 397.</span></p>
                 <div className="contact-detail-list">
@@ -903,7 +941,7 @@ export const LandingPage: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-            <div className="contact-map-slot" aria-hidden={!isMapOpen}>
+            <div className={`contact-map-slot ${isMapOpen ? 'is-open' : ''}`} aria-hidden={!isMapOpen}>
               <AnimatePresence initial={false} mode="wait">
                 {isMapOpen && (
                   <motion.div

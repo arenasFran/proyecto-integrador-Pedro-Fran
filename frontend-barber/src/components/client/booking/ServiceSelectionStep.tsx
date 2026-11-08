@@ -59,9 +59,9 @@ export const ServiceSelectionStep: React.FC<ServiceSelectionStepProps> = ({
           </div>
         ) : (
           <>
-            <motion.div variants={serviceListVariants} initial={reduceMotion ? false : 'hidden'} animate="visible" className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <motion.div variants={serviceListVariants} initial={reduceMotion ? false : 'hidden'} animate="visible" className="grid auto-rows-fr grid-cols-1 gap-3 md:grid-cols-2">
               {services.map((service) => (
-                <motion.div key={service.id} variants={serviceItemVariants}>
+                <motion.div key={service.id} variants={serviceItemVariants} className="h-full">
                   <ServiceCard service={service} isSelected={selectedService?.id === service.id} onSelect={onSelect} />
                 </motion.div>
               ))}

@@ -10,7 +10,7 @@ export const createOrderSchema = Joi.object({
     )
     .min(1)
     .required(),
-  paymentMethod: Joi.string().valid('online', 'local').optional(),
+  paymentMethod: Joi.string().valid('local').optional(),
 });
 
 export const orderIdParamSchema = Joi.object({

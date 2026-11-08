@@ -4,7 +4,7 @@ import { Payment } from '../../../../src/domain/entities/Payment';
 import { AppError } from '../../../../src/domain/errors/AppError';
 import { makeMockMembershipRepository, makeMockMembershipTransactionRepository, makeMockPaymentRepository } from '../../../test-utils/mocks';
 
-const makeMembership = (overrides: Partial<{ status: 'pending' | 'active' | 'expired'; paymentMethod: 'mercadopago' | 'local' | null }> = {}) =>
+const makeMembership = (overrides: Partial<{ status: 'pending' | 'active' | 'expired'; paymentMethod: 'local' | null }> = {}) =>
   Membership.restore({
     id: 'mem-1',
     userId: 'user-1',
@@ -18,7 +18,7 @@ const makeMembership = (overrides: Partial<{ status: 'pending' | 'active' | 'exp
     durationDays: 30,
     billingCycle: 'onetime',
     createdBy: 'client',
-    paymentMethod: overrides.paymentMethod ?? 'mercadopago',
+    paymentMethod: overrides.paymentMethod ?? 'local',
     createdAt: new Date(),
     updatedAt: new Date(),
   });
@@ -49,6 +49,7 @@ describe('ApprovePendingMembershipUseCase', () => {
     membershipRepo = makeMockMembershipRepository();
     transactionRepo = makeMockMembershipTransactionRepository();
     paymentRepo = makeMockPaymentRepository();
+    paymentRepo.save.mockImplementation(async (payment) => payment);
     revenueTracker = { trackMembership: jest.fn().mockResolvedValue(undefined) };
     useCase = new ApprovePendingMembershipUseCase(membershipRepo as any, transactionRepo as any, paymentRepo as any, revenueTracker as any);
   });
@@ -63,28 +64,30 @@ describe('ApprovePendingMembershipUseCase', () => {
     await expect(useCase.execute({ membershipId: 'mem-1', staffId: 'admin-1' })).rejects.toThrow(/no está pendiente/);
   });
 
-  it('debe rechazar si no existe un pago aprobado asociado', async () => {
+  it('registra como pago local la confirmación manual del personal', async () => {
     const membership = makeMembership({ status: 'pending' });
     membershipRepo.findById.mockResolvedValue(membership);
     paymentRepo.findByReference.mockResolvedValue(null);
+    membershipRepo.approvePending.mockResolvedValue(null);
 
-    await expect(useCase.execute({ membershipId: 'mem-1', staffId: 'admin-1' })).rejects.toThrow(/no tiene un pago aprobado/);
+    const result = await useCase.execute({ membershipId: 'mem-1', staffId: 'admin-1' });
 
     expect(paymentRepo.findByReference).toHaveBeenCalledWith('mem-1', 'membership');
-    expect(membershipRepo.approvePending).not.toHaveBeenCalled();
-    expect(transactionRepo.create).not.toHaveBeenCalled();
-    expect(revenueTracker.trackMembership).not.toHaveBeenCalled();
+    expect(membershipRepo.approvePending).toHaveBeenCalledWith('mem-1', 'admin-1');
+    expect(result.status).toBe('active');
+    expect(transactionRepo.create).toHaveBeenCalledWith(expect.objectContaining({ paymentMethod: 'local' }));
   });
 
-  it('debe rechazar si el pago asociado no está aprobado', async () => {
+  it('aprueba el registro de pago pendiente al confirmar el cobro local', async () => {
     const membership = makeMembership({ status: 'pending' });
     membershipRepo.findById.mockResolvedValue(membership);
     paymentRepo.findByReference.mockResolvedValue(makePayment({ status: 'pending' }));
+    membershipRepo.approvePending.mockResolvedValue(null);
 
-    await expect(useCase.execute({ membershipId: 'mem-1', staffId: 'admin-1' })).rejects.toThrow(/no tiene un pago aprobado/);
+    await useCase.execute({ membershipId: 'mem-1', staffId: 'admin-1' });
 
-    expect(membershipRepo.approvePending).not.toHaveBeenCalled();
-    expect(transactionRepo.create).not.toHaveBeenCalled();
+    expect(paymentRepo.save).toHaveBeenCalled();
+    expect(transactionRepo.create).toHaveBeenCalledWith(expect.objectContaining({ paymentMethod: 'local' }));
   });
 
   it('debe aprobar la membresía, registrar la transacción y trackear el revenue', async () => {
@@ -99,7 +102,7 @@ describe('ApprovePendingMembershipUseCase', () => {
     expect(result.status).toBe('active');
     expect(membershipRepo.approvePending).toHaveBeenCalledWith('mem-1', 'admin-1');
     expect(transactionRepo.create).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'user-1', membershipId: 'mem-1', amount: 399, paymentMethod: 'mercadopago', paymentId: 'pay-1', createdBy: 'admin', adminId: 'admin-1',
+      userId: 'user-1', membershipId: 'mem-1', amount: 399, paymentMethod: 'local', paymentId: 'pay-1', createdBy: 'admin', adminId: 'admin-1',
     }));
     expect(revenueTracker.trackMembership).toHaveBeenCalledWith('mem-1', 399, expect.any(Date), expect.objectContaining({ userId: 'user-1', staffId: 'admin-1', paymentId: 'pay-1' }), 'pay-1');
   });
@@ -116,7 +119,7 @@ describe('ApprovePendingMembershipUseCase', () => {
     expect(result).toEqual(updated.toPrimitives());
   });
 
-  it('debe registrar paymentMethod local si la membresía no es de mercadopago', async () => {
+  it('debe registrar el cobro local al aprobar la membresía', async () => {
     const membership = makeMembership({ status: 'pending', paymentMethod: 'local' });
     membershipRepo.findById.mockResolvedValue(membership);
     paymentRepo.findByReference.mockResolvedValue(makePayment({ status: 'approved' }));

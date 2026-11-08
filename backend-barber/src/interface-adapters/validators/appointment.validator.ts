@@ -16,9 +16,16 @@ export const createAppointmentSchema = Joi.object({
   clientLastname: Joi.string().trim().min(1).max(100).required(),
   clientPhone: Joi.string().trim().min(7).max(20).required(),
   clientEmail: Joi.string().pattern(EMAIL_REGEX).trim().required(),
-  paymentMethod: Joi.string().valid('local', 'online', 'memberPass').optional(),
+  paymentMethod: Joi.string().valid('local', 'memberPass').optional(),
   tempLockId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
 });
+
+// Los datos de contacto siguen siendo obligatorios en las reservas públicas.
+// El personal puede crear turnos para clientes sin cuenta sin teléfono ni correo.
+export const createStaffAppointmentSchema = createAppointmentSchema.fork(
+  ['clientEmail', 'clientPhone'],
+  (schema) => schema.optional().empty('')
+);
 
 export const appointmentQuerySchema = Joi.object({
   barberId: Joi.string(),
@@ -27,7 +34,7 @@ export const appointmentQuerySchema = Joi.object({
   dateFrom: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
   dateTo: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/),
   status: Joi.string().valid('Confirmado', 'Cancelado', 'Completado', 'NoShow'),
-  paymentMethod: Joi.string().valid('local', 'online', 'memberPass'),
+  paymentMethod: Joi.string().valid('local', 'memberPass'),
   paymentStatus: Joi.string().valid('Pendiente', 'Pagado', 'Cancelado'),
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20),

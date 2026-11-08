@@ -18,8 +18,12 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   await page.getByPlaceholder('Ingresa tu correo').fill(admin.email);
   await page.getByPlaceholder('Ingresa tu contraseña').fill(admin.password);
 
+  const loginPromise = page.waitForResponse((response) => response.url().includes('/auth/login'));
   const sendPromise = page.waitForResponse((response) => response.url().includes('/auth/2fa/send'));
-  await page.getByRole('button', { name: 'Enviar código de verificación' }).click();
+  await page.getByRole('button', { name: 'Ingresar' }).click();
+  const loginResponse = await loginPromise;
+  expect(loginResponse.status(), await loginResponse.text()).toBe(200);
+
   const sendResponse = await sendPromise;
   expect(sendResponse.status()).toBe(200);
 
@@ -33,12 +37,12 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   const verifyResponse = await verifyPromise;
   expect(verifyResponse.status()).toBe(200);
 
-  await expect.poll(async () => page.evaluate(() => localStorage.getItem('authToken'))).not.toBeNull();
+  await expect(page).toHaveURL(/\/admin\/dashboard/, { timeout: 5000 });
 
   await page.goto('/admin/profesionales');
-  await expect(page.getByRole('heading', { name: 'Profesionales' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Profesionales', exact: true })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Nuevo barbero' }).click();
+  await page.getByRole('button', { name: 'Nuevo barbero' }).first().click();
 
   await page.getByLabel('Nombre').fill(nameValue);
   await page.getByLabel('Apellido').fill(lastnameValue);
@@ -68,10 +72,10 @@ test('crud de profesionales desde el panel', async ({ page }) => {
   const createdProfessional = (await createResponse.json()) as { id: string };
   const professionalId = createdProfessional.id;
 
-  const createdCard = page.getByRole('heading', { name: fullName });
+  const createdCard = page.getByRole('heading', { name: fullName, exact: true });
   await expect(createdCard).toBeVisible();
 
-  const cardContainer = createdCard.locator('xpath=ancestor::div[contains(@class,"rounded-[18px]")]');
+  const cardContainer = createdCard.locator('xpath=ancestor::article[contains(@class,"rounded-[18px]")]');
   await cardContainer.getByRole('button', { name: 'Editar' }).click();
   await page.getByRole('button', { name: 'Siguiente' }).click();
   await page.getByLabel('Duración del turno').fill('60');
@@ -96,8 +100,13 @@ test('crud de profesionales desde el panel', async ({ page }) => {
       response.url().endsWith(`/api/barbers/${professionalId}`) &&
       response.request().method() === 'DELETE'
   );
-  page.once('dialog', (dialog) => dialog.accept());
-  await cardContainer.getByRole('button', { name: 'Eliminar' }).click();
+
+  await cardContainer.getByRole('button', { name: 'Eliminar', exact: true }).click();
+
+  const confirmModal = page
+    .getByRole('heading', { name: 'Eliminar barbero', exact: true })
+    .locator('xpath=ancestor::div[contains(@class,"rounded-[24px]")]');
+  await confirmModal.getByRole('button', { name: 'Eliminar', exact: true }).click();
   const deleteResponse = await deletePromise;
   expect(deleteResponse.status()).toBe(200);
   await expect(createdCard).not.toBeVisible();

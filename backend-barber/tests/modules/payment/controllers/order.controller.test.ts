@@ -66,7 +66,7 @@ describe('OrderController', () => {
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ orderId: 'order-1' }));
       expect(createOrderUseCase.execute).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'user-1', payerEmail: 'user@test.com' }),
+        expect.objectContaining({ userId: 'user-1' }),
       );
     });
 

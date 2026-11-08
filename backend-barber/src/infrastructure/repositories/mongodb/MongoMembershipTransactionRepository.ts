@@ -6,7 +6,7 @@ export type MembershipTransactionData = {
   userId: string;
   membershipId: string;
   amount: number;
-  paymentMethod: 'mercadopago' | 'local';
+  paymentMethod: 'local';
   mpPaymentId?: string;
   paymentId?: string;
   createdBy: 'client' | 'admin';
@@ -19,7 +19,7 @@ export class MongoMembershipTransactionRepository {
     userId: string;
     membershipId: string;
     amount: number;
-    paymentMethod: 'mercadopago' | 'local';
+    paymentMethod: 'local';
     mpPaymentId?: string;
     paymentId?: string;
     createdBy: 'client' | 'admin';

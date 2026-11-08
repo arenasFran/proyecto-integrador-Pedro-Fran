@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { skipToken } from '@reduxjs/toolkit/query';
-import { FiShoppingCart, FiX, FiCreditCard, FiMapPin } from 'react-icons/fi';
+import { FiShoppingCart, FiX, FiMapPin } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../../store/hooks';
 import {
@@ -11,7 +11,6 @@ import {
   closeCart,
   selectCartTotal,
   selectCartCount,
-  setCheckoutResult,
   syncWithProducts,
   replaceItems,
 } from '../../../store/slices/cartSlice';
@@ -74,7 +73,7 @@ export const CartDrawer = () => {
     return () => window.clearTimeout(timeoutId);
   }, [items, syncCart, user]);
 
-  const handleCheckout = async (paymentMethod: 'online' | 'local') => {
+  const handleCheckout = async () => {
     const token = getAccessToken();
     if (!token) {
       navigate('/login?returnUrl=/tienda');
@@ -82,20 +81,15 @@ export const CartDrawer = () => {
     }
     if (items.length === 0) return;
     try {
-      const result = await createOrder({
+      await createOrder({
         items: items.map((i) => ({ productId: i.product.id, quantity: i.quantity })),
-        paymentMethod,
+        paymentMethod: 'local',
       }).unwrap();
       dispatch(closeCart());
       dispatch(clearCart());
       void clearRemoteCart();
 
-      if (paymentMethod === 'online' && result.preferenceId) {
-        dispatch(setCheckoutResult({ preferenceId: result.preferenceId }));
-        navigate('/tienda');
-      } else {
-        navigate('/mis-ordenes');
-      }
+      navigate('/mis-ordenes');
     } catch {
       showToast('Error al crear la orden. Verificá tu conexión e intentá de nuevo.', 'error');
     }
@@ -163,16 +157,8 @@ export const CartDrawer = () => {
                      <div className="flex flex-col gap-2 sm:flex-row">
                       <Button
                         className="flex-1 text-[12px]"
-                        onClick={() => handleCheckout('online')}
-                        icon={FiCreditCard}
-                        loading={isCreatingOrder}
-                      >
-                        Pagar online
-                      </Button>
-                      <Button
-                        className="flex-1 text-[12px]"
                         variant="outline"
-                        onClick={() => handleCheckout('local')}
+                        onClick={() => handleCheckout()}
                         icon={FiMapPin}
                         loading={isCreatingOrder}
                       >

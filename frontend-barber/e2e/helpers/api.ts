@@ -1,7 +1,7 @@
 import { request } from '@playwright/test';
 import type { TestUser } from './test-data';
 
-const apiBaseUrl = 'http://localhost:3000';
+const apiBaseUrl = process.env.TEST_SERVER_URL || 'http://localhost:3001';
 
 export const registerUser = async (user: TestUser) => {
   const context = await request.newContext({ baseURL: apiBaseUrl });

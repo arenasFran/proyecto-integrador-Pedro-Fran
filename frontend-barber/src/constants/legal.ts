@@ -66,8 +66,7 @@ export const legalDocuments: LegalDocument[] = [
             items: [
               'Registrarse y crear una cuenta de usuario.',
               'Reservar turnos para los servicios ofrecidos por la barbería.',
-              'Pagar en línea los turnos a través de Mercado Pago.',
-              'Pagar en el local el día del turno.',
+              'Abonar los turnos en el local el día de la visita.',
               'Comprar productos y/o servicios que la barbería ofrezca en su tienda.',
             ],
           },
@@ -131,8 +130,7 @@ export const legalDocuments: LegalDocument[] = [
           {
             kind: 'list',
             items: [
-              'Pago en línea: se procesa a través de Mercado Pago. El pago se considera realizado cuando la transacción es aprobada.',
-              'Pago en el local: se abona el día del turno, salvo que se haya contratado un pago anticipado.',
+              'Los turnos y productos se abonan en el local, salvo que la barbería informe otra modalidad de pago.',
               'Los impuestos se incluyen en el precio final informado cuando corresponda.',
             ],
           },
@@ -155,7 +153,7 @@ export const legalDocuments: LegalDocument[] = [
           },
           {
             kind: 'p',
-            text: 'Los cupones se canjean al reservar un turno con la membresía. La membresía es personal e intransferible. El pago puede realizarse en línea a través de Mercado Pago o en el local; si el pago queda pendiente de confirmación, la membresía no se activará hasta que se verifique.',
+            text: 'Los cupones se canjean al reservar un turno con la membresía. La membresía es personal e intransferible y se activa cuando el personal confirma el pago en el local.',
           },
         ],
       },
@@ -289,7 +287,6 @@ export const legalDocuments: LegalDocument[] = [
           {
             kind: 'list',
             items: [
-              'Mercado Pago recibe los datos necesarios para procesar los pagos en línea.',
               'Proveedores de infraestructura y servicios que utilizamos para operar la plataforma (por ejemplo, servicios de hosting, almacenamiento en la nube e imágenes).',
             ],
           },
@@ -421,12 +418,12 @@ export const legalDocuments: LegalDocument[] = [
         ],
       },
       {
-        id: 'pagos-mercadopago',
-        heading: '4. Pagos con Mercado Pago',
+        id: 'pagos',
+        heading: '4. Pagos',
         blocks: [
           {
             kind: 'p',
-            text: 'Los pagos realizados en línea no son reembolsables. Si cancelás tu turno o no te presentás al mismo, el importe abonado no será devuelto.',
+            text: 'Los pagos se realizan en el local. Si cancelás tu turno o no te presentás al mismo, aplican las condiciones de cancelación informadas por la barbería.',
           },
         ],
       },

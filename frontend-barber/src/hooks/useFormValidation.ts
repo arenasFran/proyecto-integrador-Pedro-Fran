@@ -48,20 +48,28 @@ const validationSchema: Record<string, (value: string, allValues?: Record<string
   },
 };
 
-export function useFormValidation(initialValues: Record<string, string>) {
+type ValidationOverrides = Partial<
+  Record<string, (value: string, allValues?: Record<string, string>) => string | undefined>
+>;
+const EMPTY_VALIDATION_OVERRIDES: ValidationOverrides = {};
+
+export function useFormValidation(
+  initialValues: Record<string, string>,
+  validationOverrides: ValidationOverrides = EMPTY_VALIDATION_OVERRIDES
+) {
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const validateField = useCallback(
     (field: string, value: string, allValues: Record<string, string>): string | undefined => {
-      const validator = validationSchema[field];
+      const validator = validationOverrides[field] ?? validationSchema[field];
       if (validator) {
         return validator(value, allValues);
       }
       return undefined;
     },
-    []
+    [validationOverrides]
   );
 
   const handleChange = useCallback(

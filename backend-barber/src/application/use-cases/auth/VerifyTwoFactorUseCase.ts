@@ -27,6 +27,10 @@ export class VerifyTwoFactorUseCase {
       throw new AppError('Usuario no encontrado.', 401);
     }
 
+    if (user.kind === 'Registrado') {
+      throw new AppError('Los clientes no necesitan código de verificación.', 403);
+    }
+
     if (user.twoFactorLockedUntil && new Date() < user.twoFactorLockedUntil) {
       const remainingMin = Math.ceil(
         (user.twoFactorLockedUntil.getTime() - new Date().getTime()) / 60000

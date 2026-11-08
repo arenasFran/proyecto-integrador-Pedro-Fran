@@ -58,9 +58,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({ onToggleSidebar = () => {}
               if (tokenKind === 'Admin') navigate('/admin/dashboard');
               else navigate('/reservar');
             }}
+            aria-label="Barbería SA, inicio"
             className="flex items-center gap-2"
           >
-             <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-10 w-auto sm:h-16" />
+            <img src="/logo-barberia-notittle.webp" alt="" className="h-10 w-auto object-contain" />
             <span className="hidden sm:inline text-[15px] font-bold text-white">Barbería SA</span>
           </button>
         </div>

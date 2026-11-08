@@ -455,7 +455,7 @@ export class MongoAnalyticsRepository {
       this.revenueEntryRepo.getRevenueByBarber(desdeDate, hastaDate),
     ]);
 
-    const revenueMap = new Map(barberRevenue.map(r => [r.barberId, r.total]));
+    const revenueMap = new Map(barberRevenue.map(r => [r.barberId.toString(), r.total]));
     const seenBarberIds = new Set(appointmentData.map(e => e.barberId.toString()));
 
     const result: DistribucionEntry[] = appointmentData.map(e => ({
@@ -466,9 +466,10 @@ export class MongoAnalyticsRepository {
     }));
 
     for (const r of barberRevenue) {
-      if (!seenBarberIds.has(r.barberId)) {
+      const barberId = r.barberId.toString();
+      if (!seenBarberIds.has(barberId)) {
         result.push({
-          barberId: r.barberId,
+          barberId,
           nombre: '',
           cantidad: 0,
           ingresos: r.total,

@@ -104,14 +104,6 @@ const clientSchema = new Schema<IClientBase>(
 clientSchema.index({ name: 1 });
 clientSchema.index({ lastname: 1 });
 
-clientSchema.pre('save', function () {
-  const doc = this as IClientBase & { email?: string };
-
-  if (!doc.phone && !doc.contactEmail && !doc.email) {
-    throw new Error('Debe incluir phone, contactEmail o email.');
-  }
-});
-
 const Client = mongoose.model<IClientBase>('Client', clientSchema);
 
 const registeredClientSchema = new Schema<IRegisteredClient>(

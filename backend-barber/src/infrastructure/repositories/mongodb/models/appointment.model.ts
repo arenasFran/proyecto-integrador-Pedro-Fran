@@ -128,7 +128,7 @@ const appointmentSchema = new Schema<IAppointmentDocument>(
     },
     paymentMethod: {
       type: String,
-      enum: ['local', 'online', 'memberPass'],
+      enum: ['local', 'memberPass'],
       default: 'local',
     },
     cancelReason: {

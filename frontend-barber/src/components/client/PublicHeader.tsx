@@ -42,8 +42,8 @@ export const PublicHeader: React.FC = () => {
   return (
     <header className="sticky top-0 z-50 border-b border-[#282828] bg-[#121212]">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-2">
-           <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-10 w-auto sm:h-16" />
+        <Link to="/" aria-label="Barbería SA, inicio" className="flex items-center gap-2">
+          <img src="/logo-barberia-notittle.webp" alt="" className="h-10 w-auto object-contain" />
           <span className="hidden sm:inline text-[15px] font-bold text-white">Barbería SA</span>
         </Link>
 

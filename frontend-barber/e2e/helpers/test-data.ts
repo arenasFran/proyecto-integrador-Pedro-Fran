@@ -7,6 +7,8 @@ export interface TestUser {
   name: string;
   lastname: string;
   phone: string;
+  termsVersion: string;
+  privacyVersion: string;
 }
 
 const uniqueId = () => `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
@@ -30,6 +32,8 @@ export const buildTestUser = (): TestUser => {
     name: `Test${id.slice(-3)}`,
     lastname: `User${id.slice(-2)}`,
     phone: `+598${randomDigits(9)}`,
+    termsVersion: '1.0',
+    privacyVersion: '1.0',
   };
 };
 

@@ -1,6 +1,6 @@
 export type MembershipStatus = 'active' | 'expired' | 'pending';
 export type MembershipSource = 'client' | 'admin';
-export type PaymentMethod = 'mercadopago' | 'local' | null;
+export type PaymentMethod = 'local' | null;
 export type BillingCycle = 'onetime' | null;
 
 export type Membership = {
@@ -29,6 +29,7 @@ export type MyMembershipResponse = {
   active: Membership | null;
   pending: Membership | null;
   history: Membership[];
+  membershipPrice: number;
 };
 
 export type CreateMembershipPayload = {
@@ -47,7 +48,7 @@ export type MembershipTransaction = {
   userId: string;
   membershipId: string;
   amount: number;
-  paymentMethod: 'mercadopago' | 'local';
+  paymentMethod: 'local';
   mpPaymentId?: string;
   createdBy: 'client' | 'admin';
   adminId?: string;

@@ -29,6 +29,10 @@ export class SendTwoFactorCodeUseCase {
       throw new AppError('Email y/o contraseña incorrectos.', 401);
     }
 
+    if (user.kind === 'Registrado') {
+      throw new AppError('Los clientes ingresan con su contraseña, sin código de verificación.', 403);
+    }
+
     if (!user.passwordHash) {
       throw new AppError(
         'Este usuario se registró con Google, usá ese método para ingresar.',

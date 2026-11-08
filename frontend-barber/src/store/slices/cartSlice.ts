@@ -9,7 +9,6 @@ export type CartItem = {
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
-  checkoutPreferenceId: string | null;
 }
 
 const CART_STORAGE_KEY = 'barberia_cart';
@@ -37,7 +36,6 @@ function saveCart(items: CartItem[]): void {
 const initialState: CartState = {
   items: loadCart(),
   isOpen: false,
-  checkoutPreferenceId: null,
 };
 
 const cartSlice = createSlice({
@@ -77,12 +75,6 @@ const cartSlice = createSlice({
     },
     toggleCart: (state) => {
       state.isOpen = !state.isOpen;
-    },
-    setCheckoutResult: (state, action: PayloadAction<{ preferenceId: string }>) => {
-      state.checkoutPreferenceId = action.payload.preferenceId;
-    },
-    clearCheckoutResult: (state) => {
-      state.checkoutPreferenceId = null;
     },
     syncWithProducts: (state, action: PayloadAction<Product[]>) => {
       const validIds = new Set(action.payload.map((p) => p.id));
@@ -134,8 +126,6 @@ export const {
   openCart,
   closeCart,
   toggleCart,
-  setCheckoutResult,
-  clearCheckoutResult,
   syncWithProducts,
   replaceItems,
 } = cartSlice.actions;

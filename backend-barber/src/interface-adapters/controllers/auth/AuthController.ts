@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { RefreshTokenUseCase } from '../../../application/use-cases/auth/RefreshTokenUseCase';
 import { RegisterUserUseCase } from '../../../application/use-cases/auth/RegisterUserUseCase';
 import { LogoutUseCase } from '../../../application/use-cases/auth/LogoutUseCase';
+import { LoginUseCase } from '../../../application/use-cases/auth/LoginUseCase';
 import { sendSuccess, sendError } from '../../../common/response';
 import { setRefreshCookie, clearRefreshCookie } from './TwoFactorController';
 
@@ -18,7 +19,8 @@ export class AuthController {
   constructor(
     private readonly registerUser: RegisterUserUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
-    private readonly logoutUseCase: LogoutUseCase
+    private readonly logoutUseCase: LogoutUseCase,
+    private readonly loginUseCase?: LoginUseCase
   ) {}
 
   register = async (req: Request, res: Response) => {
@@ -27,6 +29,17 @@ export class AuthController {
       return sendSuccess(res, result, 201);
     } catch (error) {
       return sendError(res, error, 'Error al registrar al usuario');
+    }
+  };
+
+  login = async (req: Request, res: Response) => {
+    try {
+      if (!this.loginUseCase) throw new Error('Login no disponible');
+      const result = await this.loginUseCase.execute(req.body);
+      if ('refreshToken' in result) setRefreshCookie(res, result.refreshToken);
+      return sendSuccess(res, result, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al iniciar sesión');
     }
   };
 

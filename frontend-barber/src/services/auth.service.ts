@@ -53,6 +53,10 @@ export interface LoginResponse {
   refreshToken: string;
 }
 
+export type LoginAttemptResponse =
+  | LoginResponse
+  | { requiresTwoFactor: true };
+
 export interface TwoFactorSendResponse {
   message: string;
 }
@@ -96,6 +100,10 @@ export type UserProfile = {
 };
 
 export const authService = {
+  login: async (data: LoginData): Promise<LoginAttemptResponse> => {
+    const response = await api.post<LoginAttemptResponse>('/auth/login', data);
+    return response.data;
+  },
   getProfile: async (): Promise<UserProfile> => {
     const response = await api.get<UserProfile>('/api/users/me');
     return response.data;

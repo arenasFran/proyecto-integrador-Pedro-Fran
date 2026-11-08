@@ -57,7 +57,7 @@ describe('Membership routes', () => {
     const userRepo = makeMockUserRepository();
     const transactionRepo = makeMockMembershipTransactionRepository();
     approvePendingUseCase = { execute: jest.fn() };
-    const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, undefined, undefined, undefined, approvePendingUseCase as any);
+    const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, approvePendingUseCase as any);
 
     app = express();
     app.use(express.json());
@@ -93,7 +93,7 @@ describe('Membership routes', () => {
       const response = await request(empleadoApp).get(`/api/memberships/user/${userId}`);
 
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ active: null, pending: null, history: [] });
+      expect(response.body).toEqual({ active: null, pending: null, history: [], membershipPrice: 399 });
     });
 
     it('debe retornar 403 si quien pide no es Admin ni Empleado', async () => {
@@ -190,7 +190,7 @@ describe('Membership routes', () => {
       const transactionRepo = makeMockMembershipTransactionRepository();
       const paymentRepo = { save: jest.fn() };
       const createMembershipUseCase = new CreateMembershipUseCase(membershipRepo as any, userRepo as any, transactionRepo as any, paymentRepo as any);
-      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, undefined, undefined, createMembershipUseCase);
+      const controller = new MembershipController(membershipRepo as any, userRepo as any, transactionRepo as any, createMembershipUseCase);
       const staffAppLocal = express();
       staffAppLocal.use(express.json());
       staffAppLocal.use('/api/memberships', createMembershipRouter({ membershipController: controller, authenticate: authenticateStaff as any }));

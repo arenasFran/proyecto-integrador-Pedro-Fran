@@ -13,7 +13,7 @@ async function runRepair() {
       { _id: 1 },
     ).lean();
     const referenceIds = membershipAppointments.map((appointment) => appointment._id.toString());
-    const filter = { source: 'appointment', referenceId: { $in: referenceIds } };
+    const filter = { source: 'appointment' as const, referenceId: { $in: referenceIds } };
     const affected = await RevenueEntryModel.find(filter, { _id: 1, referenceId: 1, amount: 1 }).lean();
 
     console.log(`[REPAIR] Ingresos de turnos memberPass encontrados: ${affected.length}`);

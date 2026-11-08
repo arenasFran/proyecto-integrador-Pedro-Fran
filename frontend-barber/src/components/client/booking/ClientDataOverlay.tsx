@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiAward, FiCreditCard, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar, FiX, FiArrowRight } from 'react-icons/fi';
+import { FiAward, FiHome, FiUser, FiPhone, FiMail, FiScissors, FiClock, FiCalendar, FiX, FiArrowRight } from 'react-icons/fi';
 import { Button, Input } from '../../common';
 import { formatDate } from '../../../utils/formatDate';
 import type { BarberPublic, PaymentMethod, Service } from '../../../types/booking';
@@ -299,21 +299,6 @@ export const ClientDataOverlay: React.FC<ClientDataOverlayProps> = ({
                   </a>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => onPaymentMethodChange('online')}
-                  className={`flex items-center gap-3 rounded-[10px] border px-4 py-3 text-left text-[13px] transition-all ${
-                    paymentMethod === 'online'
-                      ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-white'
-                      : 'border-[#282828] bg-[#1A1A1A] text-[#8A8A8A] hover:border-[#555]'
-                  }`}
-                >
-                  <FiCreditCard className="shrink-0" size={16} />
-                  <div>
-                    <p className="font-medium">Pagar online</p>
-                    <p className="text-[11px] text-[#6A6A6A]">Aboná con MercadoPago</p>
-                  </div>
-                </button>
               </div>
             </div>
 

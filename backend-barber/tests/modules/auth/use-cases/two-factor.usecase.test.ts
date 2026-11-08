@@ -18,7 +18,7 @@ describe('TwoFactor use cases', () => {
       name: 'Juan',
       lastname: 'Perez',
       phone: '123456789',
-      kind: 'Registrado',
+      kind: 'Empleado',
       authProvider: 'local',
       passwordHash: 'hash',
       twoFactor: {

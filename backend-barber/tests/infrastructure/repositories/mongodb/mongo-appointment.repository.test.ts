@@ -264,26 +264,4 @@ describeIfMongo('MongoAppointmentRepository', () => {
     });
   });
 
-  describe('cancelPendingPaymentsOlderThan', () => {
-    it('debe cancelar turnos online con pago pendiente vencidos', async () => {
-      const created = await repository.create(makeData({ paymentMethod: 'online', paymentStatus: 'Pendiente' }));
-      await AppointmentModel.collection.updateOne({ _id: new mongoose.Types.ObjectId(created.id) }, { $set: { createdAt: new Date('2020-01-01') } });
-
-      const count = await repository.cancelPendingPaymentsOlderThan(new Date('2025-01-01'));
-
-      expect(count).toBe(1);
-      const updated = await repository.findById(created.id);
-      expect(updated!.status).toBe('Cancelado');
-      expect(updated!.cancelReason).toBe('Pago pendiente expirado');
-    });
-
-    it('no debe tocar turnos con pago local', async () => {
-      const created = await repository.create(makeData({ paymentMethod: 'local', paymentStatus: 'Pendiente' }));
-      await AppointmentModel.collection.updateOne({ _id: new mongoose.Types.ObjectId(created.id) }, { $set: { createdAt: new Date('2020-01-01') } });
-
-      const count = await repository.cancelPendingPaymentsOlderThan(new Date('2025-01-01'));
-
-      expect(count).toBe(0);
-    });
-  });
 });

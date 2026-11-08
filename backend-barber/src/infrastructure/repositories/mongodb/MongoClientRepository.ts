@@ -114,7 +114,14 @@ export class MongoClientRepository {
     return toClientEntity(doc);
   }
 
-  async createUnregistered(data: UnregisteredClientData): Promise<Client> {
+  async createUnregistered(
+    data: UnregisteredClientData,
+    options: { allowNoContact?: boolean } = {}
+  ): Promise<Client> {
+    if (!data.phone && !data.contactEmail && !options.allowNoContact) {
+      throw new AppError('El cliente debe tener teléfono o correo de contacto.', 400);
+    }
+
     try {
       const doc = await UnregisteredClient.create({
         name: data.name,

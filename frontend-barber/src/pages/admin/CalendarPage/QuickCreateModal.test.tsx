@@ -32,7 +32,7 @@ vi.mock('../../../services/service.api', () => ({
 }));
 
 vi.mock('../../../services/appointmentApi', () => ({
-  useCreateAppointmentMutation: vi.fn(() => [mockCreateAppointment, { isLoading: false }]),
+  useCreateAdminAppointmentMutation: vi.fn(() => [mockCreateAppointment, { isLoading: false }]),
   useAcquireTempLockMutation: vi.fn(() => [mockAcquireTempLock, { isLoading: false }]),
   useReleaseTempLockMutation: vi.fn(() => [mockReleaseTempLock, { isLoading: false }]),
   useLazySearchClientsQuery: vi.fn(() => [vi.fn(), { data: mockSearchClients, isFetching: false }]),

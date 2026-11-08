@@ -1,17 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiShoppingCart, FiSearch, FiCreditCard, FiMapPin, FiX } from 'react-icons/fi';
+import { FiShoppingCart, FiSearch, FiX } from 'react-icons/fi';
 import { CartDrawer } from '../../../components/client/ecommerce/CartDrawer';
 import ProductList from '../../../components/product/ProductList';
-import PaymentModal from '../../../components/payment/PaymentModal';
 import { useGetProductsQuery, useGetCategoriesQuery } from '../../../services/productApi';
-import { useAppDispatch, useAppSelector } from '../../../store/hooks';
-import { addItem, openCart, clearCheckoutResult } from '../../../store/slices/cartSlice';
+import { useAppDispatch } from '../../../store/hooks';
+import { addItem, openCart } from '../../../store/slices/cartSlice';
 import { getAccessToken } from '../../../services/api';
 import { useCreateOrderMutation } from '../../../services/orderApi';
 import type { Product } from '../../../types/product';
-import { Button } from '../../../components/common';
-import { formatCurrency } from '../../../utils/formatCurrency';
 import { useGetMyMembershipQuery } from '../../../services/membershipApi';
 
 export default function ShopPage() {
@@ -19,11 +16,8 @@ export default function ShopPage() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [preferenceId, setPreferenceId] = useState('');
   const [buyNowProduct, setBuyNowProduct] = useState<Product | null>(null);
 
-  const checkoutPrefId = useAppSelector((state) => state.cart.checkoutPreferenceId);
   const token = getAccessToken();
   const { data: membershipData } = useGetMyMembershipQuery(undefined, { skip: !token });
   const memberDiscount = membershipData?.active?.productDiscount ?? 0;
@@ -39,10 +33,6 @@ export default function ShopPage() {
   const categories = categoriesData?.categories ?? [];
   const products = productsData?.products ?? [];
 
-  const isCheckoutPref = !!checkoutPrefId;
-  const effectivePreferenceId = preferenceId || checkoutPrefId || '';
-  const isPaymentModalOpen = showPaymentModal || isCheckoutPref;
-
   const handleAddToCart = (product: Product) => {
     dispatch(addItem({ product }));
   };
@@ -56,31 +46,18 @@ export default function ShopPage() {
     setBuyNowProduct(product);
   };
 
-  const handleBuyNowPayment = async (paymentMethod: 'online' | 'local') => {
+  const handleBuyNowConfirm = async () => {
     if (!buyNowProduct) return;
     try {
-      const result = await createOrder({
+      await createOrder({
         items: [{ productId: buyNowProduct.id, quantity: 1 }],
-        paymentMethod,
+        paymentMethod: 'local',
       }).unwrap();
       setBuyNowProduct(null);
 
-      if (paymentMethod === 'online' && result.preferenceId) {
-        setPreferenceId(result.preferenceId);
-        setShowPaymentModal(true);
-      } else {
-        navigate('/mis-ordenes');
-      }
+      navigate('/mis-ordenes');
     } catch {
       // El error de creación de orden se ignora: la UI ya muestra el fallo del flujo.
-    }
-  };
-
-  const handlePaymentClose = () => {
-    setShowPaymentModal(false);
-    setPreferenceId('');
-    if (checkoutPrefId) {
-      dispatch(clearCheckoutResult());
     }
   };
 
@@ -92,7 +69,7 @@ export default function ShopPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="w-full max-w-sm rounded-[24px] border border-[#282828] bg-[#121212] p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-[16px] font-bold text-white">Elegí cómo pagar</h2>
+              <h2 className="text-[16px] font-bold text-white">Confirmar compra</h2>
               <button
                 onClick={() => setBuyNowProduct(null)}
                 className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#8A8A8A] hover:text-white hover:bg-[#1A1A1A] transition-colors"
@@ -101,26 +78,13 @@ export default function ShopPage() {
               </button>
             </div>
             <p className="text-[13px] text-[#8A8A8A] mb-5">
-              <span className="text-white font-medium">{buyNowProduct.name}</span> — {formatCurrency(buyNowProduct.price)}
+              <span className="text-white font-medium">{buyNowProduct.name}</span>
             </p>
+            <p className="text-[12px] text-[#8A8A8A] mb-5">Pagás al retirar tu compra en el local.</p>
             <div className="flex flex-col gap-2">
-              <Button
-                className="w-full"
-                icon={FiCreditCard}
-                onClick={() => handleBuyNowPayment('online')}
-                loading={isCreatingOrder}
-              >
-                Pagar online con MercadoPago
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                icon={FiMapPin}
-                onClick={() => handleBuyNowPayment('local')}
-                loading={isCreatingOrder}
-              >
-                Pago al levantar en el local
-              </Button>
+              <button className="w-full rounded-xl bg-[#FF5C00] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50" onClick={() => void handleBuyNowConfirm()} disabled={isCreatingOrder}>
+                {isCreatingOrder ? 'Creando orden…' : 'Confirmar compra'}
+              </button>
             </div>
           </div>
         </div>
@@ -190,12 +154,6 @@ export default function ShopPage() {
         />
       </div>
 
-      <PaymentModal
-        isOpen={isPaymentModalOpen}
-        preferenceId={effectivePreferenceId}
-        onClose={handlePaymentClose}
-        title="Pagar orden"
-      />
     </div>
   );
 }

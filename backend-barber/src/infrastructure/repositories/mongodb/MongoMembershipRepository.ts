@@ -190,6 +190,7 @@ export class MongoMembershipRepository {
           endDate,
           approvedBy,
           approvedAt: now,
+          paymentMethod: 'local',
           updatedAt: now,
         },
       },

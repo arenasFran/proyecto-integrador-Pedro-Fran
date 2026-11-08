@@ -65,6 +65,12 @@ const authSlice = createSlice({
       .addCase(updateCurrentUser.fulfilled, (state, action) => {
         state.user = action.payload;
       })
+      .addMatcher(authApi.endpoints.login.matchFulfilled, (state, action) => {
+        if ('token' in action.payload) {
+          state.loginToken = action.payload.token;
+          setAccessToken(action.payload.token);
+        }
+      })
       .addMatcher(authApi.endpoints.verifyTwoFactorCode.matchFulfilled, (state, action) => {
         state.loginToken = action.payload.token;
         setAccessToken(action.payload.token);

@@ -14,7 +14,7 @@ export interface IMembershipDocument extends Document {
   billingCycle: 'onetime' | null;
   createdBy: MembershipSource;
   adminId?: mongoose.Types.ObjectId;
-  paymentMethod: 'mercadopago' | 'local' | null;
+  paymentMethod: 'local' | null;
   paymentId?: string;
   approvedBy?: string;
   approvedAt?: Date;
@@ -58,7 +58,7 @@ const membershipSchema = new Schema<IMembershipDocument>(
     },
     paymentMethod: {
       type: String,
-      enum: ['mercadopago', 'local', null],
+      enum: ['local', null],
       default: null,
     },
     paymentId: {

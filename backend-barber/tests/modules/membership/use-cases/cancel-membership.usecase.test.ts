@@ -16,7 +16,7 @@ const makeMembership = (overrides: Partial<{ status: 'pending' | 'active' | 'exp
     durationDays: 30,
     billingCycle: 'onetime',
     createdBy: 'client',
-    paymentMethod: 'mercadopago',
+    paymentMethod: 'local',
     createdAt: new Date(),
     updatedAt: new Date(),
   });

@@ -13,14 +13,7 @@ const STATUS_CONFIG: Partial<Record<OrderStatus, { label: string; bg: string; te
 const UNKNOWN_STATUS = { label: 'Estado no disponible', bg: 'bg-gray-500/10', text: 'text-gray-400', icon: <FiPackage size={12} /> };
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  account_money: 'Mercado Pago',
-  visa: 'Visa',
-  master: 'Mastercard',
-  amex: 'American Express',
   local: 'Pago al levantar',
-  online: 'Pago online',
-  debvisa: 'Visa Debito',
-  debmaster: 'Mastercard Debito',
 };
 
 function getPaymentMethodLabel(method?: string): string {

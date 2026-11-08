@@ -71,7 +71,7 @@ export const BarberSelectionStep: React.FC<BarberSelectionStepProps> = ({
           </div>
         ) : (
           <>
-            <motion.div variants={barberListVariants} initial={reduceMotion ? false : 'hidden'} animate="visible" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <motion.div variants={barberListVariants} initial={reduceMotion ? false : 'hidden'} animate="visible" className="mx-auto grid w-full max-w-[520px] grid-cols-2 gap-4">
               {barbers.map((barber) => (
                 <motion.div
                   key={barber.id}

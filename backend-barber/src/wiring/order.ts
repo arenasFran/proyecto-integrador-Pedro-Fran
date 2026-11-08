@@ -1,6 +1,7 @@
 import { MongoOrderRepository } from '../infrastructure/repositories/mongodb/MongoOrderRepository';
 import { MongoProductRepository } from '../infrastructure/repositories/mongodb/MongoProductRepository';
 import { MongoMembershipRepository } from '../infrastructure/repositories/mongodb/MongoMembershipRepository';
+import { MongoPaymentRepository } from '../infrastructure/repositories/mongodb/MongoPaymentRepository';
 import { CreateOrderUseCase } from '../application/use-cases/product/CreateOrderUseCase';
 import { GetOrderUseCase } from '../application/use-cases/product/GetOrderUseCase';
 import { UpdateOrderStatusUseCase } from '../application/use-cases/product/UpdateOrderStatusUseCase';
@@ -8,8 +9,6 @@ import { CreateManualOrderUseCase } from '../application/use-cases/product/Creat
 import { DeleteOrderUseCase } from '../application/use-cases/product/DeleteOrderUseCase';
 import { OrderController } from '../interface-adapters/controllers/product/OrderController';
 import { createOrderRouter } from '../interface-adapters/routes/order.routes';
-import { buildPaymentDependencies } from './payment';
-import { CreatePaymentUseCase } from '../application/use-cases/payment/CreatePaymentUseCase';
 import { buildTokenService } from './auth';
 import { createAuthenticate } from '../interface-adapters/middlewares/auth.middleware';
 import { NodemailerEmailService } from '../infrastructure/services/NodemailerEmailService';
@@ -22,18 +21,15 @@ export const buildOrderRouter = () => {
   const orderRepository = new MongoOrderRepository();
   const productRepository = new MongoProductRepository();
   const membershipRepository = new MongoMembershipRepository();
-  const { paymentRepository, mercadoPagoService } = buildPaymentDependencies();
+  const paymentRepository = new MongoPaymentRepository();
   const revenueEntryRepository = new MongoRevenueEntryRepository();
   const revenueTracker = new RevenueTracker(revenueEntryRepository);
   const orderStockService = new OrderStockService(productRepository);
-
-  const createPaymentUseCase = new CreatePaymentUseCase(paymentRepository, mercadoPagoService);
 
   const createOrderUseCase = new CreateOrderUseCase(
     orderRepository,
     productRepository,
     membershipRepository,
-    createPaymentUseCase,
     paymentRepository,
     revenueTracker,
   );

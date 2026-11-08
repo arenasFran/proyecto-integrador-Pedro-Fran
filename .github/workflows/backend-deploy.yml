@@ -79,6 +79,8 @@ jobs:
             echo "Escribiendo .env..."
             echo '${{ secrets.ENV_FILE }}' > .env
 
+            node -e 'const dotenv = require("dotenv"); const config = dotenv.parse(require("fs").readFileSync(".env")); const raw = config.MEMBERSHIP_PRICE_UYU; const value = raw === undefined || raw === "" ? 1600 : Number(raw); console.log("Effective membership price: " + (Number.isInteger(value) && value > 0 ? value : 1600));'
+
             echo "Reiniciando con PM2..."
             pm2 reload ecosystem.config.js 2>/dev/null || pm2 start ecosystem.config.js
             pm2 save

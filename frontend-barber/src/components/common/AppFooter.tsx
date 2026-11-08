@@ -81,7 +81,7 @@ export const AppFooter: React.FC = () => {
       </div>
       <div className="flex justify-between items-center pt-6 text-xs text-[#8A8A8A] flex-wrap gap-3">
         <span>&copy; {new Date().getFullYear()} Barbería SA. Todos los derechos reservados.</span>
-        <span>Montevideo, Uruguay</span>
+        <span>Colonia del Sacramento, Uruguay</span>
       </div>
     </footer>
   );

@@ -960,8 +960,8 @@ export const LandingPage: React.FC = () => {
                     </div>
                     <iframe
                       className="contact-map-frame"
-                      title="Ubicación de Barbería SA en Avenida Artigas 397"
-                      src="https://www.google.com/maps?q=Avenida+Artigas+397,+Montevideo,+Uruguay&output=embed"
+                      title="Ubicación de Barbería SA en Avenida Artigas 397, Colonia del Sacramento"
+                      src="https://www.google.com/maps?q=Avenida+Artigas+397,+Colonia+del+Sacramento,+Uruguay&output=embed"
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     />
@@ -1045,7 +1045,7 @@ export const LandingPage: React.FC = () => {
             <div><h3>Navegar</h3><button type="button" onClick={() => scrollTo('servicios')}>Servicios</button><button type="button" onClick={() => scrollTo('tienda')}>Tienda</button><button type="button" onClick={() => scrollTo('nosotros')}>Nosotros</button><button type="button" onClick={() => scrollTo('contacto')}>Contacto</button></div>
             <div><h3>Seguinos</h3><a href="https://www.instagram.com/barberiasantiagoabbona/" target="_blank" rel="noopener noreferrer">Instagram <FiArrowUpRight /></a><a href="https://wa.me/59892757877" target="_blank" rel="noopener noreferrer">WhatsApp <FiArrowUpRight /></a></div>
           </div>
-          <div className="landing-footer-bottom"><span>&copy; {new Date().getFullYear()} Barbería SA</span><span>Montevideo, Uruguay</span><span>Todos los derechos reservados</span></div>
+          <div className="landing-footer-bottom"><span>&copy; {new Date().getFullYear()} Barbería SA</span><span>Colonia del Sacramento, Uruguay</span><span>Todos los derechos reservados</span></div>
         </div>
       </footer>
     </div>

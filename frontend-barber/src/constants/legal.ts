@@ -212,7 +212,7 @@ export const legalDocuments: LegalDocument[] = [
         blocks: [
           {
             kind: 'p',
-            text: 'Estos Términos y Condiciones se rigen por las leyes de la República Oriental del Uruguay. Para cualquier controversia será competente la justicia ordinaria de Montevideo, sin perjuicio de los derechos que la legislación de defensa del consumidor reconoce a los usuarios.',
+            text: 'Estos Términos y Condiciones se rigen por las leyes de la República Oriental del Uruguay. Para cualquier controversia será competente la justicia ordinaria de Colonia del Sacramento, sin perjuicio de los derechos que la legislación de defensa del consumidor reconoce a los usuarios.',
           },
         ],
       },

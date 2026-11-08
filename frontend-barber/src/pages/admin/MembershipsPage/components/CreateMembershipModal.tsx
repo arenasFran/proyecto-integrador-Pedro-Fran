@@ -18,7 +18,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
   const [backendSearch, setBackendSearch] = useState('');
   const [selectedClient, setSelectedClient] = useState<ClienteData | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'local' | 'courtesy'>('local');
-  const [price, setPrice] = useState<string>('399');
+  const [price, setPrice] = useState<string>('1600');
   const [couponsTotal, setCouponsTotal] = useState<string>('4');
   const [productDiscount, setProductDiscount] = useState<string>('10');
   const [durationDays, setDurationDays] = useState<string>('30');
@@ -125,7 +125,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
     setBackendSearch('');
     setShowList(false);
     setPaymentMethod('local');
-    setPrice('399');
+    setPrice('1600');
     setCouponsTotal('4');
     setProductDiscount('10');
     setDurationDays('30');
@@ -294,7 +294,7 @@ export const CreateMembershipModal: React.FC<CreateMembershipModalProps> = ({ is
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => { setPaymentMethod('local'); if (price === '0') setPrice('399'); }}
+                    onClick={() => { setPaymentMethod('local'); if (price === '0') setPrice('1600'); }}
                     className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-[10px] border text-[13px] font-medium transition-colors min-h-[44px] ${
                       paymentMethod === 'local'
                         ? 'border-[#FF5C00] bg-[#FF5C00]/10 text-[#FF5C00]'

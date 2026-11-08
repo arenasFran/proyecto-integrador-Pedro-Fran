@@ -142,15 +142,15 @@ export async function runFullSeed() {
   // ── 6. Memberships ─────────────────────────────────
   const memberClients = [0, 1, 2, 3, 4]; // todos tienen membresia
   const membershipsData = [
-    { clientIdx: 0, status: 'active', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
+    { clientIdx: 0, status: 'active', price: 1600, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -15, couponsTotal: 4, couponsUsed: 1, productDiscount: 10 },
-    { clientIdx: 1, status: 'active', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
+    { clientIdx: 1, status: 'active', price: 1600, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -5, couponsTotal: 4, couponsUsed: 2, productDiscount: 15 },
     { clientIdx: 2, status: 'active', price: 0, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -45, couponsTotal: 6, couponsUsed: 0, productDiscount: 25 },
-    { clientIdx: 3, status: 'expired', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
+    { clientIdx: 3, status: 'expired', price: 1600, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -60, couponsTotal: 4, couponsUsed: 4, productDiscount: 10 },
-    { clientIdx: 4, status: 'cancelled', price: 399, paymentMethod: 'local', billingCycle: 'onetime',
+    { clientIdx: 4, status: 'cancelled', price: 1600, paymentMethod: 'local', billingCycle: 'onetime',
       daysOffset: -120, couponsTotal: 4, couponsUsed: 0, productDiscount: 10 },
   ] as const;
   const membershipIds: string[] = [];

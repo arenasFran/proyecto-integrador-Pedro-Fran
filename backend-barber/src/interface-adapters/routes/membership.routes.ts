@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import rateLimit from 'express-rate-limit';
 import { MembershipController } from '../controllers/membership/MembershipController';
 import { createAuthenticate } from '../middlewares/auth.middleware';
@@ -29,6 +29,13 @@ const membershipMutationLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const preventMembershipSummaryCache: RequestHandler = (req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+  req.headers['if-none-match'] = '';
+  req.headers['if-modified-since'] = '';
+  next();
+};
+
 export const createMembershipRouter = (deps: {
   membershipController: MembershipController;
   authenticate: ReturnType<typeof createAuthenticate>;
@@ -38,6 +45,7 @@ export const createMembershipRouter = (deps: {
   router.get(
     '/mine',
     deps.authenticate,
+    preventMembershipSummaryCache,
     deps.membershipController.getMyMembership
   );
 
@@ -96,6 +104,7 @@ export const createMembershipRouter = (deps: {
     membershipLimiter,
     deps.authenticate,
     authorize('Admin', 'Empleado'),
+    preventMembershipSummaryCache,
     validate({ params: membershipUserIdParamSchema }),
     deps.membershipController.getByUserId
   );

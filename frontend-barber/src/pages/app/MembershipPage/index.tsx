@@ -305,7 +305,7 @@ export default function MembershipPage() {
             ¿No tenés membresía? Conseguí la tuya: cuatro cortes por mes y 10% de descuento en productos. Pagás en el local.
           </p>
           <p className="mt-3 text-[16px] font-semibold text-white">
-            {formatCurrency(data?.membershipPrice ?? 0)} por mes
+            {formatCurrency(1600)} por mes
           </p>
           <div className="mx-auto mt-6 grid max-w-lg gap-3 sm:grid-cols-2">
             <div className="rounded-xl border border-[#292929] bg-[#181818] p-4 text-left">

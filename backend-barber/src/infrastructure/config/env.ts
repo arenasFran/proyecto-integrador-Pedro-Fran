@@ -148,7 +148,7 @@ export function loadConfig(): Config {
     cloudinaryCloudName: requireEnv('CLOUDINARY_CLOUD_NAME'),
     cloudinaryApiKey: requireEnv('CLOUDINARY_API_KEY'),
     cloudinaryApiSecret: requireEnv('CLOUDINARY_API_SECRET'),
-    membershipPriceUyu: parseIntEnv('MEMBERSHIP_PRICE_UYU', 1600),
+    membershipPriceUyu: 1600,
     awsRegion: optionalEnv('AWS_REGION', 'us-east-1'),
     awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
     awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,

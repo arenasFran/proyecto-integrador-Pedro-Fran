@@ -390,9 +390,23 @@ export const LandingPage: React.FC = () => {
   }, []);
 
   const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+    const scrollToSection = () => {
+      const section = document.getElementById(id);
+      if (!section) return;
+
+      const headerHeight = document.querySelector('.landing-header')?.getBoundingClientRect().height ?? 0;
+      const top = section.getBoundingClientRect().top + window.scrollY - headerHeight - 12;
+      window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
+    };
+    const wasMobileMenuOpen = mobileMenuOpen;
     setMobileMenuOpen(false);
     setSectionMenuOpen(false);
+    if (wasMobileMenuOpen) {
+      // Let the animated menu collapse before measuring the section's position.
+      window.setTimeout(scrollToSection, 320);
+    } else {
+      scrollToSection();
+    }
   };
 
   const goTo = (path: string) => {

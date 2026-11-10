@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Modal, Select, Button, useToast } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
 import { professionalService } from '../../../services/professional.service';
-import { getAccessToken } from '../../../services/api';
+import api, { getAccessToken } from '../../../services/api';
 import { getTokenUser } from '../../../utils/token';
 import { SlotTimePicker } from './SlotTimePicker';
 import type { BarberPublic, BarberBlock } from '../../../types/booking';
@@ -125,28 +125,14 @@ export const BlockModal: React.FC<BlockModalProps> = ({ dateStr, onClose, onBloc
     setLocalError(null);
 
     try {
-      const token = getAccessToken();
-      const res = await fetch(`/api/barbers/${barberId}/blocks`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          date: dateStr,
-          startTime,
-          endTime,
-        }),
+      const res = await api.post<{ block?: BarberBlock }>(`/api/barbers/${barberId}/blocks`, {
+        date: dateStr,
+        startTime,
+        endTime,
       });
 
-      const body = await res.json();
-
-      if (!res.ok) {
-        throw new Error(body.error || 'Error al crear bloque');
-      }
-
-      if (body.block && onBlockCreated) {
-        onBlockCreated(body.block as BarberBlock);
+      if (res.data.block && onBlockCreated) {
+        onBlockCreated(res.data.block);
       }
 
       showToast('Horario bloqueado');

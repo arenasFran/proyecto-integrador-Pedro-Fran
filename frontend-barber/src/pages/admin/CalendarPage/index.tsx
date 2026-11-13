@@ -189,14 +189,14 @@ export const CalendarPage: React.FC = () => {
   }, [columns]);
 
   return (
-    <div className="w-full bg-[#050505] text-white">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 2xl:gap-6">
-        <AnimatedContainer animation="fadeInDown">
+    <div className="w-full bg-[#050505] text-white lg:h-[calc(100vh-2rem)] xl:h-[calc(100vh-2.5rem)] 2xl:h-auto">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 lg:h-full lg:min-h-0 2xl:h-auto 2xl:gap-6">
+        <AnimatedContainer animation="fadeInDown" className="shrink-0">
           <AdminPageHeader compact icon={FiCalendar} title="Calendario" description="Organizá la agenda y creá turnos desde una vista única." />
         </AnimatedContainer>
 
-        <AnimatedContainer animation="fadeInUp" className="rounded-[14px] border border-[#282828] bg-[#121212] p-3 2xl:rounded-[16px] 2xl:p-4">
-          <div className="flex flex-col gap-2 2xl:gap-4">
+        <AnimatedContainer animation="fadeInUp" className="flex flex-col rounded-[14px] border border-[#282828] bg-[#121212] p-3 lg:min-h-0 lg:flex-1 2xl:flex-none 2xl:rounded-[16px] 2xl:p-4">
+          <div className="flex shrink-0 flex-col gap-2 2xl:gap-4">
             <div className="flex items-center justify-end">
               <div className="flex items-center gap-2 2xl:gap-3">
                 <button
@@ -232,8 +232,8 @@ export const CalendarPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="mt-3 hidden lg:block 2xl:mt-6">
-                <div className="mb-2 grid grid-cols-7 gap-2 2xl:mb-4 2xl:gap-4">
+              <div className="mt-3 hidden lg:flex lg:min-h-0 lg:flex-1 lg:flex-col 2xl:mt-6 2xl:block 2xl:flex-none">
+                <div className="mb-2 grid shrink-0 grid-cols-7 gap-2 2xl:mb-4 2xl:gap-4">
                   {WEEKDAY_ABBR.map((abbr) => (
                     <div key={abbr} className="text-center text-[11px] font-bold uppercase tracking-wider text-[#505050] 2xl:text-[13px]">
                       {abbr}
@@ -241,29 +241,30 @@ export const CalendarPage: React.FC = () => {
                   ))}
                 </div>
 
-                <div className="max-h-[calc(100vh-250px)] overflow-y-auto pr-1 2xl:max-h-none 2xl:overflow-visible 2xl:pr-0">
-                  <div className="space-y-2 2xl:space-y-4">
-                    {gridRows.map((row, rowIndex) => (
-                      <div key={rowIndex} className="grid grid-cols-7 gap-2 2xl:gap-4">
-                        {row.map((col, colIndex) => {
-                          if (!col) {
-                            return <div key={`empty-${rowIndex}-${colIndex}`} />;
-                          }
-                          return (
-                            <DayCard
-                              key={col.dateStr}
-                              date={col.date}
-                              appointments={col.dayApps}
-                              blocks={blocksByDate.get(col.dateStr) ?? []}
-                              isToday={isSameDay(col.date, today)}
-                              onShowMore={() => setSelectedDate(col.dateStr)}
-                              onCreateTurno={() => setCreatingDate(col.dateStr)}
-                              onCreateBlock={() => setBlockingDate(col.dateStr)}
-                            />
-                          );
-                        })}
-                      </div>
-                    ))}
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1 2xl:flex-none 2xl:overflow-visible 2xl:pr-0">
+                  <div
+                    className="grid h-full grid-cols-7 gap-2 2xl:h-auto 2xl:gap-4"
+                    style={{ gridTemplateRows: `repeat(${gridRows.length}, minmax(148px, 1fr))` }}
+                  >
+                    {gridRows.flatMap((row, rowIndex) =>
+                      row.map((col, colIndex) => {
+                        if (!col) {
+                          return <div key={`empty-${rowIndex}-${colIndex}`} />;
+                        }
+                        return (
+                          <DayCard
+                            key={col.dateStr}
+                            date={col.date}
+                            appointments={col.dayApps}
+                            blocks={blocksByDate.get(col.dateStr) ?? []}
+                            isToday={isSameDay(col.date, today)}
+                            onShowMore={() => setSelectedDate(col.dateStr)}
+                            onCreateTurno={() => setCreatingDate(col.dateStr)}
+                            onCreateBlock={() => setBlockingDate(col.dateStr)}
+                          />
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>

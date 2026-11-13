@@ -8,6 +8,7 @@ import {
     anonymousQuerySchema,
     appointmentIdParamSchema,
     appointmentQuerySchema,
+    calendarAppointmentQuerySchema,
     cancelAppointmentSchema,
     changeBarberSchema,
     createAppointmentSchema,
@@ -82,6 +83,14 @@ export const createAppointmentRouter = (deps: {
     deps.authenticate,
     validate({ query: appointmentQuerySchema }),
     deps.appointmentController.getSummary
+  );
+
+  router.get(
+    '/calendar',
+    deps.authenticate,
+    authorize('Admin', 'Empleado'),
+    validate({ query: calendarAppointmentQuerySchema }),
+    deps.appointmentController.getCalendar
   );
 
   router.get(

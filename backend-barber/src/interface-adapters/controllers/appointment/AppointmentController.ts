@@ -9,7 +9,7 @@ import { UpdatePaymentStatusUseCase } from '../../../application/use-cases/appoi
 import { sendError, sendSuccess } from '../../../common/response';
 import { AppError } from '../../../domain/errors/AppError';
 import type { AppointmentStatus, PaymentStatus } from '../../../domain/types/appointment';
-import { MongoAppointmentRepository } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
+import { MongoAppointmentRepository, CalendarAppointmentFilters } from '../../../infrastructure/repositories/mongodb/MongoAppointmentRepository';
 import { MongoBarberRepository } from '../../../infrastructure/repositories/mongodb/MongoBarberRepository';
 import { MongoClientRepository } from '../../../infrastructure/repositories/mongodb/MongoClientRepository';
 
@@ -138,6 +138,59 @@ export class AppointmentController {
       }, 200);
     } catch (error) {
       return sendError(res, error, 'Error al obtener turnos');
+    }
+  };
+
+  getCalendar = async (req: Request, res: Response) => {
+    try {
+      const filters: CalendarAppointmentFilters = {
+        dateFrom: req.query.dateFrom as string,
+        dateTo: req.query.dateTo as string,
+      };
+
+      if (req.user?.kind === 'Admin') {
+        if (req.query.barberId) filters.barberId = req.query.barberId as string;
+      } else if (req.user?.kind === 'Empleado') {
+        // El barbero solo ve los turnos propios: ignorar cualquier barberId enviado.
+        filters.barberId = req.user._id;
+      } else {
+        throw new AppError('No tenés permisos para acceder a este recurso', 403);
+      }
+
+      let appointments = (await this.appointmentRepository.findAllByDateRange(filters))
+        .map((a) => a.toPrimitives());
+
+      if (req.query.includeBarber === 'true') {
+        const barbers = await this.barberRepository.findAllBarbers();
+        const barberMap = new Map(
+          barbers.map((b) => [b.id, { name: b.name, lastname: b.lastname, photoUrl: b.photoUrl }])
+        );
+        appointments = appointments.map((a) => ({
+          ...a,
+          barberName: barberMap.has(a.barberId)
+            ? `${barberMap.get(a.barberId)!.name} ${barberMap.get(a.barberId)!.lastname}`
+            : undefined,
+          barberPhotoUrl: barberMap.get(a.barberId)?.photoUrl ?? undefined,
+        }));
+      }
+
+      if (req.query.includeClient === 'true') {
+        const clientIds = [...new Set(appointments.map((a) => a.clientId).filter((id): id is string => !!id))];
+        const clients = await this.clientRepository.findByIds(clientIds);
+        const clientMap = new Map(clients.map((c) => [c.id, { photoUrl: c.photoUrl, registeredAt: c.registeredAt }]));
+        appointments = appointments.map((a) => ({
+          ...a,
+          clientPhotoUrl: a.clientId ? clientMap.get(a.clientId)?.photoUrl ?? undefined : undefined,
+          clientRegisteredAt: a.clientId ? clientMap.get(a.clientId)?.registeredAt ?? undefined : undefined,
+        }));
+      }
+
+      return sendSuccess(res, {
+        appointments,
+        total: appointments.length,
+      }, 200);
+    } catch (error) {
+      return sendError(res, error, 'Error al obtener el calendario de turnos');
     }
   };
 

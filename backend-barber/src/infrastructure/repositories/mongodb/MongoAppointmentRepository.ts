@@ -22,6 +22,12 @@ export type AppointmentFilters = {
   sortDir?: 'asc' | 'desc';
 };
 
+export type CalendarAppointmentFilters = {
+  dateFrom: string;
+  dateTo: string;
+  barberId?: string;
+};
+
 export type PaginatedResult<T> = {
   data: T[];
   total: number;
@@ -89,6 +95,22 @@ export class MongoAppointmentRepository {
     const doc = await query.lean();
     if (!doc) return null;
     return toAppointmentEntity(doc);
+  }
+
+  async findAllByDateRange(filters: CalendarAppointmentFilters): Promise<Appointment[]> {
+    const query: Record<string, unknown> = {
+      date: { $gte: filters.dateFrom, $lte: filters.dateTo },
+    };
+
+    if (filters.barberId) {
+      query.barberId = new mongoose.Types.ObjectId(filters.barberId);
+    }
+
+    const docs = await AppointmentModel.find(query)
+      .sort({ date: 1, startTime: 1 })
+      .lean();
+
+    return docs.map((doc) => toAppointmentEntity(doc));
   }
 
   async findMany(filters: AppointmentFilters): Promise<PaginatedResult<Appointment>> {

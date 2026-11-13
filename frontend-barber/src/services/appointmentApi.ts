@@ -24,6 +24,14 @@ export type QueryParams = {
   sortDir?: 'asc' | 'desc';
 };
 
+export type CalendarAppointmentsParams = {
+  dateFrom: string;
+  dateTo: string;
+  barberId?: string;
+  includeBarber?: string;
+  includeClient?: string;
+};
+
 export const appointmentApi = createApi({
   reducerPath: 'appointmentApi',
   baseQuery: axiosBaseQuery,
@@ -84,6 +92,15 @@ export const appointmentApi = createApi({
         }
         return response.appointments;
       },
+      providesTags: ['Appointments'],
+    }),
+
+    getCalendarAppointments: builder.query<Appointment[], CalendarAppointmentsParams>({
+      query: (params) => ({
+        url: '/api/appointments/calendar',
+        params,
+      }),
+      transformResponse: (response: { appointments: Appointment[]; total: number }) => response.appointments,
       providesTags: ['Appointments'],
     }),
 
@@ -213,6 +230,7 @@ export const {
   useCreateAdminAppointmentMutation,
   useGetAppointmentsQuery,
   useGetAppointmentsPaginatedQuery,
+  useGetCalendarAppointmentsQuery,
   useGetAppointmentsSummaryQuery,
   useGetAppointmentByIdQuery,
   useCancelAppointmentMutation,

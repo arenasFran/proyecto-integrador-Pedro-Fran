@@ -189,35 +189,35 @@ export const CalendarPage: React.FC = () => {
   }, [columns]);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1440px] flex-col gap-6">
+    <div className="w-full bg-[#050505] text-white">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 2xl:gap-6">
         <AnimatedContainer animation="fadeInDown">
-          <AdminPageHeader icon={FiCalendar} title="Calendario" description="Organizá la agenda y creá turnos desde una vista única." />
+          <AdminPageHeader compact icon={FiCalendar} title="Calendario" description="Organizá la agenda y creá turnos desde una vista única." />
         </AnimatedContainer>
 
-        <AnimatedContainer animation="fadeInUp" className="rounded-[16px] border border-[#282828] bg-[#121212] p-4">
-          <div className="flex flex-col gap-4">
+        <AnimatedContainer animation="fadeInUp" className="rounded-[14px] border border-[#282828] bg-[#121212] p-3 2xl:rounded-[16px] 2xl:p-4">
+          <div className="flex flex-col gap-2 2xl:gap-4">
             <div className="flex items-center justify-end">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 2xl:gap-3">
                 <button
                   onClick={goPrev}
-                  className="flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-2 text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors"
+                  className="flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-1.5 text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors 2xl:p-2"
                   aria-label="Anterior"
                 >
                   <FiChevronLeft className="text-base" />
                 </button>
                 <button
                   onClick={goToday}
-                  className="hidden sm:inline-flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-3 py-2 text-[13px] text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors"
+                  className="hidden sm:inline-flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] px-2.5 py-1.5 text-[12px] text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors 2xl:px-3 2xl:py-2 2xl:text-[13px]"
                 >
                   Hoy
                 </button>
-                <span className="text-[14px] font-medium text-white whitespace-nowrap">
+                <span className="whitespace-nowrap text-[13px] font-medium text-white 2xl:text-[14px]">
                   {formatDateRange(days)}
                 </span>
                 <button
                   onClick={goNext}
-                  className="flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-2 text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors"
+                  className="flex items-center justify-center rounded-[10px] border border-[#282828] bg-[#1A1A1A] p-1.5 text-[#8A8A8A] hover:border-[#FF5C00] hover:text-[#FF5C00] transition-colors 2xl:p-2"
                   aria-label="Siguiente"
                 >
                   <FiChevronRight className="text-base" />
@@ -232,41 +232,43 @@ export const CalendarPage: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="hidden lg:block mt-6">
-                <div className="grid grid-cols-7 gap-4 mb-4">
+              <div className="mt-3 hidden lg:block 2xl:mt-6">
+                <div className="mb-2 grid grid-cols-7 gap-2 2xl:mb-4 2xl:gap-4">
                   {WEEKDAY_ABBR.map((abbr) => (
-                    <div key={abbr} className="text-center text-[13px] font-bold uppercase tracking-wider text-[#505050]">
+                    <div key={abbr} className="text-center text-[11px] font-bold uppercase tracking-wider text-[#505050] 2xl:text-[13px]">
                       {abbr}
                     </div>
                   ))}
                 </div>
 
-                <div className="space-y-4">
-                  {gridRows.map((row, rowIndex) => (
-                    <div key={rowIndex} className="grid grid-cols-7 gap-4">
-                      {row.map((col, colIndex) => {
-                        if (!col) {
-                          return <div key={`empty-${rowIndex}-${colIndex}`} />;
-                        }
-                        return (
-                          <DayCard
-                            key={col.dateStr}
-                            date={col.date}
-                            appointments={col.dayApps}
-                            blocks={blocksByDate.get(col.dateStr) ?? []}
-                            isToday={isSameDay(col.date, today)}
-                            onShowMore={() => setSelectedDate(col.dateStr)}
-                            onCreateTurno={() => setCreatingDate(col.dateStr)}
-                            onCreateBlock={() => setBlockingDate(col.dateStr)}
-                          />
-                        );
-                      })}
-                    </div>
-                  ))}
+                <div className="max-h-[calc(100vh-250px)] overflow-y-auto pr-1 2xl:max-h-none 2xl:overflow-visible 2xl:pr-0">
+                  <div className="space-y-2 2xl:space-y-4">
+                    {gridRows.map((row, rowIndex) => (
+                      <div key={rowIndex} className="grid grid-cols-7 gap-2 2xl:gap-4">
+                        {row.map((col, colIndex) => {
+                          if (!col) {
+                            return <div key={`empty-${rowIndex}-${colIndex}`} />;
+                          }
+                          return (
+                            <DayCard
+                              key={col.dateStr}
+                              date={col.date}
+                              appointments={col.dayApps}
+                              blocks={blocksByDate.get(col.dateStr) ?? []}
+                              isToday={isSameDay(col.date, today)}
+                              onShowMore={() => setSelectedDate(col.dateStr)}
+                              onCreateTurno={() => setCreatingDate(col.dateStr)}
+                              onCreateBlock={() => setBlockingDate(col.dateStr)}
+                            />
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-               <div className="mt-6 grid gap-4 md:grid-cols-2 lg:hidden">
+               <div className="mt-3 grid gap-3 md:grid-cols-2 lg:hidden">
                 {columns.map((col) => (
                   <DayCard
                     key={col.dateStr}

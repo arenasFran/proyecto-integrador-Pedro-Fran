@@ -26,6 +26,7 @@ export const makeMockTempLockRepository = () => ({
 export const makeMockAppointmentRepository = () => ({
   findById: jest.fn(),
   findMany: jest.fn(),
+  findAllByDateRange: jest.fn(),
   findByBarberAndDate: jest.fn(),
   findByClientAndDate: jest.fn(),
   findByContactAndDate: jest.fn(),

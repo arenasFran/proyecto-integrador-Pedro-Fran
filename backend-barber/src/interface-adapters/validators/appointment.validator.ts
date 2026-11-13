@@ -44,6 +44,40 @@ export const appointmentQuerySchema = Joi.object({
   sortDir: Joi.string().valid('asc', 'desc'),
 });
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const MAX_CALENDAR_RANGE_DAYS = 31;
+
+// Endpoint de calendario: sin paginación, pero con un tope de rango para que
+// no se puedan pedir años enteros de turnos de una sola vez.
+export const calendarAppointmentQuerySchema = Joi.object({
+  dateFrom: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .required(),
+  dateTo: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .required(),
+  barberId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/),
+  includeBarber: Joi.string().valid('true'),
+  includeClient: Joi.string().valid('true'),
+}).custom((value, helpers) => {
+  const from = Date.parse(`${value.dateFrom}T00:00:00Z`);
+  const to = Date.parse(`${value.dateTo}T00:00:00Z`);
+
+  if (Number.isNaN(from) || Number.isNaN(to)) {
+    return helpers.message({ custom: 'dateFrom y dateTo deben ser fechas válidas.' });
+  }
+  if (to < from) {
+    return helpers.message({ custom: 'dateTo no puede ser anterior a dateFrom.' });
+  }
+  if ((to - from) / MS_PER_DAY > MAX_CALENDAR_RANGE_DAYS) {
+    return helpers.message({
+      custom: `El rango de fechas no puede superar los ${MAX_CALENDAR_RANGE_DAYS} días.`,
+    });
+  }
+
+  return value;
+});
+
 export const appointmentIdParamSchema = Joi.object({
   id: Joi.string().required(),
 });

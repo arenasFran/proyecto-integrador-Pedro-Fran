@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FiCalendar, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { AnimatedContainer, Spinner } from '../../../components/common';
 import api, { getAccessToken } from '../../../services/api';
-import { useGetAppointmentsQuery } from '../../../services/appointmentApi';
+import { useGetCalendarAppointmentsQuery } from '../../../services/appointmentApi';
 import type { Appointment, BarberBlock } from '../../../types/booking';
 import { getTokenUser } from '../../../utils/token';
 import { AppointmentActionModals } from '../AppointmentsPage/AppointmentActionModals';
@@ -24,7 +24,10 @@ function startOfDay(d: Date): Date {
 }
 
 function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function addDays(d: Date, n: number): Date {
@@ -88,10 +91,9 @@ export const CalendarPage: React.FC = () => {
   const tokenUser = getTokenUser(getAccessToken());
   const employeeBarberId = tokenUser?.kind === 'Empleado' ? tokenUser.id : undefined;
 
-  const { data: appointments = [], isLoading } = useGetAppointmentsQuery({
+  const { data: appointments = [], isLoading } = useGetCalendarAppointmentsQuery({
     dateFrom,
     dateTo,
-    limit: 100,
     includeBarber: 'true',
     includeClient: 'true',
     ...(employeeBarberId ? { barberId: employeeBarberId } : {}),

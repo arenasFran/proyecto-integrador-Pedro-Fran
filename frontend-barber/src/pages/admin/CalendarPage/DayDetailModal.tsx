@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FiClock, FiLock, FiTrash2, FiUser } from 'react-icons/fi';
 import { Modal, BarberAvatar, ConfirmModal, useToast } from '../../../components/common';
-import { getAccessToken } from '../../../services/api';
+import api from '../../../services/api';
 import { AppointmentActionsMenu } from '../AppointmentsPage/AppointmentActionsMenu';
 import type { AppointmentActions } from '../AppointmentsPage/useAppointmentActions';
 import type { Appointment, BarberBlock } from '../../../types/booking';
@@ -50,16 +50,7 @@ export const DayDetailModal: React.FC<DayDetailModalProps> = ({ isOpen, date, ap
 
     setIsDeleting(true);
     try {
-      const token = getAccessToken();
-      const res = await fetch(`/api/barbers/${block.barberId}/blocks/${block.id}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Error al eliminar bloque' }));
-        throw new Error(data.error || 'Error al eliminar bloque');
-      }
+      await api.delete(`/api/barbers/${block.barberId}/blocks/${block.id}`);
 
       setConfirmDeleteBlock(null);
       onBlockDeleted();

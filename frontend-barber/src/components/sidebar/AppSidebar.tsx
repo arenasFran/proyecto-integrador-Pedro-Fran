@@ -73,7 +73,7 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
 
   const navItems = kind === 'Admin' ? adminNavItems : kind === 'Empleado' ? employeeNavItems : userNavItems;
   const isStaff = kind === 'Admin' || kind === 'Empleado';
-  const sidebarWidth = 'w-52';
+  const sidebarWidth = 'w-52 lg:w-16 xl:w-20 2xl:w-52';
 
   
 
@@ -95,13 +95,13 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
           lg:translate-x-0 ${sidebarWidth}
         `}
       >
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#282828] px-4">
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-[#282828] px-4 lg:justify-center lg:px-2 2xl:justify-between 2xl:px-4">
           <button
             onClick={() => navigate(kind === 'Admin' ? '/admin/dashboard' : kind === 'Empleado' ? '/admin/turnos' : '/reservar')}
             className="flex items-center gap-2"
           >
-            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-12 w-auto" />
-            <span className="text-[15px] font-bold text-white">Barbería SA</span>
+            <img src="/logo-barberia.PNG" alt="Barbería SA" className="h-12 w-auto lg:h-10 2xl:h-12" />
+            <span className="text-[15px] font-bold text-white lg:hidden 2xl:inline">Barbería SA</span>
           </button>
           <button
             onClick={onToggleMobile}
@@ -111,15 +111,16 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col overflow-y-auto px-3 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2 py-3 xl:px-3 xl:py-4">
           <nav className="space-y-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 onClick={() => onToggleMobile?.()}
+                title={item.label}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-[14px] font-[400] transition-colors ${
+                  `flex items-center justify-start gap-3 rounded-[12px] px-3 py-2.5 text-[14px] font-[400] transition-colors lg:justify-center lg:px-2 2xl:justify-start 2xl:px-3 ${
                     isActive
                       ? 'border-l-2 border-[#FF5C00] bg-[rgba(255,92,0,0.1)] text-[#FF5C00]'
                       : 'text-[#8A8A8A] hover:bg-[#1A1A1A] hover:text-white'
@@ -127,38 +128,39 @@ export const AppSidebar: React.FC<SidebarProps> = ({ onQuickCreate, mobileOpen =
                 }
               >
                 <item.icon size={20} className="shrink-0" />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate lg:hidden 2xl:inline">{item.label}</span>
               </NavLink>
             ))}
           </nav>
         </div>
 
-        <div className="shrink-0 border-t border-[#282828] px-3 py-3">
+        <div className="shrink-0 border-t border-[#282828] px-2 py-2 xl:px-3 xl:py-3">
           {isStaff && onQuickCreate && (
             <button
               onClick={onQuickCreate}
-              className="mb-2 flex w-full items-center gap-2 rounded-[10px] border border-[#FF5C00]/30 px-3 py-2 text-[13px] text-[#FF5C00] hover:bg-[#FF5C00]/10 transition-colors"
+              title="Nuevo turno"
+              className="mb-2 flex w-full items-center justify-start gap-2 rounded-[10px] border border-[#FF5C00]/30 px-3 py-2 text-[13px] text-[#FF5C00] hover:bg-[#FF5C00]/10 transition-colors lg:justify-center lg:px-2 2xl:justify-start 2xl:px-3"
             >
-              <FiPlus className="text-sm" />
-              <span>Nuevo turno</span>
+              <FiPlus className="text-sm shrink-0" />
+              <span className="lg:hidden 2xl:inline">Nuevo turno</span>
             </button>
           )}
 
           <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="flex w-full items-center gap-3 rounded-[12px] px-3 py-2.5 text-[13px] text-[#8A8A8A] hover:bg-[#1A1A1A] hover:text-white transition-colors"
+              className="flex w-full items-center justify-start gap-3 rounded-[12px] px-3 py-2.5 text-[13px] text-[#8A8A8A] hover:bg-[#1A1A1A] hover:text-white transition-colors lg:justify-center lg:px-2 2xl:justify-start 2xl:px-3"
             >
-              <div className="rounded-full bg-[#FF5C00]/10 p-1.5">
+              <div className="rounded-full bg-[#FF5C00]/10 p-1.5 shrink-0">
                 <FiUser className="text-[#FF5C00] text-sm" />
               </div>
-              <span className="truncate flex-1 text-left">
+              <span className="truncate flex-1 text-left lg:hidden 2xl:inline">
                 {user?.name ? `${user.name} ${user.lastname ?? ''}` : user?.email ?? tokenUser?.email ?? 'Usuario'}
               </span>
             </button>
 
             {userMenuOpen && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-lg">
+              <div className="absolute bottom-full left-0 right-0 mb-2 rounded-[12px] border border-[#282828] bg-[#1A1A1A] py-1 shadow-lg lg:right-auto lg:w-56 2xl:right-0 2xl:w-auto">
                 <button
                   onClick={handleLogout}
                   className="flex w-full items-center gap-2 px-4 py-2 text-[13px] text-red-400 hover:bg-[#242424] rounded-[8px] transition-colors"

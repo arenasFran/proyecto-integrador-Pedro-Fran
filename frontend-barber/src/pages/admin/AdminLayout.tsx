@@ -24,8 +24,8 @@ export const AdminLayout: React.FC = () => {
         <FiMenu size={20} />
       </button>
 
-      <div className="lg:ml-52">
-        <main className="p-4 sm:p-6 lg:p-8 pt-14 lg:pt-8">
+      <div className="lg:ml-16 xl:ml-20 2xl:ml-52">
+        <main className="p-4 sm:p-5 lg:p-4 xl:p-5 pt-14 lg:pt-4 xl:pt-5 2xl:p-8 2xl:pt-8">
           <Outlet />
         </main>
       </div>

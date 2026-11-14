@@ -139,6 +139,25 @@ describe('AppointmentController.getCalendar', () => {
     );
   });
 
+  it('incluye turnos fuera de la agenda del barbero (21:00) en el rango pedido', async () => {
+    appointmentRepository.findAllByDateRange.mockResolvedValue([
+      { toPrimitives: () => makePrimitive({ startTime: '21:00', endTime: '21:30' }) },
+    ]);
+    const req = createMockReq();
+    (req as any).user = { _id: 'admin-1', kind: 'Admin' };
+    (req as any).query = { dateFrom: '2026-01-10', dateTo: '2026-01-24' };
+    const res = createMockRes();
+
+    await controller.getCalendar(req, res);
+
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        appointments: [expect.objectContaining({ startTime: '21:00', endTime: '21:30' })],
+        total: 1,
+      })
+    );
+  });
+
   it('devuelve 500 si el repositorio falla', async () => {
     appointmentRepository.findAllByDateRange.mockRejectedValue(new Error('boom'));
     const req = createMockReq();

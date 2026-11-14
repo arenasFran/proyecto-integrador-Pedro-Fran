@@ -111,8 +111,11 @@ export class CreateAppointmentUseCase {
       throw new AppError('Servicio no encontrado.', 404);
     }
 
-    const { startMinutes, endMinutes, endTime, daySchedule } = validateAppointmentSlot(
-      dto.startTime, dto.date, barber
+    const { startMinutes, endMinutes, endTime } = validateAppointmentSlot(
+      dto.startTime,
+      dto.date,
+      barber,
+      { allowOutOfSchedule: dto.createdBy?.type === 'staff' },
     );
 
     // RN10 — Cliente no registrado: buscar o crear entidad

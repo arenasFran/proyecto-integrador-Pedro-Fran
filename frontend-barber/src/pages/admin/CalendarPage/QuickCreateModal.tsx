@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FiUser, FiPhone, FiMail, FiX, FiSearch, FiCheck } from 'react-icons/fi';
 import { Modal, Select, Input, Button, DatePicker, Spinner, BarberAvatar, useToast } from '../../../components/common';
 import type { SelectOption } from '../../../components/common';
@@ -12,6 +12,8 @@ import {
 } from '../../../services/appointmentApi';
 import { useGetRegisteredClientsQuery, type RegisteredClientSummary } from '../../../services/clientApi';
 import type { BarberPublic, ClientSearchResult } from '../../../types/booking';
+import { addMinutes } from '../../../utils/time';
+import { TimeSelection } from '../components/TimeSelection';
 
 export interface QuickCreateInitialClient {
   id: string;
@@ -35,9 +37,12 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const [barbers, setBarbers] = useState<BarberPublic[]>([]);
   const [barberId, setBarberId] = useState('');
   const [serviceId, setServiceId] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
+  const [time, setTime] = useState('');
   const [selectedDate, setSelectedDate] = useState(dateStr);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
+  const slotsRequestRef = useRef(0);
   const [clientMode, setClientMode] = useState<ClientMode>(initialClient ? 'existing' : 'new');
   const [clientId, setClientId] = useState(initialClient?.id ?? '');
   const [selectedClient, setSelectedClient] = useState<ClientSearchResult | null>(
@@ -75,6 +80,8 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
 
   const registeredClients = useMemo(() => clientsData?.clients ?? [], [clientsData]);
   const barbersById = useMemo(() => new Map(barbers.map((b) => [b.id, b])), [barbers]);
+  const selectedBarber = barberId ? barbersById.get(barberId) : undefined;
+  const slotDuration = selectedBarber?.slotDuration ?? 0;
 
   // Un cliente anónimo no está en la lista de registrados (/api/users/clients).
   // Si el cliente predefinido no figura ahí, lo tratamos como anónimo y pasamos
@@ -162,28 +169,41 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     professionalService.getPublic().then(setBarbers).catch((error: unknown) => showToast(error instanceof Error ? error.message : 'No se pudieron cargar los barberos', 'error'));
   }, [showToast]);
 
+  const loadSlots = useCallback(async (id: string, date: string) => {
+    const request = ++slotsRequestRef.current;
+    setIsLoadingSlots(true);
+    setSlotsError(null);
+    try {
+      const res = await professionalService.getSlots(id, date);
+      if (request !== slotsRequestRef.current) return;
+      setAvailableSlots(res.slots);
+    } catch {
+      if (request !== slotsRequestRef.current) return;
+      setAvailableSlots([]);
+      setSlotsError('No se pudieron cargar los horarios.');
+    } finally {
+      if (request === slotsRequestRef.current) setIsLoadingSlots(false);
+    }
+  }, []);
+
   const handleBarberChange = (id: string) => {
     setBarberId(id);
     setServiceId('');
-    setSelectedTime('');
+    setTime('');
     setAvailableSlots([]);
+    setSlotsError(null);
     if (id && selectedDate) {
-      professionalService
-        .getSlots(id, selectedDate)
-        .then((res) => setAvailableSlots(res.slots))
-         .catch(() => { setAvailableSlots([]); setLocalError('No se pudieron cargar los horarios.'); });
+      void loadSlots(id, selectedDate);
     }
   };
 
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
-    setSelectedTime('');
+    setTime('');
     setAvailableSlots([]);
+    setSlotsError(null);
     if (barberId && newDate) {
-      professionalService
-        .getSlots(barberId, newDate)
-        .then((res) => setAvailableSlots(res.slots))
-         .catch(() => { setAvailableSlots([]); setLocalError('No se pudieron cargar los horarios.'); });
+      void loadSlots(barberId, newDate);
     }
   };
 
@@ -195,12 +215,14 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     value: s.id,
     label: `${s.name} - $${s.price}`,
   }));
-  const slotOptions: SelectOption[] = availableSlots.map((s) => ({
-    value: s,
-    label: s,
-  }));
+  const slotOptions: SelectOption[] = availableSlots.map((slot) => {
+    const end = slotDuration > 0 ? addMinutes(slot, slotDuration) : '';
+    return {
+      value: slot,
+      label: end ? `${slot} a ${end}` : slot,
+    };
+  });
 
-  const isLoadingSlots = Boolean(barberId && dateStr && availableSlots.length === 0 && !localError);
   // En modo registrado los inputs no se muestran; el teléfono solo vuelve a aparecer
   // si el cliente elegido no lo tiene cargado, para poder completarlo antes de crear el turno.
   const isExisting = effectiveClientMode === 'existing';
@@ -210,7 +232,11 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const validate = (): string | null => {
     if (!barberId) return 'Seleccioná un barbero.';
     if (!serviceId) return 'Seleccioná un servicio.';
-    if (!selectedTime) return 'Seleccioná un horario.';
+    if (!time) return 'Seleccioná un horario.';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return 'El horario debe tener formato HH:mm.';
+    if (slotDuration > 0 && !addMinutes(time, slotDuration)) {
+      return 'El turno no puede terminar después de las 23:59.';
+    }
     if (effectiveClientMode === 'existing' && !selectedClient) return 'Buscá y seleccioná un cliente registrado.';
     if (clientName.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
     if (clientLastname.trim().length < 2) return 'El apellido debe tener al menos 2 caracteres.';
@@ -233,14 +259,14 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
       tempLockResult = await acquireTempLock({
         barberId,
         date: selectedDate,
-        startTime: selectedTime,
+        startTime: time,
       }).unwrap();
 
       await createAppointment({
         barberId,
         serviceId,
         date: selectedDate,
-        startTime: selectedTime,
+        startTime: time,
         clientId: clientId || undefined,
         clientName: clientName.trim(),
         clientLastname: clientLastname.trim(),
@@ -310,21 +336,38 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           placeholder={barberId ? 'Seleccionar servicio' : 'Primero seleccioná un barbero'}
         />
 
-        <Select
+        <TimeSelection
+          key={`${barberId}-${selectedDate}`}
           label="Horario"
-          value={selectedTime}
-          onChange={setSelectedTime}
-          options={slotOptions}
-          placeholder={
-            !barberId
-              ? 'Primero seleccioná un barbero'
-              : isLoadingSlots
-                ? 'Cargando horarios...'
-                : availableSlots.length === 0
-                  ? 'Sin horarios disponibles'
-                  : 'Seleccionar horario'
+          value={time}
+          onChange={setTime}
+          slotDuration={slotDuration}
+          availableSlots={availableSlots}
+          isLoadingSlots={isLoadingSlots}
+          date={selectedDate}
+          schedule={selectedBarber?.schedule}
+          disabled={!barberId}
+          availablePicker={
+            <Select
+              value={time}
+              onChange={setTime}
+              options={slotOptions}
+              placeholder={
+                !barberId
+                  ? 'Primero seleccioná un barbero'
+                  : isLoadingSlots
+                    ? 'Cargando horarios...'
+                    : availableSlots.length === 0
+                      ? 'Sin horarios disponibles'
+                      : 'Seleccionar horario'
+              }
+            />
           }
         />
+
+        {slotsError && (
+          <p className="text-[11px] text-red-400">{slotsError}</p>
+        )}
 
         {!initialClient && (
           <div className="flex gap-2">

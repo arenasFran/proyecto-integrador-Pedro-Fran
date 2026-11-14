@@ -1,5 +1,6 @@
 import { AnimatedContainer, Button, Calendar, Select } from '../../../components/common';
 import { TimeSlotGrid } from '../../../components/client/booking/TimeSlotGrid';
+import { TimeSelection } from '../components/TimeSelection';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
 import type { Appointment } from '../../../types/booking';
@@ -28,8 +29,8 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
   const selectedBarberInfo = barbers.find((b) => b.id === barberId);
   const maxAdvanceDays = selectedBarberInfo?.maxAdvanceDays ?? 30;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-4">
+      <AnimatedContainer animation="fadeIn" className="w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[24px] border border-[#282828] bg-[#121212] p-6">
         <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
         <p className="text-[13px] text-[#8A8A8A] mb-4">
           {target.clientName} {target.clientLastname} &mdash; actual: {formatDate(target.date)} {formatTime(target.startTime)}
@@ -39,15 +40,6 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
             <p className="text-[13px] font-medium text-[#8A8A8A] mb-1">Nueva fecha</p>
             <Calendar selectedDate={date || null} onSelectDate={onDateChange} maxAdvanceDays={maxAdvanceDays} schedule={selectedBarberInfo?.schedule} />
           </div>
-          <TimeSlotGrid
-            slots={slots}
-            selectedTime={time}
-            selectedDate={date}
-            isLoading={isLoadingSlots}
-            error={slotsError}
-            reason={slotsReason}
-            onSelect={onTimeChange}
-          />
           <Select
             label="Barbero"
             value={barberId}
@@ -56,6 +48,29 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
               { value: '', label: 'Seleccionar barbero' },
               ...barbers.map((b) => ({ value: b.id, label: `${b.name} ${b.lastname}` })),
             ]}
+          />
+          <TimeSelection
+            key={`${barberId}-${date}`}
+            label="Nuevo horario"
+            value={time}
+            onChange={onTimeChange}
+            slotDuration={selectedBarberInfo?.slotDuration ?? 0}
+            availableSlots={slots}
+            isLoadingSlots={isLoadingSlots}
+            date={date}
+            schedule={selectedBarberInfo?.schedule}
+            disabled={!barberId}
+            availablePicker={
+              <TimeSlotGrid
+                slots={slots}
+                selectedTime={time}
+                selectedDate={date}
+                isLoading={isLoadingSlots}
+                error={slotsError}
+                reason={slotsReason}
+                onSelect={onTimeChange}
+              />
+            }
           />
         </div>
         <div className="flex gap-3 mt-6">

@@ -388,6 +388,121 @@ describe('CreateAppointmentUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
+  it('debe rechazar (incluso para staff) un turno fuera de agenda que se solapa con otro', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([
+      makeAppointment({ id: 'apt-2', startTime: '21:00', endTime: '21:30', status: 'Confirmado' }),
+    ]);
+    mockTempLockData = { ...mockTempLockData, startTime: '21:00' };
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '21:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        createdBy: { type: 'staff', userId: 'emp-1' },
+        tempLockId: TEST_TEMP_LOCK_ID,
+      })
+    ).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('debe rechazar (incluso para staff) un turno fuera de agenda sobre un bloqueo del barbero', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    blockRepository.findByBarberAndDate.mockResolvedValue([
+      {
+        id: 'block-1',
+        barberId: 'barber-1',
+        date: '2099-01-01',
+        startTime: '20:00',
+        endTime: '22:00',
+        createdBy: 'admin-1',
+      },
+    ]);
+    mockTempLockData = { ...mockTempLockData, startTime: '21:00' };
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '21:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        createdBy: { type: 'staff', userId: 'emp-1' },
+        tempLockId: TEST_TEMP_LOCK_ID,
+      })
+    ).rejects.toMatchObject({ statusCode: 409 });
+  });
+
+  it('debe permitir al staff crear un turno en un día libre del barbero', async () => {
+    const dayOff = { startTime: null, endTime: null, breaks: [] };
+    const scheduleOff: BarberSchedule = {
+      monday: dayOff,
+      tuesday: dayOff,
+      wednesday: dayOff,
+      thursday: dayOff,
+      friday: dayOff,
+      saturday: dayOff,
+      sunday: dayOff,
+    };
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ schedule: scheduleOff }));
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(
+      makeAppointment({ startTime: '10:00', endTime: '10:30' })
+    );
+    mockTempLockData = { ...mockTempLockData, startTime: '10:00' };
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        createdBy: { type: 'staff', userId: 'emp-1' },
+        tempLockId: TEST_TEMP_LOCK_ID,
+      })
+    ).resolves.toBeDefined();
+  });
+
+  it('debe rechazar al cliente crear un turno en un día libre del barbero', async () => {
+    const dayOff = { startTime: null, endTime: null, breaks: [] };
+    const scheduleOff: BarberSchedule = {
+      monday: dayOff,
+      tuesday: dayOff,
+      wednesday: dayOff,
+      thursday: dayOff,
+      friday: dayOff,
+      saturday: dayOff,
+      sunday: dayOff,
+    };
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ schedule: scheduleOff }));
+    serviceRepository.findById.mockResolvedValue(makeService());
+    mockTempLockData = { ...mockTempLockData, startTime: '10:00' };
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '10:00',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        createdBy: { type: 'registered', userId: 'client-1' },
+        tempLockId: TEST_TEMP_LOCK_ID,
+      })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
   it('debe fallar si el turno se superpone con un break', async () => {
     const schedule = createSchedule();
     schedule.monday.breaks = [{ startTime: '12:00', endTime: '14:00' }];

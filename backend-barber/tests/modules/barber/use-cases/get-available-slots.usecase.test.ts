@@ -119,6 +119,18 @@ describe('GetAvailableSlotsUseCase', () => {
     expect(result.slots).toContain('10:00');
   });
 
+  it('no expone turnos fuera de la agenda (21:00) entre los slots del cliente', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([
+      makeAppointment({ startTime: '21:00', endTime: '21:30' }),
+    ]);
+
+    const result = await useCase.execute('barber-1', '2099-01-05');
+
+    expect(result.slots).toEqual(['09:00', '09:30', '10:00', '10:30']);
+    expect(result.slots).not.toContain('21:00');
+  });
+
   it('debe ignorar turnos cancelados al calcular disponibilidad', async () => {
     barberRepository.findBarberById.mockResolvedValue(makeBarber({ slotDuration: 30 }));
     appointmentRepository.findByBarberAndDate.mockResolvedValue([

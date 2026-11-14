@@ -152,6 +152,30 @@ describe('RescheduleAppointmentUseCase', () => {
     expect(result.message).toMatch(/reagendado/);
   });
 
+  it('debe permitir al staff reprogramar fuera del horario laboral', async () => {
+    setupHappyPathMocks();
+    const outOfHours = { ...dto, startTime: '21:00' };
+    appointmentRepository.update.mockResolvedValue(
+      makeAppointment({ date: dto.date, startTime: '21:00', endTime: '21:30' })
+    );
+
+    await useCase.execute('apt-1', outOfHours, 'admin-1', 'Admin');
+
+    expect(appointmentRepository.update).toHaveBeenCalledWith(
+      'apt-1',
+      expect.objectContaining({ startTime: '21:00', endTime: '21:30' }),
+      capturedSession
+    );
+  });
+
+  it('debe rechazar al cliente reprogramar fuera del horario laboral', async () => {
+    setupHappyPathMocks();
+
+    await expect(
+      useCase.execute('apt-1', { ...dto, startTime: '21:00' }, 'client-1', 'Registrado')
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
   it('debe actualizar serviceDuration al reprogramar a un barbero con slotDuration distinta', async () => {
     setupHappyPathMocks();
     barberRepository.findBarberById.mockResolvedValue(makeBarber({ id: 'barber-2', slotDuration: 60 }));

@@ -1,4 +1,4 @@
-import { AnimatedContainer, Button, Calendar, Select } from '../../../components/common';
+import { AnimatedContainer, Button, Calendar, Input, Select } from '../../../components/common';
 import { TimeSlotGrid } from '../../../components/client/booking/TimeSlotGrid';
 import { formatDate } from '../../../utils/formatDate';
 import { formatTime } from '../../../utils/formatTime';
@@ -47,6 +47,13 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
             error={slotsError}
             reason={slotsReason}
             onSelect={onTimeChange}
+          />
+          <Input
+            label="U otro horario"
+            type="time"
+            value={time}
+            onChange={(e) => onTimeChange(e.target.value)}
+            helperText="Podés reprogramar fuera de la agenda del barbero (antes de abrir, después de cerrar o en un descanso)."
           />
           <Select
             label="Barbero"

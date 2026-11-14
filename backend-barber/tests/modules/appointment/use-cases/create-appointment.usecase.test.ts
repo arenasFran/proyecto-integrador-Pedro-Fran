@@ -341,6 +341,53 @@ describe('CreateAppointmentUseCase', () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
+  it('debe permitir al staff crear un turno fuera del horario laboral', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    appointmentRepository.findByBarberAndDate.mockResolvedValue([]);
+    clientRepository.createUnregistered.mockResolvedValue(makeClient());
+    appointmentRepository.create.mockResolvedValue(
+      makeAppointment({ startTime: '21:00', endTime: '21:30' })
+    );
+    mockTempLockData = { ...mockTempLockData, startTime: '21:00' };
+
+    const result = await useCase.execute({
+      barberId: 'barber-1',
+      serviceId: TEST_SERVICE_ID,
+      date: '2099-01-01',
+      startTime: '21:00',
+      clientName: 'Juan',
+      clientLastname: 'Perez',
+      createdBy: { type: 'staff', userId: 'emp-1' },
+      tempLockId: TEST_TEMP_LOCK_ID,
+    });
+
+    expect(result.appointment.startTime).toBe('21:00');
+    expect(appointmentRepository.create).toHaveBeenCalledWith(
+      expect.objectContaining({ startTime: '21:00', endTime: '21:30' }),
+      capturedSession
+    );
+  });
+
+  it('debe rechazar (incluso para staff) un turno que termina después de las 23:59', async () => {
+    barberRepository.findBarberById.mockResolvedValue(makeBarber());
+    serviceRepository.findById.mockResolvedValue(makeService());
+    mockTempLockData = { ...mockTempLockData, startTime: '23:45' };
+
+    await expect(
+      useCase.execute({
+        barberId: 'barber-1',
+        serviceId: TEST_SERVICE_ID,
+        date: '2099-01-01',
+        startTime: '23:45',
+        clientName: 'Juan',
+        clientLastname: 'Perez',
+        createdBy: { type: 'staff', userId: 'emp-1' },
+        tempLockId: TEST_TEMP_LOCK_ID,
+      })
+    ).rejects.toBeInstanceOf(AppError);
+  });
+
   it('debe fallar si el turno se superpone con un break', async () => {
     const schedule = createSchedule();
     schedule.monday.breaks = [{ startTime: '12:00', endTime: '14:00' }];

@@ -85,20 +85,42 @@ export const isInBreakRange = (
   });
 };
 
+const LAST_MINUTE_OF_DAY = 23 * 60 + 59;
+
+type SlotValidationOptions = {
+  /**
+   * El staff (Admin/Empleado) puede agendar fuera de la agenda del barbero:
+   * antes de abrir, después de cerrar, en un descanso o en un día libre.
+   * Los clientes y el bot nunca lo habilitan, así que para ellos estas reglas
+   * se siguen aplicando igual que antes.
+   */
+  allowOutOfSchedule?: boolean;
+};
+
 export function validateAppointmentSlot(
   startTime: string,
   date: string,
   barber: { slotDuration: number; schedule: BarberSchedule },
+  options: SlotValidationOptions = {},
 ): { startMinutes: number; endMinutes: number; endTime: string; daySchedule: BarberScheduleDay } {
+  const { allowOutOfSchedule = false } = options;
   const startMinutes = toMinutes(startTime);
   if (startMinutes === null) {
     throw new AppError('Formato de hora inválido.', 400);
   }
   const endMinutes = startMinutes + barber.slotDuration;
+  // toTimeString no hace wrap: un turno que pasa de las 23:59 guardaría "24:xx".
+  if (endMinutes > LAST_MINUTE_OF_DAY) {
+    throw new AppError('El turno no puede terminar después de las 23:59.', 400);
+  }
   const endTime = toTimeString(endMinutes);
 
   const dayKey = getDayKey(date);
   const daySchedule = barber.schedule[dayKey];
+
+  if (allowOutOfSchedule) {
+    return { startMinutes, endMinutes, endTime, daySchedule };
+  }
 
   const dayStartMinutes = daySchedule.startTime !== null ? toMinutes(daySchedule.startTime) : null;
   if (dayStartMinutes !== null && (startMinutes - dayStartMinutes) % barber.slotDuration !== 0) {

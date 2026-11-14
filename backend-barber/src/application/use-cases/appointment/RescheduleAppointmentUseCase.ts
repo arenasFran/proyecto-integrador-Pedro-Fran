@@ -96,8 +96,11 @@ export class RescheduleAppointmentUseCase {
       }
     }
 
-    const { startMinutes, endMinutes, endTime, daySchedule } = validateAppointmentSlot(
-      dto.startTime, dto.date, barber
+    const { startMinutes, endMinutes, endTime } = validateAppointmentSlot(
+      dto.startTime,
+      dto.date,
+      barber,
+      { allowOutOfSchedule: isAdmin || isAssignedBarber },
     );
 
     // Transacción: colisión + turno activo + actualización del turno

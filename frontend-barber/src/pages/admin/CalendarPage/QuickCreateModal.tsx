@@ -36,6 +36,10 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const [barberId, setBarberId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [manualTime, setManualTime] = useState('');
+  // selectedTime viene del listado de slots del barbero; manualTime permite
+  // cualquier hora, incluso fuera de la agenda (solo staff).
+  const effectiveTime = manualTime || selectedTime;
   const [selectedDate, setSelectedDate] = useState(dateStr);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [clientMode, setClientMode] = useState<ClientMode>(initialClient ? 'existing' : 'new');
@@ -166,6 +170,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
     setBarberId(id);
     setServiceId('');
     setSelectedTime('');
+    setManualTime('');
     setAvailableSlots([]);
     if (id && selectedDate) {
       professionalService
@@ -178,6 +183,7 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const handleDateChange = (newDate: string) => {
     setSelectedDate(newDate);
     setSelectedTime('');
+    setManualTime('');
     setAvailableSlots([]);
     if (barberId && newDate) {
       professionalService
@@ -210,7 +216,8 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
   const validate = (): string | null => {
     if (!barberId) return 'Seleccioná un barbero.';
     if (!serviceId) return 'Seleccioná un servicio.';
-    if (!selectedTime) return 'Seleccioná un horario.';
+    if (!effectiveTime) return 'Seleccioná un horario.';
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(effectiveTime)) return 'El horario debe tener formato HH:mm.';
     if (effectiveClientMode === 'existing' && !selectedClient) return 'Buscá y seleccioná un cliente registrado.';
     if (clientName.trim().length < 2) return 'El nombre debe tener al menos 2 caracteres.';
     if (clientLastname.trim().length < 2) return 'El apellido debe tener al menos 2 caracteres.';
@@ -233,14 +240,14 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
       tempLockResult = await acquireTempLock({
         barberId,
         date: selectedDate,
-        startTime: selectedTime,
+        startTime: effectiveTime,
       }).unwrap();
 
       await createAppointment({
         barberId,
         serviceId,
         date: selectedDate,
-        startTime: selectedTime,
+        startTime: effectiveTime,
         clientId: clientId || undefined,
         clientName: clientName.trim(),
         clientLastname: clientLastname.trim(),
@@ -310,21 +317,44 @@ export const QuickCreateModal: React.FC<QuickCreateModalProps> = ({ dateStr, onC
           placeholder={barberId ? 'Seleccionar servicio' : 'Primero seleccioná un barbero'}
         />
 
-        <Select
-          label="Horario"
-          value={selectedTime}
-          onChange={setSelectedTime}
-          options={slotOptions}
-          placeholder={
-            !barberId
-              ? 'Primero seleccioná un barbero'
-              : isLoadingSlots
-                ? 'Cargando horarios...'
-                : availableSlots.length === 0
-                  ? 'Sin horarios disponibles'
-                  : 'Seleccionar horario'
-          }
-        />
+        <div className="flex flex-col gap-2">
+          <Select
+            label="Horario"
+            value={selectedTime}
+            onChange={(value) => {
+              setSelectedTime(value);
+              setManualTime('');
+            }}
+            options={slotOptions}
+            placeholder={
+              !barberId
+                ? 'Primero seleccioná un barbero'
+                : isLoadingSlots
+                  ? 'Cargando horarios...'
+                  : availableSlots.length === 0
+                    ? 'Sin horarios disponibles'
+                    : 'Seleccionar horario'
+            }
+          />
+
+          <Input
+            label="U otro horario"
+            type="time"
+            value={manualTime}
+            onChange={(e) => {
+              setManualTime(e.target.value);
+              setSelectedTime('');
+            }}
+            disabled={!barberId}
+            helperText="Podés agendar fuera de la agenda del barbero (antes de abrir, después de cerrar o en un descanso). Solo lo ve el staff."
+          />
+
+          {manualTime && !availableSlots.includes(manualTime) && (
+            <p className="text-[11px] font-medium text-[#FF5C00]">
+              Horario fuera de la agenda: el cliente no lo verá al reservar.
+            </p>
+          )}
+        </div>
 
         {!initialClient && (
           <div className="flex gap-2">

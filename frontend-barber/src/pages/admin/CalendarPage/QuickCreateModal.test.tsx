@@ -1,19 +1,46 @@
-import { describe, expect, it, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../../test/utils';
 import { QuickCreateModal } from './QuickCreateModal';
 
+const fullDay = { startTime: '09:00', endTime: '19:00', breaks: [] };
+const mockSchedule = {
+  monday: fullDay,
+  tuesday: fullDay,
+  wednesday: fullDay,
+  thursday: fullDay,
+  friday: fullDay,
+  saturday: fullDay,
+  sunday: fullDay,
+};
+
 const mockBarbers = [
-  { id: 'b1', name: 'Juan', lastname: 'Pérez', services: [], isActive: true, slotDuration: 30, maxAdvanceDays: 30 },
+  {
+    id: 'b1',
+    name: 'Juan',
+    lastname: 'Pérez',
+    services: [],
+    isActive: true,
+    slotDuration: 30,
+    maxAdvanceDays: 30,
+    schedule: mockSchedule,
+  },
 ];
 
 const mockServices = [{ id: 's1', name: 'Corte', price: 500 }];
 const mockSlots = ['10:00', '10:30', '11:00'];
 
-const mockCreateAppointment = vi.fn().mockResolvedValue({});
-const mockAcquireTempLock = vi.fn().mockResolvedValue({ tempLockId: 'lock-1', ownerToken: 'owner-1' });
-const mockReleaseTempLock = vi.fn().mockResolvedValue({});
+const withUnwrap = <T,>(value: T) => {
+  const promise = Promise.resolve(value);
+  return Object.assign(promise, { unwrap: () => Promise.resolve(value) });
+};
+
+const mockCreateAppointment = vi.fn(() => withUnwrap({}));
+const mockAcquireTempLock = vi.fn(() =>
+  withUnwrap({ tempLockId: 'lock-1', ownerToken: 'owner-1' })
+);
+const mockReleaseTempLock = vi.fn(() => Promise.resolve());
 const mockRegisteredClients = [
   { id: 'c1', name: 'Ana', lastname: 'Gómez', phone: '099111222', email: 'ana@test.com', photoUrl: null },
   { id: 'c2', name: 'Luis', lastname: 'Pérez', phone: '', email: 'luis@test.com', photoUrl: 'http://img/luis.jpg' },
@@ -53,6 +80,12 @@ vi.mock('../../../services/professional.service', () => ({
 }));
 
 describe('QuickCreateModal', () => {
+  beforeEach(() => {
+    mockCreateAppointment.mockClear();
+    mockAcquireTempLock.mockClear();
+    mockReleaseTempLock.mockClear();
+  });
+
   it('renders modal title with date', () => {
     renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
     expect(screen.getByText(/nuevo turno/i)).toBeInTheDocument();
@@ -144,14 +177,14 @@ describe('QuickCreateModal', () => {
     await user.click(await screen.findByText(/corte/i));
 
     await user.click(screen.getByText(/seleccionar horario/i));
-    await user.click(await screen.findByText('10:00'));
+    await user.click(await screen.findByText('10:00 a 10:30'));
 
     await user.click(screen.getByRole('button', { name: /cliente registrado/i }));
     await user.click(screen.getByRole('button', { name: /crear turno/i }));
 
     expect(await screen.findByText(/buscá y seleccioná un cliente/i)).toBeInTheDocument();
     expect(mockCreateAppointment).not.toHaveBeenCalled();
-  });
+  }, 15000);
 
   it('opens in data-entry mode with prefilled fields when the initial client is anonymous', () => {
     renderWithProviders(
@@ -220,4 +253,67 @@ describe('QuickCreateModal', () => {
     expect(screen.getByText('Luis Pérez')).toBeInTheDocument();
     expect(screen.queryByText(/sin resultados/i)).not.toBeInTheDocument();
   });
+
+  it('muestra la hora de fin y la duración del turno al elegir un horario', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
+
+    await user.click(await screen.findByText(/seleccionar barbero/i));
+    await user.click(await screen.findByText('Juan Pérez'));
+    await user.click(screen.getByText(/seleccionar servicio/i));
+    await user.click(await screen.findByText(/corte/i));
+    await user.click(screen.getByText(/seleccionar horario/i));
+    await user.click(await screen.findByText('10:00 a 10:30'));
+
+    expect(screen.getByText('10:00')).toBeInTheDocument();
+    expect(screen.getByText('10:30')).toBeInTheDocument();
+    expect(screen.getByText('30 min')).toBeInTheDocument();
+  }, 15000);
+
+  it('permite elegir un horario fuera de agenda en formato 24 h y lo envía tal cual', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
+
+    await user.click(await screen.findByText(/seleccionar barbero/i));
+    await user.click(await screen.findByText('Juan Pérez'));
+    await user.click(screen.getByText(/seleccionar servicio/i));
+    await user.click(await screen.findByText(/corte/i));
+
+    await user.click(screen.getByRole('button', { name: 'Fuera de agenda' }));
+    await user.click(screen.getByRole('button', { name: 'HH' }));
+    await user.click(screen.getByRole('option', { name: '21' }));
+
+    expect(screen.getByText('21:00')).toBeInTheDocument();
+    expect(screen.getByText('21:30')).toBeInTheDocument();
+    expect(
+      screen.getByText(/el cliente no lo verá al reservar/i)
+    ).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/^nombre/i), 'Pedro');
+    await user.type(screen.getByLabelText(/apellido/i), 'Fran');
+    await user.click(screen.getByRole('button', { name: /crear turno/i }));
+
+    await waitFor(() => {
+      expect(mockCreateAppointment).toHaveBeenCalledWith(
+        expect.objectContaining({ startTime: '21:00' })
+      );
+    });
+  }, 15000);
+
+  it('no ofrece una hora de inicio que termine después de las 23:59', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<QuickCreateModal dateStr="2026-07-05" onClose={vi.fn()} />);
+
+    await user.click(await screen.findByText(/seleccionar barbero/i));
+    await user.click(await screen.findByText('Juan Pérez'));
+
+    await user.click(screen.getByRole('button', { name: 'Fuera de agenda' }));
+    await user.click(screen.getByRole('button', { name: 'HH' }));
+    await user.click(screen.getByRole('option', { name: '23' }));
+
+    await user.click(screen.getByRole('button', { name: '00' }));
+    const listbox = screen.getByRole('listbox');
+    expect(within(listbox).queryByText('30')).not.toBeInTheDocument();
+    expect(within(listbox).getByText('25')).toBeInTheDocument();
+  }, 15000);
 });

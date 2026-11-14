@@ -29,8 +29,8 @@ export function RescheduleModal({ target, date, time, barberId, isRescheduling, 
   const selectedBarberInfo = barbers.find((b) => b.id === barberId);
   const maxAdvanceDays = selectedBarberInfo?.maxAdvanceDays ?? 30;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <AnimatedContainer animation="fadeIn" className="w-full max-w-md rounded-[24px] border border-[#282828] bg-[#121212] p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-4">
+      <AnimatedContainer animation="fadeIn" className="w-full max-w-md max-h-[calc(100vh-2rem)] overflow-y-auto rounded-[24px] border border-[#282828] bg-[#121212] p-6">
         <h3 className="text-[18px] font-bold text-white mb-2">Reprogramar turno</h3>
         <p className="text-[13px] text-[#8A8A8A] mb-4">
           {target.clientName} {target.clientLastname} &mdash; actual: {formatDate(target.date)} {formatTime(target.startTime)}

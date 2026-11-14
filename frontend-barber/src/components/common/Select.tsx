@@ -13,10 +13,11 @@ interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   error?: string;
+  disabled?: boolean;
   renderOption?: (option: SelectOption, isSelected: boolean) => React.ReactNode;
 }
 
-export function Select({ label, value, onChange, options, placeholder = 'Seleccionar...', error, renderOption }: SelectProps) {
+export function Select({ label, value, onChange, options, placeholder = 'Seleccionar...', error, disabled = false, renderOption }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const generatedId = useId();
@@ -49,13 +50,16 @@ export function Select({ label, value, onChange, options, placeholder = 'Selecci
       <div className="relative">
         <button
           type="button"
-          onClick={() => setOpen(!open)}
+          onClick={() => !disabled && setOpen(!open)}
+          disabled={disabled}
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listboxId}
+          aria-disabled={disabled}
           className={`w-full h-[40px] flex items-center justify-between rounded-[10px] border px-3 text-[13px] text-white outline-none transition-all duration-200
             ${error ? 'border-red-500' : 'border-[#282828]'} 
             bg-[#1A1A1A] focus:border-[#FF5C00] focus:ring-1 focus:ring-[#FF5C00]/20
+            ${disabled ? 'cursor-not-allowed opacity-50' : ''}
             ${!selected && !value ? 'text-[#8A8A8A]' : ''}`}
         >
           <span>{selected ? (renderOption ? renderOption(selected, true) : selected.label) : placeholder}</span>

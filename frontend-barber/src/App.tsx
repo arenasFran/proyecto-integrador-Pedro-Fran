@@ -46,7 +46,6 @@ const MembershipPage = lazy(() => import('./pages/app/MembershipPage'));
 const ProfilePage = lazy(() => import('./pages/app/ProfilePage'));
 const MyAppointmentsPage = lazy(() => import('./pages/client/MyAppointmentsPage'));
 const MyOrdersPage = lazy(() => import('./pages/client/MyOrdersPage'));
-const AiHaircutPage = lazy(() => import('./pages/client/AiHaircutPage'));
 const AppSidebar = lazy(() => import('./components/sidebar/AppSidebar').then(({ AppSidebar: Component }) => ({ default: Component })));
 
 function AppInitializer({ children }: { children: React.ReactNode }) {
@@ -173,7 +172,6 @@ function App() {
               <Route path="/mis-turnos" element={<MyAppointmentsPage />} />
               <Route path="/mis-ordenes" element={<MyOrdersPage />} />
               <Route path="/mi-membresia" element={<MembershipPage />} />
-              <Route path="/recomendacion-corte" element={<AiHaircutPage />} />
             </Route>
             <Route
               element={

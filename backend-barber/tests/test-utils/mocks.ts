@@ -147,32 +147,10 @@ export const makeMockClientRepository = () => ({
   createUnregistered: jest.fn(),
   findByIds: jest.fn(),
   searchRegistered: jest.fn(),
-  updateAnalisisIA: jest.fn(),
-  reservarAnalisisIA: jest.fn(),
-  liberarLockAnalisisIA: jest.fn(),
   incrementarNoShow: jest.fn(),
   aplicarSancion: jest.fn(),
   levantarSancion: jest.fn(),
   findRegisteredByEmail: jest.fn(),
-});
-
-export const makeMockAnalisisCorteRepository = () => ({
-  create: jest.fn(),
-  findByClienteId: jest.fn(),
-  findById: jest.fn(),
-  actualizarImagenEjemplo: jest.fn(),
-});
-
-export const makeMockFaceValidationService = () => ({
-  validar: jest.fn(),
-});
-
-export const makeMockRecommendationService = () => ({
-  recomendar: jest.fn(),
-});
-
-export const makeMockImageGenerationService = () => ({
-  generarEjemploDeCorte: jest.fn(),
 });
 
 export const makeMockCloudinaryService = () => ({

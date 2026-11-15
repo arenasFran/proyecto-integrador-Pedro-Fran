@@ -28,12 +28,6 @@ export type Config = {
   cloudinaryApiKey: string;
   cloudinaryApiSecret: string;
   membershipPriceUyu: number;
-  awsRegion: string;
-  awsAccessKeyId: string | undefined;
-  awsSecretAccessKey: string | undefined;
-  awsSessionToken: string | undefined;
-  geminiApiKey: string | undefined;
-  openaiApiKey: string | undefined;
   orphanPaymentCutoffHours: number;
   seedOnStart: boolean;
   rateLimit: {
@@ -149,12 +143,6 @@ export function loadConfig(): Config {
     cloudinaryApiKey: requireEnv('CLOUDINARY_API_KEY'),
     cloudinaryApiSecret: requireEnv('CLOUDINARY_API_SECRET'),
     membershipPriceUyu: 1600,
-    awsRegion: optionalEnv('AWS_REGION', 'us-east-1'),
-    awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || undefined,
-    awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || undefined,
-    awsSessionToken: process.env.AWS_SESSION_TOKEN || undefined,
-    geminiApiKey: process.env.GEMINI_API_KEY || undefined,
-    openaiApiKey: process.env.OPENAI_API_KEY || undefined,
     orphanPaymentCutoffHours: parseIntEnv('ORPHAN_PAYMENT_CUTOFF_HOURS', 72),
     seedOnStart: parseBoolEnv('SEED_ON_START', false),
     rateLimit: {
@@ -221,16 +209,6 @@ export function validateEnv(): Config {
       console.log('[GEMINI] Texto libre habilitado (modelo: ' + config.gemini.model + ').');
     } else {
       console.log('[GEMINI] Deshabilitado (GEMINI_API_KEY no configurada). El bot solo usará botones.');
-    }
-
-    if (!config.awsAccessKeyId || !config.awsSecretAccessKey) {
-      console.warn('[ANALISIS-IA] Credenciales de AWS no configuradas. La validación de foto (Rekognition) no estará disponible.');
-    }
-    if (!config.geminiApiKey) {
-      console.warn('[ANALISIS-IA] GEMINI_API_KEY no configurada. La recomendación de corte (Gemini) no estará disponible.');
-    }
-    if (!config.openaiApiKey) {
-      console.warn('[ANALISIS-IA] OPENAI_API_KEY no configurada. La imagen de ejemplo del corte (OpenAI) no estará disponible.');
     }
 
     return config;

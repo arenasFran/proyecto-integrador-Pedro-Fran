@@ -1,10 +1,10 @@
 import express from 'express';
 import request from 'supertest';
-import { uploadAnalisisFoto, handleUploadErrors } from '../../../src/interface-adapters/middlewares/upload.middleware';
+import { uploadAvatar, handleUploadErrors } from '../../../src/interface-adapters/middlewares/upload.middleware';
 
 const buildTestApp = () => {
   const app = express();
-  app.post('/foto', handleUploadErrors(uploadAnalisisFoto), (req, res) => {
+  app.post('/foto', handleUploadErrors(uploadAvatar), (req, res) => {
     res.status(200).json({ ok: true, mimetype: req.file?.mimetype });
   });
   return app;
@@ -17,7 +17,7 @@ describe('handleUploadErrors', () => {
 
     const res = await request(app)
       .post('/foto')
-      .attach('foto', archivoGrande, { filename: 'grande.jpg', contentType: 'image/jpeg' });
+      .attach('avatar', archivoGrande, { filename: 'grande.jpg', contentType: 'image/jpeg' });
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ code: 'FILE_TOO_LARGE' });
@@ -28,7 +28,7 @@ describe('handleUploadErrors', () => {
 
     const res = await request(app)
       .post('/foto')
-      .attach('foto', Buffer.from('no soy una imagen'), { filename: 'archivo.txt', contentType: 'text/plain' });
+      .attach('avatar', Buffer.from('no soy una imagen'), { filename: 'archivo.txt', contentType: 'text/plain' });
 
     expect(res.status).toBe(400);
     expect(res.body).toMatchObject({ code: 'INVALID_FILE' });
@@ -39,7 +39,7 @@ describe('handleUploadErrors', () => {
 
     const res = await request(app)
       .post('/foto')
-      .attach('foto', Buffer.from('fake-photo-bytes'), { filename: 'foto.jpg', contentType: 'image/jpeg' });
+      .attach('avatar', Buffer.from('fake-photo-bytes'), { filename: 'foto.jpg', contentType: 'image/jpeg' });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ ok: true, mimetype: 'image/jpeg' });

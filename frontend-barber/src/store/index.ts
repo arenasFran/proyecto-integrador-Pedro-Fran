@@ -13,7 +13,6 @@ import { productApi } from '../services/productApi';
 import { orderApi } from '../services/orderApi';
 import { paymentApi } from '../services/paymentApi';
 import { telegramApi } from '../services/telegramApi';
-import { analisisCorteApi } from '../services/analisisCorteApi';
 import { clientApi } from '../services/clientApi';
 import { cartApi } from '../services/cartApi';
 
@@ -32,7 +31,6 @@ export const store = configureStore({
     [orderApi.reducerPath]: orderApi.reducer,
     [paymentApi.reducerPath]: paymentApi.reducer,
     [telegramApi.reducerPath]: telegramApi.reducer,
-    [analisisCorteApi.reducerPath]: analisisCorteApi.reducer,
     [clientApi.reducerPath]: clientApi.reducer,
     [cartApi.reducerPath]: cartApi.reducer,
   },
@@ -47,7 +45,6 @@ export const store = configureStore({
       orderApi.middleware,
       paymentApi.middleware,
       telegramApi.middleware,
-      analisisCorteApi.middleware,
       clientApi.middleware,
       cartApi.middleware
     ),

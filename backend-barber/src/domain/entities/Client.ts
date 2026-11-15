@@ -7,9 +7,6 @@ export type ClientProps = {
   kind: 'Registrado' | 'NoRegistrado';
   photoUrl?: string | null;
   registeredAt?: Date;
-  consentimientoAnalisisIA?: boolean;
-  consentimientoAnalisisIAFecha?: Date | null;
-  ultimoAnalisisFecha?: Date | null;
   noShowCount?: number;
   sancionado?: boolean;
   fechaSancion?: Date | null;
@@ -58,18 +55,6 @@ export class Client {
 
   get registeredAt(): Date | undefined {
     return this.props.registeredAt;
-  }
-
-  get consentimientoAnalisisIA(): boolean {
-    return this.props.consentimientoAnalisisIA ?? false;
-  }
-
-  get consentimientoAnalisisIAFecha(): Date | null {
-    return this.props.consentimientoAnalisisIAFecha ?? null;
-  }
-
-  get ultimoAnalisisFecha(): Date | null {
-    return this.props.ultimoAnalisisFecha ?? null;
   }
 
   get noShowCount(): number {
